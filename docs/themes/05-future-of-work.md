@@ -16,13 +16,25 @@ Reduce the friction between organizational knowledge, collaboration, decisions, 
 
 ## Originality-first concepts
 
-### Organizational disagreement map
+### Organizational disagreement map — CROSS-REGION VALIDATED
 
 Most knowledge systems store answers and erase disagreement. Distinguish settled decisions, unresolved objections, and assumptions never tested. Show how disagreement moved through time and what evidence would close it. The unique value is **institutional memory of uncertainty**.
 
-### Delegation boundary ledger
+**Cross-region validation**: Enterprise knowledge Q&A is common in hackathons. The ADK Hackathon's Energy Agent AI had multi-agent orchestration but focused on customer management, not decision memory. Microsoft Agent Academy had proposal → meeting → document flows but no disagreement tracking. Our idea is genuinely novel: no hackathon project has preserved **institutional uncertainty** as a first-class artifact.
+
+**JAPAC angle**: Cross-functional teams across APAC (especially in Japans keiretsu, Koreas chaebols, and Indian conglomerates) have complex decision chains. Build with synthetic multi-stakeholder decision data showing how disagreements evolved.
+
+**Architecture**: Gemini extraction from meeting transcripts/docs + conflict detection + timeline visualization + BigQuery graph + Firebase frontend + Cloud Run.
+
+### Delegation boundary ledger — CROSS-REGION VALIDATED
 
 For every proposed agent action, show data scope, side effects, reversibility, policy basis, and approval level. Let teams pre-approve low-risk actions while routing novel actions to a human. Demo the same request changing from auto-run to approval-required when scope expands.
+
+**Cross-region validation**: Agent governance is an emerging theme. The Gemini Live Agent Challenge had UI navigation agents (Wand, Moonwalk) but no governance layer. Google Cloud's Agent Gateway/Model Armor is new infrastructure, but no hackathon has built a user-facing **boundary ledger** that makes agent governance transparent. This solves the "trust" problem that judges repeatedly ask about.
+
+**JAPAC angle**: APAC enterprises have strict data residency and compliance requirements. Build with JAPAC data sovereignty scenarios to show how boundaries change across jurisdictions.
+
+**Architecture**: ADK + Agent Gateway + Model Armor + action classifier + Cloud Run audit log + Firebase approval UI.
 
 ### Attention budget allocator
 
@@ -31,6 +43,13 @@ Given deadlines, dependencies, meetings, and declared focus windows, propose wha
 ### Skill graph from artifacts, not surveillance
 
 With consent, analyze completed work artifacts—resolved tickets, docs, code reviews, and training outcomes—to infer demonstrated skills and missing support. Recommend a peer, resource, or stretch task with evidence. Keep the graph user-editable.
+
+## Advanced builds
+
+- **Enterprise agent marketplace:** agents publish capability contracts describing tools, data scope, cost, latency, failure modes, and approval requirements; a router composes them safely.
+- **Decision futures room:** specialist agents make forecasts with explicit assumptions, preserve dissent, and score predictions after outcomes to build organizational forecasting memory.
+
+See the detailed architecture in the [global AI hackathon research](../global-ai-hackathon-research.md#future-of-work).
 
 ## Common baseline patterns — only use with a sharper wedge
 
