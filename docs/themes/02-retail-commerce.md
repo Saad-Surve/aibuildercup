@@ -16,13 +16,25 @@ Improve discovery, personalization, service, inventory, fulfillment, and seller 
 
 ## Originality-first concepts
 
-### Constraint barter engine
+### Constraint barter engine — CROSS-REGION VALIDATED
 
 Most commerce assistants pretend every preference can be satisfied. Let shoppers trade delivery speed for color, price for repairability, brand for local availability, or size certainty for return flexibility. Generate a small frontier of options and show the consequence of each trade. The differentiator is an explicit **trade ledger**.
 
-### Return-to-design intelligence
+**Cross-region validation**: The ADK Hackathon's cart-to-kitchen planning and credit pre-approval projects showed constraint-aware agents. But no hackathon project explicitly visualizes trade-off frontiers — showing users what they're giving up and what they're gaining with each option. Plateer's Groobee (APAC) does NL product search but not constraint trading.
+
+**JAPAC angle**: Asian e-commerce consumers are extremely price-sensitive but also delivery-speed-sensitive. Trade-off visualization resonates with the comparison-shopping culture across APAC markets.
+
+**Architecture**: Vertex AI Search for catalog + Gemini trade-off reasoning + Firestore constraint solver + Firebase frontend + Cloud Run.
+
+### Return-to-design intelligence — CROSS-REGION VALIDATED
 
 Customers submit a photo, voice explanation, and fit/context details. Cluster semantically similar return reasons across SKUs and translate them into packaging, sizing, or product-design changes. The output is a **closed-loop product feedback compiler**, not a customer-service reply.
+
+**Cross-region validation**: Return resolution agents exist (commodity). But no hackathon project has turned return data into product design recommendations. This is differentiated because the output isn't a refund — it's a design brief. Nerdmonster (Brazil) classifies store images but doesn't feed back into design.
+
+**JAPAC angle**: Fashion returns in APAC are 30-40% higher than global average due to sizing inconsistency across markets. Build with JAPAC fashion data to show how return patterns reveal sizing issues across regions.
+
+**Architecture**: Gemini vision (return photos) + voice notes → semantic clustering → BigQuery analysis → actionable design brief generator + Cloud Run + Firebase.
 
 ### Empty-shelf demand detector
 
@@ -31,6 +43,13 @@ Combine shelf photos, searches, stock history, local events, weather, and associ
 ### Provenance-preserving product storyteller
 
 For artisan or second-hand commerce, build a listing whose story has an evidence graph: maker voice note, material photo, repair history, origin claim, and generated copy visibly separated. Let buyers ask, “What do you actually know?”
+
+## Advanced builds
+
+- **Circular returns exchange:** agents route returned products to repair, resale, donation, parts harvesting, or recycling using image inspection, local repair capacity, and impact calculations.
+- **Agent-to-agent shopping contract:** a customer agent negotiates with a merchant agent over price, substitutions, warranty, delivery, and carbon-aware shipping using structured, auditable offers.
+
+See the detailed architecture in the [global AI hackathon research](../global-ai-hackathon-research.md#retail--commerce).
 
 ## Common baseline patterns — only use with a sharper wedge
 

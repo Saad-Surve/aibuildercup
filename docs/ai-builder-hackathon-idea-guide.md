@@ -12,6 +12,7 @@ This is an ideation and execution guide for the six themes in `problem-statement
 - [04 — Media, Content & Digital Experiences](themes/04-media-content.md)
 - [05 — Future of Work](themes/05-future-of-work.md)
 - [06 — Sustainability & Social Impact](themes/06-sustainability-social-impact.md)
+- [Global AI hackathon research and advanced concepts](global-ai-hackathon-research.md)
 
 The goal is not to build the largest system. The strongest submission will make one painful workflow dramatically better, show the change in a live prototype, and explain how the same architecture could scale.
 
