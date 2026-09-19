@@ -56,7 +56,7 @@ modiji         orange         orange                 orange
 ```
 
 
-misinformation analysis -> 1. straightforward facts/trivia verification 2. cites anything without a proper source that can be classified as misinformation
+a
 
 audience insights
 
