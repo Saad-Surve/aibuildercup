@@ -8,8 +8,8 @@ deploys the API and web app to Cloud Run.**
 Replaced the earlier over-engineered plan with the minimum needed to deploy.
 
 - `.github/workflows/deploy.yml` — on push to `main` (and manual dispatch): builds `api` and `web`
-  images, pushes to Artifact Registry, deploys both to Cloud Run. Runs on a Blacksmith runner,
-  authenticates with Workload Identity Federation (no keys).
+  images, pushes to Artifact Registry, deploys both to Cloud Run. Runs on GitHub-hosted
+  `ubuntu-latest`, authenticates with Workload Identity Federation (no keys).
 - `web/Dockerfile` + `web/.dockerignore` — Next.js standalone container (Bun build → node runtime,
   non-root).
 - `web/next.config.ts` — `output: "standalone"`.
@@ -45,8 +45,7 @@ deploy small.
 
 ## 5. Next step
 
-1. Confirm the Blacksmith GitHub App is installed (or change `runs-on` to `ubuntu-latest`).
-2. Push to `main`; wait for the deploy run.
-3. Read the API URL, set repo variables `API_URL` and `CORS_ALLOWED_ORIGINS`
+1. Push to `main`; wait for the deploy run.
+2. Read the API URL, set repo variables `API_URL` and `CORS_ALLOWED_ORIGINS`
    (`["https://<web-url>","https://habeas-codus.web.app"]`), re-run the workflow.
-4. Smoke test: `/healthz`, and sign in through the deployed web app.
+3. Smoke test: `/healthz`, and sign in through the deployed web app.
