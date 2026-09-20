@@ -47,7 +47,7 @@ locals {
     ]
     deployer = [
       "roles/artifactregistry.writer",
-      "roles/run.developer",
+      "roles/run.admin",
       "roles/iam.serviceAccountUser",
     ]
   }
