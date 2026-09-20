@@ -40,10 +40,27 @@ All buckets: uniform bucket-level access on, public access prevention enforced.
 | Database | `(default)` |
 | Mode | Native |
 | Location | `us-central1` |
+| Security rules | `firestore.rules` (repo root), released as `cloud.firestore`. Deny all direct client access — the backend uses the Admin SDK. |
+| Composite index | `projects`: `ownerUid` ASC, `updatedAt` DESC (COLLECTION scope). Required by `GET /projects`. |
 
 Firestore is the **control plane**: users, projects, jobs, transcripts, findings, artifacts,
 chat, persona. Big media lives in Cloud Storage, analytics live in BigQuery. See
 `../docs/technical-design/db-design.md`.
+
+Rules and the index are declared in `firestore_rules.tf` and `firestore_indexes.tf`. Applied
+directly (Terraform was not installed on the workstation) with:
+
+```bash
+# composite index for the projects list query
+gcloud firestore indexes composite create \
+  --project=habeas-codus --database="(default)" --collection-group=projects \
+  --query-scope=collection \
+  --field-config=field-path=ownerUid,order=ascending \
+  --field-config=field-path=updatedAt,order=descending
+
+# rules: create a ruleset from firestore.rules and point the cloud.firestore release at it
+# (or, once firebase-tools is installed: firebase deploy --only firestore:rules)
+```
 
 ---
 
@@ -229,6 +246,8 @@ it.
 | `services.tf` | Required APIs |
 | `storage.tf` | Buckets, versioning, lifecycle, CORS |
 | `firestore.tf` | Firestore database |
+| `firestore_indexes.tf` | Composite indexes (projects list) |
+| `firestore_rules.tf` | Firestore security rules ruleset + release |
 | `pubsub.tf` | Topics, DLQs, subscriptions |
 | `bigquery.tf` | Datasets and tables |
 | `kms.tf` | Keyring and key |

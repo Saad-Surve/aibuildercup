@@ -89,7 +89,9 @@ cp .env.example .env.local
 bun dev
 
 bun run build          # build
-bun run lint           # lint
+bun run lint           # lint (oxlint)
+bun run lint:eslint    # lint with the Next.js eslint config
+bun run format         # format (oxfmt)
 ```
 
 ### Infra (`infra/`)
