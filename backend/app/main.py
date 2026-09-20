@@ -100,10 +100,10 @@ def create_app() -> FastAPI:
             ),
         )
 
-    app.include_router(health.router)
-    app.include_router(users.router)
-    app.include_router(onboarding.router)
-    app.include_router(projects.router)
+    app.include_router(health.router, prefix="/api")
+    app.include_router(users.router, prefix="/api")
+    app.include_router(onboarding.router, prefix="/api")
+    app.include_router(projects.router, prefix="/api")
     return app
 
 

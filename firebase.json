@@ -5,6 +5,15 @@
   "hosting": {
     "public": "web/out",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "cleanUrls": true
+    "cleanUrls": true,
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "creator-studio-api",
+          "region": "us-central1"
+        }
+      }
+    ]
   }
 }

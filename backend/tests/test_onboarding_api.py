@@ -37,7 +37,7 @@ def client(tmp_path) -> Iterator[TestClient]:
 
 
 def test_get_me_creates_profile(client: TestClient) -> None:
-    response = client.get("/me")
+    response = client.get("/api/me")
     assert response.status_code == 200
     body = response.json()
     assert body["uid"] == "uid-1"
@@ -48,7 +48,7 @@ def test_get_me_creates_profile(client: TestClient) -> None:
 
 def test_onboarding_flow_through_persona(client: TestClient) -> None:
     saved = client.put(
-        "/onboarding",
+        "/api/onboarding",
         json={
             "step": "creator_profile",
             "answers": {"creatorName": "Priya", "topics": ["finance"]},
@@ -58,30 +58,30 @@ def test_onboarding_flow_through_persona(client: TestClient) -> None:
     assert saved.json()["status"] == "in_progress"
     assert saved.json()["answers"]["topics"] == ["finance"]
 
-    state = client.get("/onboarding").json()
+    state = client.get("/api/onboarding").json()
     assert state["currentStep"] == "creator_profile"
 
-    complete = client.post("/onboarding/complete")
+    complete = client.post("/api/onboarding/complete")
     assert complete.status_code == 200
     ref = complete.json()
     assert ref["onboardingCompleted"] is True
     assert ref["personaVersion"] == 1
 
-    me = client.get("/me").json()
+    me = client.get("/api/me").json()
     assert me["onboardingCompleted"] is True
     assert me["personaVersion"] == 1
 
 
 def test_get_persona_before_completion_is_not_found(client: TestClient) -> None:
-    response = client.get("/persona")
+    response = client.get("/api/persona")
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "PERSONA_NOT_FOUND"
 
 
 def test_patch_persona_bumps_version(client: TestClient) -> None:
-    client.post("/onboarding/complete")
+    client.post("/api/onboarding/complete")
     response = client.patch(
-        "/persona", json={"content": "# Edited\n", "expectedVersion": 1}
+        "/api/persona", json={"content": "# Edited\n", "expectedVersion": 1}
     )
     assert response.status_code == 200
     assert response.json()["version"] == 2
@@ -89,15 +89,15 @@ def test_patch_persona_bumps_version(client: TestClient) -> None:
 
 
 def test_patch_persona_conflict(client: TestClient) -> None:
-    client.post("/onboarding/complete")
+    client.post("/api/onboarding/complete")
     response = client.patch(
-        "/persona", json={"content": "# Stale\n", "expectedVersion": 5}
+        "/api/persona", json={"content": "# Stale\n", "expectedVersion": 5}
     )
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "PERSONA_VERSION_CONFLICT"
 
 
 def test_onboarding_step_requires_step(client: TestClient) -> None:
-    response = client.put("/onboarding", json={"answers": {}})
+    response = client.put("/api/onboarding", json={"answers": {}})
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "VALIDATION_ERROR"

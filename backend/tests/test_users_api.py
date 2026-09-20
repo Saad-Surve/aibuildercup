@@ -36,7 +36,7 @@ def test_get_me_creates_user(
     ctx: tuple[TestClient, FakeFirestoreClient, list[str]],
 ) -> None:
     client, store, _ = ctx
-    response = client.get("/me")
+    response = client.get("/api/me")
     assert response.status_code == 200
     assert response.json()["uid"] == "uid-1"
     assert "users/uid-1" in store.docs
@@ -46,13 +46,13 @@ def test_delete_me_removes_data_and_identity(
     ctx: tuple[TestClient, FakeFirestoreClient, list[str]],
 ) -> None:
     client, store, deleted = ctx
-    client.get("/me")
+    client.get("/api/me")
     store.set_document(
         "users/uid-1/projects/p1", {"ownerUid": "uid-1", "name": "x"}
     )
     store.set_document("users/other", {"uid": "other"})
 
-    response = client.delete("/me")
+    response = client.delete("/api/me")
 
     assert response.status_code == 204
     assert [key for key in store.docs if key.startswith("users/uid-1")] == []
@@ -62,5 +62,5 @@ def test_delete_me_removes_data_and_identity(
 
 def test_delete_me_requires_auth() -> None:
     app.dependency_overrides.clear()
-    response = TestClient(app).delete("/me")
+    response = TestClient(app).delete("/api/me")
     assert response.status_code == 401
