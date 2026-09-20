@@ -49,6 +49,7 @@ locals {
       "roles/artifactregistry.writer",
       "roles/run.admin",
       "roles/iam.serviceAccountUser",
+      "roles/firebasehosting.admin",
     ]
   }
 }
