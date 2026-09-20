@@ -13,15 +13,31 @@ export function LogoMark({ className }: { className?: string }) {
         className,
       )}
     >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        className="size-4"
-      >
-        <rect x="3" y="5" width="18" height="2.5" rx="1.25" />
-        <rect x="3" y="10.75" width="11" height="2.5" rx="1.25" />
-        <rect x="3" y="16.5" width="15" height="2.5" rx="1.25" />
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4">
+        <rect
+          x="3"
+          y="5"
+          width="18"
+          height="2.5"
+          rx="1.25"
+          fill="var(--signal)"
+        />
+        <rect
+          x="3"
+          y="10.75"
+          width="11"
+          height="2.5"
+          rx="1.25"
+          fill="var(--sev-low)"
+        />
+        <rect
+          x="3"
+          y="16.5"
+          width="15"
+          height="2.5"
+          rx="1.25"
+          fill="var(--sev-critical)"
+        />
       </svg>
     </span>
   );

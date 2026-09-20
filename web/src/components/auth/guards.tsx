@@ -14,7 +14,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (status === "signed_out") {
-      router.replace("/login");
+      router.replace("/");
     }
   }, [status, router]);
 

@@ -27,8 +27,8 @@ heatmap can be the loudest thing on screen.
 | `card` / `popover`                                                          | Raised surfaces (1px `ring-foreground/10`, no heavy shadows).                                              |
 | `muted` / `muted-foreground`                                                | Secondary surfaces and text.                                                                               |
 | `border` / `input`                                                          | Hairlines and field strokes.                                                                               |
-| `primary`                                                                   | Ink. The default action colour.                                                                            |
-| `signal`                                                                    | The one interactive accent: focus rings, active step, links, selection.                                    |
+| `primary`                                                                   | The action colour. Blue (`signal`), so buttons, progress, and badges carry colour.                         |
+| `signal`                                                                    | The one interactive accent: primary actions, focus rings, active step/nav, links, selected chips.          |
 | `destructive`                                                               | Errors and destructive actions.                                                                            |
 | `sev-none`, `sev-good`, `sev-low`, `sev-medium`, `sev-high`, `sev-critical` | Severity scale.                                                                                            |
 | `heat-green`, `heat-yellow`, `heat-orange`, `heat-red`                      | Heatmap bins per the contract (score ≥8 green, 6–7.99 yellow, 4–5.99 orange, <4 red; critical always red). |
@@ -57,7 +57,9 @@ user menu offers Light / Dark / System. Test both before shipping. No pure `#000
 
 ## 3. Conventions
 
-- Icons: `lucide-react` only, `strokeWidth` default. Never hand-roll icon paths.
+- Icons: **Hugeicons** (`@hugeicons/core-free-icons`) rendered through the `Icon` wrapper in
+  `components/common/icon.tsx`, which standardises size and stroke width. Never hand-roll icon
+  paths. The only inline SVG allowed is the Google brand mark on the sign-in button.
 - No emoji in UI.
 - Loading: skeleton or `Spinner`, never a bare "Loading…". Errors: inline, plain language,
   say what happened and what to do. Empty states: `Empty` with an action.
@@ -71,10 +73,12 @@ Derived from `docs/technical-design/frontend-plan.md`. Status as of the onboardi
 
 **Built**
 
-- Auth: `LoginPage`, `GoogleSignInButton`, `AuthLoadingScreen`, `AuthProvider`, `RequireAuth`, `RequireOnboarded`
+- Landing: `LandingPage` (split layout, vertical divider, `HeroIllustration`), `SignInPanel`, `GoogleSignInButton`
+- Auth: `AuthLoadingScreen`, `AuthProvider`, `RequireAuth`, `RequireOnboarded`
 - Shell: `AppShell`, sidebar, `UserMenu`, `Logo`, `PageHeader`, `CenteredScreen`
 - Onboarding: `OnboardingFlow`, `StepRail`, Welcome / Identity / Topics / Audience / Style / Platforms / Persona / Done
-- Common: `ChipSelect`, `Empty`, `Spinner`, `Progress`
+- Profile: `ProfilePage` with read-only `PersonaText` and account deletion
+- Common: `Icon`, `ChipSelect`, `PersonaText`, `Empty`, `Spinner`, `Progress`
 
 **Next**
 
@@ -96,13 +100,15 @@ Derived from `docs/technical-design/frontend-plan.md`. Status as of the onboardi
 ```
 src/
   app/
-    (auth)/login          focused auth route
+    page.tsx              landing page (split: hero left, sign-in right)
     (onboarding)/onboarding  focused onboarding route (no app chrome)
     (app)/dashboard       authed app shell
+    (app)/profile         account + persona + delete
   components/
     ui/                   shadcn primitives (Base UI based) — edit sparingly
-    common/               brand + shared primitives (Logo, PageHeader, ChipSelect, …)
-    auth/                 auth provider, guards, login
+    common/               brand + shared primitives (Logo, Icon, PageHeader, ChipSelect, …)
+    auth/                 auth provider, guards, sign-in panel
+    landing/              landing page + hero illustration
     layout/               app shell, sidebar, user menu
     onboarding/           flow, rail, steps
   lib/

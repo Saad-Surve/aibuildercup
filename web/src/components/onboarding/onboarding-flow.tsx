@@ -171,12 +171,8 @@ export function OnboardingFlow() {
   return (
     <div className="min-h-[100dvh]">
       <header className="border-b">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
+        <div className="mx-auto flex h-14 max-w-6xl items-center px-6">
           <Logo />
-          <span className="tabular text-xs text-muted-foreground">
-            {String(index + 1).padStart(2, "0")} /{" "}
-            {String(ONBOARDING_STEPS.length).padStart(2, "0")}
-          </span>
         </div>
       </header>
 
@@ -220,6 +216,10 @@ export function OnboardingFlow() {
                 {busy ? <Spinner /> : null}
                 {continueLabel}
               </Button>
+              <span className="tabular ml-auto text-xs text-muted-foreground">
+                {String(index + 1).padStart(2, "0")} /{" "}
+                {String(ONBOARDING_STEPS.length).padStart(2, "0")}
+              </span>
             </div>
           ) : null}
         </main>

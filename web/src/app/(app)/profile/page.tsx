@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { TrashIcon } from "lucide-react";
+import { Delete02Icon } from "@hugeicons/core-free-icons";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { Icon } from "@/components/common/icon";
 import { PageHeader } from "@/components/common/page-header";
 import { PersonaText } from "@/components/common/persona-text";
 import {
@@ -96,7 +97,7 @@ export default function ProfilePage() {
     try {
       await apiFetch("/me", { method: "DELETE" });
       await signOut();
-      router.replace("/login");
+      router.replace("/");
     } catch (caught) {
       setDeleteError(describe(caught));
       setDeleting(false);
@@ -190,7 +191,7 @@ export default function ProfilePage() {
 
           <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
             <AlertDialogTrigger render={<Button variant="destructive" />}>
-              <TrashIcon />
+              <Icon icon={Delete02Icon} />
               Delete account
             </AlertDialogTrigger>
             <AlertDialogContent>

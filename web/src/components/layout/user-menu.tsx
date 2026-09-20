@@ -1,9 +1,15 @@
 "use client";
 
-import { LogOutIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import {
+  ComputerIcon,
+  Logout01Icon,
+  Moon01Icon,
+  Sun01Icon,
+} from "@hugeicons/core-free-icons";
 import { useTheme } from "next-themes";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { Icon } from "@/components/common/icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,22 +59,22 @@ export function UserMenu() {
             onValueChange={setTheme}
           >
             <DropdownMenuRadioItem value="light">
-              <SunIcon />
+              <Icon icon={Sun01Icon} />
               Light
             </DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="dark">
-              <MoonIcon />
+              <Icon icon={Moon01Icon} />
               Dark
             </DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="system">
-              <MonitorIcon />
+              <Icon icon={ComputerIcon} />
               System
             </DropdownMenuRadioItem>
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={signOut}>
-          <LogOutIcon />
+          <Icon icon={Logout01Icon} />
           Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
