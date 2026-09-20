@@ -61,6 +61,54 @@ class GoogleStorageClient:
     def __init__(self, bucket: Any) -> None:
         self._bucket = bucket
 
+    @staticmethod
+    def _signing_credentials() -> dict[str, Any]:
+        """Credentials usable for a V4 signed URL.
+
+        A service-account key can sign directly. On Cloud Run the default credentials are
+        compute-engine credentials with no private key, so we hand the SDK the service-account
+        email and an access token, which makes it sign through the IAM `signBlob` API. That needs
+        `roles/iam.serviceAccountTokenCreator` on the runtime service account.
+        """
+        import google.auth
+        from google.auth.transport.requests import Request
+
+        credentials, _ = google.auth.default()
+        if hasattr(credentials, "sign_bytes"):
+            return {"credentials": credentials}
+
+        email = getattr(credentials, "service_account_email", None)
+        if not email:
+            raise RuntimeError(
+                "Cannot sign Cloud Storage URLs: no signing credentials. On Cloud Run this uses "
+                "the runtime service account via IAM signBlob; locally, use a service-account key "
+                "or `gcloud auth application-default login --impersonate-service-account`."
+            )
+        if not credentials.token:
+            credentials.refresh(Request())
+        return {"service_account_email": email, "access_token": credentials.token}
+
+    def _signed_url(
+        self,
+        path: str,
+        *,
+        method: str,
+        expires_seconds: int,
+        content_type: str | None = None,
+    ) -> str:
+        from datetime import timedelta
+
+        blob = self._bucket.blob(validate_object_path(path))
+        return str(
+            blob.generate_signed_url(
+                version="v4",
+                expiration=timedelta(seconds=expires_seconds),
+                method=method,
+                content_type=content_type,
+                **self._signing_credentials(),
+            )
+        )
+
     def upload_text(
         self, path: str, text: str, *, content_type: str = "text/markdown"
     ) -> None:
@@ -75,25 +123,17 @@ class GoogleStorageClient:
         return bool(self._bucket.blob(validate_object_path(path)).exists())
 
     def signed_download_url(self, path: str, *, expires_seconds: int = 900) -> str:
-        from datetime import timedelta
-
-        blob = self._bucket.blob(validate_object_path(path))
-        return str(blob.generate_signed_url(expiration=timedelta(seconds=expires_seconds)))
+        return self._signed_url(path, method="GET", expires_seconds=expires_seconds)
 
     def signed_upload_url(
         self, path: str, *, content_type: str, expires_seconds: int = 900
     ) -> str:
         """V4 signed PUT URL so the browser uploads directly to Cloud Storage."""
-        from datetime import timedelta
-
-        blob = self._bucket.blob(validate_object_path(path))
-        return str(
-            blob.generate_signed_url(
-                version="v4",
-                expiration=timedelta(seconds=expires_seconds),
-                method="PUT",
-                content_type=content_type,
-            )
+        return self._signed_url(
+            path,
+            method="PUT",
+            expires_seconds=expires_seconds,
+            content_type=content_type,
         )
 
     def delete_prefix(self, prefix: str) -> int:
