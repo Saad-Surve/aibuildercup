@@ -40,6 +40,14 @@ interface DataStepProps {
   update: (patch: Partial<OnboardingAnswers>) => void;
 }
 
+function RequiredMark() {
+  return (
+    <span aria-hidden="true" className="text-destructive">
+      *
+    </span>
+  );
+}
+
 function ChipField({
   label,
   hint,
@@ -97,13 +105,17 @@ export function IdentityStep({ answers, update }: DataStepProps) {
   return (
     <FieldGroup>
       <Field>
-        <FieldLabel htmlFor="creatorName">Creator name</FieldLabel>
+        <FieldLabel htmlFor="creatorName">
+          Creator name
+          <RequiredMark />
+        </FieldLabel>
         <Input
           id="creatorName"
           value={answers.creatorName ?? ""}
           onChange={(event) => update({ creatorName: event.target.value })}
           placeholder="Priya Sharma"
           autoComplete="name"
+          aria-required="true"
         />
         <FieldDescription>
           Shown on your profile and used by the persona.

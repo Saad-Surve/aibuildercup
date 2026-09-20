@@ -1,5 +1,6 @@
-import { CheckIcon } from "lucide-react";
+import { Tick02Icon } from "@hugeicons/core-free-icons";
 
+import { Icon } from "@/components/common/icon";
 import { cn } from "@/lib/utils";
 import { ONBOARDING_STEPS } from "@/lib/onboarding";
 
@@ -24,14 +25,14 @@ export function StepRail({ currentIndex }: { currentIndex: number }) {
               className={cn(
                 "tabular flex size-6 shrink-0 items-center justify-center rounded-md border text-[0.7rem]",
                 state === "current" &&
-                  "border-foreground bg-foreground text-background",
+                  "border-signal bg-signal text-signal-foreground",
                 state === "done" &&
                   "border-transparent bg-muted text-foreground",
                 state === "upcoming" && "border-border text-muted-foreground",
               )}
             >
               {state === "done" ? (
-                <CheckIcon className="size-3.5" />
+                <Icon icon={Tick02Icon} className="size-3.5" />
               ) : (
                 String(index + 1).padStart(2, "0")
               )}

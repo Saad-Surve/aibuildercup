@@ -45,7 +45,7 @@ export function ChipSelect({
             className={cn(
               "inline-flex h-8 items-center rounded-lg border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
               selected
-                ? "border-foreground bg-foreground text-background"
+                ? "border-signal bg-signal text-signal-foreground"
                 : "border-input bg-background text-foreground hover:bg-muted",
             )}
           >

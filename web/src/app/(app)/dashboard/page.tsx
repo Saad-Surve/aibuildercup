@@ -1,8 +1,9 @@
 "use client";
 
-import { UploadIcon } from "lucide-react";
+import { Upload01Icon } from "@hugeicons/core-free-icons";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { Icon } from "@/components/common/icon";
 import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +29,7 @@ export default function DashboardPage() {
       <Empty className="border py-16">
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <UploadIcon />
+            <Icon icon={Upload01Icon} />
           </EmptyMedia>
           <EmptyTitle>No projects yet</EmptyTitle>
           <EmptyDescription>

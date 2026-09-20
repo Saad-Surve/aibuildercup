@@ -84,7 +84,7 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.17 0 0);
 
-  --primary: oklch(0.2 0 0);
+  --primary: var(--signal);
   --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.965 0 0);
   --secondary-foreground: oklch(0.2 0 0);
@@ -98,7 +98,7 @@
   --input: oklch(0.92 0 0);
   --ring: var(--signal);
 
-  --signal: oklch(0.55 0.13 255);
+  --signal: oklch(0.54 0.17 258);
   --signal-foreground: oklch(0.99 0 0);
 
   --sev-none: oklch(0.55 0.01 260);
@@ -138,8 +138,8 @@
   --popover: oklch(0.2 0 0);
   --popover-foreground: oklch(0.97 0 0);
 
-  --primary: oklch(0.96 0 0);
-  --primary-foreground: oklch(0.18 0 0);
+  --primary: var(--signal);
+  --primary-foreground: oklch(0.15 0 0);
   --secondary: oklch(0.24 0 0);
   --secondary-foreground: oklch(0.97 0 0);
   --muted: oklch(0.24 0 0);
@@ -152,8 +152,8 @@
   --input: oklch(1 0 0 / 15%);
   --ring: var(--signal);
 
-  --signal: oklch(0.68 0.13 255);
-  --signal-foreground: oklch(0.16 0 0);
+  --signal: oklch(0.72 0.14 258);
+  --signal-foreground: oklch(0.15 0 0);
 
   --sev-none: oklch(0.65 0.01 260);
   --sev-good: oklch(0.7 0.15 155);
