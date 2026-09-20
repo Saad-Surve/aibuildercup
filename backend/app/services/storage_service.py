@@ -48,6 +48,10 @@ class StorageClient(Protocol):
 
     def signed_download_url(self, path: str, *, expires_seconds: int = 900) -> str: ...
 
+    def signed_upload_url(
+        self, path: str, *, content_type: str, expires_seconds: int = 900
+    ) -> str: ...
+
     def delete_prefix(self, prefix: str) -> int: ...
 
 
@@ -75,6 +79,22 @@ class GoogleStorageClient:
 
         blob = self._bucket.blob(validate_object_path(path))
         return str(blob.generate_signed_url(expiration=timedelta(seconds=expires_seconds)))
+
+    def signed_upload_url(
+        self, path: str, *, content_type: str, expires_seconds: int = 900
+    ) -> str:
+        """V4 signed PUT URL so the browser uploads directly to Cloud Storage."""
+        from datetime import timedelta
+
+        blob = self._bucket.blob(validate_object_path(path))
+        return str(
+            blob.generate_signed_url(
+                version="v4",
+                expiration=timedelta(seconds=expires_seconds),
+                method="PUT",
+                content_type=content_type,
+            )
+        )
 
     def delete_prefix(self, prefix: str) -> int:
         """Delete every object whose name starts with `prefix`. Returns the count."""

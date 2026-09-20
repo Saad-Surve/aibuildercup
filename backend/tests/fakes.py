@@ -52,6 +52,24 @@ class FakeFirestoreClient:
             )
         return rows[offset : offset + limit]
 
+    def query_collection_group(
+        self,
+        collection_id: str,
+        *,
+        filters: list[tuple[str, str, Any]],
+        limit: int,
+    ) -> list[tuple[str, dict[str, Any]]]:
+        marker = f"/{collection_id}/"
+        rows: list[tuple[str, dict[str, Any]]] = []
+        for path, data in self.docs.items():
+            if marker not in path:
+                continue
+            doc_id = path.rsplit("/", 1)[-1]
+            if not self._matches(data, filters):
+                continue
+            rows.append((doc_id, dict(data)))
+        return rows[:limit]
+
     @staticmethod
     def _matches(data: dict[str, Any], filters: list[tuple[str, str, Any]]) -> bool:
         for field, op, value in filters:
@@ -65,6 +83,7 @@ class FakeStorageClient:
 
     def __init__(self) -> None:
         self.objects: dict[str, str] = {}
+        self.content_types: dict[str, str] = {}
 
     def upload_text(
         self, path: str, text: str, *, content_type: str = "text/markdown"
@@ -81,6 +100,12 @@ class FakeStorageClient:
 
     def signed_download_url(self, path: str, *, expires_seconds: int = 900) -> str:
         return f"https://storage.example/{path}?expires={expires_seconds}"
+
+    def signed_upload_url(
+        self, path: str, *, content_type: str, expires_seconds: int = 900
+    ) -> str:
+        self.content_types[path] = content_type
+        return f"https://storage.example/upload/{path}?expires={expires_seconds}"
 
     def delete_prefix(self, prefix: str) -> int:
         keys = [key for key in self.objects if key.startswith(prefix)]

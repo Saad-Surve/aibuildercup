@@ -29,15 +29,26 @@ class Settings(BaseSettings):
         "https://habeas-codus.firebaseapp.com",
     ]
 
-    # Model registry. Agents never hardcode model ids; they read these.
-    model_reviewer: str = "gemini-2.5-flash"
-    model_orchestrator: str = "gemini-2.5-pro"
+    # Gemini Developer API (AI Studio) key. This is the only LLM backend: there is no Vertex AI
+    # path. Required for any real (non-cassette) LLM call. Get one at
+    # https://aistudio.google.com/apikey
+    gemini_api_key: str | None = None
+
+    # Model registry. Agents never hardcode model ids; they read these. Gemini 2.5 models are
+    # retired for new AI Studio keys and `gemini-*-pro` is not on the free tier, so default to the
+    # rolling flash alias. Pin a concrete id (e.g. gemini-3.6-flash) if you need reproducibility.
+    model_reviewer: str = "gemini-flash-latest"
+    model_orchestrator: str = "gemini-flash-latest"
     model_image: str = "imagen-4.0-generate-001"
     model_video: str = "veo-3.1-fast"
     model_stt: str = "chirp_3"
 
     max_reviewer_concurrency: int = 4
     max_project_cost_usd: float = 5.0
+
+    # Upload limits. `max_upload_size_bytes` mirrors users/{uid}.limits.maxVideoSizeBytes.
+    max_upload_size_bytes: int = 524_288_000
+    upload_url_ttl_seconds: int = 900
 
     @property
     def is_local(self) -> bool:
