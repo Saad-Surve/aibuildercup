@@ -52,6 +52,15 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Me" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+    delete:
+      summary: Delete the current account and all owned data
+      description: |
+        Permanently deletes the user's Firestore subtree and the Firebase Auth
+        account. This cannot be undone.
+      responses:
+        "204":
+          description: Account deleted
+        "401": { $ref: "#/components/responses/Unauthorized" }
 
   /onboarding:
     get:

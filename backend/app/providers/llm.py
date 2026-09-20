@@ -80,4 +80,7 @@ class LlmProvider:
         )
         import json
 
-        return json.loads(result.text)
+        text = result.text
+        if text is None:
+            raise RuntimeError("LLM returned an empty response")
+        return json.loads(text)

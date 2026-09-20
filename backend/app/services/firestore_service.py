@@ -1,0 +1,105 @@
+"""Firestore access layer.
+
+Feature code never talks to `google.cloud.firestore` directly. It depends on the narrow
+`FirestoreClient` protocol below, which has a real implementation backed by Firestore and an
+in-memory implementation used by tests. Path builders live in `paths.py` and are re-exported
+here for convenience.
+"""
+
+from functools import lru_cache
+from typing import Any, Protocol, runtime_checkable
+
+from app.config import get_settings
+from app.services.paths import (
+    InvalidPathSegment,
+    project_path,
+    projects_collection_path,
+    safe_segment,
+    user_path,
+)
+
+__all__ = [
+    "FirestoreClient",
+    "GoogleFirestoreClient",
+    "InvalidPathSegment",
+    "get_firestore_client",
+    "project_path",
+    "projects_collection_path",
+    "safe_segment",
+    "user_path",
+]
+
+
+@runtime_checkable
+class FirestoreClient(Protocol):
+    def get_document(self, path: str) -> dict[str, Any] | None: ...
+
+    def set_document(self, path: str, data: dict[str, Any]) -> None: ...
+
+    def update_document(self, path: str, data: dict[str, Any]) -> None: ...
+
+    def delete_document(self, path: str) -> None: ...
+
+    def delete_document_tree(self, path: str) -> None: ...
+
+    def query_collection(
+        self,
+        collection_path: str,
+        *,
+        filters: list[tuple[str, str, Any]],
+        order_by: list[tuple[str, str]],
+        limit: int,
+        offset: int,
+    ) -> list[tuple[str, dict[str, Any]]]: ...
+
+
+class GoogleFirestoreClient:
+    """`FirestoreClient` backed by the real Firestore SDK."""
+
+    def __init__(self, client: Any) -> None:
+        self._client = client
+
+    def get_document(self, path: str) -> dict[str, Any] | None:
+        snapshot = self._client.document(path).get()
+        if not snapshot.exists:
+            return None
+        return snapshot.to_dict()
+
+    def set_document(self, path: str, data: dict[str, Any]) -> None:
+        self._client.document(path).set(data)
+
+    def update_document(self, path: str, data: dict[str, Any]) -> None:
+        self._client.document(path).update(data)
+
+    def delete_document(self, path: str) -> None:
+        self._client.document(path).delete()
+
+    def delete_document_tree(self, path: str) -> None:
+        self._client.recursive_delete(self._client.document(path))
+
+    def query_collection(
+        self,
+        collection_path: str,
+        *,
+        filters: list[tuple[str, str, Any]],
+        order_by: list[tuple[str, str]],
+        limit: int,
+        offset: int,
+    ) -> list[tuple[str, dict[str, Any]]]:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
+        query = self._client.collection(collection_path)
+        for field, op, value in filters:
+            query = query.where(filter=FieldFilter(field, op, value))
+        for field, direction in order_by:
+            query = query.order_by(field, direction=direction)
+        query = query.offset(offset).limit(limit)
+        return [(doc.id, doc.to_dict() or {}) for doc in query.stream()]
+
+
+@lru_cache
+def get_firestore_client() -> FirestoreClient:
+    from google.cloud import firestore
+
+    settings = get_settings()
+    return GoogleFirestoreClient(firestore.Client(project=settings.project_id))

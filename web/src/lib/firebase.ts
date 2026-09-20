@@ -10,7 +10,9 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
 };
 
-const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const app: FirebaseApp = getApps().length
+  ? getApp()
+  : initializeApp(firebaseConfig);
 
 export const auth: Auth = getAuth(app);
 export default app;

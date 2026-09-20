@@ -21,6 +21,21 @@ class Settings(BaseSettings):
     media_bucket: str = "habeas-codus-media"
     corpus_bucket: str = "habeas-codus-corpus"
 
+    # Browser origins allowed to call this API. Override with a JSON array in CORS_ALLOWED_ORIGINS.
+    cors_allowed_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "https://habeas-codus.web.app",
+        "https://habeas-codus.firebaseapp.com",
+    ]
+
+    # Model registry. Agents never hardcode model ids; they read these.
+    model_reviewer: str = "gemini-2.5-flash"
+    model_orchestrator: str = "gemini-2.5-pro"
+    model_image: str = "imagen-4.0-generate-001"
+    model_video: str = "veo-3.1-fast"
+    model_stt: str = "chirp_3"
+
     max_reviewer_concurrency: int = 4
     max_project_cost_usd: float = 5.0
 

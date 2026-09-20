@@ -18,3 +18,8 @@ def _ensure_app() -> firebase_admin.App:
 def verify_id_token(token: str) -> dict:
     _ensure_app()
     return auth.verify_id_token(token)
+
+
+def delete_user(uid: str) -> None:
+    _ensure_app()
+    auth.delete_user(uid)
