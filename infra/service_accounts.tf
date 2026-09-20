@@ -7,6 +7,7 @@ locals {
     media        = "creator-studio-media"
     localization = "creator-studio-localization"
     deployer     = "creator-studio-deployer"
+    web          = "creator-studio-web"
   }
 }
 
