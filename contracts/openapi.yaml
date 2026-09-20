@@ -1,0 +1,662 @@
+openapi: 3.1.0
+info:
+  title: Creator Helper Studio API
+  version: "0.1.0"
+  description: |
+    Frozen contract between web and backend. Generate the TypeScript client from this file.
+servers:
+  - url: http://localhost:8080
+    description: Local
+  - url: https://api.example.com/v1
+    description: Deployed
+
+security:
+  - FirebaseBearer: []
+
+paths:
+  /healthz:
+    get:
+      security: []
+      summary: Liveness check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, const: ok }
+
+  /readyz:
+    get:
+      security: []
+      summary: Readiness check
+      responses:
+        "200":
+          description: Ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, const: ready }
+
+  /me:
+    get:
+      summary: Current application profile
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /onboarding:
+    get:
+      summary: Read onboarding progress
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OnboardingState" }
+    put:
+      summary: Save a partial onboarding step
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OnboardingStep" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OnboardingState" }
+
+  /onboarding/complete:
+    post:
+      summary: Generate and save the initial persona
+      responses:
+        "200":
+          description: Persona created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PersonaRef" }
+
+  /persona:
+    get:
+      summary: Read current persona
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Persona" }
+    patch:
+      summary: Apply a user-approved persona edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content, expectedVersion]
+              properties:
+                content: { type: string }
+                expectedVersion: { type: integer }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Persona" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /projects:
+    get:
+      summary: List owned projects
+      parameters:
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/PageToken" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Project" }
+                  nextPageToken: { type: [string, "null"] }
+    post:
+      summary: Create a project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateProject" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+
+  /projects/{projectId}:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: Get project summary
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      summary: Update project metadata
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                description: { type: string }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+    delete:
+      summary: Soft-delete project and queue object deletion
+      responses:
+        "202": { $ref: "#/components/responses/Accepted" }
+
+  /projects/{projectId}/upload-session:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    post:
+      summary: Create a direct Cloud Storage upload session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileName, contentType, sizeBytes]
+              properties:
+                fileName: { type: string }
+                contentType: { type: string }
+                sizeBytes: { type: integer, format: int64 }
+      responses:
+        "201":
+          description: Upload session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadSession" }
+
+  /projects/{projectId}/assets/{assetId}/complete:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/AssetId" }
+    post:
+      summary: Confirm a client upload
+      responses:
+        "202": { $ref: "#/components/responses/Accepted" }
+
+  /jobs/{jobId}:
+    parameters:
+      - { $ref: "#/components/parameters/JobId" }
+    get:
+      summary: Get job status
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+
+  /projects/{projectId}/transcript:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: Get transcript metadata and segments
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Transcript" }
+
+  /projects/{projectId}/analysis:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    post:
+      summary: Start multi-reviewer analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnalysisRequest" }
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  analysisRunId: { type: string }
+                  jobId: { type: string }
+                  status: { type: string }
+
+  /projects/{projectId}/analysis/{analysisRunId}/findings:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/AnalysisRunId" }
+      - { name: dimension, in: query, schema: { type: string } }
+      - { name: severity, in: query, schema: { $ref: "#/components/schemas/Severity" } }
+    get:
+      summary: List findings
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Finding" }
+
+  /projects/{projectId}/analysis/{analysisRunId}/heatmap:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/AnalysisRunId" }
+    get:
+      summary: Get UI-ready heatmap bins
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bins:
+                    type: array
+                    items: { $ref: "#/components/schemas/HeatmapBin" }
+
+  /projects/{projectId}/artifacts:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: List artifacts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Artifact" }
+    post:
+      summary: Start artifact generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ArtifactRequest" }
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  artifactId: { type: string }
+                  jobId: { type: string }
+
+  /projects/{projectId}/chat/threads/{threadId}/messages:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { name: threadId, in: path, required: true, schema: { type: string } }
+    get:
+      summary: List messages
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/ChatMessage" }
+    post:
+      summary: Send a message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string }
+                stream: { type: boolean, default: true }
+      responses:
+        "200":
+          description: Assistant reply (or stream)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatMessage" }
+
+components:
+  securitySchemes:
+    FirebaseBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Firebase ID token
+
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, default: 20, maximum: 100 }
+    PageToken:
+      name: pageToken
+      in: query
+      schema: { type: string }
+    ProjectId:
+      name: projectId
+      in: path
+      required: true
+      schema: { type: string }
+    AssetId:
+      name: assetId
+      in: path
+      required: true
+      schema: { type: string }
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      schema: { type: string }
+    AnalysisRunId:
+      name: analysisRunId
+      in: path
+      required: true
+      schema: { type: string }
+
+  responses:
+    Accepted:
+      description: Accepted
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              jobId: { type: string }
+              status: { type: string }
+    Unauthorized:
+      description: Missing or invalid token
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: Version conflict
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            requestId: { type: [string, "null"] }
+            details: { type: object, additionalProperties: true }
+
+    Severity:
+      type: string
+      enum: [none, low, medium, high, critical]
+
+    Me:
+      type: object
+      properties:
+        uid: { type: string }
+        displayName: { type: [string, "null"] }
+        email: { type: [string, "null"] }
+        onboardingCompleted: { type: boolean }
+        personaVersion: { type: [integer, "null"] }
+        preferences:
+          type: object
+          properties:
+            timezone: { type: string }
+            defaultLanguage: { type: string }
+
+    OnboardingState:
+      type: object
+      properties:
+        status: { type: string, enum: [not_started, in_progress, completed] }
+        currentStep: { type: [string, "null"] }
+        answers: { type: object, additionalProperties: true }
+
+    OnboardingStep:
+      type: object
+      required: [step, answers]
+      properties:
+        step: { type: string }
+        answers: { type: object, additionalProperties: true }
+
+    PersonaRef:
+      type: object
+      properties:
+        onboardingCompleted: { type: boolean }
+        personaVersion: { type: integer }
+        personaStoragePath: { type: string }
+
+    Persona:
+      type: object
+      properties:
+        version: { type: integer }
+        content: { type: string }
+        storagePath: { type: string }
+
+    CreateProject:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        primaryLanguage: { type: string, default: en }
+        targetLanguages: { type: array, items: { type: string } }
+        targetPlatforms: { type: array, items: { type: string } }
+        isDemo: { type: boolean, default: false }
+        demoProfileId: { type: [string, "null"] }
+
+    Project:
+      allOf:
+        - $ref: "#/components/schemas/CreateProject"
+        - type: object
+          properties:
+            projectId: { type: string }
+            status:
+              type: string
+              enum: [draft, uploading, processing, ready, partial_failure, failed, archived]
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+
+    UploadSession:
+      type: object
+      properties:
+        assetId: { type: string }
+        storagePath: { type: string }
+        uploadUrl: { type: string, format: uri }
+        expiresAt: { type: string, format: date-time }
+        requiredHeaders:
+          type: object
+          additionalProperties: { type: string }
+
+    Job:
+      type: object
+      properties:
+        jobId: { type: string }
+        type: { type: string }
+        status: { type: string, enum: [queued, running, succeeded, failed, cancelled] }
+        progress:
+          type: object
+          properties:
+            percent: { type: integer }
+            step: { type: string }
+            message: { type: string }
+        error: { type: [object, "null"], additionalProperties: true }
+
+    TranscriptSegment:
+      type: object
+      properties:
+        segmentId: { type: string }
+        index: { type: integer }
+        startMs: { type: integer }
+        endMs: { type: integer }
+        text: { type: string }
+
+    Transcript:
+      type: object
+      properties:
+        transcriptId: { type: string }
+        language: { type: string }
+        durationMs: { type: integer }
+        segments:
+          type: array
+          items: { $ref: "#/components/schemas/TranscriptSegment" }
+
+    AnalysisRequest:
+      type: object
+      properties:
+        dimensions:
+          type: array
+          items:
+            type: string
+            enum:
+              - truth_evidence
+              - clarity
+              - structure_pacing
+              - legal_safety
+              - cultural_localization
+              - platform_fit
+              - audience_fit
+              - brand_voice
+              - engagement_retention
+              - emotional_impact
+              - seo_discoverability
+              - visual_accessibility
+              - conversion_cta
+        platform: { type: string }
+        includeVisualReview: { type: boolean, default: false }
+        transcriptVersion: { type: integer }
+
+    Finding:
+      type: object
+      required: [dimension, score, confidence, severity, evidence, suggestion]
+      properties:
+        findingId: { type: string }
+        dimension: { type: string }
+        segmentId: { type: [string, "null"] }
+        startMs: { type: integer }
+        endMs: { type: integer }
+        score: { type: number, minimum: 0, maximum: 10 }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        severity: { $ref: "#/components/schemas/Severity" }
+        findingType: { type: string }
+        evidence:
+          type: object
+          properties:
+            quote: { type: string }
+            explanation: { type: string }
+        suggestion: { type: string }
+        citations:
+          type: array
+          items: { type: object, additionalProperties: true }
+
+    HeatmapBin:
+      type: object
+      properties:
+        dimension: { type: string }
+        startMs: { type: integer }
+        endMs: { type: integer }
+        score: { type: number }
+        severity: { $ref: "#/components/schemas/Severity" }
+        color: { type: string, enum: [green, yellow, orange, red] }
+        findingIds: { type: array, items: { type: string } }
+
+    ArtifactRequest:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum:
+            - short_clip
+            - caption
+            - thumbnail
+            - social_post
+            - blog
+            - localized_video
+            - dubbed_video
+            - veo_intro
+            - veo_outro
+            - export
+        platform: { type: string }
+        language: { type: string }
+        options: { type: object, additionalProperties: true }
+
+    Artifact:
+      type: object
+      properties:
+        artifactId: { type: string }
+        type: { type: string }
+        status: { type: string, enum: [queued, generating, ready, failed, deleted] }
+        platform: { type: [string, "null"] }
+        language: { type: [string, "null"] }
+        title: { type: [string, "null"] }
+        storagePath: { type: [string, "null"] }
+        downloadUrl: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+
+    ChatMessage:
+      type: object
+      properties:
+        messageId: { type: string }
+        role: { type: string, enum: [user, assistant, tool] }
+        content: { type: string }
+        status: { type: string, enum: [complete, streaming, failed] }
+        artifactIds: { type: array, items: { type: string } }
+        createdAt: { type: string, format: date-time }

@@ -30,6 +30,7 @@ variable "engineer_emails" {
   type        = list(string)
   default = [
     "yusufsodawala7@gmail.com",
+    "ankitmishra21022003@gmail.com",
   ]
 }
 
