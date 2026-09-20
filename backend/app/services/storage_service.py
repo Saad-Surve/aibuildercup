@@ -80,9 +80,11 @@ class GoogleStorageClient:
         if hasattr(credentials, "sign_bytes"):
             return {"credentials": credentials}
 
-        email = getattr(credentials, "service_account_email", None) or (
-            self._signing_service_account
-        )
+        # Compute-engine credentials report the placeholder "default" until a metadata request
+        # resolves the real email, so treat it as absent and prefer the configured account.
+        email = getattr(credentials, "service_account_email", None)
+        if not email or email == "default":
+            email = self._signing_service_account
         if not email:
             raise RuntimeError(
                 "Cannot sign Cloud Storage URLs: no signing credentials. Set "
