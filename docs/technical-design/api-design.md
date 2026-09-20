@@ -219,6 +219,12 @@ Response:
 
 The backend validates MIME type and size before issuing the URL. The browser uploads directly to Cloud Storage. The server still verifies that the object exists after upload.
 
+Trigger of record:
+
+- `POST /assets/{assetId}/complete` is authoritative for the user-visible upload state.
+- The Cloud Storage `object finalized` notification is what actually starts the transcription worker, so processing still happens if the client never confirms.
+- Both paths are idempotent and converge on the same asset/job records.
+
 ## 7. Jobs and progress
 
 | Method | Route | Purpose |
@@ -276,6 +282,7 @@ Transcript regeneration options:
 |---|---|---|
 | POST | /projects/{projectId}/analysis | Start multi-reviewer analysis |
 | GET | /projects/{projectId}/analysis/{analysisRunId} | Get analysis summary |
+| GET | /projects/{projectId}/analysis/{analysisRunId}/reviewers | Per-reviewer status and cost |
 | GET | /projects/{projectId}/analysis/{analysisRunId}/findings | List findings |
 | GET | /projects/{projectId}/analysis/{analysisRunId}/heatmap | Get UI-ready heatmap bins |
 | POST | /projects/{projectId}/analysis/{analysisRunId}/segment-review | Deep-review selected video segment |
@@ -285,20 +292,42 @@ POST /analysis request:
 ~~~json
 {
   "dimensions": [
-    "truth",
+    "truth_evidence",
     "clarity",
-    "structure",
-    "cultural",
-    "platform",
-    "seo",
+    "structure_pacing",
     "legal_safety",
-    "audience_retention",
-    "accessibility",
-    "brand_voice"
+    "cultural_localization",
+    "platform_fit",
+    "audience_fit",
+    "brand_voice",
+    "engagement_retention",
+    "emotional_impact",
+    "seo_discoverability",
+    "visual_accessibility",
+    "conversion_cta"
   ],
   "platform": "youtube",
   "includeVisualReview": true,
   "transcriptVersion": 1
+}
+~~~
+
+The first six dimensions are core and always run. The rest are extended and configurable.
+
+GET reviewers response:
+
+~~~json
+{
+  "items": [
+    {
+      "reviewerRunId": "id",
+      "dimension": "clarity",
+      "status": "succeeded",
+      "findingCount": 4,
+      "costEstimateUsd": 0.03,
+      "durationMs": 8200
+    }
+  ]
 }
 ~~~
 
@@ -327,7 +356,7 @@ Deep-review request:
 {
   "startMs": 42000,
   "endMs": 58000,
-  "dimensions": ["clarity", "visual", "truth"]
+  "dimensions": ["clarity", "visual_accessibility", "truth_evidence"]
 }
 ~~~
 
@@ -393,11 +422,48 @@ POST /localizations request:
   "generateCaptions": true,
   "generateDubbedAudio": true,
   "voice": "hi-IN-standard-A",
+  "corpusVersion": 1,
   "glossaryVersion": 2
 }
 ~~~
 
-## 12. Project chat
+## 12. Glossaries and corpus
+
+| Method | Route | Purpose |
+|---|---|---|
+| GET | /glossaries | List available global glossaries and versions |
+| GET | /projects/{projectId}/glossary | Read the project glossary |
+| PUT | /projects/{projectId}/glossary | Replace the project glossary terms |
+| POST | /projects/{projectId}/localizations/{localizationId}/flag | Flag a wrong localized phrase |
+
+PUT /projects/{projectId}/glossary request:
+
+~~~json
+{
+  "sourceLanguage": "en",
+  "targetLanguage": "hi",
+  "terms": [
+    { "source": "credit score", "target": "क्रेडिट स्कोर" }
+  ],
+  "expectedVersion": 2
+}
+~~~
+
+A flagged phrase becomes a candidate corpus entry for review. See
+[localization-corpus.md](./localization-corpus.md).
+
+## 13. Demo and development endpoints
+
+These are available only when `MOCK_MODE` is not `off`, and are never exposed in the live demo
+configuration.
+
+| Method | Route | Purpose |
+|---|---|---|
+| GET | /demo/scenarios | List pinned demo scenarios |
+| POST | /admin/seed | Seed a demo world (dev only) |
+| GET | /admin/cassettes | List recorded cassettes (dev only) |
+
+## 14. Project chat
 
 | Method | Route | Purpose |
 |---|---|---|
@@ -428,7 +494,7 @@ update_persona_suggestion
 generate_thumbnail
 ~~~
 
-## 13. Feedback, export, and deletion
+## 15. Feedback, export, and deletion
 
 | Method | Route | Purpose |
 |---|---|---|
@@ -447,7 +513,7 @@ Feedback request:
 }
 ~~~
 
-## 14. Internal Pub/Sub events
+## 16. Internal Pub/Sub events
 
 These are internal event types, not public HTTP endpoints:
 
@@ -462,6 +528,8 @@ social.sync.requested
 social.sync.completed
 artifact.requested
 artifact.ready
+localization.requested
+localization.ready
 job.failed
 ~~~
 
@@ -480,7 +548,7 @@ Event envelope:
 }
 ~~~
 
-## 15. API security requirements
+## 17. API security requirements
 
 - Verify Firebase ID tokens at the API boundary.
 - Derive ownerUid from the token.

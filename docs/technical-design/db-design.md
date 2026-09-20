@@ -60,6 +60,10 @@ users/{uid}
 │   ├── feedback/{feedbackId}
 │   ├── exports/{exportId}
 │   └── auditEvents/{auditEventId}
+
+glossaries/{glossaryId}          platform-level, versioned terminology corpus
+demoProfiles/{demoProfileId}     platform-level, stage demo scenarios
+cassetteIndex/{cassetteKey}      platform-level, record/replay metadata (dev only)
 ~~~
 
 ## 3. User documents
@@ -197,6 +201,8 @@ AI-inferred changes remain pending until the user explicitly approves them.
     "criticalFindingCount": 0,
     "highFindingCount": 2
   },
+  "isDemo": false,
+  "demoProfileId": null,
   "createdAt": "timestamp",
   "updatedAt": "timestamp",
   "archivedAt": null
@@ -269,7 +275,7 @@ AI-inferred changes remain pending until the user explicitly approves them.
   "type": "job.started | job.progress | job.retrying | job.succeeded | job.failed",
   "message": "Structure reviewer completed",
   "metadata": {
-    "reviewer": "structure",
+    "reviewer": "structure_pacing",
     "count": 14
   },
   "createdAt": "timestamp"
@@ -327,14 +333,16 @@ Keep word-level data in the canonical Cloud Storage JSON unless word-level editi
   "sourceAssetId": "asset-id",
   "personaVersion": 3,
   "status": "ready",
-  "requestedDimensions": ["truth", "clarity", "structure", "safety"],
-  "completedDimensions": ["truth", "clarity", "structure", "safety"],
+  "fanoutStrategy": "two_tier",
+  "chunkCount": 4,
+  "requestedDimensions": ["truth_evidence", "clarity", "structure_pacing", "legal_safety"],
+  "completedDimensions": ["truth_evidence", "clarity", "structure_pacing", "legal_safety"],
   "overallScore": 7.4,
   "scoreByDimension": {
-    "truth": 8.2,
+    "truth_evidence": 8.2,
     "clarity": 7.0,
-    "structure": 6.4,
-    "safety": 9.1
+    "structure_pacing": 6.4,
+    "legal_safety": 9.1
   },
   "findingCounts": {
     "low": 10,
@@ -343,6 +351,8 @@ Keep word-level data in the canonical Cloud Storage JSON unless word-level editi
     "critical": 0
   },
   "modelConfigVersion": "analysis-v1",
+  "promptVersion": "reviewers-v1",
+  "costEstimateUsd": 0.42,
   "createdAt": "timestamp",
   "updatedAt": "timestamp"
 }
@@ -487,6 +497,7 @@ Keep word-level data in the canonical Cloud Storage JSON unless word-level editi
   "captionArtifactId": "artifact-id",
   "audioArtifactId": "artifact-id",
   "videoArtifactId": "artifact-id",
+  "corpusVersion": 1,
   "glossaryVersion": 2,
   "voice": "hi-IN-standard-A",
   "createdAt": "timestamp",
@@ -592,7 +603,59 @@ Keep word-level data in the canonical Cloud Storage JSON unless word-level editi
 }
 ~~~
 
-## 8. Firestore indexes
+## 8. Platform-level collections
+
+### glossaries/{glossaryId}
+
+Versioned terminology corpus. The actual term files live in Cloud Storage; Firestore stores the
+metadata and the active version.
+
+~~~json
+{
+  "scope": "global | project",
+  "ownerUid": null,
+  "sourceLanguage": "en",
+  "targetLanguage": "hi",
+  "category": "general | legal | education | healthcare | automobile | news | trap_list",
+  "version": 1,
+  "storagePath": "corpus/global/en-hi/v1.tsv",
+  "termCount": 4200,
+  "translationGlossaryId": "projects/.../glossaries/...",
+  "status": "active | archived",
+  "createdAt": "timestamp",
+  "updatedAt": "timestamp"
+}
+~~~
+
+### demoProfiles/{demoProfileId}
+
+Pinned scenarios for the stage. See [mock-and-seed.md](./mock-and-seed.md).
+
+~~~json
+{
+  "name": "controversial",
+  "description": "A video that trips the truth and legal reviewers.",
+  "projectIdTemplate": "project-id",
+  "seedBundlePath": "fixtures/seed/controversial/",
+  "createdAt": "timestamp"
+}
+~~~
+
+### cassetteIndex/{cassetteKey}
+
+Dev-only index of recorded provider responses. Never stores secrets or private media.
+
+~~~json
+{
+  "provider": "llm",
+  "model": "reviewer-flash",
+  "promptVersion": "clarity-v1",
+  "storagePath": "fixtures/cassettes/llm/<key>.json",
+  "createdAt": "timestamp"
+}
+~~~
+
+## 9. Firestore indexes
 
 Create composite indexes for:
 
@@ -605,9 +668,10 @@ findings: ownerUid ASC, dimension ASC, startMs ASC
 artifacts: ownerUid ASC, type ASC, createdAt DESC
 chatThreads: ownerUid ASC, updatedAt DESC
 notifications: ownerUid ASC, read ASC, createdAt DESC
+glossaries: scope ASC, sourceLanguage ASC, targetLanguage ASC, category ASC, version DESC
 ~~~
 
-## 9. Security model
+## 10. Security model
 
 The browser may read/write only user-owned, non-sensitive project data. The browser must never directly read:
 
@@ -616,6 +680,7 @@ The browser may read/write only user-owned, non-sensitive project data. The brow
 - Raw social API payloads.
 - Internal reviewer prompts.
 - Worker job events containing secrets or stack traces.
+- Platform collections: `glossaries`, `demoProfiles`, and `cassetteIndex` are backend-only.
 
 The backend must authorize using both the Firebase UID and the document ownerUid. Firestore rules are a second boundary, not a replacement for backend authorization.
 

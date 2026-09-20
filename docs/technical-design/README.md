@@ -33,11 +33,30 @@ This directory contains the implementation-ready design for the Creator Helper S
    - Terraform structure.
    - GCP projects, APIs, buckets, Pub/Sub, BigQuery, Firestore, human users, service accounts, IAM, secrets, CI/CD, monitoring, and owner checklist.
 
+7. [Mock, cassette, and seed design](./mock-and-seed.md)
+   - Provider abstraction over every external dependency.
+   - Record/replay cassettes, seed script, demo scenarios, frontend MSW fixtures.
+
+8. [Three-engineer workstream plan](./workstreams.md)
+   - Lane ownership for three engineers.
+   - Repo layout, phases, and coordination rules.
+
+9. [Localization corpus design](./localization-corpus.md)
+   - Global corpus and per-project glossary.
+   - Sources, storage, runtime pipeline, and versioning.
+
+## Key decisions
+
+- Region is **`us-central1`** for all services, including Speech-to-Text (Chirp 2/3 is not GA in `us-east1`), Veo, Imagen, and Text-to-Speech.
+- Backend is Python FastAPI + Google ADK. Genkit is intentionally not used, to keep one agent runtime.
+- All external dependencies sit behind providers so development runs on cassettes and seeded data.
+- Reviewer analysis uses a two-tier fan-out (broad pass per reviewer, then targeted deep review) to bound cost.
+
 ## Suggested implementation order
 
 ~~~text
-1. Infra bootstrap and Firebase Authentication
-2. Firestore schemas and API authentication
+1. Contracts, provider/cassette layer, seed skeleton, Terraform bootstrap
+2. Firebase Authentication and API authentication
 3. Project creation and direct Cloud Storage upload
 4. Pub/Sub event handling and transcription worker
 5. Transcript viewer and timeline

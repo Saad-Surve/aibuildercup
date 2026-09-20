@@ -8,11 +8,15 @@ Use one GCP project and one hackathon environment:
 creator-studio-hackathon
 ~~~
 
-Use us-east1 for the regional services:
+Use `us-central1` for every regional service:
 
 ~~~text
-REGION=us-east1
+REGION=us-central1
 ~~~
+
+Why central1 and not east1: Speech-to-Text Chirp 2/3 is generally available in `us-central1` but
+not `us-east1`, and Veo, Imagen, and Text-to-Speech documentation all use `us-central1`. One
+region keeps Terraform and latency simple.
 
 Do not create separate dev/prod projects or Terraform workspaces for the hackathon. Local development can use emulators, but deployed resources all belong to this single environment.
 
@@ -51,7 +55,7 @@ Create the state bucket once before applying the main configuration:
 ~~~hcl
 resource "google_storage_bucket" "terraform_state" {
   name                        = "creator-studio-terraform-state"
-  location                    = "US-EAST1"
+  location                    = "US-CENTRAL1"
   uniform_bucket_level_access = true
 
   versioning {
@@ -111,13 +115,14 @@ Enable Transcoder API only if the team chooses it instead of FFmpeg Cloud Run Jo
 
 ## 5. Storage buckets
 
-Create separate buckets in us-east1:
+Create separate buckets in us-central1:
 
 ~~~text
 creator-studio-hackathon-media
 creator-studio-hackathon-raw-social
 creator-studio-hackathon-temp
 creator-studio-hackathon-exports
+creator-studio-hackathon-corpus
 ~~~
 
 Bucket policies:
@@ -137,6 +142,8 @@ users/{uid}/projects/{projectId}/transcripts/
 users/{uid}/projects/{projectId}/analysis/
 users/{uid}/projects/{projectId}/artifacts/
 users/{uid}/profile/
+corpus/global/{sourceLang}-{targetLang}/
+corpus/trap-list/{sourceLang}-{targetLang}/
 ~~~
 
 ## 6. Pub/Sub resources
@@ -192,6 +199,8 @@ creator_studio_social.comments
 creator_studio_social.audience_aggregates
 creator_studio_ai.comment_sentiment
 creator_studio_ai.agent_runs
+creator_studio_ai.glossary_terms
+creator_studio_ai.translation_traps
 creator_studio_audit.data_access_events
 ~~~
 
@@ -376,7 +385,8 @@ main branch
   -> deploy hackathon environment
 ~~~
 
-Use the deployer service account in CI instead of a personal credential.
+Use the deployer service account in CI instead of a personal credential, and authenticate through
+Workload Identity Federation rather than a downloaded key (see section 18).
 
 ## 15. OAuth owner setup
 
@@ -443,21 +453,60 @@ Never log access tokens, refresh tokens, signed URLs, raw private video content,
 
 ## 17. Owner execution checklist
 
-1. Create one GCP project for the hackathon.
-2. Attach billing accounts.
-3. Create engineering and admin Google Groups.
-4. Add the three engineers to the engineering group.
-5. Create the Terraform state bucket.
-6. Create the Terraform service account.
-7. Enable required APIs.
-8. Apply Storage, Firestore, Pub/Sub, BigQuery, KMS, Secret Manager, and IAM Terraform in us-east1.
-9. Create Firebase application and enable Google sign-in.
-10. Create YouTube OAuth credentials and a test channel.
-11. Add OAuth credentials to Secret Manager.
-12. Configure Artifact Registry and CI/CD.
-13. Deploy a hello-world API and web app.
-14. Verify direct Cloud Storage upload.
-15. Verify Pub/Sub delivery and Cloud Run worker execution.
-16. Verify Vertex AI and Speech-to-Text access.
-17. Configure budgets, logs, alerts, and dead-letter topics.
+1. Collect both engineers' Google account emails (they need real accounts; Cloud Identity or Workspace if you want to create them).
+2. Create one GCP project for the hackathon and attach billing.
+3. Create the engineering and admin Google Groups, or plan temporary direct bindings.
+4. Create the Terraform state bucket and the Terraform service account.
+5. Enable the required APIs.
+6. Apply Storage, Firestore (Native, us-central1), Pub/Sub, BigQuery, KMS, Secret Manager, and IAM Terraform in us-central1.
+7. Create the Firebase application and enable Google sign-in; add localhost and the demo domain as authorized domains.
+8. **Request Veo / Imagen / GPU quota on day zero.** Approval can take days.
+9. Create the YouTube OAuth consent screen, a test channel, and test users.
+10. Create the Meta developer app and test accounts. Assume App Review will not clear in time; plan on fixtures.
+11. Add all OAuth credentials and the session secret to Secret Manager.
+12. Configure Artifact Registry and CI/CD using Workload Identity Federation (no key files).
+13. Deploy the hello-world API and web app.
+14. Verify direct Cloud Storage upload, Pub/Sub delivery, and Cloud Run worker execution.
+15. Verify Vertex AI, Speech-to-Text, Translation, and Text-to-Speech access.
+16. Run `seed.py --demo` and confirm a full demo workspace renders.
+17. Configure budgets, logs, alerts, dead-letter topics, and Cloud Run max-instance caps.
 18. Add privacy policy, terms, and deletion flow before external testing.
+
+## 18. Workload Identity Federation for CI
+
+Do not create long-lived service account keys for CI. Set up Workload Identity Federation so the
+CI provider federates into `creator-studio-deployer`:
+
+~~~text
+CI provider OIDC  ->  Workload Identity Pool  ->  creator-studio-deployer
+~~~
+
+Grant the deployer `roles/iam.workloadIdentityUser` on its own service account and nothing more.
+This removes the most common hackathon secret-leak failure mode.
+
+## 19. Quotas to request on day zero
+
+These have lead time and will silently block the demo if ignored:
+
+~~~text
+Veo video generation access / quota
+Imagen image generation quota
+Vertex AI Gemini per-region quota
+Speech-to-Text batch quota
+Cloud Run CPU / GPU quota in us-central1
+YouTube Data API daily quota (default 10,000 units is small for a full channel sync)
+~~~
+
+For YouTube specifically, cap the connector's page size and sync window, or the default quota
+will be exhausted in a single run.
+
+## 20. Cost and demo-safety controls
+
+- Budget alerts at 50%, 80%, and 100%.
+- Cloud Run max instances capped on the API and every AI worker.
+- A per-project cost meter in Firestore (`usagePeriods`) and a hard concurrency semaphore in the
+  analysis coordinator.
+- Reject an analysis run whose projected cost exceeds the project cap.
+- Veo is the most expensive feature by far (roughly $0.15 to $0.40 per second). Keep it on
+  cassettes by default and enable it live only for the demo.
+- The demo runs against `seed.py --demo` data, never a real creator's private content.
