@@ -4,10 +4,13 @@ In `on`/`auto` mode a cassette hit is replayed. In `auto`, a miss calls the real
 records the response. In `off`, always real.
 """
 
+import logging
 from typing import Any
 
 from app.config import Settings
 from app.providers.cassette import CassetteStore
+
+logger = logging.getLogger(__name__)
 
 
 class CassetteMiss(RuntimeError):
@@ -66,9 +69,14 @@ class LlmProvider:
     ) -> dict[str, Any]:
         from google import genai
 
-        client = genai.Client(
-            vertexai=True, project=self.settings.project_id, location=self.settings.region
-        )
+        if not self.settings.gemini_api_key:
+            raise RuntimeError(
+                "GEMINI_API_KEY is not set. The LLM provider only uses the Gemini Developer "
+                "API (AI Studio); create a key at https://aistudio.google.com/apikey and set "
+                "GEMINI_API_KEY, or run with MOCK_MODE=on to use cassettes/templates."
+            )
+        logger.info("LLM call via Gemini Developer API (%s)", model)
+        client = genai.Client(api_key=self.settings.gemini_api_key)
         result = client.models.generate_content(
             model=model,
             contents=user,
