@@ -24,6 +24,13 @@ class _UserCreds:
     token = "user-token"
 
 
+class _DefaultPlaceholderCreds:
+    """Compute-engine credentials before the email has been resolved."""
+
+    service_account_email = "default"
+    token = "compute-token"
+
+
 def _client(signing_sa: str | None = None) -> GoogleStorageClient:
     return GoogleStorageClient(None, signing_service_account=signing_sa)
 
@@ -52,6 +59,17 @@ def test_signing_credentials_falls_back_to_configured_service_account(
     assert _client("runtime@example.iam.gserviceaccount.com")._signing_credentials() == {
         "service_account_email": "runtime@example.iam.gserviceaccount.com",
         "access_token": "user-token",
+    }
+
+
+def test_signing_credentials_ignores_default_placeholder(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "google.auth.default", lambda: (_DefaultPlaceholderCreds(), "proj")
+    )
+
+    assert _client("runtime@example.iam.gserviceaccount.com")._signing_credentials() == {
+        "service_account_email": "runtime@example.iam.gserviceaccount.com",
+        "access_token": "compute-token",
     }
 
 

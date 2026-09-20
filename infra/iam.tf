@@ -9,6 +9,8 @@ locals {
       "roles/secretmanager.secretAccessor",
       "roles/aiplatform.user",
       "roles/cloudkms.cryptoKeyEncrypterDecrypter",
+      # DELETE /api/me removes the Firebase Auth account via the Admin SDK.
+      "roles/firebaseauth.admin",
     ]
     transcribe = [
       "roles/storage.objectAdmin",
