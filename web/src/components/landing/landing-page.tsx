@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -104,9 +110,16 @@ function easeInOutCubic(p: number) {
   return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
 }
 
-function useFlowStage(stageRef: React.RefObject<HTMLDivElement | null>) {
+function useFlowStage() {
+  // Callback ref: the stage mounts only after auth resolves (the loading
+  // state short-circuits the render first), so a plain useRef + mount-run
+  // effect would execute while the stage is absent and never re-run.
+  const [stage, setStage] = useState<HTMLDivElement | null>(null);
+  const stageRef = useCallback((node: HTMLDivElement | null) => {
+    setStage(node);
+  }, []);
+
   useEffect(() => {
-    const stage = stageRef.current;
     if (!stage) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
@@ -116,22 +129,14 @@ function useFlowStage(stageRef: React.RefObject<HTMLDivElement | null>) {
     const dots = Array.from(
       stage.querySelectorAll<HTMLSpanElement>("[data-flow-dot]"),
     );
-    const center = stage.querySelector<HTMLDivElement>("[data-flow-center]");
+    const dotEls = dots;
+    const centerEl = stage.querySelector<HTMLDivElement>("[data-flow-center]");
     if (paths.length === 0 || dots.length === 0) return;
     const lens = paths.map((p) => p.getTotalLength());
 
     let raf = 0;
     let t = 0;
     let last = performance.now();
-    let visible = true;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        visible = entry.isIntersecting;
-        last = performance.now();
-      },
-      { threshold: 0 },
-    );
-    io.observe(stage);
 
     // The overlay SVG fills the stage exactly (inset-0, none-scaled), so an
     // SVG point (x, y) in 0..100 space maps directly onto container pixels.
@@ -164,31 +169,39 @@ function useFlowStage(stageRef: React.RefObject<HTMLDivElement | null>) {
       raf = requestAnimationFrame(frame);
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      if (!visible) return;
       t = (t + dt) % FLOW_LOOP;
       const box = stage.getBoundingClientRect();
       FLOW_IN.forEach((s, k) => place(box.width, box.height, k, s.at, s.dur));
       FLOW_OUT.forEach((s, j) =>
         place(box.width, box.height, 3 + j, s.at, s.dur),
       );
-      if (center) {
+      if (centerEl) {
         const lp = (t - FLOW_PROCESS.at) / FLOW_PROCESS.dur;
         if (lp >= 0 && lp <= 1) {
           const k = Math.sin(Math.PI * lp);
-          center.style.transform = `scale(${(1 + 0.02 * k).toFixed(4)})`;
-          center.style.boxShadow = `0 16px 40px -16px rgba(23,23,23,0.45), 0 0 ${(26 * k).toFixed(1)}px ${(4 * k).toFixed(1)}px rgba(99,102,241,${(0.4 * k).toFixed(3)})`;
+          centerEl.style.transform = `scale(${(1 + 0.02 * k).toFixed(4)})`;
+          centerEl.style.boxShadow = `0 16px 40px -16px rgba(23,23,23,0.45), 0 0 ${(26 * k).toFixed(1)}px ${(4 * k).toFixed(1)}px rgba(99,102,241,${(0.4 * k).toFixed(3)})`;
         } else {
-          center.style.transform = "";
-          center.style.boxShadow = "";
+          centerEl.style.transform = "";
+          centerEl.style.boxShadow = "";
         }
       }
     };
     raf = requestAnimationFrame(frame);
     return () => {
       cancelAnimationFrame(raf);
-      io.disconnect();
+      dotEls.forEach((d) => {
+        d.style.opacity = "";
+        d.style.transform = "";
+      });
+      if (centerEl) {
+        centerEl.style.transform = "";
+        centerEl.style.boxShadow = "";
+      }
     };
-  }, [stageRef]);
+  }, [stage]);
+
+  return { flowStageRef: stageRef };
 }
 
 function PillNav({ onSignIn }: { onSignIn: () => void }) {
@@ -522,7 +535,7 @@ function LocaleDemo({ active }: { active: boolean }) {
     if (!active || reduced) return;
     const id = window.setInterval(
       () => setStep((s) => (s === 1 ? 2 : 1)),
-      2200,
+      1400,
     );
     return () => window.clearInterval(id);
   }, [active, reduced]);
@@ -648,21 +661,21 @@ function ChatDemo({ active }: { active: boolean }) {
           m.from === "me" ? (
             <div
               key={i}
-              className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-foreground px-3 py-1.5 text-[0.7rem] text-background"
+              className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-foreground px-3 py-1.5 text-[0.7rem] text-background animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out motion-reduce:animate-none"
             >
               {m.text}
             </div>
           ) : (
             <div
               key={i}
-              className="w-fit max-w-[90%] rounded-2xl rounded-bl-md bg-fuchsia-600/10 px-3 py-1.5 text-[0.7rem] text-foreground/80"
+              className="w-fit max-w-[90%] rounded-2xl rounded-bl-md bg-fuchsia-600/10 px-3 py-1.5 text-[0.7rem] text-foreground/80 animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out motion-reduce:animate-none"
             >
               {m.text}
             </div>
           ),
         )}
         {typing && (
-          <div className="flex w-fit items-center gap-1 rounded-2xl rounded-bl-md bg-fuchsia-600/10 px-3 py-2.5">
+          <div className="flex w-fit items-center gap-1 rounded-2xl rounded-bl-md bg-fuchsia-600/10 px-3 py-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out motion-reduce:animate-none">
             {[0, 1, 2].map((d) => (
               <span
                 key={d}
@@ -897,8 +910,7 @@ export function LandingPage() {
   const { profile, status, error, signInWithGoogle, signOut } = useAuth();
   const router = useRouter();
   const [hoverCard, setHoverCard] = useState<string | null>(null);
-  const flowStageRef = useRef<HTMLDivElement>(null);
-  useFlowStage(flowStageRef);
+  const { flowStageRef } = useFlowStage();
 
   useEffect(() => {
     if (status === "signed_in" && profile) {
@@ -1064,6 +1076,7 @@ export function LandingPage() {
           {/* desktop: flow stage — one orchestrated timeline */}
           <div
             ref={flowStageRef}
+            data-flow-stage="true"
             aria-hidden="true"
             className="relative mt-10 hidden h-[420px] rounded-3xl bg-[radial-gradient(circle,rgba(0,0,0,0.07)_1px,transparent_1px)] bg-[size:18px_18px] select-none md:block"
           >
