@@ -22,7 +22,7 @@ Terraform lives in this folder. Run commands from `infra/`.
 
 | Bucket | What goes in it | Notes |
 |---|---|---|
-| `habeas-codus-media` | Source videos, transcripts, captions, thumbnails, clips, persona files | Versioning on. CORS open for localhost:3000/8080. This is the one the browser uploads to. |
+| `habeas-codus-media` | Source videos, transcripts, captions, thumbnails, clips, persona files | Versioning on. CORS allows localhost:3000/8080 plus the deployed web origins. The API signs V4 upload URLs via IAM signBlob, so `creator-studio-api` has `roles/iam.serviceAccountTokenCreator` on itself. This is the one the browser uploads to. |
 | `habeas-codus-raw-social` | Raw JSON dumps from YouTube/Meta connectors | Never read by the browser. |
 | `habeas-codus-temp` | Scratch space for FFmpeg (extracted clips, frames, audio) | Auto-deleted after 7 days. |
 | `habeas-codus-exports` | Zipped bundles the user downloads | |

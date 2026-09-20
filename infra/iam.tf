@@ -66,6 +66,14 @@ resource "google_project_iam_member" "sa_roles" {
   member  = "serviceAccount:${google_service_account.runtime[each.value.sa].email}"
 }
 
+# The API signs V4 upload/download URLs through the IAM signBlob API, so its runtime
+# service account must be able to mint signatures for itself.
+resource "google_service_account_iam_member" "api_sign_blob" {
+  service_account_id = google_service_account.runtime["api"].name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${google_service_account.runtime["api"].email}"
+}
+
 # Cloud Storage's service agent must be able to publish object notifications.
 resource "google_pubsub_topic_iam_member" "gcs_publisher" {
   project = var.project_id

@@ -101,6 +101,14 @@ class AssetService:
 
         asset_id = uuid4().hex
         storage_path = source_object_path(owner_uid, project_id, asset_id, extension)
+
+        # Generate the URL before persisting anything: if signing fails there is no asset record
+        # left behind to clutter the workspace.
+        ttl = self.settings.upload_url_ttl_seconds
+        upload_url = self.storage.signed_upload_url(
+            storage_path, content_type=content_type, expires_seconds=ttl
+        )
+
         now = datetime.now(UTC)
         document: dict[str, Any] = {
             "ownerUid": owner_uid,
@@ -123,10 +131,6 @@ class AssetService:
         }
         self.client.set_document(asset_path(owner_uid, project_id, asset_id), document)
 
-        ttl = self.settings.upload_url_ttl_seconds
-        upload_url = self.storage.signed_upload_url(
-            storage_path, content_type=content_type, expires_seconds=ttl
-        )
         return UploadSession(
             assetId=asset_id,
             storagePath=storage_path,
