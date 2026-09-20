@@ -4,6 +4,8 @@ In `on`/`auto` mode a cassette hit is replayed. In `auto`, a miss calls the real
 records the response. In `off`, always real.
 """
 
+import asyncio
+import json
 import logging
 from typing import Any
 
@@ -11,6 +13,9 @@ from app.config import Settings
 from app.providers.cassette import CassetteStore
 
 logger = logging.getLogger(__name__)
+
+# Statuses worth retrying: the model was overloaded, rate-limited, or a transient server error.
+TRANSIENT_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 
 
 class CassetteMiss(RuntimeError):
@@ -68,6 +73,7 @@ class LlmProvider:
         schema: dict[str, Any],
     ) -> dict[str, Any]:
         from google import genai
+        from google.genai import errors as genai_errors
 
         if not self.settings.gemini_api_key:
             raise RuntimeError(
@@ -77,17 +83,38 @@ class LlmProvider:
             )
         logger.info("LLM call via Gemini Developer API (%s)", model)
         client = genai.Client(api_key=self.settings.gemini_api_key)
-        result = client.models.generate_content(
-            model=model,
-            contents=user,
-            config={
-                "system_instruction": system,
-                "response_mime_type": "application/json",
-                "response_schema": schema,
-            },
-        )
-        import json
 
+        attempts = max(1, self.settings.llm_max_attempts)
+        result = None
+        for attempt in range(1, attempts + 1):
+            try:
+                result = client.models.generate_content(
+                    model=model,
+                    contents=user,
+                    config={
+                        "system_instruction": system,
+                        "response_mime_type": "application/json",
+                        "response_schema": schema,
+                    },
+                )
+                break
+            except genai_errors.APIError as exc:
+                code = getattr(exc, "code", None)
+                if code not in TRANSIENT_STATUS_CODES or attempt == attempts:
+                    raise
+                delay = self.settings.llm_retry_base_seconds * (2 ** (attempt - 1))
+                logger.warning(
+                    "Gemini returned %s (%s); retry %d/%d in %.1fs",
+                    code,
+                    getattr(exc, "status", ""),
+                    attempt,
+                    attempts,
+                    delay,
+                )
+                await asyncio.sleep(delay)
+
+        if result is None:  # pragma: no cover - loop always returns or raises
+            raise RuntimeError("LLM call produced no result")
         text = result.text
         if text is None:
             raise RuntimeError("LLM returned an empty response")
