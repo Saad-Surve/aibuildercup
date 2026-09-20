@@ -184,6 +184,40 @@ YouTube Data, YouTube Analytics, Logging, Monitoring, Cloud Trace, Firebase, Ide
 
 ---
 
+## Firebase
+
+Firebase is attached to the `habeas-codus` GCP project (imported, not a separate project).
+
+| Thing | Value |
+|---|---|
+| Web app | `Creator Studio Web` |
+| App ID | `1:538724167565:web:87eb1e0f5245b5079217c4` |
+| Auth domain | `habeas-codus.firebaseapp.com` |
+| Sign-in | Google enabled |
+| Authorized domains | `localhost`, `habeas-codus.firebaseapp.com`, `habeas-codus.web.app` |
+
+Web config (public, safe to expose — the API key is an identifier, not a secret):
+
+```json
+{
+  "projectId": "habeas-codus",
+  "appId": "1:538724167565:web:87eb1e0f5245b5079217c4",
+  "storageBucket": "habeas-codus.firebasestorage.app",
+  "apiKey": "AIzaSyAjWq40FQKv6pN9LJI1glJq6gsfOTMNi7Q",
+  "authDomain": "habeas-codus.firebaseapp.com",
+  "messagingSenderId": "538724167565",
+  "projectNumber": "538724167565"
+}
+```
+
+Firebase created its own default bucket `habeas-codus.firebasestorage.app`. **Do not use it** — the
+app uses `habeas-codus-media` from Terraform.
+
+The Firebase-managed Google OAuth client secret must never be committed. The web app does not need
+it.
+
+---
+
 ## Terraform file map
 
 | File | Contains |
