@@ -73,17 +73,34 @@ def test_to_me_reflects_onboarding_and_persona() -> None:
 def test_delete_account_removes_firestore_and_storage() -> None:
     client = FakeFirestoreClient()
     storage = FakeStorageClient()
-    client.set_document(f"users/{UID}", {"uid": UID})
+    # A full project subtree, not just the user document.
+    owned_docs = [
+        f"users/{UID}",
+        f"users/{UID}/projects/p1",
+        f"users/{UID}/projects/p1/assets/a1",
+        f"users/{UID}/projects/p1/jobs/j1",
+        f"users/{UID}/personaRevisions/r1",
+    ]
+    for path in owned_docs:
+        client.set_document(path, {"ownerUid": UID})
     client.set_document("users/other", {"uid": "other"})
-    storage.upload_text(f"users/{UID}/profile/persona.md", "# P")
-    storage.upload_text(f"users/{UID}/profile/revisions/persona-v1.md", "# P")
-    storage.upload_text("users/other/profile/persona.md", "# Other")
+    client.set_document("users/other/projects/p1", {"ownerUid": "other"})
+
+    owned_objects = [
+        f"users/{UID}/profile/persona.md",
+        f"users/{UID}/profile/revisions/persona-v1.md",
+        f"users/{UID}/projects/p1/source/a1.mp4",
+    ]
+    for path in owned_objects:
+        storage.upload_text(path, "x")
+    storage.upload_text("users/other/projects/p1/source/a1.mp4", "other")
 
     UserService(client, storage=storage).delete_account(UID)
 
-    assert f"users/{UID}" not in client.docs
-    assert "users/other" in client.docs
-    assert storage.objects == {"users/other/profile/persona.md": "# Other"}
+    assert [path for path in client.docs if path.startswith(f"users/{UID}")] == []
+    assert client.docs["users/other"]["uid"] == "other"
+    assert "users/other/projects/p1" in client.docs
+    assert list(storage.objects) == ["users/other/projects/p1/source/a1.mp4"]
 
 
 def test_delete_account_without_storage_still_clears_firestore() -> None:
