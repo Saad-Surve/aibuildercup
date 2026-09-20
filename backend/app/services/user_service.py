@@ -11,6 +11,8 @@ from typing import Any
 from app.schemas.onboarding import OnboardingState, OnboardingStatus, OnboardingStep
 from app.schemas.users import Me, Preferences
 from app.services.firestore_service import FirestoreClient, user_path
+from app.services.paths import user_object_prefix
+from app.services.storage_service import StorageClient
 
 DEFAULT_PREFERENCES: dict[str, Any] = {
     "timezone": "UTC",
@@ -26,8 +28,11 @@ DEFAULT_LIMITS: dict[str, Any] = {
 
 
 class UserService:
-    def __init__(self, client: FirestoreClient) -> None:
+    def __init__(
+        self, client: FirestoreClient, *, storage: StorageClient | None = None
+    ) -> None:
         self.client = client
+        self.storage = storage
 
     def ensure_user(
         self,
@@ -148,7 +153,9 @@ class UserService:
         )
 
     def delete_account(self, owner_uid: str) -> None:
-        """Remove the entire `users/{uid}` subtree. Idempotent."""
+        """Remove the entire `users/{uid}` subtree and all stored objects. Idempotent."""
+        if self.storage is not None:
+            self.storage.delete_prefix(user_object_prefix(owner_uid))
         self.client.delete_document_tree(user_path(owner_uid))
 
     def set_persona(

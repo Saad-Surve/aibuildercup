@@ -48,6 +48,8 @@ class StorageClient(Protocol):
 
     def signed_download_url(self, path: str, *, expires_seconds: int = 900) -> str: ...
 
+    def delete_prefix(self, prefix: str) -> int: ...
+
 
 class GoogleStorageClient:
     """`StorageClient` backed by a real Cloud Storage bucket."""
@@ -73,6 +75,13 @@ class GoogleStorageClient:
 
         blob = self._bucket.blob(validate_object_path(path))
         return str(blob.generate_signed_url(expiration=timedelta(seconds=expires_seconds)))
+
+    def delete_prefix(self, prefix: str) -> int:
+        """Delete every object whose name starts with `prefix`. Returns the count."""
+        blobs = list(self._bucket.list_blobs(prefix=prefix))
+        if blobs:
+            self._bucket.delete_blobs(blobs)
+        return len(blobs)
 
 
 @lru_cache

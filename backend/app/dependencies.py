@@ -29,7 +29,7 @@ def get_project_service() -> ProjectService:
 
 
 def get_user_service() -> UserService:
-    return UserService(get_firestore_client())
+    return UserService(get_firestore_client(), storage=get_storage_client())
 
 
 def get_identity_deleter() -> Callable[[str], None]:

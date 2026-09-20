@@ -1,6 +1,6 @@
 from app.schemas.onboarding import OnboardingStatus, OnboardingStep
 from app.services.user_service import UserService
-from tests.fakes import FakeFirestoreClient
+from tests.fakes import FakeFirestoreClient, FakeStorageClient
 
 UID = "uid-1"
 
@@ -68,3 +68,28 @@ def test_to_me_reflects_onboarding_and_persona() -> None:
     assert me.onboardingCompleted is True
     assert me.personaVersion == 2
     assert me.preferences.defaultLanguage == "en"
+
+
+def test_delete_account_removes_firestore_and_storage() -> None:
+    client = FakeFirestoreClient()
+    storage = FakeStorageClient()
+    client.set_document(f"users/{UID}", {"uid": UID})
+    client.set_document("users/other", {"uid": "other"})
+    storage.upload_text(f"users/{UID}/profile/persona.md", "# P")
+    storage.upload_text(f"users/{UID}/profile/revisions/persona-v1.md", "# P")
+    storage.upload_text("users/other/profile/persona.md", "# Other")
+
+    UserService(client, storage=storage).delete_account(UID)
+
+    assert f"users/{UID}" not in client.docs
+    assert "users/other" in client.docs
+    assert storage.objects == {"users/other/profile/persona.md": "# Other"}
+
+
+def test_delete_account_without_storage_still_clears_firestore() -> None:
+    client = FakeFirestoreClient()
+    client.set_document(f"users/{UID}", {"uid": UID})
+
+    UserService(client).delete_account(UID)
+
+    assert f"users/{UID}" not in client.docs
