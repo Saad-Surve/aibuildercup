@@ -1,7 +1,6 @@
 import { http, HttpResponse } from "msw";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
+import { API_BASE_URL } from "@/lib/api-client";
 
 export const handlers = [
   http.get(`${API_BASE_URL}/healthz`, () =>

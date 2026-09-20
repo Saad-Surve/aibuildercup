@@ -5,13 +5,13 @@ import { cn } from "@/lib/utils";
 
 /*
  * Brand mark cropped tight from the supplied transparent `logo.png`
- * (see `public/logo-mark.png`), so it sits directly on any background with no
+ * (see `public/logo.png`), so it sits directly on any background with no
  * plate. The logo is never redrawn.
  */
 export function LogoMark({ className }: { className?: string }) {
   return (
     <Image
-      src="/logo-mark.png"
+      src="/logo.png"
       alt=""
       aria-hidden="true"
       width={194}
