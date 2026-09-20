@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { MocksProvider } from "@/app/mocks-provider";
@@ -17,8 +17,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Display serif for the marketing hero only. The product UI stays sans.
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Creator Helper Studio",
+  title: "Resonance — Creator Helper Studio",
   description: "AI review studio for creators.",
 };
 
@@ -27,13 +34,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light"
           enableSystem
+          storageKey="resonance-theme"
           disableTransitionOnChange
         >
           <Providers>

@@ -7,6 +7,7 @@ import { AuthLoadingScreen } from "@/components/auth/auth-loading-screen";
 import { useAuth } from "@/components/auth/auth-provider";
 import { CenteredScreen } from "@/components/common/centered-screen";
 import { Logo } from "@/components/common/logo";
+import { UserMenu } from "@/components/layout/user-menu";
 import { StepRail } from "@/components/onboarding/step-rail";
 import {
   AudienceStep,
@@ -45,12 +46,25 @@ function describe(error: unknown): string {
   return "Something went wrong.";
 }
 
-export function OnboardingFlow() {
+export function OnboardingFlow({
+  mode = "onboarding",
+}: {
+  mode?: "onboarding" | "edit";
+}) {
   const { profile, refreshProfile } = useAuth();
   const router = useRouter();
 
+  // Editing reuses the same steps but starts at the first data step and ends
+  // back on the profile, with every answer prefilled from what was saved.
+  const steps =
+    mode === "edit"
+      ? ONBOARDING_STEPS.filter((item) => item.id !== "welcome")
+      : ONBOARDING_STEPS;
+
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
+  // Last answers known to be persisted, used to skip no-op PUTs.
+  const [savedAnswers, setSavedAnswers] = useState<OnboardingAnswers>({});
   const [persona, setPersona] = useState<Persona | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -61,8 +75,10 @@ export function OnboardingFlow() {
     apiFetch<OnboardingState>("/onboarding")
       .then((state) => {
         if (!active) return;
-        setAnswers((state.answers ?? {}) as OnboardingAnswers);
-        if (state.currentStep) {
+        const loaded = (state.answers ?? {}) as OnboardingAnswers;
+        setAnswers(loaded);
+        setSavedAnswers(loaded);
+        if (mode === "onboarding" && state.currentStep) {
           const resume = ONBOARDING_STEPS.findIndex(
             (item) => item.id === state.currentStep,
           );
@@ -78,39 +94,47 @@ export function OnboardingFlow() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [mode]);
 
-  const step = ONBOARDING_STEPS[index];
-  const isLast = index === ONBOARDING_STEPS.length - 1;
+  const step = steps[index];
+  const isLast = index === steps.length - 1;
 
   const update = useCallback((patch: Partial<OnboardingAnswers>) => {
     setAnswers((previous) => ({ ...previous, ...patch }));
   }, []);
+
+  async function persistCurrentStep() {
+    if (!DATA_STEPS.includes(step.id)) return;
+
+    // Only write when something actually changed on this step.
+    const slice = answersForStep(step.id, answers);
+    const saved = answersForStep(step.id, savedAnswers);
+    if (JSON.stringify(slice) === JSON.stringify(saved)) return;
+
+    await apiFetch("/onboarding", {
+      method: "PUT",
+      body: JSON.stringify({ step: step.id, answers: slice }),
+    });
+    setSavedAnswers((previous) => ({ ...previous, ...slice }));
+  }
+
+  async function generatePersona() {
+    // Regenerate so edits made by going back are reflected in the persona.
+    await apiFetch("/onboarding/complete", { method: "POST" });
+    const generated = await apiFetch<Persona>("/persona");
+    setPersona(generated);
+    await refreshProfile();
+  }
 
   async function goNext() {
     if (busy) return;
     setError(null);
     setBusy(true);
     try {
-      if (DATA_STEPS.includes(step.id)) {
-        await apiFetch("/onboarding", {
-          method: "PUT",
-          body: JSON.stringify({
-            step: step.id,
-            answers: answersForStep(step.id, answers),
-          }),
-        });
-      }
-
+      await persistCurrentStep();
       if (step.id === "platforms") {
-        // Regenerate each time the user reaches this point, so edits made by
-        // going back are reflected in the persona.
-        await apiFetch("/onboarding/complete", { method: "POST" });
-        const generated = await apiFetch<Persona>("/persona");
-        setPersona(generated);
-        await refreshProfile();
+        await generatePersona();
       }
-
       if (!isLast) setIndex((value) => value + 1);
     } catch (caught) {
       setError(describe(caught));
@@ -124,6 +148,30 @@ export function OnboardingFlow() {
     setIndex((value) => Math.max(0, value - 1));
   }
 
+  // Jump directly to a step from the rail. The current step is saved first so
+  // nothing typed is lost, and the persona is generated if it is needed.
+  async function goTo(target: number) {
+    if (busy || target === index || target < 0 || target >= steps.length)
+      return;
+    setError(null);
+    setBusy(true);
+    try {
+      await persistCurrentStep();
+      const targetStep = steps[target];
+      if (
+        (targetStep.id === "persona" || targetStep.id === "done") &&
+        !persona
+      ) {
+        await generatePersona();
+      }
+      setIndex(target);
+    } catch (caught) {
+      setError(describe(caught));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loading) {
     return (
       <CenteredScreen>
@@ -133,7 +181,7 @@ export function OnboardingFlow() {
   }
 
   const canContinue = stepIsComplete(step.id, answers);
-  const percent = Math.round(((index + 1) / ONBOARDING_STEPS.length) * 100);
+  const percent = Math.round(((index + 1) / steps.length) * 100);
 
   const continueLabel =
     step.id === "welcome"
@@ -162,7 +210,10 @@ export function OnboardingFlow() {
         return (
           <DoneStep
             name={profile?.displayName ?? undefined}
-            onFinish={() => router.push("/dashboard")}
+            mode={mode}
+            onFinish={() =>
+              router.push(mode === "edit" ? "/profile" : "/dashboard")
+            }
           />
         );
     }
@@ -170,15 +221,27 @@ export function OnboardingFlow() {
 
   return (
     <div className="min-h-[100dvh]">
-      <header className="border-b">
-        <div className="mx-auto flex h-14 max-w-6xl items-center px-6">
-          <Logo />
+      <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-6">
+          <Logo href="/dashboard" />
+          <div className="flex items-center gap-2">
+            {mode === "edit" ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push("/profile")}
+              >
+                Back to profile
+              </Button>
+            ) : null}
+            <UserMenu />
+          </div>
         </div>
       </header>
 
       <div className="mx-auto grid max-w-6xl gap-12 px-6 py-10 lg:grid-cols-[200px_1fr]">
         <aside className="hidden lg:block">
-          <StepRail currentIndex={index} />
+          <StepRail steps={steps} currentIndex={index} onSelect={goTo} />
         </aside>
 
         <main className="min-w-0 max-w-2xl">
@@ -218,7 +281,7 @@ export function OnboardingFlow() {
               </Button>
               <span className="tabular ml-auto text-xs text-muted-foreground">
                 {String(index + 1).padStart(2, "0")} /{" "}
-                {String(ONBOARDING_STEPS.length).padStart(2, "0")}
+                {String(steps.length).padStart(2, "0")}
               </span>
             </div>
           ) : null}

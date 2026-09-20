@@ -15,7 +15,6 @@ import type { IconSvgElement } from "@hugeicons/react";
 import { Icon } from "@/components/common/icon";
 import { Logo } from "@/components/common/logo";
 import { UserMenu } from "@/components/layout/user-menu";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -52,12 +51,9 @@ const NAV: NavItem[] = [
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   if (!item.ready) {
     return (
-      <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/60">
+      <div className="flex cursor-default items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/50">
         <Icon icon={item.icon} />
         <span>{item.label}</span>
-        <Badge variant="ghost" className="ml-auto text-[0.65rem]">
-          Soon
-        </Badge>
       </div>
     );
   }
@@ -87,7 +83,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-[100dvh]">
       <aside className="sticky top-0 hidden h-[100dvh] w-60 shrink-0 flex-col border-r md:flex">
         <div className="flex h-14 shrink-0 items-center px-5">
-          <Logo />
+          <Logo href="/dashboard" />
         </div>
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
           {NAV.map((item) => (
@@ -103,7 +99,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b bg-background/80 px-4 backdrop-blur md:px-6">
           <div className="md:hidden">
-            <Logo compact />
+            <Logo compact href="/dashboard" />
           </div>
           <div className="hidden md:block" />
           <UserMenu />
