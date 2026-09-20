@@ -27,9 +27,14 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
 NEXT_PUBLIC_FIREBASE_APP_ID
 NEXT_PUBLIC_API_BASE_URL
+NEXT_PUBLIC_MOCK_MODE
 ~~~
 
 Never place server secrets or OAuth client secrets in NEXT_PUBLIC variables.
+
+The API client and TypeScript types are generated from `contracts/openapi.yaml`, so the frontend
+and backend cannot drift. With `NEXT_PUBLIC_MOCK_MODE=on`, MSW handlers generated from the same
+fixture JSON let the whole UI run with no backend. See [mock-and-seed.md](./mock-and-seed.md).
 
 ## 2. Frontend directory structure
 
@@ -63,6 +68,11 @@ src/
 │   ├── query-client.ts
 │   ├── events.ts
 │   └── validators.ts
+├── generated/
+│   └── api/            types + client generated from contracts/openapi.yaml
+├── mocks/
+│   ├── handlers.ts     MSW handlers built from fixtures
+│   └── browser.ts
 ├── hooks/
 ├── types/
 └── styles/
@@ -212,6 +222,7 @@ Create project fields:
 - Primary language.
 - Target platforms.
 - Target output languages.
+- Demo project toggle (binds the project to a pinned demo scenario; hidden in the live configuration).
 
 After creation, route to /projects/{projectId}.
 
@@ -305,16 +316,19 @@ OverallScoreCard
 Dimensions:
 
 ~~~text
-Truth
+Truth & Evidence
 Clarity
-Structure
-Cultural
-Platform
-SEO
-Legal/Safety
-Audience Retention
-Accessibility
+Structure & Pacing
+Legal & Safety
+Cultural & Localization
+Platform Fit
+Audience Fit
 Brand Voice
+Engagement & Retention
+Emotional Impact
+SEO & Discoverability
+Visual & Accessibility
+Conversion & CTA
 ~~~
 
 If one reviewer fails, show a partial result instead of blocking the whole workspace.
@@ -355,6 +369,7 @@ Create:
 LanguageSelector
 LocalizationOptions
 GlossaryEditor
+CorpusVersionBadge
 CaptionPreview
 DubbedVideoPreview
 LocalizationComparisonView

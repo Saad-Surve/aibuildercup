@@ -12,9 +12,22 @@ Pydantic: request/response and reviewer schemas
 Cloud Run: API service
 Cloud Run Jobs: long-running media workers
 Pub/Sub: event delivery
+Provider layer: real + cassette implementations of every external dependency
 ~~~
 
-This keeps the agent runtime in one language and makes the Google ADK architecture visible. Genkit is a strong alternative for a TypeScript backend, but using FastAPI, ADK, and Genkit in the same request path would add unnecessary runtime complexity.
+This keeps the agent runtime in one language and makes the Google ADK architecture visible. Genkit is a strong alternative for a TypeScript backend, but using FastAPI, ADK, and Genkit in the same request path would add unnecessary runtime complexity. Genkit is intentionally not used.
+
+Deploy everything to **`us-central1`**. Speech-to-Text (Chirp 2/3), Veo, Imagen, and Text-to-Speech are all properly available there; `us-east1` is not a valid choice for the speech models.
+
+Model IDs are never hardcoded in agents. They come from a config-driven registry so a model can be swapped or pinned without touching reviewer code:
+
+~~~text
+MODEL_REVIEWER=gemini-<flash-class>      # one-shot reviewers
+MODEL_ORCHESTRATOR=gemini-<pro-class>    # coordinator + project chat agent
+MODEL_IMAGE=imagen-<version>             # thumbnails
+MODEL_VIDEO=veo-3.1-fast                 # intros/outros
+MODEL_STT=chirp_3                        # transcription
+~~~
 
 ## 2. Backend repository structure
 
@@ -74,6 +87,16 @@ backend/
 │   │   ├── youtube.py
 │   │   ├── instagram.py
 │   │   └── facebook.py
+│   ├── providers/
+│   │   ├── base.py
+│   │   ├── cassette.py
+│   │   ├── llm.py
+│   │   ├── stt.py
+│   │   ├── translate.py
+│   │   ├── tts.py
+│   │   ├── imagegen.py
+│   │   ├── videogen.py
+│   │   └── social.py
 │   └── workers/
 │       ├── pubsub_handlers.py
 │       ├── transcribe_worker.py
@@ -81,6 +104,12 @@ backend/
 │       ├── social_sync_worker.py
 │       ├── media_worker.py
 │       └── localization_worker.py
+├── scripts/
+│   ├── seed.py
+│   └── record_cassettes.py
+├── evals/
+│   ├── datasets/
+│   └── run_evals.py
 ├── tests/
 ├── Dockerfile
 ├── pyproject.toml
@@ -185,15 +214,18 @@ Use dead-letter topics for messages that exceed retry limits.
 video.uploaded
   -> validate object metadata
   -> create transcription job
-  -> call Speech-to-Text V2 with GCS input
+  -> call Speech-to-Text V2 batch recognition, model chirp_3, GCS input
   -> enable word time offsets
   -> normalize response
-  -> segment transcript
+  -> segment transcript into sentences and paragraphs
   -> generate VTT and SRT
   -> write canonical files to GCS
   -> write metadata and segments to Firestore
   -> publish transcript.ready
 ~~~
+
+Long audio uses batch recognition (sync only handles clips under 60 seconds). The recognizer
+region must be `us-central1` for Chirp availability.
 
 Canonical transcript:
 
@@ -258,16 +290,22 @@ class Finding(BaseModel):
 Reviewer dimensions:
 
 ~~~text
-truth
-clarity
-structure
-cultural
-platform
-seo
-legal_safety
-audience_retention
-accessibility
-brand_voice
+core (always run)
+  truth_evidence
+  clarity
+  structure_pacing
+  legal_safety
+  cultural_localization
+  platform_fit
+
+extended (configurable)
+  audience_fit
+  brand_voice
+  engagement_retention
+  emotional_impact
+  seo_discoverability
+  visual_accessibility
+  conversion_cta
 ~~~
 
 ### Truth reviewer policy
@@ -281,6 +319,25 @@ The truth reviewer should:
 5. Mark uncertain claims as needs_manual_verification.
 
 It must not produce a confident factual verdict solely from model memory.
+
+### Two-tier fan-out
+
+Running every reviewer over every segment is unbounded cost. Use two tiers instead.
+
+Tier 1, broad and always on: one structured Gemini call per reviewer over the whole transcript,
+chunked into roughly 8k to 12k token windows with overlap when the transcript is long. The
+reviewer returns findings keyed by segment id with timestamps. Cost is bounded at one call per
+reviewer per chunk.
+
+Tier 2, deep and on demand: multimodal review of a specific time range. FFmpeg extracts the clip
+plus sampled frames, and Gemini reviews video input. Triggered by the Deep Review button or
+automatically for `high` and `critical` findings.
+
+### Calibration
+
+Every reviewer prompt includes a shared 0 to 10 anchor definition so scores do not all collapse
+to 7. Reviewer prompts carry a `promptVersion` and the run records `modelConfigVersion` so two
+runs are comparable.
 
 ### Bounded parallel execution
 
@@ -373,6 +430,10 @@ class SocialConnector(Protocol):
 
 Implement YouTube first. Normalize all platforms into common models:
 
+The real connectors are built and exercised manually against a test channel, but development and
+the demo run on `FixtureSocial` because real platform access is not guaranteed in time. See
+[mock-and-seed.md](./mock-and-seed.md).
+
 ~~~python
 class NormalizedPost(BaseModel):
     owner_uid: str
@@ -435,10 +496,10 @@ Create a small reviewed dataset with:
 
 ~~~text
 10 clarity examples
-10 structure examples
-10 truth and evidence examples
-10 cultural and localization examples
-10 safety examples
+10 structure_pacing examples
+10 truth_evidence examples
+10 cultural_localization examples
+10 legal_safety examples
 ~~~
 
 Evaluate valid JSON rate, timestamp overlap accuracy, actionable suggestion rate, unsupported certainty rate, and agreement with human labels.
@@ -457,3 +518,39 @@ localization-worker
 ~~~
 
 The API runs as a Cloud Run service. Workers can run as Cloud Run services subscribed to Pub/Sub or as Cloud Run Jobs for heavier media processing.
+
+## 16. Provider layer and mock mode
+
+No reviewer, worker, or agent imports a Google SDK directly. Everything goes through a provider
+interface that has a real and a cassette implementation. This is what lets the whole product run
+offline and keeps development from burning credits.
+
+~~~text
+MOCK_MODE=off    always real
+MOCK_MODE=auto   cassette hit replays, miss calls real once and records
+MOCK_MODE=on     cassette only, never network
+~~~
+
+The cassette key is `sha256(provider + model + promptVersion + canonicalRequest)`, so changing a
+prompt intentionally misses the cache. Cassettes live in `fixtures/cassettes/` and are committed
+after human review. Full detail is in [mock-and-seed.md](./mock-and-seed.md).
+
+`FixtureSocial` is always fixture-backed; the real connectors exist but are not on the dev path.
+
+## 17. Localization corpus pipeline
+
+~~~text
+source transcript
+  -> segment into translatable units
+  -> retrieve matching global corpus and trap-list entries
+  -> Cloud Translation Advanced with glossary
+  -> Gemini cultural-adaptation pass grounded on the retrieved entries
+  -> localized VTT and SRT
+  -> Text-to-Speech
+  -> FFmpeg mux with duration normalization
+~~~
+
+Global and project glossaries are uploaded as TSV and registered as Cloud Translation Advanced
+glossaries. The Gemini pass only fixes what a glossary cannot express: idioms, tone, culture,
+brands, code-mixed phrases, units, and honorifics. Every localization records `corpusVersion` and
+`glossaryVersion`. Full detail is in [localization-corpus.md](./localization-corpus.md).

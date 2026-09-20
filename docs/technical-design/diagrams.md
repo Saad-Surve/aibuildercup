@@ -112,6 +112,7 @@ sequenceDiagram
     participant FS as Firestore
     participant GCS as Cloud Storage
     participant PubSub as Pub/Sub
+    participant Worker as Transcribe Worker
 
     User->>UI: Create project
     UI->>API: POST /projects
@@ -122,10 +123,12 @@ sequenceDiagram
     API->>FS: Create pending asset
     API-->>UI: Short-lived upload URL
     UI->>GCS: Upload video directly
-    GCS->>PubSub: Publish object finalized event
-    PubSub->>API: Start video processing workflow
-    API->>FS: Mark asset uploaded and project processing
-    UI->>API: Subscribe to project events
+    UI->>API: POST /assets/assetId/complete (authoritative for UX)
+    API->>FS: Mark asset uploaded, project processing
+    GCS->>PubSub: object finalized notification
+    PubSub->>Worker: video.uploaded
+    Worker->>FS: Create transcribe job (idempotent)
+    UI->>API: Subscribe to project events (SSE)
 ~~~
 
 ## 5. Transcription and captions
@@ -176,6 +179,10 @@ flowchart TD
     H --> S[Store findings and bins]
     S --> R[analysis.ready]
     R --> UI[Timeline heatmap UI]
+    R --> Q{High or critical finding, or user clicks Deep Review}
+    Q --> M[FFmpeg extract clip and frames]
+    M --> V2[Gemini multimodal deep review]
+    V2 --> S
 ~~~
 
 ## 7. Deep review of a selected segment
@@ -222,17 +229,19 @@ flowchart LR
 
 ~~~mermaid
 flowchart TD
-    A[Source transcript] --> B[Translate transcript]
-    B --> C[Apply creator glossary]
-    C --> D[Gemini cultural adaptation review]
+    A[Source transcript] --> B[Segment into translatable units]
+    B --> R[Retrieve global corpus + trap list + project glossary]
+    R --> C[Translate with Cloud Translation Advanced glossary]
+    C --> D[Gemini cultural adaptation grounded on retrieved entries]
     D --> E[Generate localized VTT and SRT]
     D --> F[Generate localized speech with Text-to-Speech]
     F --> G[Normalize audio duration]
     G --> H[Mux audio and video with FFmpeg]
     E --> I[Caption artifact]
     H --> J[Dubbed video artifact]
-    I --> K[User review]
+    I --> K[User review and flag wrong phrases]
     J --> K
+    K --> L[Candidate corpus entry for review]
 ~~~
 
 ## 10. Thumbnail generation and critique
@@ -341,5 +350,38 @@ flowchart TD
     F --> G[Delete BigQuery rows by ownerUid]
     G --> H[Delete Firebase Auth user]
     H --> I[Write deletion audit result]
+~~~
+
+## 16. Provider layer, cassettes, and mock mode
+
+~~~mermaid
+flowchart TD
+    A[Worker or agent] --> B[Provider interface]
+    B --> C{MOCK_MODE}
+    C -->|off| D[Real Google service]
+    C -->|on| E[Cassette lookup]
+    C -->|auto| F{Cassette hit?}
+    F -->|yes| E
+    F -->|no| D
+    D --> G[Record response]
+    G --> H[fixtures/cassettes]
+    E --> I[Return response]
+    H --> I
+~~~
+
+## 17. Seed and demo scenarios
+
+~~~mermaid
+flowchart LR
+    A[seed.py --demo] --> B[Firebase Auth demo users]
+    A --> C[GCS demo videos]
+    A --> D[Firestore projects, transcripts, analyses, artifacts]
+    A --> E[BigQuery posts, metrics, comments, sentiment]
+    A --> F[Fixtures and cassettes]
+    B --> G[Frontend renders full workspace]
+    C --> G
+    D --> G
+    E --> G
+    F --> G
 ~~~
 
