@@ -12,5 +12,8 @@ COPY app ./app
 ENV PATH="/app/.venv/bin:$PATH"
 ENV ENVIRONMENT=production
 
+RUN useradd --create-home --uid 10001 appuser && chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 8080
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

@@ -63,3 +63,9 @@ variable "killswitch_dry_run" {
   type        = bool
   default     = false
 }
+
+variable "github_repository" {
+  description = "GitHub repository allowed to federate into the deployer service account."
+  type        = string
+  default     = "Saad-Surve/aibuildercup"
+}
