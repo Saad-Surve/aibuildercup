@@ -31,7 +31,7 @@ const NAV: NavItem[] = [
     icon: DashboardSquare01Icon,
     ready: true,
   },
-  { href: "/projects", label: "Projects", icon: FolderOpenIcon, ready: false },
+  { href: "/projects", label: "Projects", icon: FolderOpenIcon, ready: true },
   {
     href: "/audience",
     label: "Audience insights",
@@ -75,6 +75,10 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   );
 }
 
+function isActive(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const readyItems = NAV.filter((item) => item.ready);
@@ -90,7 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <NavLink
               key={item.href}
               item={item}
-              active={pathname === item.href}
+              active={isActive(pathname, item.href)}
             />
           ))}
         </nav>
@@ -107,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <nav className="flex gap-1 overflow-x-auto border-b px-3 py-2 md:hidden">
           {readyItems.map((item) => {
-            const active = pathname === item.href;
+            const active = isActive(pathname, item.href);
             return (
               <Link
                 key={item.href}

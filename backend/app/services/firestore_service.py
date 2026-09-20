@@ -12,9 +12,14 @@ from typing import Any, Protocol, runtime_checkable
 from app.config import get_settings
 from app.services.paths import (
     InvalidPathSegment,
+    asset_path,
+    assets_collection_path,
+    job_path,
+    jobs_collection_path,
     project_path,
     projects_collection_path,
     safe_segment,
+    source_object_path,
     user_path,
 )
 
@@ -22,10 +27,15 @@ __all__ = [
     "FirestoreClient",
     "GoogleFirestoreClient",
     "InvalidPathSegment",
+    "asset_path",
+    "assets_collection_path",
     "get_firestore_client",
+    "job_path",
+    "jobs_collection_path",
     "project_path",
     "projects_collection_path",
     "safe_segment",
+    "source_object_path",
     "user_path",
 ]
 
@@ -50,6 +60,14 @@ class FirestoreClient(Protocol):
         order_by: list[tuple[str, str]],
         limit: int,
         offset: int,
+    ) -> list[tuple[str, dict[str, Any]]]: ...
+
+    def query_collection_group(
+        self,
+        collection_id: str,
+        *,
+        filters: list[tuple[str, str, Any]],
+        limit: int,
     ) -> list[tuple[str, dict[str, Any]]]: ...
 
 
@@ -94,6 +112,22 @@ class GoogleFirestoreClient:
         for field, direction in order_by:
             query = query.order_by(field, direction=direction)
         query = query.offset(offset).limit(limit)
+        return [(doc.id, doc.to_dict() or {}) for doc in query.stream()]
+
+    def query_collection_group(
+        self,
+        collection_id: str,
+        *,
+        filters: list[tuple[str, str, Any]],
+        limit: int,
+    ) -> list[tuple[str, dict[str, Any]]]:
+        """Query a collection across every parent path (e.g. all `jobs` of a user)."""
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
+        query = self._client.collection_group(collection_id)
+        for field, op, value in filters:
+            query = query.where(filter=FieldFilter(field, op, value))
+        query = query.limit(limit)
         return [(doc.id, doc.to_dict() or {}) for doc in query.stream()]
 
 

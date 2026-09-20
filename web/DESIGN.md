@@ -84,15 +84,17 @@ Derived from `docs/technical-design/frontend-plan.md`. Status as of the onboardi
 - Shell: `AppShell`, sidebar, `UserMenu`, `Logo`, `PageHeader`, `CenteredScreen`
 - Onboarding: `OnboardingFlow` (also serves edit mode), `StepRail`, Welcome / Identity / Topics / Audience / Style / Platforms / Persona / Done
 - Profile: `ProfilePage` with read-only `PersonaText`, `Edit persona` → `/persona` (same steps, prefilled, returns to profile), and account deletion
-- Common: `Icon`, `ChipSelect`, `PersonaText`, `Empty`, `Spinner`, `Progress`
+- Projects: `ProjectsPage`, `CreateProjectDialog`, `ProjectCard`, `ProjectStatusBadge`, `ProjectWorkspace` (upload + processing state; timeline/heatmap next)
+- Upload: `VideoDropzone` (validate + signed-URL upload + progress), `ProcessingStatusCard`
+- Common: `Icon`, `ChipSelect`, `PersonaText`, `Empty`, `Spinner`, `Progress`, `Dialog`
 
 **Next**
 
 - Auth: `EmailSignInForm` (needs the Email/Password provider enabled in Firebase)
 - Shell: `Breadcrumbs`, `LoadingState`, `ErrorState`, `ToastProvider` (sonner is mounted; a provider wrapper is not), `ConfirmDialog`, `JobProgressBanner`
-- Dashboard: `DashboardPage` (placeholder now), `ProjectCard`, `ProjectGrid`, `CreateProjectDialog`, `RecentProjectList`, `ConnectionStatusCard`, `AudienceSummaryCard`
-- Upload: `VideoDropzone`, `VideoFilePicker`, `UploadProgress`, `UploadValidationError`, `UploadCompleteState`, `ProcessingStatusCard`
-- Workspace: `ProjectWorkspace`, `ProjectHeader`, `VideoPreviewPanel`, `TimelinePanel`, `VideoTimeline`, `TranscriptTrack`, `HeatmapTracks`, `FindingDetailsPanel`, `ProjectAssistantPanel`
+- Dashboard: `RecentProjectList`, `ConnectionStatusCard`, `AudienceSummaryCard`
+- Upload: `VideoFilePicker`, `UploadValidationError`, `UploadCompleteState`
+- Workspace: `VideoPreviewPanel`, `TimelinePanel`, `VideoTimeline`, `TranscriptTrack`, `HeatmapTracks`, `FindingDetailsPanel`, `ProjectAssistantPanel`
 - Timeline: `VideoPlayer`, `TimelineRuler`, `TranscriptSegment`, `WordHighlight`, `HeatmapTrack`, `HeatmapBin`, `FindingPopover`, `FindingDrawer`, `JumpToTimestampButton`, `DeepReviewButton`
 - Analysis: `AnalysisToolbar`, `DimensionFilter`, `SeverityFilter`, `AnalysisRunSelector`, `ReviewerStatusList`, `OverallScoreCard`
 - Artifacts: `ArtifactGallery`, `ArtifactCard`, `ArtifactTypeFilter`, `ArtifactPreviewModal`, `DownloadButton`, `RegenerateDialog`, `DeleteArtifactDialog`
@@ -110,6 +112,8 @@ src/
     (onboarding)/onboarding  focused onboarding route (no app chrome)
     (onboarding)/persona  persona edit (same steps, prefilled)
     (app)/dashboard       authed app shell
+    (app)/projects        project list + create
+    (app)/projects/view   project workspace (static export: projectId is a query param)
     (app)/profile         account + persona + delete
   components/
     ui/                   shadcn primitives (Base UI based) — edit sparingly
