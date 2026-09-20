@@ -82,6 +82,12 @@ class FakeStorageClient:
     def signed_download_url(self, path: str, *, expires_seconds: int = 900) -> str:
         return f"https://storage.example/{path}?expires={expires_seconds}"
 
+    def delete_prefix(self, prefix: str) -> int:
+        keys = [key for key in self.objects if key.startswith(prefix)]
+        for key in keys:
+            del self.objects[key]
+        return len(keys)
+
 
 class StubLlmProvider:
     """Minimal `LlmProvider` returning a canned response (or raising)."""

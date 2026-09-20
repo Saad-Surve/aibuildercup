@@ -24,6 +24,11 @@ def user_path(uid: str) -> str:
     return f"users/{safe_segment(uid, name='uid')}"
 
 
+def user_object_prefix(uid: str) -> str:
+    """Object-name prefix that scopes every stored object to one user."""
+    return f"{user_path(uid)}/"
+
+
 def projects_collection_path(uid: str) -> str:
     return f"{user_path(uid)}/projects"
 
