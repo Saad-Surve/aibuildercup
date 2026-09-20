@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     max_reviewer_concurrency: int = 4
     max_project_cost_usd: float = 5.0
 
+    # Local development: plain user ADC has no service-account identity, so signed URLs are
+    # minted for this service account through IAM signBlob (the caller needs
+    # roles/iam.serviceAccountTokenCreator on it). Defaults to the Cloud Run runtime SA.
+    storage_signing_service_account: str | None = None
+
     # Upload limits. `max_upload_size_bytes` mirrors users/{uid}.limits.maxVideoSizeBytes.
     max_upload_size_bytes: int = 524_288_000
     upload_url_ttl_seconds: int = 900

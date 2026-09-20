@@ -58,17 +58,20 @@ class StorageClient(Protocol):
 class GoogleStorageClient:
     """`StorageClient` backed by a real Cloud Storage bucket."""
 
-    def __init__(self, bucket: Any) -> None:
+    def __init__(
+        self, bucket: Any, *, signing_service_account: str | None = None
+    ) -> None:
         self._bucket = bucket
+        self._signing_service_account = signing_service_account
 
-    @staticmethod
-    def _signing_credentials() -> dict[str, Any]:
+    def _signing_credentials(self) -> dict[str, Any]:
         """Credentials usable for a V4 signed URL.
 
-        A service-account key can sign directly. On Cloud Run the default credentials are
-        compute-engine credentials with no private key, so we hand the SDK the service-account
-        email and an access token, which makes it sign through the IAM `signBlob` API. That needs
-        `roles/iam.serviceAccountTokenCreator` on the runtime service account.
+        A service-account key (or impersonated credentials) can sign directly. Otherwise we hand
+        the SDK a service-account email and an access token, which makes it sign through the IAM
+        `signBlob` API. On Cloud Run the email comes from the ambient credentials; with plain user
+        ADC locally it comes from `STORAGE_SIGNING_SERVICE_ACCOUNT`. Either way the caller needs
+        `roles/iam.serviceAccountTokenCreator` on that service account.
         """
         import google.auth
         from google.auth.transport.requests import Request
@@ -77,12 +80,14 @@ class GoogleStorageClient:
         if hasattr(credentials, "sign_bytes"):
             return {"credentials": credentials}
 
-        email = getattr(credentials, "service_account_email", None)
+        email = getattr(credentials, "service_account_email", None) or (
+            self._signing_service_account
+        )
         if not email:
             raise RuntimeError(
-                "Cannot sign Cloud Storage URLs: no signing credentials. On Cloud Run this uses "
-                "the runtime service account via IAM signBlob; locally, use a service-account key "
-                "or `gcloud auth application-default login --impersonate-service-account`."
+                "Cannot sign Cloud Storage URLs: no signing credentials. Set "
+                "STORAGE_SIGNING_SERVICE_ACCOUNT, use a service-account key, or run "
+                "`gcloud auth application-default login --impersonate-service-account`."
             )
         if not credentials.token:
             credentials.refresh(Request())
@@ -150,4 +155,7 @@ def get_storage_client() -> StorageClient:
 
     settings = get_settings()
     bucket = storage.Client(project=settings.project_id).bucket(settings.media_bucket)
-    return GoogleStorageClient(bucket)
+    signing_sa = settings.storage_signing_service_account or (
+        f"creator-studio-api@{settings.project_id}.iam.gserviceaccount.com"
+    )
+    return GoogleStorageClient(bucket, signing_service_account=signing_sa)
