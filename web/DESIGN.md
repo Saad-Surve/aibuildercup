@@ -18,10 +18,21 @@ track-and-tick motif used in step rails and data rows. The interface stays quiet
 heatmap can be the loudest thing on screen.
 
 **Exception — the public landing page (`/`).** It is a marketing surface, not product UI. It
-uses a centered hero, a display serif (Playfair Display, `font-serif`) for the headline, and an
-atmospheric background (light rays, bokeh, floating translucent geometry, film grain). The
-product-UI rules below apply everywhere else; do not carry the serif or the atmosphere into the
-app.
+uses a scroll-condensing pill nav (transparent bar at top, floating pill with compact logo
+after scrolling, links kept exactly centred), a centered hero, a display serif
+(Playfair Display, `font-serif`) for the headline, a static peripheral backdrop (haze,
+creator-motif vignettes, film grain — no ambient loops), a capability strip, a platform
+flow section (derivative chips → studio tile → brand destinations from `public/` SVGs,
+marching-dash flow lines, Connected pill),
+an asymmetric feature bento with hands-on mini demos (draggable heatmap cursor, SRT block,
+clip-cut interaction, translation stepper, send/typing/reply chat, draft→edit→final
+pages — no card icons, no hover elevation, per-card accent colours), a dotted three-step
+workflow, a gradient CTA panel with a single "Start creating" button, and a footer with a
+force-fit SVG outline wordmark (`textLength` + `lengthAdjust="spacing"`). The page owns
+its scroll container with hidden scrollbar chrome
+(`no-scrollbar`). Motion there is scroll-driven, hover/drag/click interaction, or
+reduced-motion-gated ambience. The product-UI rules below apply
+everywhere else; do not carry the serif or the marketing sections into the app.
 
 ## 2. Tokens
 
@@ -43,7 +54,7 @@ Rule: never introduce a colour outside this list. Severity colour is data, not d
 
 ### Type
 
-- **UI:** Geist (`font-sans`).
+- **UI:** Schibsted Grotesk (`font-sans`, also `font-heading`).
 - **Data:** Geist Mono via the `.tabular` utility — timestamps, scores, IDs, step numbers.
   Always tabular figures.
 - Headings: `font-heading` (Geist), `tracking-tight`.

@@ -19,9 +19,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-schibsted);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-heading: var(--font-schibsted);
   --font-serif: var(--font-playfair);
 
   --color-signal: var(--signal);
@@ -197,6 +197,25 @@
 }
 
 @layer utilities {
+  /* Hides scrollbar chrome while keeping the container scrollable.
+     Used by the landing page, which owns its scroll container. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .typing-dot {
+    opacity: 0.35;
+  }
+
+  /* Bento page bars replay their entrance (staggered) on hover. */
+  .bar-in {
+    transform-origin: left center;
+  }
+
   /* Numeric / temporal data always uses the mono face with tabular figures. */
   .tabular {
     font-family: var(--font-geist-mono);
@@ -228,6 +247,48 @@
   }
   50% {
     transform: translate3d(18px, -10px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .typing-dot {
+    animation: typing-bounce 1s ease-in-out infinite;
+  }
+  .bar-in {
+    animation: bar-in 0.45s ease-out backwards;
+  }
+  .bar-blink {
+    animation: bar-blink 1.6s ease-in-out;
+  }
+}
+
+@keyframes bar-in {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+}
+
+@keyframes bar-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}
+
+@keyframes typing-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
   }
 }
 
