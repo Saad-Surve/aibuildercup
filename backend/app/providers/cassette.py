@@ -6,9 +6,12 @@ Changing a prompt intentionally misses the cache.
 
 import hashlib
 import json
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class CassetteStore:
@@ -54,18 +57,23 @@ class CassetteStore:
         response: Any,
     ) -> None:
         path = self._path(provider, key)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            json.dumps(
-                {
-                    "key": key,
-                    "provider": provider,
-                    "model": model,
-                    "promptVersion": prompt_version,
-                    "requestSummary": request_summary,
-                    "createdAt": datetime.now(UTC).isoformat(),
-                    "response": response,
-                },
-                indent=2,
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                json.dumps(
+                    {
+                        "key": key,
+                        "provider": provider,
+                        "model": model,
+                        "promptVersion": prompt_version,
+                        "requestSummary": request_summary,
+                        "createdAt": datetime.now(UTC).isoformat(),
+                        "response": response,
+                    },
+                    indent=2,
+                )
             )
-        )
+        except OSError as exc:
+            # Recording is a development convenience. A read-only or absent cassette directory
+            # (e.g. the production container) must never discard a real provider response.
+            logger.warning("Could not write cassette %s: %s", path, exc)

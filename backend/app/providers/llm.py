@@ -54,14 +54,17 @@ class LlmProvider:
             model=model, system=system, user=user, schema=schema
         )
 
-        self.cassettes.save(
-            self.provider_name,
-            key,
-            model=model,
-            prompt_version=prompt_version,
-            request_summary=f"{prompt_version} ({model})",
-            response=response,
-        )
+        # Only `auto` records. `off` is always-real with no cassette side effects, which also
+        # keeps production from trying to write into a non-existent fixtures directory.
+        if self.settings.mock_mode == "auto":
+            self.cassettes.save(
+                self.provider_name,
+                key,
+                model=model,
+                prompt_version=prompt_version,
+                request_summary=f"{prompt_version} ({model})",
+                response=response,
+            )
         return response
 
     async def _real(
