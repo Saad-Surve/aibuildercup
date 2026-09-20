@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     # https://aistudio.google.com/apikey
     gemini_api_key: str | None = None
 
+    # Retry transient Gemini failures (429/5xx) with exponential backoff before giving up.
+    llm_max_attempts: int = 4
+    llm_retry_base_seconds: float = 0.5
+
     # Model registry. Agents never hardcode model ids; they read these. Gemini 2.5 models are
     # retired for new AI Studio keys and `gemini-*-pro` is not on the free tier, so default to the
     # rolling flash alias. Pin a concrete id (e.g. gemini-3.6-flash) if you need reproducibility.
