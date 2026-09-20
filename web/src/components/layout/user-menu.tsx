@@ -2,9 +2,9 @@
 
 import {
   ComputerIcon,
-  Logout01Icon,
-  Moon01Icon,
-  Sun01Icon,
+  LogoutSquare02Icon,
+  Moon02Icon,
+  Sun03Icon,
 } from "@hugeicons/core-free-icons";
 import { useTheme } from "next-themes";
 
@@ -59,11 +59,11 @@ export function UserMenu() {
             onValueChange={setTheme}
           >
             <DropdownMenuRadioItem value="light">
-              <Icon icon={Sun01Icon} />
+              <Icon icon={Sun03Icon} />
               Light
             </DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="dark">
-              <Icon icon={Moon01Icon} />
+              <Icon icon={Moon02Icon} />
               Dark
             </DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="system">
@@ -74,7 +74,7 @@ export function UserMenu() {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={signOut}>
-          <Icon icon={Logout01Icon} />
+          <Icon icon={LogoutSquare02Icon} />
           Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>

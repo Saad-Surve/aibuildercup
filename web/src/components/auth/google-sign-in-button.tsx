@@ -2,7 +2,7 @@
 
 function GoogleMark() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5">
       <path
         fill="#4285F4"
         d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.86c2.26-2.09 3.56-5.17 3.56-8.87Z"
@@ -37,12 +37,10 @@ export function GoogleSignInButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-zinc-900 px-5 text-sm font-medium text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 dark:focus-visible:outline-white"
+      className="inline-flex h-12 items-center justify-center gap-3 rounded-full border border-black/[0.06] bg-white px-6 text-sm font-medium text-zinc-900 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_10px_30px_-14px_rgba(0,0,0,0.3)] transition duration-200 hover:-translate-y-px hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_16px_40px_-16px_rgba(0,0,0,0.35)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-60"
     >
-      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white dark:bg-zinc-100">
-        <GoogleMark />
-      </span>
-      Continue with Google
+      <GoogleMark />
+      Sign in with Google
     </button>
   );
 }

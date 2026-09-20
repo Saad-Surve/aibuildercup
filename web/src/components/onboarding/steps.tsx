@@ -355,18 +355,23 @@ export function PersonaStep({ persona }: { persona: Persona | null }) {
 export function DoneStep({
   name,
   onFinish,
+  mode = "onboarding",
 }: {
   name?: string;
   onFinish: () => void;
+  mode?: "onboarding" | "edit";
 }) {
+  const isEdit = mode === "edit";
+
   return (
     <div className="space-y-6">
       <p className="max-w-[60ch] text-sm text-muted-foreground">
-        {name ? `${name}, your` : "Your"} persona is saved and the reviewers are
-        calibrated to it. Upload a video to see your first heatmap.
+        {isEdit
+          ? "Your persona is updated. The reviewers will use the new version on your next run."
+          : `${name ? `${name}, your` : "Your"} persona is saved and the reviewers are calibrated to it. Upload a video to see your first heatmap.`}
       </p>
       <Button size="lg" onClick={onFinish}>
-        Go to dashboard
+        {isEdit ? "Back to profile" : "Go to dashboard"}
       </Button>
     </div>
   );

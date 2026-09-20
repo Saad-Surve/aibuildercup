@@ -17,6 +17,12 @@ glows, no decorative accent colour.
 track-and-tick motif used in step rails and data rows. The interface stays quiet so the
 heatmap can be the loudest thing on screen.
 
+**Exception — the public landing page (`/`).** It is a marketing surface, not product UI. It
+uses a centered hero, a display serif (Playfair Display, `font-serif`) for the headline, and an
+atmospheric background (light rays, bokeh, floating translucent geometry, film grain). The
+product-UI rules below apply everywhere else; do not carry the serif or the atmosphere into the
+app.
+
 ## 2. Tokens
 
 ### Colour
@@ -73,11 +79,11 @@ Derived from `docs/technical-design/frontend-plan.md`. Status as of the onboardi
 
 **Built**
 
-- Landing: `LandingPage` (split layout, vertical divider, `HeroIllustration`), `SignInPanel`, `GoogleSignInButton`
+- Landing: `LandingPage` (centered hero, `LandingBackground`), `GoogleSignInButton`
 - Auth: `AuthLoadingScreen`, `AuthProvider`, `RequireAuth`, `RequireOnboarded`
 - Shell: `AppShell`, sidebar, `UserMenu`, `Logo`, `PageHeader`, `CenteredScreen`
-- Onboarding: `OnboardingFlow`, `StepRail`, Welcome / Identity / Topics / Audience / Style / Platforms / Persona / Done
-- Profile: `ProfilePage` with read-only `PersonaText` and account deletion
+- Onboarding: `OnboardingFlow` (also serves edit mode), `StepRail`, Welcome / Identity / Topics / Audience / Style / Platforms / Persona / Done
+- Profile: `ProfilePage` with read-only `PersonaText`, `Edit persona` → `/persona` (same steps, prefilled, returns to profile), and account deletion
 - Common: `Icon`, `ChipSelect`, `PersonaText`, `Empty`, `Spinner`, `Progress`
 
 **Next**
@@ -100,15 +106,16 @@ Derived from `docs/technical-design/frontend-plan.md`. Status as of the onboardi
 ```
 src/
   app/
-    page.tsx              landing page (split: hero left, sign-in right)
+    page.tsx              landing page (centered hero + sign-in)
     (onboarding)/onboarding  focused onboarding route (no app chrome)
+    (onboarding)/persona  persona edit (same steps, prefilled)
     (app)/dashboard       authed app shell
     (app)/profile         account + persona + delete
   components/
     ui/                   shadcn primitives (Base UI based) — edit sparingly
     common/               brand + shared primitives (Logo, Icon, PageHeader, ChipSelect, …)
-    auth/                 auth provider, guards, sign-in panel
-    landing/              landing page + hero illustration
+    auth/                 auth provider, guards, sign-in button
+    landing/              landing page + atmospheric background
     layout/               app shell, sidebar, user menu
     onboarding/           flow, rail, steps
   lib/

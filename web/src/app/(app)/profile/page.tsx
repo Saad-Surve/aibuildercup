@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Delete02Icon } from "@hugeicons/core-free-icons";
+import { Delete02Icon, Edit02Icon } from "@hugeicons/core-free-icons";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { Icon } from "@/components/common/icon";
@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -29,7 +30,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError, apiFetch } from "@/lib/api-client";
-import { cn } from "@/lib/utils";
+// import { cn } from "@/lib/utils";
 import type { Persona } from "@/lib/types";
 
 function describe(error: unknown): string {
@@ -38,6 +39,7 @@ function describe(error: unknown): string {
   return "Something went wrong.";
 }
 
+/*
 function Row({
   label,
   value,
@@ -61,9 +63,10 @@ function Row({
     </div>
   );
 }
+*/
 
 export default function ProfilePage() {
-  const { user, profile, signOut } = useAuth();
+  const { signOut } = useAuth();
   const router = useRouter();
 
   const [persona, setPersona] = useState<Persona | null>(null);
@@ -105,8 +108,8 @@ export default function ProfilePage() {
     }
   }
 
-  const name = profile?.displayName ?? user?.displayName ?? "Creator";
-  const email = profile?.email ?? user?.email ?? "—";
+  // const name = profile?.displayName ?? user?.displayName ?? "Creator";
+  // const email = profile?.email ?? user?.email ?? "—";
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -115,6 +118,7 @@ export default function ProfilePage() {
         description="Your account and the persona the reviewers score against."
       />
 
+      {/*
       <Card>
         <CardHeader>
           <CardTitle>Account</CardTitle>
@@ -145,6 +149,7 @@ export default function ProfilePage() {
           </dl>
         </CardContent>
       </Card>
+      */}
 
       <Card>
         <CardHeader>
@@ -152,6 +157,18 @@ export default function ProfilePage() {
           <CardDescription>
             Generated from your onboarding answers.
           </CardDescription>
+          {persona ? (
+            <CardAction>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push("/persona")}
+              >
+                <Icon icon={Edit02Icon} />
+                Edit persona
+              </Button>
+            </CardAction>
+          ) : null}
         </CardHeader>
         <CardContent>
           {loadingPersona ? (
