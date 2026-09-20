@@ -131,6 +131,41 @@ async def test_llm_retries_transient_error_then_succeeds(monkeypatch, tmp_path) 
     assert client.calls == 2
 
 
+async def test_llm_off_does_not_write_cassette(monkeypatch, tmp_path) -> None:
+    captured: list[dict] = []
+    monkeypatch.setattr(
+        "google.genai.Client", lambda **kwargs: _FakeClient(captured, **kwargs)
+    )
+    cassette_dir = tmp_path / "cassettes"
+    settings = Settings(
+        mock_mode="off", cassette_dir=str(cassette_dir), gemini_api_key="k"
+    )
+    provider = LlmProvider(settings, CassetteStore(str(cassette_dir)))
+
+    result = await provider.complete_json(
+        model="m", prompt_version="v1", system="s", user="u", schema={}
+    )
+
+    assert result == {"ok": True}
+    assert not cassette_dir.exists()
+
+
+def test_cassette_save_failure_is_non_fatal(tmp_path) -> None:
+    blocker = tmp_path / "blocker"
+    blocker.write_text("not a directory")
+    store = CassetteStore(str(blocker / "cassettes"))
+
+    # Must not raise even though the cassette path cannot be created.
+    store.save(
+        "llm",
+        "key",
+        model="m",
+        prompt_version="v1",
+        request_summary="s",
+        response={"a": 1},
+    )
+
+
 async def test_llm_does_not_retry_client_error(monkeypatch, tmp_path) -> None:
     from google.genai import errors as genai_errors
 
