@@ -6,8 +6,11 @@ web app (Firebase Hosting).**
 ## 0. Deployed URLs
 
 - **Web (share this): https://habeas-codus.web.app**
-- API: https://creator-studio-api-3sim77rugq-uc.a.run.app (internal; called by the browser only)
-- GitHub repo variables: `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `API_URL`, `CORS_ALLOWED_ORIGINS`.
+- **API (same origin): https://habeas-codus.web.app/api/...** — Firebase Hosting rewrites `/api/**`
+  to the `creator-studio-api` Cloud Run service, so there is no separate API URL and no CORS in
+  production. The raw `*.run.app` URL still exists but is internal only.
+- GitHub repo variables: `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `API_URL`
+  (`https://habeas-codus.web.app/api`), `CORS_ALLOWED_ORIGINS`.
 
 ## 1. What changed
 

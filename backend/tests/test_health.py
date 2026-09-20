@@ -6,17 +6,17 @@ client = TestClient(app)
 
 
 def test_healthz() -> None:
-    response = client.get("/healthz")
+    response = client.get("/api/healthz")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
 def test_readyz() -> None:
-    response = client.get("/readyz")
+    response = client.get("/api/readyz")
     assert response.status_code == 200
     assert response.json() == {"status": "ready"}
 
 
 def test_request_id_header_is_echoed() -> None:
-    response = client.get("/healthz", headers={"x-request-id": "abc-123"})
+    response = client.get("/api/healthz", headers={"x-request-id": "abc-123"})
     assert response.headers["x-request-id"] == "abc-123"
