@@ -1,9 +1,17 @@
 /*
- * Light, restrained atmosphere for the landing hero: a clean base, soft amber
- * and muted-violet haze at the edges, translucent glass panels with simple
- * rounded corners pushed to the periphery, a few minimal floating circles, and
- * a whisper of film grain. Decoration stays away from the centre so the hero
- * remains the focus. Motion is gated behind prefers-reduced-motion.
+ * Landing atmosphere: a clean light base with warm / cool haze at the edges,
+ * plus a small, deliberately art-directed set of creator-motif vignettes kept
+ * strictly at the periphery so the hero stays dominant:
+ *
+ *   left edge  — review-timeline card (the flagship heatmap critique),
+ *   right edge — short-clip card (thumbnail + captions + locale),
+ *   bottom     — a loose waveform sculpture (left) and an export chip (right).
+ *
+ * The two side cards mirror each other (equal size, opposing ±8° tilt, same
+ * surface treatment) so the composition reads as balanced, not random. Detail
+ * vignettes render only on lg+ screens; on smaller viewports only the haze,
+ * grain, and the bottom waveform remain. Everything here is deliberately
+ * static — no ambient loops — so the hero stays calm and dominant.
  */
 export function LandingBackground() {
   return (
@@ -20,16 +28,207 @@ export function LandingBackground() {
       <div className="absolute -right-56 -top-28 h-[52rem] w-[52rem] rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.11),transparent_66%)] blur-3xl" />
       <div className="absolute -bottom-60 left-1/2 h-[46rem] w-[66rem] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse,rgba(56,189,248,0.09),transparent_70%)] blur-3xl" />
 
-      {/* translucent glass panels, simple rounded corners, at the periphery */}
-      <div className="absolute -left-24 top-[22%] h-64 w-72 rounded-[2rem] border border-black/[0.04] bg-white/40 backdrop-blur-2xl motion-safe:animate-[float_14s_ease-in-out_infinite]" />
-      <div className="absolute -right-28 top-[16%] h-56 w-64 rounded-[1.75rem] border border-black/[0.04] bg-white/35 backdrop-blur-2xl motion-safe:animate-[drift_17s_ease-in-out_infinite]" />
-      <div className="absolute -bottom-24 right-[6%] h-64 w-80 rounded-[2.25rem] border border-black/[0.03] bg-white/30 backdrop-blur-2xl motion-safe:animate-[float_18s_ease-in-out_infinite]" />
+      {/* ——— left vignette: review timeline ——— */}
+      <div className="absolute -left-20 top-[20%] hidden w-72 lg:block">
+        <div className="relative -rotate-[8deg]">
+          {/* soft wash behind the card */}
+          <div className="absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle,rgba(217,119,6,0.14),transparent_70%)] blur-2xl" />
+          <div className="relative rounded-2xl border border-black/[0.06] bg-white/75 p-4 shadow-xl shadow-black/[0.06] backdrop-blur-xl">
+            {/* header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-foreground/60">
+                  Review · Truth
+                </span>
+              </div>
+              <span className="tabular rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[0.65rem] font-semibold text-foreground/70">
+                8.2
+              </span>
+            </div>
+            {/* transcript lines */}
+            <div className="mt-3 space-y-1.5">
+              <div className="h-1.5 w-11/12 rounded-full bg-foreground/[0.09]" />
+              <div className="h-1.5 w-3/4 rounded-full bg-foreground/[0.07]" />
+              <div className="h-1.5 w-5/6 rounded-full bg-foreground/[0.08]" />
+            </div>
+            {/* heatmap track */}
+            <div className="relative mt-3">
+              <div className="flex gap-1">
+                {[
+                  "bg-emerald-400/70",
+                  "bg-emerald-400/70",
+                  "bg-yellow-400/80",
+                  "bg-orange-400/80",
+                  "bg-emerald-400/70",
+                  "bg-red-400/70",
+                  "bg-yellow-400/80",
+                  "bg-emerald-400/70",
+                ].map((tone, i) => (
+                  <span
+                    key={i}
+                    className={`h-3.5 flex-1 rounded-[4px] ${tone}`}
+                  />
+                ))}
+              </div>
+              {/* playhead */}
+              <div className="absolute -top-1 bottom-[-6px] left-[38%] w-px bg-foreground/50">
+                <span className="absolute -left-[3px] -top-[3px] size-[7px] rounded-full border border-white bg-foreground/60" />
+              </div>
+            </div>
+            {/* footer */}
+            <div className="mt-3 flex items-center justify-between">
+              <span className="tabular text-[0.65rem] text-foreground/45">
+                02:14 / 08:40
+              </span>
+              <span className="text-[0.65rem] font-medium text-foreground/50">
+                3 findings
+              </span>
+            </div>
+          </div>
+          {/* pinned cutter badge */}
+          <div className="absolute -right-4 -top-4 flex size-9 items-center justify-center rounded-full border border-black/[0.06] bg-white shadow-md">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-foreground/55"
+            >
+              <circle cx="6" cy="6" r="2.5" />
+              <circle cx="6" cy="18" r="2.5" />
+              <path d="M8.5 8.5 20 19M8.5 15.5 20 5" />
+            </svg>
+          </div>
+        </div>
+      </div>
 
-      {/* a few extremely minimal floating circles */}
-      <div className="absolute left-[10%] top-[18%] size-2.5 rounded-full bg-foreground/10 motion-safe:animate-[float_12s_ease-in-out_infinite]" />
-      <div className="absolute right-[12%] top-[40%] size-2 rounded-full bg-foreground/[0.08] motion-safe:animate-[drift_15s_ease-in-out_infinite]" />
-      <div className="absolute bottom-[18%] left-[16%] size-3 rounded-full bg-foreground/[0.07] motion-safe:animate-[float_16s_ease-in-out_infinite]" />
-      <div className="absolute bottom-[28%] right-[20%] size-2 rounded-full bg-foreground/[0.08] motion-safe:animate-[drift_13s_ease-in-out_infinite]" />
+      {/* ——— right vignette: short clip ——— */}
+      <div className="absolute -right-20 top-[16%] hidden w-72 lg:block">
+        <div className="relative rotate-[8deg]">
+          <div className="absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle,rgba(124,58,237,0.13),transparent_70%)] blur-2xl" />
+          <div className="relative rounded-2xl border border-black/[0.06] bg-white/75 p-3.5 shadow-xl shadow-black/[0.06] backdrop-blur-xl">
+            <div className="flex items-center justify-between px-0.5">
+              <span className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-foreground/60">
+                Clip · 9:16
+              </span>
+              <span className="tabular text-[0.65rem] text-foreground/45">
+                0:32
+              </span>
+            </div>
+            {/* thumbnail */}
+            <div className="relative mt-2.5 aspect-video overflow-hidden rounded-xl bg-gradient-to-br from-sky-500 via-violet-500 to-amber-500">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
+              {/* stylised waveform etched on the thumbnail */}
+              <div className="absolute inset-x-6 bottom-2.5 flex items-end justify-center gap-[3px] opacity-80">
+                {[5, 9, 6, 12, 8, 14, 7, 10, 5, 11, 6, 9, 5, 8].map((h, i) => (
+                  <span
+                    key={i}
+                    style={{ height: `${h}px` }}
+                    className="w-[3px] rounded-full bg-white/85"
+                  />
+                ))}
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="flex size-9 items-center justify-center rounded-full bg-white/95 shadow-md">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className="ml-0.5 text-foreground/80"
+                  >
+                    <path d="M8 5.5v13l11-6.5z" />
+                  </svg>
+                </span>
+              </div>
+            </div>
+            {/* captions + locale */}
+            <div className="mt-3 space-y-1.5 px-0.5">
+              <div className="h-1.5 w-10/12 rounded-full bg-foreground/[0.09]" />
+              <div className="h-1.5 w-2/3 rounded-full bg-foreground/[0.07]" />
+            </div>
+            <div className="mt-2.5 flex items-center gap-1.5 px-0.5">
+              <span className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[0.62rem] font-semibold text-foreground/60">
+                EN → HI
+              </span>
+              <span className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[0.62rem] font-semibold text-foreground/60">
+                CC
+              </span>
+            </div>
+          </div>
+          {/* pinned globe badge */}
+          <div className="absolute -left-4 -top-4 flex size-9 items-center justify-center rounded-full border border-black/[0.06] bg-white shadow-md">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              className="text-foreground/55"
+            >
+              <circle cx="12" cy="12" r="8.5" />
+              <path d="M3.5 12h17M12 3.5c2.5 2.4 3.8 5.3 3.8 8.5s-1.3 6.1-3.8 8.5c-2.5-2.4-3.8-5.3-3.8-8.5s1.3-6.1 3.8-8.5Z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* ——— bottom-left: loose waveform sculpture ——— */}
+      <div className="absolute bottom-[11%] left-[5%] hidden items-end gap-1 sm:flex">
+        {[10, 18, 8, 22, 14, 26, 12, 20, 9, 24, 13, 19, 8, 16, 11].map(
+          (h, i) => (
+            <span
+              key={i}
+              style={{ height: `${h}px` }}
+              className="w-1.5 rounded-full bg-gradient-to-t from-sky-700 via-violet-700 to-amber-600"
+            />
+          ),
+        )}
+        <span className="tabular ml-2 self-center text-[0.62rem] font-semibold text-foreground/65">
+          VO · −12dB
+        </span>
+      </div>
+
+      {/* ——— bottom-right: export chip ——— */}
+      <div className="absolute bottom-[9%] right-[4%] hidden lg:block">
+        <div className="relative rotate-[5deg]">
+          <div className="flex items-center gap-3 rounded-2xl border border-black/[0.06] bg-white/70 py-2.5 pl-3.5 pr-4 shadow-lg shadow-black/[0.05] backdrop-blur-xl">
+            <span className="flex size-7 items-center justify-center rounded-full bg-foreground/[0.06]">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-foreground/60"
+              >
+                <path d="M12 4v11m0 0 4-4m-4 4-4-4M4.5 19.5h15" />
+              </svg>
+            </span>
+            <span>
+              <span className="block text-[0.68rem] font-semibold text-foreground/70">
+                Export ready
+              </span>
+              <span className="mt-1 block h-1 w-28 overflow-hidden rounded-full bg-foreground/[0.08]">
+                <span className="block h-full w-3/4 rounded-full bg-gradient-to-r from-sky-500/80 via-violet-500/80 to-amber-500/80" />
+              </span>
+            </span>
+            <span className="tabular text-[0.62rem] text-foreground/45">
+              4K
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* faint film grain */}
       <div className="grain absolute inset-0 opacity-[0.02]" />
