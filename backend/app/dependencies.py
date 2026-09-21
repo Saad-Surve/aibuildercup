@@ -9,7 +9,9 @@ from app.auth.firebase import delete_user as firebase_delete_user
 from app.auth.firebase import verify_id_token
 from app.config import get_settings
 from app.providers import get_providers
+from app.services.asset_service import AssetService
 from app.services.firestore_service import get_firestore_client
+from app.services.job_service import JobService
 from app.services.persona_service import PersonaService
 from app.services.project_service import ProjectService
 from app.services.storage_service import get_storage_client
@@ -26,6 +28,21 @@ class AuthenticatedUser:
 
 def get_project_service() -> ProjectService:
     return ProjectService(get_firestore_client())
+
+
+def get_job_service() -> JobService:
+    return JobService(get_firestore_client())
+
+
+def get_asset_service() -> AssetService:
+    client = get_firestore_client()
+    return AssetService(
+        client,
+        projects=ProjectService(client),
+        jobs=JobService(client),
+        storage=get_storage_client(),
+        settings=get_settings(),
+    )
 
 
 def get_user_service() -> UserService:

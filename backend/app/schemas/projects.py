@@ -29,6 +29,12 @@ class UpdateProject(BaseModel):
     description: str | None = None
 
 
+class ProjectProgress(BaseModel):
+    stage: str | None = None
+    percent: int = 0
+    message: str | None = None
+
+
 class Project(BaseModel):
     projectId: str
     name: str
@@ -39,6 +45,7 @@ class Project(BaseModel):
     isDemo: bool
     demoProfileId: str | None
     status: ProjectStatus
+    progress: ProjectProgress | None = None
     createdAt: datetime
     updatedAt: datetime
 

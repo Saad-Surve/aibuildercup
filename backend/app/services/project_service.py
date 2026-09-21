@@ -12,7 +12,13 @@ from typing import Any
 from uuid import uuid4
 
 from app.errors import BadRequestError, NotFoundError
-from app.schemas.projects import CreateProject, Project, ProjectStatus, UpdateProject
+from app.schemas.projects import (
+    CreateProject,
+    Project,
+    ProjectProgress,
+    ProjectStatus,
+    UpdateProject,
+)
 from app.services.firestore_service import (
     FirestoreClient,
     project_path,
@@ -51,6 +57,9 @@ def _to_project(project_id: str, data: dict[str, Any]) -> Project:
         isDemo=data.get("isDemo", False),
         demoProfileId=data.get("demoProfileId"),
         status=ProjectStatus(data.get("status", ProjectStatus.draft.value)),
+        progress=ProjectProgress(**data["progress"])
+        if data.get("progress")
+        else None,
         createdAt=data["createdAt"],
         updatedAt=data["updatedAt"],
     )
@@ -114,6 +123,26 @@ class ProjectService:
             self.client.update_document(project_path(owner_uid, project_id), changes)
             data.update(changes)
         return _to_project(project_id, data)
+
+    def mark_processing(
+        self, *, owner_uid: str, project_id: str, source_asset_id: str
+    ) -> None:
+        """Record that a source asset was uploaded and the pipeline is starting."""
+        self._require_owned(owner_uid=owner_uid, project_id=project_id)
+        now = datetime.now(UTC)
+        self.client.update_document(
+            project_path(owner_uid, project_id),
+            {
+                "status": ProjectStatus.processing.value,
+                "sourceAssetId": source_asset_id,
+                "progress": {
+                    "stage": "transcription",
+                    "percent": 0,
+                    "message": "Queued for transcription",
+                },
+                "updatedAt": now,
+            },
+        )
 
     def soft_delete(self, *, owner_uid: str, project_id: str) -> None:
         self._require_owned(owner_uid=owner_uid, project_id=project_id)

@@ -37,6 +37,39 @@ def project_path(uid: str, project_id: str) -> str:
     return f"{projects_collection_path(uid)}/{safe_segment(project_id, name='projectId')}"
 
 
+def assets_collection_path(uid: str, project_id: str) -> str:
+    return f"{project_path(uid, project_id)}/assets"
+
+
+def asset_path(uid: str, project_id: str, asset_id: str) -> str:
+    return (
+        f"{assets_collection_path(uid, project_id)}/"
+        f"{safe_segment(asset_id, name='assetId')}"
+    )
+
+
+def jobs_collection_path(uid: str, project_id: str) -> str:
+    return f"{project_path(uid, project_id)}/jobs"
+
+
+def job_path(uid: str, project_id: str, job_id: str) -> str:
+    return (
+        f"{jobs_collection_path(uid, project_id)}/"
+        f"{safe_segment(job_id, name='jobId')}"
+    )
+
+
+def source_object_path(
+    uid: str, project_id: str, asset_id: str, extension: str
+) -> str:
+    """Object path for an uploaded source video: `.../source/{assetId}.{ext}`."""
+    segment = safe_segment(asset_id, name="assetId")
+    ext = extension.lower().lstrip(".")
+    if not ext.isalnum():
+        raise InvalidPathSegment(f"Invalid extension: {extension!r}")
+    return f"{project_path(uid, project_id)}/source/{segment}.{ext}"
+
+
 def persona_revisions_collection_path(uid: str) -> str:
     return f"{user_path(uid)}/personaRevisions"
 

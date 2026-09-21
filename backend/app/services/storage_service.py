@@ -48,14 +48,73 @@ class StorageClient(Protocol):
 
     def signed_download_url(self, path: str, *, expires_seconds: int = 900) -> str: ...
 
+    def signed_upload_url(
+        self, path: str, *, content_type: str, expires_seconds: int = 900
+    ) -> str: ...
+
     def delete_prefix(self, prefix: str) -> int: ...
 
 
 class GoogleStorageClient:
     """`StorageClient` backed by a real Cloud Storage bucket."""
 
-    def __init__(self, bucket: Any) -> None:
+    def __init__(
+        self, bucket: Any, *, signing_service_account: str | None = None
+    ) -> None:
         self._bucket = bucket
+        self._signing_service_account = signing_service_account
+
+    def _signing_credentials(self) -> dict[str, Any]:
+        """Credentials usable for a V4 signed URL.
+
+        A service-account key (or impersonated credentials) can sign directly. Otherwise we hand
+        the SDK a service-account email and an access token, which makes it sign through the IAM
+        `signBlob` API. On Cloud Run the email comes from the ambient credentials; with plain user
+        ADC locally it comes from `STORAGE_SIGNING_SERVICE_ACCOUNT`. Either way the caller needs
+        `roles/iam.serviceAccountTokenCreator` on that service account.
+        """
+        import google.auth
+        from google.auth.transport.requests import Request
+
+        credentials, _ = google.auth.default()
+        if hasattr(credentials, "sign_bytes"):
+            return {"credentials": credentials}
+
+        # Compute-engine credentials report the placeholder "default" until a metadata request
+        # resolves the real email, so treat it as absent and prefer the configured account.
+        email = getattr(credentials, "service_account_email", None)
+        if not email or email == "default":
+            email = self._signing_service_account
+        if not email:
+            raise RuntimeError(
+                "Cannot sign Cloud Storage URLs: no signing credentials. Set "
+                "STORAGE_SIGNING_SERVICE_ACCOUNT, use a service-account key, or run "
+                "`gcloud auth application-default login --impersonate-service-account`."
+            )
+        if not credentials.token:
+            credentials.refresh(Request())
+        return {"service_account_email": email, "access_token": credentials.token}
+
+    def _signed_url(
+        self,
+        path: str,
+        *,
+        method: str,
+        expires_seconds: int,
+        content_type: str | None = None,
+    ) -> str:
+        from datetime import timedelta
+
+        blob = self._bucket.blob(validate_object_path(path))
+        return str(
+            blob.generate_signed_url(
+                version="v4",
+                expiration=timedelta(seconds=expires_seconds),
+                method=method,
+                content_type=content_type,
+                **self._signing_credentials(),
+            )
+        )
 
     def upload_text(
         self, path: str, text: str, *, content_type: str = "text/markdown"
@@ -71,10 +130,18 @@ class GoogleStorageClient:
         return bool(self._bucket.blob(validate_object_path(path)).exists())
 
     def signed_download_url(self, path: str, *, expires_seconds: int = 900) -> str:
-        from datetime import timedelta
+        return self._signed_url(path, method="GET", expires_seconds=expires_seconds)
 
-        blob = self._bucket.blob(validate_object_path(path))
-        return str(blob.generate_signed_url(expiration=timedelta(seconds=expires_seconds)))
+    def signed_upload_url(
+        self, path: str, *, content_type: str, expires_seconds: int = 900
+    ) -> str:
+        """V4 signed PUT URL so the browser uploads directly to Cloud Storage."""
+        return self._signed_url(
+            path,
+            method="PUT",
+            expires_seconds=expires_seconds,
+            content_type=content_type,
+        )
 
     def delete_prefix(self, prefix: str) -> int:
         """Delete every object whose name starts with `prefix`. Returns the count."""
@@ -90,4 +157,7 @@ def get_storage_client() -> StorageClient:
 
     settings = get_settings()
     bucket = storage.Client(project=settings.project_id).bucket(settings.media_bucket)
-    return GoogleStorageClient(bucket)
+    signing_sa = settings.storage_signing_service_account or (
+        f"creator-studio-api@{settings.project_id}.iam.gserviceaccount.com"
+    )
+    return GoogleStorageClient(bucket, signing_service_account=signing_sa)
