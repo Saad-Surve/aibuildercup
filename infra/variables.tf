@@ -22,6 +22,8 @@ variable "allowed_origins" {
   default = [
     "http://localhost:3000",
     "http://localhost:8080",
+    "https://habeas-codus.web.app",
+    "https://habeas-codus.firebaseapp.com",
   ]
 }
 

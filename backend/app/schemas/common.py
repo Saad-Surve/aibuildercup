@@ -12,3 +12,8 @@ class ErrorDetail(BaseModel):
 
 class ErrorResponse(BaseModel):
     error: ErrorDetail
+
+
+class AcceptedJob(BaseModel):
+    jobId: str
+    status: str

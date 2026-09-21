@@ -1,0 +1,125 @@
+import { apiFetch } from "@/lib/api-client";
+import type {
+  AcceptedJob,
+  AssetList,
+  CreateProjectInput,
+  Job,
+  Project,
+  ProjectList,
+  UploadSession,
+} from "@/lib/types";
+
+export const MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
+
+export const ALLOWED_VIDEO_TYPES = [
+  "video/mp4",
+  "video/quicktime",
+  "video/webm",
+  "video/x-m4v",
+];
+
+export const ACCEPTED_VIDEO_EXTENSIONS = ".mp4,.mov,.webm,.m4v";
+
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB"];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unit]}`;
+}
+
+export function validateVideoFile(file: File): string | null {
+  if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
+    return "Unsupported format. Upload an MP4, MOV, WebM, or M4V file.";
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return "This file is larger than the 500 MB limit.";
+  }
+  return null;
+}
+
+export function listProjects(): Promise<ProjectList> {
+  return apiFetch<ProjectList>("/projects");
+}
+
+export function getProject(projectId: string): Promise<Project> {
+  return apiFetch<Project>(`/projects/${projectId}`);
+}
+
+export function createProject(input: CreateProjectInput): Promise<Project> {
+  return apiFetch<Project>("/projects", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listAssets(projectId: string): Promise<AssetList> {
+  return apiFetch<AssetList>(`/projects/${projectId}/assets`);
+}
+
+export function createUploadSession(
+  projectId: string,
+  file: File,
+): Promise<UploadSession> {
+  return apiFetch<UploadSession>(`/projects/${projectId}/upload-session`, {
+    method: "POST",
+    body: JSON.stringify({
+      fileName: file.name,
+      contentType: file.type,
+      sizeBytes: file.size,
+    }),
+  });
+}
+
+export function completeUpload(
+  projectId: string,
+  assetId: string,
+): Promise<AcceptedJob> {
+  return apiFetch<AcceptedJob>(
+    `/projects/${projectId}/assets/${assetId}/complete`,
+    { method: "POST" },
+  );
+}
+
+export function getJob(jobId: string): Promise<Job> {
+  return apiFetch<Job>(`/jobs/${jobId}`);
+}
+
+/**
+ * Upload the file straight to Cloud Storage with the signed URL from the API.
+ * Uses XHR because fetch has no upload-progress events.
+ */
+export function uploadToStorage(
+  session: UploadSession,
+  file: File,
+  onProgress: (percent: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("PUT", session.uploadUrl);
+    for (const [key, value] of Object.entries(session.requiredHeaders)) {
+      request.setRequestHeader(key, value);
+    }
+    request.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable) {
+        onProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    });
+    request.addEventListener("load", () => {
+      if (request.status >= 200 && request.status < 300) {
+        onProgress(100);
+        resolve();
+      } else {
+        reject(new Error(`Upload failed (${request.status}).`));
+      }
+    });
+    request.addEventListener("error", () =>
+      reject(new Error("Upload failed. Check your connection and try again.")),
+    );
+    request.send(file);
+  });
+}

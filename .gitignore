@@ -2,3 +2,4 @@
 
 # Firebase CLI local cache
 .firebase/
+fixtures/media

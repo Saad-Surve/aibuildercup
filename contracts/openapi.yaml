@@ -199,13 +199,7 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [fileName, contentType, sizeBytes]
-              properties:
-                fileName: { type: string }
-                contentType: { type: string }
-                sizeBytes: { type: integer, format: int64 }
+            schema: { $ref: "#/components/schemas/UploadSessionRequest" }
       responses:
         "201":
           description: Upload session
@@ -213,12 +207,27 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/UploadSession" }
 
+  /api/projects/{projectId}/assets:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: List project assets
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssetList" }
+
   /api/projects/{projectId}/assets/{assetId}/complete:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
       - { $ref: "#/components/parameters/AssetId" }
     post:
       summary: Confirm a client upload
+      description: |
+        Verifies the object exists in Cloud Storage, marks the asset uploaded, and queues the
+        first pipeline job (transcription). Idempotent per asset.
       responses:
         "202": { $ref: "#/components/responses/Accepted" }
 
@@ -520,8 +529,22 @@ components:
             status:
               type: string
               enum: [draft, uploading, processing, ready, partial_failure, failed, archived]
+            progress:
+              type: [object, "null"]
+              properties:
+                stage: { type: [string, "null"] }
+                percent: { type: integer }
+                message: { type: [string, "null"] }
             createdAt: { type: string, format: date-time }
             updatedAt: { type: string, format: date-time }
+
+    UploadSessionRequest:
+      type: object
+      required: [fileName, contentType, sizeBytes]
+      properties:
+        fileName: { type: string }
+        contentType: { type: string }
+        sizeBytes: { type: integer, format: int64, minimum: 1 }
 
     UploadSession:
       type: object
@@ -533,6 +556,31 @@ components:
         requiredHeaders:
           type: object
           additionalProperties: { type: string }
+
+    Asset:
+      type: object
+      properties:
+        assetId: { type: string }
+        projectId: { type: string }
+        type:
+          type: string
+          enum: [source_video, audio, frame, clip, thumbnail, caption, export]
+        status:
+          type: string
+          enum: [pending, uploading, uploaded, processing, ready, failed, deleted]
+        storagePath: { type: string }
+        mimeType: { type: string }
+        sizeBytes: { type: integer, format: int64 }
+        durationMs: { type: [integer, "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    AssetList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Asset" }
 
     Job:
       type: object
@@ -547,6 +595,8 @@ components:
             step: { type: string }
             message: { type: string }
         error: { type: [object, "null"], additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
 
     TranscriptSegment:
       type: object
