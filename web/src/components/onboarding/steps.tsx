@@ -31,6 +31,7 @@ import {
   TIMEZONE_OPTIONS,
   TONE_OPTIONS,
   TOPIC_OPTIONS,
+  languageLabel,
   type OnboardingAnswers,
 } from "@/lib/onboarding";
 import type { Persona } from "@/lib/types";
@@ -160,7 +161,13 @@ export function IdentityStep({ answers, update }: DataStepProps) {
           onValueChange={(value) => update({ primaryLanguage: String(value) })}
         >
           <SelectTrigger id="primaryLanguage" className="w-full sm:w-64">
-            <SelectValue placeholder="Select language" />
+            <SelectValue placeholder="Select language">
+              {(value: unknown) =>
+                typeof value === "string"
+                  ? languageLabel(value)
+                  : "Select language"
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {LANGUAGE_OPTIONS.map((language) => (

@@ -131,6 +131,13 @@ function useSidebarCollapsed(): [boolean, (next: boolean) => void] {
  */
 const RAIL_TWEEN = { duration: 0.22, ease: "easeInOut" } as const;
 
+/*
+ * How far the full lockup glides left on collapse so its mark lands exactly
+ * where the lone collapsed mark sits: the mark is ~43px wide (h-8 at 194:145),
+ * centred in the 64px rail its left edge is at 10.5, versus 24 in the px-6 row.
+ */
+const LOGO_GLIDE_X = -13.5;
+
 function NavLabel({
   collapsed,
   children,
@@ -218,37 +225,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className="sticky top-0 hidden h-[100dvh] shrink-0 flex-col overflow-hidden border-r border-transparent shadow-[inset_-1px_0_0_0_var(--color-border)] md:flex"
       >
         <div className="relative flex h-14 shrink-0 items-center px-6">
-          <AnimatePresence initial={false}>
-            {collapsed ? (
-              <motion.div
-                key="sidebar-mark"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="absolute inset-y-0 left-0 flex w-16 items-center justify-center"
-              >
-                <Link
-                  href="/dashboard"
-                  aria-label="Go to dashboard"
-                  className="inline-flex items-center rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                >
-                  <LogoMark />
-                </Link>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="sidebar-logo"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="flex items-center"
-              >
-                <Logo href="/dashboard" showSubtitle={false} />
-              </motion.div>
+          <motion.div
+            initial={false}
+            animate={{
+              opacity: collapsed ? 0 : 1,
+              x: collapsed ? LOGO_GLIDE_X : 0,
+            }}
+            transition={RAIL_TWEEN}
+            aria-hidden={collapsed}
+            inert={collapsed}
+            className={cn(
+              "flex items-center",
+              collapsed && "pointer-events-none",
             )}
-          </AnimatePresence>
+          >
+            <Logo href="/dashboard" showSubtitle={false} />
+          </motion.div>
+          <motion.div
+            initial={false}
+            animate={{ opacity: collapsed ? 1 : 0 }}
+            transition={RAIL_TWEEN}
+            aria-hidden={!collapsed}
+            inert={!collapsed}
+            className={cn(
+              "absolute inset-y-0 left-0 flex w-16 items-center justify-center",
+              !collapsed && "pointer-events-none",
+            )}
+          >
+            <Link
+              href="/dashboard"
+              aria-label="Go to dashboard"
+              tabIndex={collapsed ? 0 : -1}
+              className="inline-flex items-center rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              <LogoMark />
+            </Link>
+          </motion.div>
         </div>
         <nav className="flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto px-3 py-2">
           {NAV.map((item) => (

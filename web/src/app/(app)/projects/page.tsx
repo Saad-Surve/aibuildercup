@@ -30,7 +30,11 @@ export default function ProjectsPage() {
       <PageHeader
         title="Projects"
         description="One video per project. Upload a video to get a transcript and a reviewer heatmap."
-        actions={<CreateProjectDialog />}
+        actions={
+          query.isLoading || projects.length > 0 ? (
+            <CreateProjectDialog />
+          ) : undefined
+        }
       />
 
       {query.isLoading ? (

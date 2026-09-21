@@ -104,6 +104,14 @@ export const LANGUAGE_OPTIONS = [
   { value: "es", label: "Spanish" },
 ];
 
+/** Display name for a language code; falls back to the code when unknown. */
+export function languageLabel(code: string | null | undefined): string {
+  if (!code) return "Select language";
+  return (
+    LANGUAGE_OPTIONS.find((language) => language.value === code)?.label ?? code
+  );
+}
+
 export const TIMEZONE_OPTIONS = [
   "Asia/Kolkata",
   "Asia/Dubai",

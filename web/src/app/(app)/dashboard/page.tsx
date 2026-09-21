@@ -36,7 +36,11 @@ export default function DashboardPage() {
       <PageHeader
         title={firstName ? `Welcome, ${firstName}` : "Welcome"}
         description="Create a project to upload a video and run the reviewers."
-        actions={<CreateProjectDialog />}
+        actions={
+          query.isLoading || projects.length > 0 ? (
+            <CreateProjectDialog />
+          ) : undefined
+        }
       />
 
       <section className="space-y-4">

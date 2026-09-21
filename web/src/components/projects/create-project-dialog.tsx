@@ -36,7 +36,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api-client";
 import { createProject } from "@/lib/projects";
-import { LANGUAGE_OPTIONS, PLATFORM_OPTIONS } from "@/lib/onboarding";
+import {
+  LANGUAGE_OPTIONS,
+  PLATFORM_OPTIONS,
+  languageLabel,
+} from "@/lib/onboarding";
 
 function describe(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -141,7 +145,13 @@ export function CreateProjectDialog() {
                 onValueChange={(value) => setPrimaryLanguage(String(value))}
               >
                 <SelectTrigger id="project-language" className="w-full">
-                  <SelectValue placeholder="Select language" />
+                  <SelectValue placeholder="Select language">
+                    {(value: unknown) =>
+                      typeof value === "string"
+                        ? languageLabel(value)
+                        : "Select language"
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {LANGUAGE_OPTIONS.map((language) => (
