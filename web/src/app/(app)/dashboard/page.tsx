@@ -2,13 +2,17 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { ArrowRight01Icon, FolderOpenIcon } from "@hugeicons/core-free-icons";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { Icon } from "@/components/common/icon";
 import { PageHeader } from "@/components/common/page-header";
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
-import { ProjectCard } from "@/components/projects/project-card";
+import {
+  ProjectCard,
+  ProjectCardSkeleton,
+} from "@/components/projects/project-card";
 import {
   Empty,
   EmptyContent,
@@ -17,7 +21,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
 import { listProjects } from "@/lib/projects";
 
 export default function DashboardPage() {
@@ -53,11 +56,11 @@ export default function DashboardPage() {
         {query.isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[0, 1, 2].map((key) => (
-              <Skeleton key={key} className="h-40 w-full rounded-xl" />
+              <ProjectCardSkeleton key={key} />
             ))}
           </div>
         ) : recent.length === 0 ? (
-          <Empty className="border py-16">
+          <Empty className="border border-transparent py-16 shadow-sm ring-1 ring-foreground/10">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <Icon icon={FolderOpenIcon} />
@@ -74,8 +77,15 @@ export default function DashboardPage() {
           </Empty>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {recent.map((project) => (
-              <ProjectCard key={project.projectId} project={project} />
+            {recent.map((project, index) => (
+              <motion.div
+                key={project.projectId}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: Math.min(index, 5) * 0.06 }}
+              >
+                <ProjectCard project={project} />
+              </motion.div>
             ))}
           </div>
         )}

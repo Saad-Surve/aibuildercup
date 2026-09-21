@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft01Icon, FileVideoIcon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
 import { PageHeader } from "@/components/common/page-header";
+import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { ProcessingStatusCard } from "@/components/projects/processing-status-card";
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge";
+import { SourceVideoPlayer } from "@/components/projects/source-video-player";
 import { VideoDropzone } from "@/components/projects/video-dropzone";
 import {
   Card,
@@ -18,8 +20,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getVideoBlobForProject } from "@/lib/local-media";
 import { formatBytes, getJob, getProject, listAssets } from "@/lib/projects";
-import type { Job } from "@/lib/types";
+import type { Asset, Job } from "@/lib/types";
 
 export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [jobId, setJobId] = useState<string | null>(null);
@@ -43,6 +46,42 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       return status === "queued" || status === "running" ? 3000 : false;
     },
   });
+
+  // When the API lists no assets (e.g. a mock-mode reload dropped them) but
+  // this browser still holds the upload, play the local copy instead of
+  // asking for another upload. Hooks stay above the early returns.
+  const [localAsset, setLocalAsset] = useState<Asset | null>(null);
+  const assetsLoading = assetsQuery.isLoading;
+  const assetsData = assetsQuery.data;
+  useEffect(() => {
+    const source = assetsData?.items.find(
+      (asset) => asset.type === "source_video",
+    );
+    if (assetsLoading || source) return;
+    let alive = true;
+    void getVideoBlobForProject(projectId).then((blob) => {
+      if (!alive || !blob) return;
+      const timestamp = new Date().toISOString();
+      setLocalAsset((previous) => {
+        if (previous) return previous;
+        return {
+          assetId: `local:${projectId}`,
+          projectId,
+          type: "source_video",
+          status: "uploaded",
+          storagePath: "Cached in this browser",
+          mimeType: blob.type || "video/mp4",
+          sizeBytes: blob.size,
+          durationMs: null,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
+      });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [assetsLoading, assetsData, projectId]);
 
   if (projectQuery.isLoading) {
     return (
@@ -72,9 +111,11 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   }
 
   const project = projectQuery.data;
-  const sourceAsset = assetsQuery.data?.items.find(
+  const sourceAsset = assetsData?.items.find(
     (asset) => asset.type === "source_video",
   );
+
+  const effectiveSource = sourceAsset ?? localAsset;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -89,10 +130,19 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       <PageHeader
         title={project.name}
         description={project.description || undefined}
-        actions={<ProjectStatusBadge status={project.status} />}
+        actions={
+          <>
+            <ProjectStatusBadge status={project.status} />
+            <DeleteProjectDialog
+              projectId={projectId}
+              projectName={project.name}
+              assetIds={effectiveSource ? [effectiveSource.assetId] : []}
+            />
+          </>
+        }
       />
 
-      {sourceAsset ? (
+      {effectiveSource ? (
         <div className="space-y-6">
           <ProcessingStatusCard project={project} job={jobQuery.data ?? null} />
           <Card>
@@ -102,12 +152,18 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                 <CardTitle>Source video</CardTitle>
               </div>
               <CardDescription>
-                {formatBytes(sourceAsset.sizeBytes)} · {sourceAsset.mimeType}
+                {formatBytes(effectiveSource.sizeBytes)} ·{" "}
+                {effectiveSource.mimeType}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
+              <SourceVideoPlayer
+                projectId={projectId}
+                asset={effectiveSource}
+              />
               <p className="tabular truncate text-xs text-muted-foreground">
-                {sourceAsset.storagePath}
+                {formatBytes(effectiveSource.sizeBytes)} ·{" "}
+                {effectiveSource.mimeType} · {effectiveSource.storagePath}
               </p>
             </CardContent>
           </Card>

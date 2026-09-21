@@ -128,6 +128,36 @@ def test_upload_session_rejects_oversize() -> None:
         app.dependency_overrides.clear()
 
 
+def test_playback_url_returns_signed_url(ctx: Ctx) -> None:
+    project_id = ctx.new_project()
+    client = TestClient(app)
+
+    created = client.post(
+        f"/api/projects/{project_id}/upload-session",
+        json={"fileName": "clip.mp4", "contentType": "video/mp4", "sizeBytes": 8},
+    )
+    session = created.json()
+    ctx.storage.objects[session["storagePath"]] = "bytes"
+    client.post(f"/api/projects/{project_id}/assets/{session['assetId']}/complete")
+
+    response = client.get(
+        f"/api/projects/{project_id}/assets/{session['assetId']}/playback-url"
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["url"].startswith("https://storage.example/")
+    assert session["storagePath"] in body["url"]
+    assert body["expiresAt"]
+
+
+def test_playback_url_unknown_asset_returns_not_found(ctx: Ctx) -> None:
+    project_id = ctx.new_project()
+    response = TestClient(app).get(
+        f"/api/projects/{project_id}/assets/missing/playback-url"
+    )
+    assert response.status_code == 404
+
+
 def test_complete_unknown_asset_returns_not_found(ctx: Ctx) -> None:
     project_id = ctx.new_project()
     response = TestClient(app).post(

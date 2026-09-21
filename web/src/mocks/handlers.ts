@@ -6,6 +6,8 @@ import type { Asset, Job, Project, UploadSession } from "@/lib/types";
 const projects = new Map<string, Project>();
 const assets = new Map<string, Asset>();
 const jobs = new Map<string, Job>();
+/* Raw upload bytes, so mock projects can play back what was uploaded. */
+const media = new Map<string, { bytes: ArrayBuffer; contentType: string }>();
 
 function newId(): string {
   return crypto.randomUUID().replace(/-/g, "");
@@ -39,9 +41,9 @@ export const handlers = [
   ),
 
   http.get(`${API_BASE_URL}/projects`, () => {
-    const items = [...projects.values()].toSorted((a, b) =>
-      b.updatedAt.localeCompare(a.updatedAt),
-    );
+    const items = [...projects.values()]
+      .filter((project) => project.status !== "archived")
+      .toSorted((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     return HttpResponse.json({ items, nextPageToken: null });
   }),
 
@@ -68,7 +70,16 @@ export const handlers = [
 
   http.get(`${API_BASE_URL}/projects/:projectId`, ({ params }) => {
     const project = projects.get(String(params.projectId));
-    return project ? HttpResponse.json(project) : notFound();
+    if (!project || project.status === "archived") return notFound();
+    return HttpResponse.json(project);
+  }),
+
+  http.delete(`${API_BASE_URL}/projects/:projectId`, ({ params }) => {
+    const project = projects.get(String(params.projectId));
+    if (!project || project.status === "archived") return notFound();
+    project.status = "archived";
+    project.updatedAt = now();
+    return HttpResponse.json({ status: "accepted" }, { status: 202 });
   }),
 
   http.get(`${API_BASE_URL}/projects/:projectId/assets`, ({ params }) => {
@@ -120,8 +131,38 @@ export const handlers = [
     },
   ),
 
-  http.put(`${API_BASE_URL}/_mock-upload/:assetId`, () => {
-    return new HttpResponse(null, { status: 200 });
+  http.put(
+    `${API_BASE_URL}/_mock-upload/:assetId`,
+    async ({ params, request }) => {
+      const bytes = await request.arrayBuffer();
+      media.set(String(params.assetId), {
+        bytes,
+        contentType: request.headers.get("Content-Type") ?? "video/mp4",
+      });
+      return new HttpResponse(null, { status: 200 });
+    },
+  ),
+
+  http.get(
+    `${API_BASE_URL}/projects/:projectId/assets/:assetId/playback-url`,
+    ({ params }) => {
+      const asset = assets.get(String(params.assetId));
+      if (!asset || asset.projectId !== String(params.projectId)) {
+        return notFound();
+      }
+      return HttpResponse.json({
+        url: `${API_BASE_URL}/_mock-media/${asset.assetId}`,
+        expiresAt: new Date(Date.now() + 900_000).toISOString(),
+      });
+    },
+  ),
+
+  http.get(`${API_BASE_URL}/_mock-media/:assetId`, ({ params }) => {
+    const item = media.get(String(params.assetId));
+    if (!item) return notFound("MEDIA_NOT_FOUND");
+    return new HttpResponse(item.bytes, {
+      headers: { "Content-Type": item.contentType },
+    });
   }),
 
   http.post(

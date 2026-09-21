@@ -25,10 +25,12 @@ export function Logo({
   className,
   compact = false,
   href,
+  showSubtitle = true,
 }: {
   className?: string;
   compact?: boolean;
   href?: string;
+  showSubtitle?: boolean;
 }) {
   const content = (
     <span className={cn("flex items-center gap-2.5", className)}>
@@ -38,9 +40,11 @@ export function Logo({
           <span className="font-serif text-base font-semibold tracking-tight">
             Resonance
           </span>
-          <span className="mt-1 text-[0.6rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Creator Helper Studio
-          </span>
+          {showSubtitle ? (
+            <span className="mt-1 text-[0.6rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Creator Helper Studio
+            </span>
+          ) : null}
         </span>
       ) : null}
     </span>

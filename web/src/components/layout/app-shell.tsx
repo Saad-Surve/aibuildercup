@@ -1,19 +1,22 @@
 "use client";
 
+import { useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Analytics01Icon,
   DashboardSquare01Icon,
   FolderOpenIcon,
   Plug01Icon,
   Settings01Icon,
+  SidebarLeft01Icon,
   UserIcon,
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
 
 import { Icon } from "@/components/common/icon";
-import { Logo } from "@/components/common/logo";
+import { Logo, LogoMark } from "@/components/common/logo";
 import { UserMenu } from "@/components/layout/user-menu";
 import { cn } from "@/lib/utils";
 
@@ -48,12 +51,128 @@ const NAV: NavItem[] = [
   { href: "/settings", label: "Settings", icon: Settings01Icon, ready: false },
 ];
 
-function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+const COLLAPSE_KEY = "hc-sidebar-collapsed";
+
+/*
+ * Collapsed state lives in a tiny external store rather than React state so
+ * the persisted value can sync in an effect without a setState-in-effect,
+ * and the server snapshot (expanded) always matches first paint.
+ */
+const collapsedStore = {
+  value: false,
+  listeners: new Set<() => void>(),
+  read(): boolean {
+    return this.value;
+  },
+  write(next: boolean): void {
+    if (this.value === next) return;
+    this.value = next;
+    for (const notify of this.listeners) notify();
+  },
+};
+
+function subscribeCollapsed(notify: () => void): () => void {
+  collapsedStore.listeners.add(notify);
+  return () => {
+    collapsedStore.listeners.delete(notify);
+  };
+}
+
+function getCollapsedSnapshot(): boolean {
+  return collapsedStore.read();
+}
+
+function getCollapsedServerSnapshot(): boolean {
+  return false;
+}
+
+function readStoredCollapsed(): boolean {
+  try {
+    return window.localStorage.getItem(COLLAPSE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function useSidebarCollapsed(): [boolean, (next: boolean) => void] {
+  const collapsed = useSyncExternalStore(
+    subscribeCollapsed,
+    getCollapsedSnapshot,
+    getCollapsedServerSnapshot,
+  );
+
+  useEffect(() => {
+    collapsedStore.write(readStoredCollapsed());
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === COLLAPSE_KEY)
+        collapsedStore.write(event.newValue === "1");
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  function setCollapsed(next: boolean): void {
+    try {
+      window.localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
+    } catch {
+      // Private mode: collapse still works for this session.
+    }
+    collapsedStore.write(next);
+  }
+
+  return [collapsed, setCollapsed];
+}
+
+/*
+ * Sidebar motion: the rail width tweens with motion while labels fade in
+ * clipped, nowrap form. Rows never change justification or padding, so with
+ * the rail anchored left the 16px icons sit pixel-static (a lone icon in a
+ * px-3 row is already centered in the 64px rail) — nothing teleports.
+ */
+const RAIL_TWEEN = { duration: 0.22, ease: "easeInOut" } as const;
+
+function NavLabel({
+  collapsed,
+  children,
+}: {
+  collapsed: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <AnimatePresence initial={false}>
+      {!collapsed && (
+        <motion.span
+          key="nav-label"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.12 }}
+          className="whitespace-nowrap overflow-hidden"
+        >
+          {children}
+        </motion.span>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function NavLink({
+  item,
+  active,
+  collapsed,
+}: {
+  item: NavItem;
+  active: boolean;
+  collapsed: boolean;
+}) {
   if (!item.ready) {
     return (
-      <div className="flex cursor-default items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/50">
+      <div
+        title={collapsed ? item.label : undefined}
+        className="flex h-9 items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm text-muted-foreground/50"
+      >
         <Icon icon={item.icon} />
-        <span>{item.label}</span>
+        <NavLabel collapsed={collapsed}>{item.label}</NavLabel>
       </div>
     );
   }
@@ -62,15 +181,17 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
+      aria-label={collapsed ? item.label : undefined}
+      title={collapsed ? item.label : undefined}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+        "flex h-9 items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm transition-colors",
         active
           ? "bg-signal/10 font-medium text-foreground"
           : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
       )}
     >
       <Icon icon={item.icon} className={cn(active && "text-signal")} />
-      {item.label}
+      <NavLabel collapsed={collapsed}>{item.label}</NavLabel>
     </Link>
   );
 }
@@ -82,26 +203,80 @@ function isActive(pathname: string, href: string): boolean {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const readyItems = NAV.filter((item) => item.ready);
+  const [collapsed, setCollapsed] = useSidebarCollapsed();
+
+  function toggleCollapsed() {
+    setCollapsed(!collapsed);
+  }
 
   return (
     <div className="flex min-h-[100dvh]">
-      <aside className="sticky top-0 hidden h-[100dvh] w-60 shrink-0 flex-col border-r md:flex">
-        <div className="flex h-14 shrink-0 items-center px-5">
-          <Logo href="/dashboard" />
+      <motion.aside
+        initial={false}
+        animate={{ width: collapsed ? 64 : 240 }}
+        transition={{ type: "tween", ...RAIL_TWEEN }}
+        className="sticky top-0 hidden h-[100dvh] shrink-0 flex-col overflow-hidden border-r border-transparent shadow-[inset_-1px_0_0_0_var(--color-border)] md:flex"
+      >
+        <div className="relative flex h-14 shrink-0 items-center px-6">
+          <AnimatePresence initial={false}>
+            {collapsed ? (
+              <motion.div
+                key="sidebar-mark"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="absolute inset-y-0 left-0 flex w-16 items-center justify-center"
+              >
+                <Link
+                  href="/dashboard"
+                  aria-label="Go to dashboard"
+                  className="inline-flex items-center rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
+                  <LogoMark />
+                </Link>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="sidebar-logo"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center"
+              >
+                <Logo href="/dashboard" showSubtitle={false} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
+        <nav className="flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto px-3 py-2">
           {NAV.map((item) => (
             <NavLink
               key={item.href}
               item={item}
               active={isActive(pathname, item.href)}
+              collapsed={collapsed}
             />
           ))}
         </nav>
-      </aside>
+        <div className="p-3">
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="flex h-9 w-full items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            <Icon icon={SidebarLeft01Icon} />
+            <NavLabel collapsed={collapsed}>Collapse</NavLabel>
+          </button>
+        </div>
+      </motion.aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b bg-background/80 px-4 backdrop-blur md:px-6">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-transparent bg-background/80 px-4 shadow-[inset_0_-1px_0_0_var(--color-border)] backdrop-blur md:px-6">
           <div className="md:hidden">
             <Logo compact href="/dashboard" />
           </div>
@@ -109,7 +284,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <UserMenu />
         </header>
 
-        <nav className="flex gap-1 overflow-x-auto border-b px-3 py-2 md:hidden">
+        <nav className="flex gap-1 overflow-x-auto border-b border-transparent px-3 py-2 shadow-[inset_0_-1px_0_0_var(--color-border)] md:hidden">
           {readyItems.map((item) => {
             const active = isActive(pathname, item.href);
             return (

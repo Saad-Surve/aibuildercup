@@ -231,6 +231,22 @@ paths:
       responses:
         "202": { $ref: "#/components/responses/Accepted" }
 
+  /api/projects/{projectId}/assets/{assetId}/playback-url:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/AssetId" }
+    get:
+      summary: Get a playable URL for an asset
+      description: |
+        Returns a short-lived signed read URL so the browser can stream the source video
+        directly from Cloud Storage.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlaybackUrl" }
+
   /api/jobs/{jobId}:
     parameters:
       - { $ref: "#/components/parameters/JobId" }
@@ -581,6 +597,12 @@ components:
         items:
           type: array
           items: { $ref: "#/components/schemas/Asset" }
+
+    PlaybackUrl:
+      type: object
+      properties:
+        url: { type: string, format: uri }
+        expiresAt: { type: string, format: date-time }
 
     Job:
       type: object

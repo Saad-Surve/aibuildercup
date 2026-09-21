@@ -105,6 +105,11 @@ export interface UploadSession {
   requiredHeaders: Record<string, string>;
 }
 
+export interface PlaybackUrl {
+  url: string;
+  expiresAt: string;
+}
+
 export type JobStatus =
   | "queued"
   | "running"

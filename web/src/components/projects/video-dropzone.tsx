@@ -8,6 +8,7 @@ import { Icon } from "@/components/common/icon";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ApiError } from "@/lib/api-client";
+import { saveVideoBlob } from "@/lib/local-media";
 import {
   ACCEPTED_VIDEO_EXTENSIONS,
   completeUpload,
@@ -59,6 +60,11 @@ export function VideoDropzone({
       const session = await createUploadSession(projectId, file);
       await uploadToStorage(session, file, setPercent);
       setPhase("finalizing");
+      // Keep a local copy so the project can play the video and card
+      // thumbnails can be captured from it, even in mock/offline mode.
+      // Stored under both keys so cards recover even if the asset record
+      // is lost (e.g. mock-mode reload).
+      saveVideoBlob(session.assetId, file, projectId).catch(() => {});
       const job = await completeUpload(projectId, session.assetId);
       await queryClient.invalidateQueries({ queryKey: ["assets", projectId] });
       await queryClient.invalidateQueries({ queryKey: ["project", projectId] });

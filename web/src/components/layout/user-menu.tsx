@@ -33,12 +33,22 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button variant="ghost" size="icon" className="rounded-full" />}
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 rounded-full"
+          />
+        }
       >
-        <Avatar className="size-8">
-          <AvatarImage src={user?.photoURL ?? undefined} alt="" />
-          <AvatarFallback>{name.slice(0, 1).toUpperCase()}</AvatarFallback>
-        </Avatar>
+        <span className="rounded-full bg-gradient-to-br from-cyan-400 via-fuchsia-500 to-orange-400 p-[2px]">
+          <span className="block rounded-full bg-background p-[2px]">
+            <Avatar className="size-8">
+              <AvatarImage src={user?.photoURL ?? undefined} alt="" />
+              <AvatarFallback>{name.slice(0, 1).toUpperCase()}</AvatarFallback>
+            </Avatar>
+          </span>
+        </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuGroup>

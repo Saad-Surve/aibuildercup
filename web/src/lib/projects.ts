@@ -4,6 +4,7 @@ import type {
   AssetList,
   CreateProjectInput,
   Job,
+  PlaybackUrl,
   Project,
   ProjectList,
   UploadSession,
@@ -57,6 +58,12 @@ export function createProject(input: CreateProjectInput): Promise<Project> {
   });
 }
 
+export function deleteProject(projectId: string): Promise<{ status: string }> {
+  return apiFetch<{ status: string }>(`/projects/${projectId}`, {
+    method: "DELETE",
+  });
+}
+
 export function listAssets(projectId: string): Promise<AssetList> {
   return apiFetch<AssetList>(`/projects/${projectId}/assets`);
 }
@@ -87,6 +94,15 @@ export function completeUpload(
 
 export function getJob(jobId: string): Promise<Job> {
   return apiFetch<Job>(`/jobs/${jobId}`);
+}
+
+export function getPlaybackUrl(
+  projectId: string,
+  assetId: string,
+): Promise<PlaybackUrl> {
+  return apiFetch<PlaybackUrl>(
+    `/projects/${projectId}/assets/${assetId}/playback-url`,
+  );
 }
 
 /**

@@ -221,7 +221,7 @@ export function OnboardingFlow({
 
   return (
     <div className="min-h-[100dvh]">
-      <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-transparent bg-background/80 shadow-[inset_0_-1px_0_0_var(--color-border)] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-6">
           <Logo href="/dashboard" />
           <div className="flex items-center gap-2">
@@ -265,7 +265,7 @@ export function OnboardingFlow({
           ) : null}
 
           {!isLast ? (
-            <div className="mt-10 flex items-center gap-3 border-t pt-6">
+            <div className="mt-10 flex items-center gap-3 border-t border-transparent pt-6 shadow-[inset_0_1px_0_0_var(--color-border)]">
               {index > 0 ? (
                 <Button variant="ghost" onClick={goBack} disabled={busy}>
                   Back

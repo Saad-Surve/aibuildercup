@@ -16,6 +16,7 @@ from app.schemas.assets import (
     AssetStatus,
     AssetType,
     CreateUploadSession,
+    PlaybackUrl,
     UploadSession,
 )
 from app.schemas.jobs import Job, JobType
@@ -166,6 +167,20 @@ class AssetService:
             job_type=JobType.transcribe,
             idempotency_key=f"transcribe-{project_id}-{asset_id}-v1",
             input={"assetId": asset_id},
+        )
+
+    def playback_url(self, *, owner_uid: str, project_id: str, asset_id: str) -> PlaybackUrl:
+        """Short-lived signed read URL so the browser can play the source video directly."""
+        data = self._require_owned_asset(
+            owner_uid=owner_uid, project_id=project_id, asset_id=asset_id
+        )
+        ttl = self.settings.upload_url_ttl_seconds
+        now = datetime.now(UTC)
+        return PlaybackUrl(
+            url=self.storage.signed_download_url(
+                data["storagePath"], expires_seconds=ttl
+            ),
+            expiresAt=now + timedelta(seconds=ttl),
         )
 
     def list(self, *, owner_uid: str, project_id: str) -> list[Asset]:

@@ -3,7 +3,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 
 from app.dependencies import AuthenticatedUser, current_user, get_asset_service
-from app.schemas.assets import AssetList, CreateUploadSession, UploadSession
+from app.schemas.assets import (
+    AssetList,
+    CreateUploadSession,
+    PlaybackUrl,
+    UploadSession,
+)
 from app.schemas.common import AcceptedJob
 from app.services.asset_service import AssetService
 
@@ -36,6 +41,21 @@ async def list_assets(
     service: ServiceDep,
 ) -> AssetList:
     return AssetList(items=service.list(owner_uid=user.uid, project_id=projectId))
+
+
+@router.get(
+    "/projects/{projectId}/assets/{assetId}/playback-url",
+    response_model=PlaybackUrl,
+)
+async def playback_url(
+    projectId: str,
+    assetId: str,
+    user: UserDep,
+    service: ServiceDep,
+) -> PlaybackUrl:
+    return service.playback_url(
+        owner_uid=user.uid, project_id=projectId, asset_id=assetId
+    )
 
 
 @router.post(
