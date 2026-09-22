@@ -47,7 +47,7 @@ This directory contains the implementation-ready design for the Creator Helper S
 
 ## Key decisions
 
-- Region is **`us-central1`** for all services, including Speech-to-Text (Chirp 2/3 is not GA in `us-east1`), Veo, Imagen, and Text-to-Speech.
+- Region is **`us-central1`** for all services except Speech-to-Text, which uses the **`us` multi-region** (the multilingual Chirp 3 model is GA there but not in `us-central1`); Veo, Imagen, and Text-to-Speech use `us-central1`.
 - Backend is Python FastAPI + Google ADK. Genkit is intentionally not used, to keep one agent runtime.
 - All external dependencies sit behind providers so development runs on cassettes and seeded data.
 - Reviewer analysis uses a two-tier fan-out (broad pass per reviewer, then targeted deep review) to bound cost.

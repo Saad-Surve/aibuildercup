@@ -2,7 +2,7 @@
 
 Pipeline (per `docs/technical-design/backend-plan.md` section 7):
 
-video uploaded -> job queued -> STT batch recognition (`latest_long`, GCS input)
+video uploaded -> job queued -> STT V2 batch recognition (`long`, GCS input)
 -> normalise words -> segment -> canonical JSON + VTT to GCS
 -> transcript + segments to Firestore -> project ready -> job succeeded.
 
@@ -101,11 +101,13 @@ async def run_transcribe(
     )
     firestore.update_document(asset_path(owner_uid, project_id, asset_id), {"status": "processing"})
 
-    language = _resolve_language(firestore, owner_uid, project_id)
+    # Chirp 3 does language-agnostic transcription: "auto" lets the service identify the spoken
+    # language (English, Hindi, Hinglish, ...) and report it back, which we persist.
+    language_codes = ["auto"]
     gcs_uri = stt.gcs_uri_for(asset["storagePath"])
     try:
         response = await stt.transcribe(
-            gcs_uri=gcs_uri, language=language, model=settings.model_stt
+            gcs_uri=gcs_uri, language_codes=language_codes, model=settings.model_stt
         )
     except Exception as exc:  # noqa: BLE001 - worker must record provider failures
         logger.exception("transcribe job %s: STT failed", job_id)
@@ -123,6 +125,7 @@ async def run_transcribe(
         return None
 
     words = normalize_words(response)
+    language = response.get("language") or _project_language(firestore, owner_uid, project_id)
     jobs.update_progress(
         owner_uid=owner_uid,
         project_id=project_id,
@@ -167,13 +170,29 @@ async def run_transcribe(
     return transcript_id
 
 
-def _resolve_language(firestore: FirestoreClient, owner_uid: str, project_id: str) -> str:
+# STT wants a BCP-47 tag. The app stores bare codes ("en", "hi", ...), so map the ones the
+# product offers to a full tag; unknown codes pass through and are validated by the service.
+_LANGUAGE_TAGS = {
+    "en": "en-US",
+    "hi": "hi-IN",
+    "mr": "mr-IN",
+    "ta": "ta-IN",
+    "te": "te-IN",
+    "bn": "bn-IN",
+    "es": "es-ES",
+}
+
+
+def _project_language(firestore: FirestoreClient, owner_uid: str, project_id: str) -> str:
+    """Fallback transcript language when STT does not report a detected one."""
     from app.services.firestore_service import project_path
 
     project = firestore.get_document(project_path(owner_uid, project_id)) or {}
-    language = str(project.get("primaryLanguage") or "en")
-    # STT wants a BCP-47 tag; a bare "en" becomes "en-US" so word timings still work.
-    return language if "-" in language else f"{language}-US"
+    return _bcp47(str(project.get("primaryLanguage") or "en"))
+
+
+def _bcp47(code: str) -> str:
+    return code if "-" in code else _LANGUAGE_TAGS.get(code, code)
 
 
 def _active_transcript_id(

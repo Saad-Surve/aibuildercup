@@ -1,15 +1,28 @@
 """Speech-to-Text provider.
 
-Thin wrapper over Speech-to-Text V2 batch recognition (`latest_long` in `us-central1`; Chirp is
-not GA in `us-east1`). Feature code calls this provider, never `google.cloud.speech` directly.
+Thin wrapper over the Speech-to-Text V2 API using batch recognition for GCS-hosted
+video/audio (in `us-central1`). Feature code calls this provider, never
+`google.cloud.speech` directly.
 """
 
 import logging
+import os
 from typing import Any
+from urllib.parse import urlparse
 
 from app.config import Settings
 
 logger = logging.getLogger(__name__)
+
+# STT V2 auto-detection rejects the AAC-in-video family ("Audio data does not appear to be in
+# a supported encoding"), so those containers get an explicit decoding config. Audio-only
+# formats (mp3/webm/ogg/flac/wav) are still auto-detected.
+_AAC_ENCODINGS_BY_EXTENSION = {
+    ".mp4": "MP4_AAC",
+    ".m4v": "MP4_AAC",
+    ".mov": "MOV_AAC",
+    ".m4a": "M4A_AAC",
+}
 
 
 class SttProvider:
@@ -20,26 +33,32 @@ class SttProvider:
         self,
         *,
         gcs_uri: str,
-        language: str,
+        language_codes: list[str],
         model: str,
     ) -> dict[str, Any]:
-        return await self._real(gcs_uri=gcs_uri, language=language, model=model)
+        return await self._real(
+            gcs_uri=gcs_uri, language_codes=language_codes, model=model
+        )
 
-    async def _real(self, *, gcs_uri: str, language: str, model: str) -> dict[str, Any]:
+    async def _real(
+        self, *, gcs_uri: str, language_codes: list[str], model: str
+    ) -> dict[str, Any]:
         import asyncio
 
         from google.cloud import speech_v2
 
         client = speech_v2.SpeechClient(
-            client_options={"api_endpoint": f"{self.settings.region}-speech.googleapis.com"}
+            client_options={
+                "api_endpoint": f"{self.settings.stt_region}-speech.googleapis.com"
+            }
         )
         recognizer = (
-            f"projects/{self.settings.project_id}/locations/{self.settings.region}"
+            f"projects/{self.settings.project_id}/locations/{self.settings.stt_region}"
             "/recognizers/_"
         )
         config = speech_v2.RecognitionConfig(
-            auto_decoding_config=speech_v2.AutoDetectDecodingConfig(),
-            language_codes=[language],
+            **self._decoding_config(speech_v2, gcs_uri),
+            language_codes=language_codes,
             model=model,
             features=speech_v2.RecognitionFeatures(
                 enable_word_time_offsets=True,
@@ -58,36 +77,85 @@ class SttProvider:
             files=[speech_v2.BatchRecognizeFileMetadata(uri=gcs_uri)],
             recognition_output_config=output_config,
         )
-        logger.info("STT batch recognition via %s (%s)", gcs_uri, model)
-        operation = client.batch_recognize(request=request)
+        logger.info(
+            "STT v2 batch recognition via %s (model=%s, languages=%s)",
+            gcs_uri,
+            model,
+            ",".join(language_codes),
+        )
+        operation = await asyncio.to_thread(client.batch_recognize, request=request)
         # Batch recognition is long-running; poll in a thread so the event loop stays free.
         # Ack deadline max is 600s, so cap the wait there.
         result = await asyncio.to_thread(operation.result, 600)
         return _response_to_dict(result)
+
+    def _decoding_config(self, speech_v2: Any, gcs_uri: str) -> dict[str, Any]:
+        """Pick a decoding config for the container, falling back to auto-detection."""
+        extension = os.path.splitext(urlparse(gcs_uri).path)[1].lower()
+        encoding_name = _AAC_ENCODINGS_BY_EXTENSION.get(extension)
+        if encoding_name is None:
+            return {"auto_decoding_config": speech_v2.AutoDetectDecodingConfig()}
+        encoding = getattr(speech_v2.ExplicitDecodingConfig.AudioEncoding, encoding_name)
+        return {
+            "explicit_decoding_config": speech_v2.ExplicitDecodingConfig(
+                encoding=encoding,
+                sample_rate_hertz=self.settings.stt_sample_rate_hz,
+                audio_channel_count=self.settings.stt_audio_channel_count,
+            )
+        }
 
     def gcs_uri_for(self, storage_path: str) -> str:
         return f"gs://{self.settings.media_bucket}/{storage_path}"
 
 
 def _response_to_dict(result: Any) -> dict[str, Any]:
-    """Normalise a BatchRecognizeResponse (inline results) into plain JSON."""
+    """Normalise a BatchRecognizeResponse (inline results) into plain JSON.
+
+    Shape: `results[uri].inline_result.transcript.results[].alternatives[].words[]`, each word
+    carrying `word`, `start_offset` and `end_offset`. Also returns the language the service
+    detected, so the worker can persist it for multilingual uploads.
+    """
     words: list[dict[str, Any]] = []
+    language: str | None = None
     for file_result in getattr(result, "results", {}).values():
-        inline = getattr(file_result, "inline_result", None)
-        if inline is None:
+        _raise_for_file_error(file_result)
+        bundle = _transcript_bundle(file_result)
+        if bundle is None:
             continue
-        for alt in getattr(inline, "alternatives", []):
-            for word_info in getattr(alt, "words", []) or []:
-                words.append(
-                    {
-                        "word": getattr(word_info, "word", ""),
-                        "startMs": _duration_to_ms(
-                            getattr(word_info, "start_offset", None)
-                        ),
-                        "endMs": _duration_to_ms(getattr(word_info, "end_offset", None)),
-                    }
-                )
-    return {"words": words}
+        for recognition_result in getattr(bundle, "results", []) or []:
+            if language is None:
+                language = getattr(recognition_result, "language_code", "") or None
+            for alt in getattr(recognition_result, "alternatives", []) or []:
+                for word_info in getattr(alt, "words", []) or []:
+                    words.append(
+                        {
+                            "word": getattr(word_info, "word", ""),
+                            "startMs": _duration_to_ms(
+                                getattr(word_info, "start_offset", None)
+                            ),
+                            "endMs": _duration_to_ms(getattr(word_info, "end_offset", None)),
+                        }
+                    )
+    return {"words": words, "language": language}
+
+
+def _raise_for_file_error(file_result: Any) -> None:
+    """Batch recognition reports per-file failures in-band; surface them as real errors."""
+    error = getattr(file_result, "error", None)
+    code = getattr(error, "code", 0) if error is not None else 0
+    if code:
+        message = getattr(error, "message", "") or "unknown error"
+        raise RuntimeError(f"Speech-to-Text failed: {message}")
+
+
+def _transcript_bundle(file_result: Any) -> Any:
+    """Return the results container from an inline result (or the file-level transcript)."""
+    inline = getattr(file_result, "inline_result", None)
+    if inline is not None:
+        transcript = getattr(inline, "transcript", None)
+        if transcript is not None and len(getattr(transcript, "results", [])) > 0:
+            return transcript
+    return getattr(file_result, "transcript", None)
 
 
 def _duration_to_ms(duration: Any) -> int:

@@ -19,8 +19,10 @@ class StubStt:
         self.response = response
         self.calls: list[dict[str, Any]] = []
 
-    async def transcribe(self, *, gcs_uri: str, language: str, model: str) -> dict[str, Any]:
-        self.calls.append({"gcs_uri": gcs_uri, "language": language, "model": model})
+    async def transcribe(
+        self, *, gcs_uri: str, language_codes: list[str], model: str
+    ) -> dict[str, Any]:
+        self.calls.append({"gcs_uri": gcs_uri, "language_codes": language_codes, "model": model})
         if isinstance(self.response, Exception):
             raise self.response
         return self.response
@@ -46,8 +48,10 @@ class Harness:
         self.transcripts = TranscriptService(self.client, storage=self.storage)
         self.stt = StubStt(stt_response)
 
-    def project(self) -> str:
-        return self.projects.create(owner_uid=UID, payload=CreateProject(name="P")).projectId
+    def project(self, primary_language: str = "en") -> str:
+        return self.projects.create(
+            owner_uid=UID, payload=CreateProject(name="P", primaryLanguage=primary_language)
+        ).projectId
 
     def uploaded_asset(self, project_id: str) -> str:
         session = self.assets.create_upload_session(
@@ -93,7 +97,7 @@ async def test_run_transcribe_success_marks_project_ready() -> None:
     )
 
     assert transcript_id is not None
-    assert h.stt.calls and h.stt.calls[0]["language"] == "en-US"
+    assert h.stt.calls and h.stt.calls[0]["language_codes"] == ["auto"]
     job = h.jobs.get(owner_uid=UID, job_id=job_id)
     assert job.status.value == "succeeded"
     project = h.client.docs[f"users/{UID}/projects/{project_id}"]
@@ -103,6 +107,35 @@ async def test_run_transcribe_success_marks_project_ready() -> None:
     assert asset["status"] == "ready"
     transcript = h.transcripts.get(owner_uid=UID, project_id=project_id)
     assert [s.text for s in transcript.segments] == ["Hello world.", "Lets begin."]
+
+
+async def test_run_transcribe_stores_detected_language() -> None:
+    h = Harness({"words": WORDS["words"], "language": "hi"})
+    project_id = h.project("hi")
+    _, job_id = h.uploaded_asset(project_id)
+
+    transcript_id = await run_transcribe(
+        owner_uid=UID, project_id=project_id, job_id=job_id, **h.kwargs()
+    )
+
+    assert transcript_id is not None
+    assert h.stt.calls[0]["language_codes"] == ["auto"]
+    transcript = h.transcripts.get(owner_uid=UID, project_id=project_id)
+    assert transcript.language == "hi"
+
+
+async def test_run_transcribe_falls_back_to_project_language() -> None:
+    h = Harness({"words": WORDS["words"]})
+    project_id = h.project("hi")
+    _, job_id = h.uploaded_asset(project_id)
+
+    transcript_id = await run_transcribe(
+        owner_uid=UID, project_id=project_id, job_id=job_id, **h.kwargs()
+    )
+
+    assert transcript_id is not None
+    transcript = h.transcripts.get(owner_uid=UID, project_id=project_id)
+    assert transcript.language == "hi-IN"
 
 
 async def test_run_transcribe_is_idempotent_on_terminal_job() -> None:

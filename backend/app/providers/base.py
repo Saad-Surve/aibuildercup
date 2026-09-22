@@ -27,7 +27,7 @@ class SttProvider(Protocol):
         self,
         *,
         gcs_uri: str,
-        language: str,
+        language_codes: list[str],
         model: str,
     ) -> dict[str, Any]: ...
 

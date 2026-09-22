@@ -17,7 +17,7 @@ Provider layer: real + cassette implementations of every external dependency
 
 This keeps the agent runtime in one language and makes the Google ADK architecture visible. Genkit is a strong alternative for a TypeScript backend, but using FastAPI, ADK, and Genkit in the same request path would add unnecessary runtime complexity. Genkit is intentionally not used.
 
-Deploy everything to **`us-central1`**. Speech-to-Text (Chirp 2/3), Veo, Imagen, and Text-to-Speech are all properly available there; `us-east1` is not a valid choice for the speech models.
+Deploy everything to **`us-central1`**, except Speech-to-Text: Chirp 3 is GA on the **`us` multi-region** but not in `us-central1`, so STT uses `us`. Veo, Imagen, and Text-to-Speech are all available in `us-central1`; `us-east1` is not a valid choice for the speech models.
 
 Model IDs are never hardcoded in agents. They come from a config-driven registry so a model can be swapped or pinned without touching reviewer code:
 
@@ -26,7 +26,8 @@ MODEL_REVIEWER=gemini-<flash-class>      # one-shot reviewers
 MODEL_ORCHESTRATOR=gemini-<pro-class>    # coordinator + project chat agent
 MODEL_IMAGE=imagen-<version>             # thumbnails
 MODEL_VIDEO=veo-3.1-fast                 # intros/outros
-MODEL_STT=latest_long                       # transcription (chirp_3 not in us-central1 yet; chirp_2 retired)
+MODEL_STT=chirp_3                           # transcription (STT V2 batch, us multi-region)
+STT_REGION=us                               # Chirp 3 is GA on `us`, not in us-central1
 ~~~
 
 ## 2. Backend repository structure
@@ -214,7 +215,7 @@ Use dead-letter topics for messages that exceed retry limits.
 video.uploaded
   -> validate object metadata
   -> create transcription job
-  -> call Speech-to-Text V2 batch recognition, model latest_long, GCS input
+  -> call Speech-to-Text V2 batch recognition, model long, GCS input
   -> enable word time offsets
   -> normalize response
   -> segment transcript into sentences and paragraphs
@@ -224,8 +225,9 @@ video.uploaded
   -> publish transcript.ready
 ~~~
 
-Long audio uses batch recognition (sync only handles clips under 60 seconds). The recognizer
-region must be `us-central1` for Chirp availability.
+Long audio uses batch recognition (sync only handles clips under 60 seconds). STT runs in the
+`us` multi-region, where the multilingual Chirp 3 model is available; `us-east1` is not a valid
+choice for the speech models.
 
 Canonical transcript:
 

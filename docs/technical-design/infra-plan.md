@@ -14,9 +14,10 @@ Use `us-central1` for every regional service:
 REGION=us-central1
 ~~~
 
-Why central1 and not east1: Speech-to-Text Chirp 2/3 is generally available in `us-central1` but
-not `us-east1`, and Veo, Imagen, and Text-to-Speech documentation all use `us-central1`. One
-region keeps Terraform and latency simple.
+Why central1 and not east1: it is the default for Veo, Imagen, and Text-to-Speech. Speech-to-Text
+is the exception: the multilingual Chirp 3 model is GA on the `us` multi-region, not in
+`us-central1` or `us-east1`, so STT uses `us`. One region (plus that one STT exception) keeps
+Terraform and latency simple.
 
 Do not create separate dev/prod projects or Terraform workspaces for the hackathon. Local development can use emulators, but deployed resources all belong to this single environment.
 

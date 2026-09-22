@@ -38,7 +38,17 @@ class Settings(BaseSettings):
     model_orchestrator: str = "gemini-flash-latest"
     model_image: str = "imagen-4.0-generate-001"
     model_video: str = "veo-3.1-fast"
-    model_stt: str = "latest_long"
+    model_stt: str = "chirp_3"
+
+    # Speech-to-Text location. Chirp 3 (multilingual, language-agnostic transcription) is GA on
+    # the `us` multi-region but not in `us-central1`, so STT is the one service that does not use
+    # the default region.
+    stt_region: str = "us"
+    # STT V2 cannot auto-detect AAC inside video containers (MP4/MOV/M4A), so those need an
+    # explicit decoding config with a sample rate and channel count. Defaults match creator /
+    # social video (44.1 kHz stereo).
+    stt_sample_rate_hz: int = 44100
+    stt_audio_channel_count: int = 2
 
     max_reviewer_concurrency: int = 4
     max_project_cost_usd: float = 5.0

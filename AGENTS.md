@@ -45,7 +45,8 @@ note, the next agent starts blind.
 3. **Use real services.** Development calls the live GCP APIs (Gemini Developer API,
    Speech-to-Text, Storage, Firestore). Test uploads with the videos in `fixtures/media/`.
    Keep paid calls (Veo, Imagen, Gemini Pro) capped.
-4. **Region is `us-central1`.** Everywhere. Do not use `us-east1` (Speech-to-Text is not GA there).
+4. **Region is `us-central1`, except Speech-to-Text which uses the `us` multi-region** (Chirp 3
+   is GA there). Do not use `us-east1` (Speech-to-Text is not GA there).
 5. **Tooling:** `web/` uses **Bun**. `backend/` uses **uv**. `infra/` uses **Terraform**.
    Do not introduce npm, pip, poetry, or yarn.
 6. **Never commit secrets.** `.env.local` and `terraform.tfvars` are gitignored. Secrets belong in
@@ -104,11 +105,12 @@ terraform apply
 
 ## 5. GCP facts
 
-- Project: `habeas-codus`. Region: `us-central1`.
+- Project: `habeas-codus`. Region: `us-central1` (except Speech-to-Text, which uses the `us`
+  multi-region because Chirp 3 is GA there).
 - Full resource inventory: `infra/RESOURCES.md`.
 - Firebase web config is in `infra/RESOURCES.md` (public, safe to expose).
 - **Cost safety:** there is a budget (~$100) and a kill switch Cloud Function that detaches billing
-  when spend hits it. Development uses free-tier APIs (Gemini flash, Chirp STT) so it should
+  when spend hits it. Development uses free-tier APIs (Gemini flash, Speech-to-Text) so it should
   never come close. Do not add services that call paid APIs on a loop without a cap.
 - The most expensive calls are Veo (~$0.15–0.40/sec), Imagen, and Gemini Pro. Keep them on
   cassettes by default.
@@ -162,7 +164,7 @@ If you need something from another lane, fake it and keep moving. Never block.
 - GCP has no native hard spending cap. We built a kill switch (`infra/budget.tf`).
 - Cloud Text-to-Speech has no IAM role for synthesis; the enabled API is enough.
 - Pub/Sub ack deadline max is 600 seconds.
-- Speech-to-Text long audio uses **batch** recognition (`latest_long`), not sync.
+- Speech-to-Text long audio uses **batch** recognition (`chirp_3`), not sync.
 - Firebase ToS acceptance is console-only.
 - Next.js 16 bundles its own docs and regenerates `web/AGENTS.md`; read them before coding.
 - The Firebase default bucket (`habeas-codus.firebasestorage.app`) is **not** used. The app uses
