@@ -153,6 +153,7 @@ class JobService:
         project_id: str,
         job_id: str,
         output: dict[str, Any] | None = None,
+        message: str = "Completed",
     ) -> None:
         from datetime import UTC, datetime
 
@@ -164,7 +165,7 @@ class JobService:
                 "progress": {
                     "currentStep": "done",
                     "percent": 100,
-                    "message": "Completed",
+                    "message": message,
                 },
                 "output": output or {"artifactIds": [], "storagePaths": []},
                 "finishedAt": now,

@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     model_orchestrator: str = "gemini-flash-latest"
     model_image: str = "imagen-4.0-generate-001"
     model_video: str = "veo-3.1-fast"
-    model_stt: str = "chirp_3"
+    model_stt: str = "latest_long"
 
     max_reviewer_concurrency: int = 4
     max_project_cost_usd: float = 5.0

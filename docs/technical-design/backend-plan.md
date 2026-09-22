@@ -26,7 +26,7 @@ MODEL_REVIEWER=gemini-<flash-class>      # one-shot reviewers
 MODEL_ORCHESTRATOR=gemini-<pro-class>    # coordinator + project chat agent
 MODEL_IMAGE=imagen-<version>             # thumbnails
 MODEL_VIDEO=veo-3.1-fast                 # intros/outros
-MODEL_STT=chirp_3                        # transcription
+MODEL_STT=latest_long                       # transcription (chirp_3 not in us-central1 yet; chirp_2 retired)
 ~~~
 
 ## 2. Backend repository structure
@@ -214,7 +214,7 @@ Use dead-letter topics for messages that exceed retry limits.
 video.uploaded
   -> validate object metadata
   -> create transcription job
-  -> call Speech-to-Text V2 batch recognition, model chirp_3, GCS input
+  -> call Speech-to-Text V2 batch recognition, model latest_long, GCS input
   -> enable word time offsets
   -> normalize response
   -> segment transcript into sentences and paragraphs

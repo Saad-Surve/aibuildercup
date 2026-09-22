@@ -2,7 +2,7 @@
 
 Pipeline (per `docs/technical-design/backend-plan.md` section 7):
 
-video uploaded -> job queued -> STT batch recognition (`chirp_3`, GCS input)
+video uploaded -> job queued -> STT batch recognition (`latest_long`, GCS input)
 -> normalise words -> segment -> canonical JSON + VTT to GCS
 -> transcript + segments to Firestore -> project ready -> job succeeded.
 
@@ -156,6 +156,7 @@ async def run_transcribe(
         project_id=project_id,
         job_id=job_id,
         output={"artifactIds": [], "storagePaths": [], "transcriptId": transcript_id},
+        message="Completed" if words else "Completed — no speech detected",
     )
     logger.info(
         "transcribe job %s done: %d words in %d segments",

@@ -1,6 +1,6 @@
 """Speech-to-Text provider.
 
-Thin wrapper over Speech-to-Text V2 batch recognition (`chirp_3` in `us-central1`; Chirp is
+Thin wrapper over Speech-to-Text V2 batch recognition (`latest_long` in `us-central1`; Chirp is
 not GA in `us-east1`). Feature code calls this provider, never `google.cloud.speech` directly.
 """
 
@@ -46,27 +46,37 @@ class SttProvider:
                 enable_automatic_punctuation=True,
             ),
         )
+        # Batch recognition writes nothing inline unless asked: request inline results
+        # so word timings come back in the operation response (fine for demo-scale
+        # videos; hour-long files would use a GCS output prefix instead).
+        output_config = speech_v2.RecognitionOutputConfig(
+            inline_response_config=speech_v2.InlineOutputConfig()
+        )
         request = speech_v2.BatchRecognizeRequest(
             recognizer=recognizer,
             config=config,
             files=[speech_v2.BatchRecognizeFileMetadata(uri=gcs_uri)],
+            recognition_output_config=output_config,
         )
         logger.info("STT batch recognition via %s (%s)", gcs_uri, model)
         operation = client.batch_recognize(request=request)
         # Batch recognition is long-running; poll in a thread so the event loop stays free.
         # Ack deadline max is 600s, so cap the wait there.
         result = await asyncio.to_thread(operation.result, 600)
-        return _operation_to_dict(result)
+        return _response_to_dict(result)
 
     def gcs_uri_for(self, storage_path: str) -> str:
         return f"gs://{self.settings.media_bucket}/{storage_path}"
 
 
-def _operation_to_dict(result: Any) -> dict[str, Any]:
-    """Normalise a BatchRecognizeResponse into plain JSON."""
+def _response_to_dict(result: Any) -> dict[str, Any]:
+    """Normalise a BatchRecognizeResponse (inline results) into plain JSON."""
     words: list[dict[str, Any]] = []
     for file_result in getattr(result, "results", {}).values():
-        for alt in getattr(file_result, "alternatives", []):
+        inline = getattr(file_result, "inline_result", None)
+        if inline is None:
+            continue
+        for alt in getattr(inline, "alternatives", []):
             for word_info in getattr(alt, "words", []) or []:
                 words.append(
                     {

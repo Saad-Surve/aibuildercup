@@ -5,6 +5,36 @@
 # indexes. Without this index the Projects list fails in the cloud. See
 # docs/technical-design/db-design.md section 9.
 
+# `GET /jobs/{jobId}` runs a collection-group query over every `jobs` subcollection
+# with an equality filter on `jobId`. That needs a single-field collection-group
+# exemption (a composite index is rejected as "not necessary"). Without it the job
+# polling behind the workspace processing card fails in the cloud with
+# FAILED_PRECONDITION. The default collection-scope indexes are listed explicitly
+# so this override does not drop them.
+resource "google_firestore_field" "jobs_job_id" {
+  project    = var.project_id
+  database   = "(default)"
+  collection = "jobs"
+  field      = "jobId"
+
+  index_config {
+    indexes {
+      order       = "ASCENDING"
+      query_scope = "COLLECTION"
+    }
+    indexes {
+      order       = "DESCENDING"
+      query_scope = "COLLECTION"
+    }
+    indexes {
+      order       = "ASCENDING"
+      query_scope = "COLLECTION_GROUP"
+    }
+  }
+
+  depends_on = [google_firestore_database.default]
+}
+
 resource "google_firestore_index" "projects_by_owner_updated_at" {
   project     = var.project_id
   database    = "(default)"

@@ -117,6 +117,23 @@ async def test_run_transcribe_is_idempotent_on_terminal_job() -> None:
     assert len(h.stt.calls) == calls_after_first
 
 
+async def test_run_transcribe_silent_audio_succeeds_with_hint() -> None:
+    h = Harness({"words": []})
+    project_id = h.project()
+    _, job_id = h.uploaded_asset(project_id)
+
+    transcript_id = await run_transcribe(
+        owner_uid=UID, project_id=project_id, job_id=job_id, **h.kwargs()
+    )
+
+    assert transcript_id is not None
+    job = h.jobs.get(owner_uid=UID, job_id=job_id)
+    assert job.status.value == "succeeded"
+    assert job.progress.message == "Completed — no speech detected"
+    transcript = h.transcripts.get(owner_uid=UID, project_id=project_id)
+    assert transcript.segments == []
+
+
 async def test_run_transcribe_missing_asset_id_fails_job() -> None:
     h = Harness(WORDS)
     project_id = h.project()

@@ -56,7 +56,7 @@ creator-studio/
 Goal: `login -> onboarding -> upload -> transcript -> timeline` on seeded data.
 
 - A: auth, app shell, onboarding/persona preview, resumable direct-to-GCS upload, workspace shell, transcript + basic timeline.
-- B: API skeleton, Firebase auth middleware + ownership checks, jobs/SSE, transcription worker (STT `chirp_3`), transcript API + canonical JSON/VTT.
+- B: API skeleton, Firebase auth middleware + ownership checks, jobs/SSE, transcription worker (STT `latest_long`), transcript API + canonical JSON/VTT.
 - C: Firestore rules/indexes/emulator, provider + cassette layer, seed script + demo video, Terraform modules, CI, hello-world deploy.
 
 Gate: end-to-end on fixtures, and real STT recorded once on the demo video to produce a cassette.

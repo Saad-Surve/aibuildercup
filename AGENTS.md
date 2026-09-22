@@ -162,7 +162,7 @@ If you need something from another lane, fake it and keep moving. Never block.
 - GCP has no native hard spending cap. We built a kill switch (`infra/budget.tf`).
 - Cloud Text-to-Speech has no IAM role for synthesis; the enabled API is enough.
 - Pub/Sub ack deadline max is 600 seconds.
-- Speech-to-Text long audio uses **batch** recognition (`chirp_3`), not sync.
+- Speech-to-Text long audio uses **batch** recognition (`latest_long`), not sync.
 - Firebase ToS acceptance is console-only.
 - Next.js 16 bundles its own docs and regenerates `web/AGENTS.md`; read them before coding.
 - The Firebase default bucket (`habeas-codus.firebasestorage.app`) is **not** used. The app uses
