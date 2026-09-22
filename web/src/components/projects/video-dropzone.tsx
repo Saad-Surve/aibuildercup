@@ -61,9 +61,8 @@ export function VideoDropzone({
       await uploadToStorage(session, file, setPercent);
       setPhase("finalizing");
       // Keep a local copy so the project can play the video and card
-      // thumbnails can be captured from it, even in mock/offline mode.
-      // Stored under both keys so cards recover even if the asset record
-      // is lost (e.g. mock-mode reload).
+      // thumbnails can be captured from it, even while offline. Stored under
+      // both keys so cards recover even if the asset record is unavailable.
       saveVideoBlob(session.assetId, file, projectId).catch(() => {});
       const job = await completeUpload(projectId, session.assetId);
       await queryClient.invalidateQueries({ queryKey: ["assets", projectId] });

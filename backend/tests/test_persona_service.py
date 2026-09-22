@@ -1,10 +1,10 @@
+from typing import Any
+
 import pytest
 
 from app.config import Settings
 from app.errors import ConflictError, NotFoundError
 from app.providers.base import LlmProvider as LlmProviderProtocol
-from app.providers.cassette import CassetteStore
-from app.providers.llm import LlmProvider
 from app.schemas.onboarding import OnboardingStatus, OnboardingStep
 from app.services.persona_service import PersonaService, build_persona_markdown
 from app.services.user_service import UserService
@@ -13,25 +13,31 @@ from tests.fakes import FakeFirestoreClient, FakeStorageClient, StubLlmProvider
 UID = "uid-1"
 
 
+class _FailingLlm:
+    """LLM stub that always raises, to exercise the template fallback."""
+
+    async def complete_json(self, **_: Any) -> dict[str, Any]:
+        raise RuntimeError("boom")
+
+
 def make_service(
-    *, llm: LlmProviderProtocol | None = None, cassette_dir: str = "."
+    *, llm: LlmProviderProtocol | None = None
 ) -> tuple[PersonaService, FakeFirestoreClient, FakeStorageClient, UserService]:
     client = FakeFirestoreClient()
     storage = FakeStorageClient()
     users = UserService(client)
-    settings = Settings(mock_mode="on", cassette_dir=cassette_dir)
     service = PersonaService(
         client=client,
         storage=storage,
         llm=llm or StubLlmProvider(),
         users=users,
-        settings=settings,
+        settings=Settings(),
     )
     return service, client, storage, users
 
 
-async def test_complete_onboarding_creates_persona(tmp_path) -> None:
-    service, client, storage, users = make_service(cassette_dir=str(tmp_path))
+async def test_complete_onboarding_creates_persona() -> None:
+    service, client, storage, users = make_service()
     users.save_onboarding_step(
         UID,
         OnboardingStep(
@@ -51,12 +57,8 @@ async def test_complete_onboarding_creates_persona(tmp_path) -> None:
     assert len(revisions) == 1
 
 
-async def test_complete_onboarding_falls_back_without_cassette(tmp_path) -> None:
-    llm = LlmProvider(
-        Settings(mock_mode="on", cassette_dir=str(tmp_path)),
-        CassetteStore(str(tmp_path)),
-    )
-    service, _, storage, users = make_service(llm=llm, cassette_dir=str(tmp_path))
+async def test_complete_onboarding_falls_back_when_llm_fails() -> None:
+    service, _, storage, users = make_service(llm=_FailingLlm())
     users.save_onboarding_step(
         UID, OnboardingStep(step="s", answers={"creatorName": "Priya"})
     )
@@ -68,22 +70,22 @@ async def test_complete_onboarding_falls_back_without_cassette(tmp_path) -> None
     assert "## Audience" in content
 
 
-def test_get_without_persona_raises_not_found(tmp_path) -> None:
-    service, *_ = make_service(cassette_dir=str(tmp_path))
+def test_get_without_persona_raises_not_found() -> None:
+    service, *_ = make_service()
     with pytest.raises(NotFoundError):
         service.get(UID)
 
 
-async def test_get_returns_persona_content(tmp_path) -> None:
-    service, *_ = make_service(cassette_dir=str(tmp_path))
+async def test_get_returns_persona_content() -> None:
+    service, *_ = make_service()
     await service.complete_onboarding(UID)
     persona = service.get(UID)
     assert persona.version == 1
     assert persona.content.startswith("# Stub persona")
 
 
-async def test_update_persona_bumps_version_and_writes_revision(tmp_path) -> None:
-    service, client, storage, _ = make_service(cassette_dir=str(tmp_path))
+async def test_update_persona_bumps_version_and_writes_revision() -> None:
+    service, client, storage, _ = make_service()
     await service.complete_onboarding(UID)
 
     updated = service.update(UID, content="# Persona v2\n", expected_version=1)
@@ -94,8 +96,8 @@ async def test_update_persona_bumps_version_and_writes_revision(tmp_path) -> Non
     assert len(revisions) == 2
 
 
-async def test_update_persona_version_conflict(tmp_path) -> None:
-    service, *_ = make_service(cassette_dir=str(tmp_path))
+async def test_update_persona_version_conflict() -> None:
+    service, *_ = make_service()
     await service.complete_onboarding(UID)
 
     with pytest.raises(ConflictError) as exc:

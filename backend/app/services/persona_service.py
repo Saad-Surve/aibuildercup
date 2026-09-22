@@ -1,9 +1,9 @@
 """Persona generation, storage, and versioned edits.
 
 Onboarding answers become a `persona.md` written to Cloud Storage with metadata on the user
-document. Generation goes through the LLM provider; if no cassette is available (or the call
-fails) a deterministic template keeps the flow working offline. Every version is also written as
-an immutable revision object and a `personaRevisions` document.
+document. Generation goes through the LLM provider; if the call fails a deterministic template
+keeps onboarding working. Every version is also written as an immutable revision object and a
+`personaRevisions` document.
 """
 
 import json
@@ -15,7 +15,6 @@ from uuid import uuid4
 from app.config import Settings
 from app.errors import ConflictError, NotFoundError
 from app.providers.base import LlmProvider
-from app.providers.llm import CassetteMiss
 from app.schemas.persona import Persona, PersonaRef
 from app.services.firestore_service import FirestoreClient
 from app.services.paths import (
@@ -233,8 +232,6 @@ class PersonaService:
             if isinstance(markdown, str) and markdown.strip():
                 return markdown.strip() + "\n"
             logger.warning("Persona provider returned no markdown; using template")
-        except CassetteMiss:
-            logger.info("No persona cassette; using deterministic template")
         except Exception:  # noqa: BLE001
             logger.exception("Persona generation failed; using deterministic template")
         return build_persona_markdown(answers)

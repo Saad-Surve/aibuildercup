@@ -6,7 +6,6 @@ import {
 } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import { MocksProvider } from "@/app/mocks-provider";
 import { Providers } from "@/app/providers";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -49,12 +48,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           disableTransitionOnChange
         >
           <Providers>
-            <MocksProvider>
-              <AuthProvider>
-                {children}
-                <Toaster position="top-center" />
-              </AuthProvider>
-            </MocksProvider>
+            <AuthProvider>
+              {children}
+              <Toaster position="top-center" />
+            </AuthProvider>
           </Providers>
         </ThemeProvider>
       </body>

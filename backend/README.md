@@ -27,18 +27,15 @@ app/
 ├── dependencies.py  Auth dependency
 ├── api/             Routers (health first, more to come)
 ├── auth/            Firebase Admin token verification
-├── providers/       Provider interfaces + cassette record/replay
+├── providers/       Provider interfaces (all Google SDK usage lives here)
 ├── services/        Firestore, Storage, Pub/Sub wrappers
 ├── agents/          ADK agents and reviewers
 └── workers/         Pub/Sub handlers and Cloud Run jobs
 ```
 
-## Mock mode
+## External services
 
-`MOCK_MODE` controls every external call:
-
-- `off` — always real
-- `auto` — replay a cassette on hit, call real once and record on miss (default)
-- `on` — cassette only, never network
-
-Cassettes live in `../fixtures/cassettes`. See `../docs/technical-design/mock-and-seed.md`.
+Every external call goes through a provider in `app/providers/` and hits the real service:
+Gemini Developer API for LLM calls (needs `GEMINI_API_KEY`), Speech-to-Text for
+transcription, Cloud Storage and Firestore for data. Test uploads end to end with the sample
+videos in `../fixtures/media/`.

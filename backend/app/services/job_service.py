@@ -99,6 +99,101 @@ class JobService:
                 return _to_job(found_id, data)
         raise NotFoundError("Job not found", details={"jobId": job_id})
 
+    def load_for_worker(self, *, owner_uid: str, project_id: str, job_id: str) -> dict[str, Any]:
+        """Fetch the raw job document for a worker that already knows the project."""
+        data = self.client.get_document(job_path(owner_uid, project_id, job_id))
+        if data is None or not is_owner(data, owner_uid):
+            raise NotFoundError("Job not found", details={"jobId": job_id})
+        return data
+
+    def mark_running(
+        self, *, owner_uid: str, project_id: str, job_id: str, step: str, message: str
+    ) -> None:
+        from datetime import UTC, datetime
+
+        now = datetime.now(UTC)
+        self.client.update_document(
+            job_path(owner_uid, project_id, job_id),
+            {
+                "status": JobStatus.running.value,
+                "progress": {"currentStep": step, "percent": 5, "message": message},
+                "startedAt": now,
+                "updatedAt": now,
+            },
+        )
+
+    def update_progress(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        job_id: str,
+        percent: int,
+        step: str,
+        message: str,
+    ) -> None:
+        from datetime import UTC, datetime
+
+        self.client.update_document(
+            job_path(owner_uid, project_id, job_id),
+            {
+                "progress": {
+                    "currentStep": step,
+                    "percent": max(0, min(100, percent)),
+                    "message": message,
+                },
+                "updatedAt": datetime.now(UTC),
+            },
+        )
+
+    def mark_succeeded(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        job_id: str,
+        output: dict[str, Any] | None = None,
+    ) -> None:
+        from datetime import UTC, datetime
+
+        now = datetime.now(UTC)
+        self.client.update_document(
+            job_path(owner_uid, project_id, job_id),
+            {
+                "status": JobStatus.succeeded.value,
+                "progress": {
+                    "currentStep": "done",
+                    "percent": 100,
+                    "message": "Completed",
+                },
+                "output": output or {"artifactIds": [], "storagePaths": []},
+                "finishedAt": now,
+                "updatedAt": now,
+            },
+        )
+
+    def mark_failed(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        job_id: str,
+        message: str,
+        code: str = "TRANSCRIBE_FAILED",
+    ) -> None:
+        from datetime import UTC, datetime
+
+        now = datetime.now(UTC)
+        self.client.update_document(
+            job_path(owner_uid, project_id, job_id),
+            {
+                "status": JobStatus.failed.value,
+                "error": {"code": code, "message": message},
+                "finishedAt": now,
+                "updatedAt": now,
+            },
+        )
+
     def _find_by_idempotency_key(
         self, *, owner_uid: str, project_id: str, idempotency_key: str
     ) -> Job | None:

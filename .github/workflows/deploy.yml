@@ -49,7 +49,7 @@ jobs:
             --port 8080 \
             --min-instances 0 \
             --max-instances 1 \
-            --set-env-vars "^@^ENVIRONMENT=production@PROJECT_ID=habeas-codus@REGION=us-central1@MOCK_MODE=off@CORS_ALLOWED_ORIGINS=${CORS_ORIGINS}" \
+            --set-env-vars "^@^ENVIRONMENT=production@PROJECT_ID=habeas-codus@REGION=us-central1@CORS_ALLOWED_ORIGINS=${CORS_ORIGINS}" \
             --set-secrets "GEMINI_API_KEY=gemini-api-key:latest"
 
       - uses: oven-sh/setup-bun@v2
@@ -58,7 +58,6 @@ jobs:
         working-directory: web
         env:
           NEXT_PUBLIC_API_BASE_URL: ${{ vars.API_URL }}
-          NEXT_PUBLIC_MOCK_MODE: "off"
           NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyAjWq40FQKv6pN9LJI1glJq6gsfOTMNi7Q
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: habeas-codus.firebaseapp.com
           NEXT_PUBLIC_FIREBASE_PROJECT_ID: habeas-codus

@@ -15,7 +15,9 @@ from app.services.job_service import JobService
 from app.services.persona_service import PersonaService
 from app.services.project_service import ProjectService
 from app.services.storage_service import get_storage_client
+from app.services.transcript_service import TranscriptService
 from app.services.user_service import UserService
+from app.workers.transcribe_worker import transcribe_after_response
 
 
 @dataclass(frozen=True)
@@ -52,6 +54,19 @@ def get_user_service() -> UserService:
 def get_identity_deleter() -> Callable[[str], None]:
     """Deletes the Firebase Auth account. Injected so tests can override it."""
     return firebase_delete_user
+
+
+def get_transcript_service() -> TranscriptService:
+    return TranscriptService(get_firestore_client(), storage=get_storage_client())
+
+
+# (background_tasks, *, owner_uid, project_id, job_id) -> None. Injected so tests can
+# record scheduling without running the worker.
+TranscribeScheduler = Callable[..., None]
+
+
+def get_transcribe_scheduler() -> TranscribeScheduler:
+    return transcribe_after_response
 
 
 def get_persona_service() -> PersonaService:

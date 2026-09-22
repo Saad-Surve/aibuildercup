@@ -1,8 +1,8 @@
 """Provider interfaces.
 
 Nothing in the app imports a Google SDK directly. Everything goes through one of these
-interfaces, which has a real implementation and a cassette implementation. That is what makes
-the mock layer possible without conditionals scattered everywhere.
+interfaces, so all Google API usage lives in `app/providers/` and feature code stays
+free of SDK imports and credentials handling.
 """
 
 from typing import Any, Protocol, runtime_checkable

@@ -9,6 +9,7 @@ from app.dependencies import (
     current_user,
     get_asset_service,
     get_job_service,
+    get_transcribe_scheduler,
 )
 from app.main import app
 from app.schemas.projects import CreateProject
@@ -33,11 +34,18 @@ class Ctx:
             storage=self.storage,
             settings=settings or Settings(),
         )
+        # Records (owner_uid, project_id, job_id) the endpoint schedules instead of
+        # running the real worker.
+        self.scheduled: list[tuple[str, str, str]] = []
 
     def new_project(self) -> str:
         return self.projects.create(
             owner_uid=UID, payload=CreateProject(name="P")
         ).projectId
+
+    def record_schedule(self, background_tasks: object, **kwargs: str) -> None:
+        del background_tasks
+        self.scheduled.append((kwargs["owner_uid"], kwargs["project_id"], kwargs["job_id"]))
 
 
 def build_client(context: Ctx) -> TestClient:
@@ -46,6 +54,7 @@ def build_client(context: Ctx) -> TestClient:
     )
     app.dependency_overrides[get_asset_service] = lambda: context.service
     app.dependency_overrides[get_job_service] = lambda: context.jobs
+    app.dependency_overrides[get_transcribe_scheduler] = lambda: context.record_schedule
     return TestClient(app)
 
 
@@ -87,6 +96,9 @@ def test_upload_session_to_job_flow(ctx: Ctx) -> None:
     assert completed.status_code == 202
     job_id = completed.json()["jobId"]
     assert completed.json()["status"] == "queued"
+
+    # Completing schedules the transcription worker for the queued job.
+    assert ctx.scheduled == [(UID, project_id, job_id)]
 
     job = client.get(f"/api/jobs/{job_id}")
     assert job.status_code == 200
@@ -164,6 +176,58 @@ def test_complete_unknown_asset_returns_not_found(ctx: Ctx) -> None:
         f"/api/projects/{project_id}/assets/missing/complete"
     )
     assert response.status_code == 404
+
+
+def test_complete_does_not_reschedule_finished_job(ctx: Ctx) -> None:
+    project_id = ctx.new_project()
+    client = TestClient(app)
+    created = client.post(
+        f"/api/projects/{project_id}/upload-session",
+        json={"fileName": "clip.mp4", "contentType": "video/mp4", "sizeBytes": 8},
+    )
+    session = created.json()
+    ctx.storage.objects[session["storagePath"]] = "bytes"
+    first = client.post(
+        f"/api/projects/{project_id}/assets/{session['assetId']}/complete"
+    )
+    job_id = first.json()["jobId"]
+    assert len(ctx.scheduled) == 1
+
+    # The worker finished in the meantime: re-completing must not queue another run.
+    ctx.jobs.mark_succeeded(
+        owner_uid=UID, project_id=project_id, job_id=job_id
+    )
+    second = client.post(
+        f"/api/projects/{project_id}/assets/{session['assetId']}/complete"
+    )
+    assert second.status_code == 202
+    assert second.json()["jobId"] == job_id
+    assert len(ctx.scheduled) == 1
+
+
+def test_complete_reschedules_failed_job(ctx: Ctx) -> None:
+    project_id = ctx.new_project()
+    client = TestClient(app)
+    created = client.post(
+        f"/api/projects/{project_id}/upload-session",
+        json={"fileName": "clip.mp4", "contentType": "video/mp4", "sizeBytes": 8},
+    )
+    session = created.json()
+    ctx.storage.objects[session["storagePath"]] = "bytes"
+    first = client.post(
+        f"/api/projects/{project_id}/assets/{session['assetId']}/complete"
+    )
+    job_id = first.json()["jobId"]
+
+    # A failed run retries by re-completing the upload.
+    ctx.jobs.mark_failed(
+        owner_uid=UID, project_id=project_id, job_id=job_id, message="STT blew up"
+    )
+    retry = client.post(
+        f"/api/projects/{project_id}/assets/{session['assetId']}/complete"
+    )
+    assert retry.status_code == 202
+    assert ctx.scheduled == [(UID, project_id, job_id), (UID, project_id, job_id)]
 
 
 def test_upload_session_requires_token() -> None:

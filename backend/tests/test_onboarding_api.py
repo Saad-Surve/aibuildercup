@@ -17,7 +17,7 @@ from tests.fakes import FakeFirestoreClient, FakeStorageClient, StubLlmProvider
 
 
 @pytest.fixture
-def client(tmp_path) -> Iterator[TestClient]:
+def client() -> Iterator[TestClient]:
     store = FakeFirestoreClient()
     users = UserService(store)
     persona = PersonaService(
@@ -25,7 +25,7 @@ def client(tmp_path) -> Iterator[TestClient]:
         storage=FakeStorageClient(),
         llm=StubLlmProvider(),
         users=users,
-        settings=Settings(mock_mode="on", cassette_dir=str(tmp_path)),
+        settings=Settings(),
     )
     app.dependency_overrides[current_user] = lambda: AuthenticatedUser(
         uid="uid-1", email="p@example.com", display_name="Priya"

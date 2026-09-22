@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft01Icon, FileVideoIcon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
@@ -11,6 +11,7 @@ import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog
 import { ProcessingStatusCard } from "@/components/projects/processing-status-card";
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge";
 import { SourceVideoPlayer } from "@/components/projects/source-video-player";
+import { TranscriptPanel } from "@/components/projects/transcript-panel";
 import { VideoDropzone } from "@/components/projects/video-dropzone";
 import {
   Card,
@@ -26,6 +27,7 @@ import type { Asset, Job } from "@/lib/types";
 
 export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [jobId, setJobId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const projectQuery = useQuery({
     queryKey: ["project", projectId],
@@ -47,9 +49,18 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     },
   });
 
-  // When the API lists no assets (e.g. a mock-mode reload dropped them) but
-  // this browser still holds the upload, play the local copy instead of
-  // asking for another upload. Hooks stay above the early returns.
+  // When transcription finishes, refresh the project (status flips to ready)
+  // and let the transcript panel pick up the new segments.
+  const jobStatus = jobQuery.data?.status;
+  useEffect(() => {
+    if (jobStatus !== "succeeded") return;
+    void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+    void queryClient.invalidateQueries({ queryKey: ["transcript", projectId] });
+  }, [jobStatus, projectId, queryClient]);
+
+  // When the API lists no assets but this browser still holds the upload,
+  // play the local copy instead of asking for another upload. Hooks stay
+  // above the early returns.
   const [localAsset, setLocalAsset] = useState<Asset | null>(null);
   const assetsLoading = assetsQuery.isLoading;
   const assetsData = assetsQuery.data;
@@ -116,6 +127,10 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   );
 
   const effectiveSource = sourceAsset ?? localAsset;
+  const processing =
+    project.status === "processing" ||
+    jobQuery.data?.status === "queued" ||
+    jobQuery.data?.status === "running";
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -167,6 +182,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
               </p>
             </CardContent>
           </Card>
+          <TranscriptPanel projectId={projectId} processing={processing} />
         </div>
       ) : (
         <Card>

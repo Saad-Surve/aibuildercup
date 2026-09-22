@@ -1,8 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, status
 
-from app.dependencies import AuthenticatedUser, current_user, get_asset_service
+from app.dependencies import (
+    AuthenticatedUser,
+    TranscribeScheduler,
+    current_user,
+    get_asset_service,
+    get_transcribe_scheduler,
+)
 from app.schemas.assets import (
     AssetList,
     CreateUploadSession,
@@ -10,12 +16,14 @@ from app.schemas.assets import (
     UploadSession,
 )
 from app.schemas.common import AcceptedJob
+from app.schemas.jobs import JobStatus
 from app.services.asset_service import AssetService
 
 router = APIRouter(tags=["uploads"])
 
 UserDep = Annotated[AuthenticatedUser, Depends(current_user)]
 ServiceDep = Annotated[AssetService, Depends(get_asset_service)]
+SchedulerDep = Annotated[TranscribeScheduler, Depends(get_transcribe_scheduler)]
 
 
 @router.post(
@@ -68,8 +76,19 @@ async def complete_upload(
     assetId: str,
     user: UserDep,
     service: ServiceDep,
+    background_tasks: BackgroundTasks,
+    scheduler: SchedulerDep,
 ) -> AcceptedJob:
     job = service.complete_upload(
         owner_uid=user.uid, project_id=projectId, asset_id=assetId
     )
+    # A finished job needs no new run; anything else (queued, failed) gets one.
+    # Failed jobs therefore retry by re-completing the upload.
+    if job.status not in (JobStatus.succeeded, JobStatus.running):
+        scheduler(
+            background_tasks,
+            owner_uid=user.uid,
+            project_id=projectId,
+            job_id=job.jobId,
+        )
     return AcceptedJob(jobId=job.jobId, status=job.status.value)

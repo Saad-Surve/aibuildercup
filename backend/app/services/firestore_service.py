@@ -20,6 +20,10 @@ from app.services.paths import (
     projects_collection_path,
     safe_segment,
     source_object_path,
+    transcript_object_path,
+    transcript_path,
+    transcript_vtt_object_path,
+    transcripts_collection_path,
     user_path,
 )
 
@@ -36,6 +40,10 @@ __all__ = [
     "projects_collection_path",
     "safe_segment",
     "source_object_path",
+    "transcript_object_path",
+    "transcript_path",
+    "transcript_vtt_object_path",
+    "transcripts_collection_path",
     "user_path",
 ]
 

@@ -87,3 +87,25 @@ def persona_object_path(uid: str) -> str:
 
 def persona_revision_object_path(uid: str, version: int) -> str:
     return f"{user_path(uid)}/profile/revisions/persona-v{version}.md"
+
+
+def transcripts_collection_path(uid: str, project_id: str) -> str:
+    return f"{project_path(uid, project_id)}/transcripts"
+
+
+def transcript_path(uid: str, project_id: str, transcript_id: str) -> str:
+    return (
+        f"{transcripts_collection_path(uid, project_id)}/"
+        f"{safe_segment(transcript_id, name='transcriptId')}"
+    )
+
+
+def transcript_object_path(uid: str, project_id: str, version: int) -> str:
+    """Canonical transcript JSON in Cloud Storage."""
+    return f"{project_path(uid, project_id)}/transcripts/v{version}.json"
+
+
+def transcript_vtt_object_path(uid: str, project_id: str, language: str) -> str:
+    """Derived caption file in Cloud Storage."""
+    safe_language = safe_segment(language.replace("-", "_"), name="language")
+    return f"{project_path(uid, project_id)}/captions/{safe_language}.vtt"

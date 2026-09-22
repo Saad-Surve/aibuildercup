@@ -1,5 +1,4 @@
 from functools import lru_cache
-from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -10,12 +9,6 @@ class Settings(BaseSettings):
     environment: str = "local"
     project_id: str = "habeas-codus"
     region: str = "us-central1"
-
-    # off  = always call the real service
-    # auto = replay a cassette on hit, call real once and record on miss
-    # on   = cassette only, never touch the network
-    mock_mode: Literal["off", "auto", "on"] = "auto"
-    cassette_dir: str = "../fixtures/cassettes"
 
     firebase_project_id: str = "habeas-codus"
     media_bucket: str = "habeas-codus-media"
@@ -30,7 +23,7 @@ class Settings(BaseSettings):
     ]
 
     # Gemini Developer API (AI Studio) key. This is the only LLM backend: there is no Vertex AI
-    # path. Required for any real (non-cassette) LLM call. Get one at
+    # path. Required for every LLM call. Get one at
     # https://aistudio.google.com/apikey
     gemini_api_key: str | None = None
 

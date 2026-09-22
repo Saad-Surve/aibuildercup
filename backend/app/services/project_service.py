@@ -113,9 +113,7 @@ class ProjectService:
         data = self._require_owned(owner_uid=owner_uid, project_id=project_id)
         return _to_project(project_id, data)
 
-    def update(
-        self, *, owner_uid: str, project_id: str, patch: UpdateProject
-    ) -> Project:
+    def update(self, *, owner_uid: str, project_id: str, patch: UpdateProject) -> Project:
         data = self._require_owned(owner_uid=owner_uid, project_id=project_id)
         changes = patch.model_dump(exclude_none=True)
         if changes:
@@ -124,9 +122,7 @@ class ProjectService:
             data.update(changes)
         return _to_project(project_id, data)
 
-    def mark_processing(
-        self, *, owner_uid: str, project_id: str, source_asset_id: str
-    ) -> None:
+    def mark_processing(self, *, owner_uid: str, project_id: str, source_asset_id: str) -> None:
         """Record that a source asset was uploaded and the pipeline is starting."""
         self._require_owned(owner_uid=owner_uid, project_id=project_id)
         now = datetime.now(UTC)
@@ -140,6 +136,48 @@ class ProjectService:
                     "percent": 0,
                     "message": "Queued for transcription",
                 },
+                "updatedAt": now,
+            },
+        )
+
+    def mark_transcript_ready(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        transcript_id: str,
+        duration_ms: int,
+        word_count: int,
+    ) -> None:
+        """Flip a processing project to ready once its transcript lands."""
+        self._require_owned(owner_uid=owner_uid, project_id=project_id)
+        now = datetime.now(UTC)
+        self.client.update_document(
+            project_path(owner_uid, project_id),
+            {
+                "status": ProjectStatus.ready.value,
+                "activeTranscriptId": transcript_id,
+                "progress": {
+                    "stage": "ready",
+                    "percent": 100,
+                    "message": "Transcript ready",
+                },
+                "summary": {
+                    "durationMs": duration_ms,
+                    "transcriptWordCount": word_count,
+                },
+                "updatedAt": now,
+            },
+        )
+
+    def mark_failed(self, *, owner_uid: str, project_id: str, message: str) -> None:
+        self._require_owned(owner_uid=owner_uid, project_id=project_id)
+        now = datetime.now(UTC)
+        self.client.update_document(
+            project_path(owner_uid, project_id),
+            {
+                "status": ProjectStatus.failed.value,
+                "progress": {"stage": "failed", "percent": 0, "message": message},
                 "updatedAt": now,
             },
         )

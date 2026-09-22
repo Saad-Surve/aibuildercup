@@ -1,0 +1,52 @@
+/*
+ * Studio skin over the video.js default theme.
+ *
+ * The default theme already handles layout, icons, menus, and the slider —
+ * this file only recolors accents to the app tokens (signal progress + play
+ * button, mono tabular time) and sharpens keyboard focus.
+ */
+
+.studio-video .video-js {
+  font-family: var(--font-schibsted);
+}
+
+.studio-video .vjs-current-time,
+.studio-video .vjs-duration,
+.studio-video .vjs-time-divider,
+.studio-video .vjs-playback-rate-value {
+  font-family: var(--font-geist-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Signal progress fill; buffered load bar keeps the default translucent white. */
+.studio-video .vjs-play-progress {
+  background-color: var(--signal);
+}
+
+.studio-video .vjs-play-progress::before {
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+}
+
+/* Signal big-play button. */
+.studio-video .vjs-big-play-button {
+  background-color: var(--signal);
+  border-color: transparent;
+}
+
+.studio-video .vjs-big-play-button:hover,
+.studio-video .vjs-big-play-button:focus {
+  background-color: var(--signal);
+}
+
+/* Signal selection in rate/captions menus. */
+.studio-video .vjs-menu-item.vjs-selected {
+  background-color: var(--signal);
+}
+
+/* Visible keyboard focus on controls. */
+.studio-video .vjs-control:focus-visible,
+.studio-video .vjs-big-play-button:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: -2px;
+}

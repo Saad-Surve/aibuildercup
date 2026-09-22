@@ -1,7 +1,7 @@
-"""LLM provider with cassette support.
+"""LLM provider.
 
-In `on`/`auto` mode a cassette hit is replayed. In `auto`, a miss calls the real service once and
-records the response. In `off`, always real.
+Thin wrapper over the Gemini Developer API (AI Studio). Feature code calls this provider,
+never `google.genai` directly.
 """
 
 import asyncio
@@ -10,7 +10,6 @@ import logging
 from typing import Any
 
 from app.config import Settings
-from app.providers.cassette import CassetteStore
 
 logger = logging.getLogger(__name__)
 
@@ -18,18 +17,9 @@ logger = logging.getLogger(__name__)
 TRANSIENT_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 
 
-class CassetteMiss(RuntimeError):
-    def __init__(self, key: str) -> None:
-        super().__init__(f"No cassette for key {key} in MOCK_MODE=on")
-        self.key = key
-
-
 class LlmProvider:
-    provider_name = "llm"
-
-    def __init__(self, settings: Settings, cassettes: CassetteStore) -> None:
+    def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self.cassettes = cassettes
 
     async def complete_json(
         self,
@@ -40,32 +30,8 @@ class LlmProvider:
         user: str,
         schema: dict[str, Any],
     ) -> dict[str, Any]:
-        request = {"system": system, "user": user, "schema": schema}
-        key = CassetteStore.make_key(self.provider_name, model, prompt_version, request)
-
-        if self.settings.mock_mode in ("on", "auto"):
-            hit = self.cassettes.load(self.provider_name, key)
-            if hit is not None:
-                return hit["response"]
-            if self.settings.mock_mode == "on":
-                raise CassetteMiss(key)
-
-        response = await self._real(
-            model=model, system=system, user=user, schema=schema
-        )
-
-        # Only `auto` records. `off` is always-real with no cassette side effects, which also
-        # keeps production from trying to write into a non-existent fixtures directory.
-        if self.settings.mock_mode == "auto":
-            self.cassettes.save(
-                self.provider_name,
-                key,
-                model=model,
-                prompt_version=prompt_version,
-                request_summary=f"{prompt_version} ({model})",
-                response=response,
-            )
-        return response
+        del prompt_version  # Part of the provider interface; unused by the live call.
+        return await self._real(model=model, system=system, user=user, schema=schema)
 
     async def _real(
         self,
@@ -82,7 +48,7 @@ class LlmProvider:
             raise RuntimeError(
                 "GEMINI_API_KEY is not set. The LLM provider only uses the Gemini Developer "
                 "API (AI Studio); create a key at https://aistudio.google.com/apikey and set "
-                "GEMINI_API_KEY, or run with MOCK_MODE=on to use cassettes/templates."
+                "GEMINI_API_KEY."
             )
         logger.info("LLM call via Gemini Developer API (%s)", model)
         client = genai.Client(api_key=self.settings.gemini_api_key)

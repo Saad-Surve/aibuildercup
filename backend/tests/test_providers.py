@@ -3,7 +3,6 @@ from types import SimpleNamespace
 import pytest
 
 from app.config import Settings
-from app.providers.cassette import CassetteStore
 from app.providers.llm import LlmProvider
 
 
@@ -33,53 +32,12 @@ class _FlakyClient:
         return SimpleNamespace(text='{"ok": true}')
 
 
-def test_cassette_key_is_stable() -> None:
-    a = CassetteStore.make_key("llm", "m", "v1", {"user": "hi"})
-    b = CassetteStore.make_key("llm", "m", "v1", {"user": "hi"})
-    assert a == b
-
-
-def test_cassette_key_changes_with_prompt_version() -> None:
-    a = CassetteStore.make_key("llm", "m", "v1", {"user": "hi"})
-    b = CassetteStore.make_key("llm", "m", "v2", {"user": "hi"})
-    assert a != b
-
-
-async def test_llm_replays_from_cassette(tmp_path) -> None:
-    settings = Settings(mock_mode="on", cassette_dir=str(tmp_path))
-    store = CassetteStore(str(tmp_path))
-    provider = LlmProvider(settings, store)
-
-    request = {"system": "s", "user": "u", "schema": {"type": "object"}}
-    key = CassetteStore.make_key("llm", "model-x", "v1", request)
-    store.save(
-        "llm",
-        key,
-        model="model-x",
-        prompt_version="v1",
-        request_summary="test",
-        response={"ok": True},
-    )
-
-    result = await provider.complete_json(
-        model="model-x",
-        prompt_version="v1",
-        system="s",
-        user="u",
-        schema={"type": "object"},
-    )
-    assert result == {"ok": True}
-
-
-async def test_llm_uses_gemini_api_key_when_set(monkeypatch, tmp_path) -> None:
+async def test_llm_uses_gemini_api_key_when_set(monkeypatch) -> None:
     captured: list[dict] = []
     monkeypatch.setattr(
         "google.genai.Client", lambda **kwargs: _FakeClient(captured, **kwargs)
     )
-    settings = Settings(
-        mock_mode="auto", cassette_dir=str(tmp_path), gemini_api_key="test-key"
-    )
-    provider = LlmProvider(settings, CassetteStore(str(tmp_path)))
+    provider = LlmProvider(Settings(gemini_api_key="test-key"))
 
     await provider.complete_json(
         model="m", prompt_version="v1", system="s", user="u", schema={}
@@ -88,15 +46,12 @@ async def test_llm_uses_gemini_api_key_when_set(monkeypatch, tmp_path) -> None:
     assert captured == [{"api_key": "test-key"}]
 
 
-async def test_llm_requires_api_key(monkeypatch, tmp_path) -> None:
+async def test_llm_requires_api_key(monkeypatch) -> None:
     captured: list[dict] = []
     monkeypatch.setattr(
         "google.genai.Client", lambda **kwargs: _FakeClient(captured, **kwargs)
     )
-    settings = Settings(
-        mock_mode="auto", cassette_dir=str(tmp_path), gemini_api_key=None
-    )
-    provider = LlmProvider(settings, CassetteStore(str(tmp_path)))
+    provider = LlmProvider(Settings(gemini_api_key=None))
 
     with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
         await provider.complete_json(
@@ -105,7 +60,7 @@ async def test_llm_requires_api_key(monkeypatch, tmp_path) -> None:
     assert captured == []
 
 
-async def test_llm_retries_transient_error_then_succeeds(monkeypatch, tmp_path) -> None:
+async def test_llm_retries_transient_error_then_succeeds(monkeypatch) -> None:
     from google.genai import errors as genai_errors
 
     client = _FlakyClient(
@@ -115,13 +70,9 @@ async def test_llm_retries_transient_error_then_succeeds(monkeypatch, tmp_path) 
         failures=1,
     )
     monkeypatch.setattr("google.genai.Client", lambda **_: client)
-    settings = Settings(
-        mock_mode="auto",
-        cassette_dir=str(tmp_path),
-        gemini_api_key="k",
-        llm_retry_base_seconds=0,
+    provider = LlmProvider(
+        Settings(gemini_api_key="k", llm_retry_base_seconds=0)
     )
-    provider = LlmProvider(settings, CassetteStore(str(tmp_path)))
 
     result = await provider.complete_json(
         model="m", prompt_version="v1", system="s", user="u", schema={}
@@ -131,42 +82,7 @@ async def test_llm_retries_transient_error_then_succeeds(monkeypatch, tmp_path) 
     assert client.calls == 2
 
 
-async def test_llm_off_does_not_write_cassette(monkeypatch, tmp_path) -> None:
-    captured: list[dict] = []
-    monkeypatch.setattr(
-        "google.genai.Client", lambda **kwargs: _FakeClient(captured, **kwargs)
-    )
-    cassette_dir = tmp_path / "cassettes"
-    settings = Settings(
-        mock_mode="off", cassette_dir=str(cassette_dir), gemini_api_key="k"
-    )
-    provider = LlmProvider(settings, CassetteStore(str(cassette_dir)))
-
-    result = await provider.complete_json(
-        model="m", prompt_version="v1", system="s", user="u", schema={}
-    )
-
-    assert result == {"ok": True}
-    assert not cassette_dir.exists()
-
-
-def test_cassette_save_failure_is_non_fatal(tmp_path) -> None:
-    blocker = tmp_path / "blocker"
-    blocker.write_text("not a directory")
-    store = CassetteStore(str(blocker / "cassettes"))
-
-    # Must not raise even though the cassette path cannot be created.
-    store.save(
-        "llm",
-        "key",
-        model="m",
-        prompt_version="v1",
-        request_summary="s",
-        response={"a": 1},
-    )
-
-
-async def test_llm_does_not_retry_client_error(monkeypatch, tmp_path) -> None:
+async def test_llm_does_not_retry_client_error(monkeypatch) -> None:
     from google.genai import errors as genai_errors
 
     client = _FlakyClient(
@@ -176,13 +92,9 @@ async def test_llm_does_not_retry_client_error(monkeypatch, tmp_path) -> None:
         failures=1,
     )
     monkeypatch.setattr("google.genai.Client", lambda **_: client)
-    settings = Settings(
-        mock_mode="auto",
-        cassette_dir=str(tmp_path),
-        gemini_api_key="k",
-        llm_retry_base_seconds=0,
+    provider = LlmProvider(
+        Settings(gemini_api_key="k", llm_retry_base_seconds=0)
     )
-    provider = LlmProvider(settings, CassetteStore(str(tmp_path)))
 
     with pytest.raises(genai_errors.ClientError):
         await provider.complete_json(

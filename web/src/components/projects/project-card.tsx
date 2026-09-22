@@ -16,8 +16,8 @@ import type { Project } from "@/lib/types";
 /*
  * Card thumbnail: the poster frame captured from the project's uploaded
  * source video (cached in localStorage at upload/play time). Falls back to
- * the project-level cache when the API no longer lists the asset (e.g. a
- * mock-mode reload), then to the film placeholder.
+ * the project-level cache when the API does not list the asset, then to the
+ * film placeholder.
  */
 function ProjectThumb({ projectId }: { projectId: string }) {
   const assetsQuery = useQuery({

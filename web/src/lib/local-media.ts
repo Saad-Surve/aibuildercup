@@ -3,9 +3,9 @@
  *
  * The browser keeps a copy of every video it uploads (IndexedDB) so playback
  * and thumbnails work instantly — and survive reloads — even when the API has
- * no record of the asset (mock mode forgets everything on reload; older
- * uploads predate the cache entirely). Posters are captured from a video frame
- * via canvas and cached as data URLs in localStorage.
+ * no record of the asset (e.g. an older upload that predates the cache).
+ * Posters are captured from a video frame via canvas and cached as data URLs
+ * in localStorage.
  *
  * Blob/poster lookups are keyed by assetId first, then fall back to a
  * project-level key, so cards and the player recover even when the asset list

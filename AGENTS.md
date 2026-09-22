@@ -41,10 +41,10 @@ note, the next agent starts blind.
 1. **Contracts first.** `contracts/openapi.yaml` is the frozen API contract. If you change an
    endpoint, update it. The web client is generated from it. Do not let web and backend drift.
 2. **Never import a Google SDK directly in feature code.** Every external call goes through a
-   provider in `backend/app/providers/`. Real + cassette implementations. This is what makes
-   development free and offline.
-3. **Respect `MOCK_MODE`.** `off` = real, `auto` = replay or record, `on` = cassette only.
-   Development must work with no network and no GCP credentials.
+   provider in `backend/app/providers/`. Feature code never touches a Google SDK directly.
+3. **Use real services.** Development calls the live GCP APIs (Gemini Developer API,
+   Speech-to-Text, Storage, Firestore). Test uploads with the videos in `fixtures/media/`.
+   Keep paid calls (Veo, Imagen, Gemini Pro) capped.
 4. **Region is `us-central1`.** Everywhere. Do not use `us-east1` (Speech-to-Text is not GA there).
 5. **Tooling:** `web/` uses **Bun**. `backend/` uses **uv**. `infra/` uses **Terraform**.
    Do not introduce npm, pip, poetry, or yarn.
@@ -108,8 +108,8 @@ terraform apply
 - Full resource inventory: `infra/RESOURCES.md`.
 - Firebase web config is in `infra/RESOURCES.md` (public, safe to expose).
 - **Cost safety:** there is a budget (~$100) and a kill switch Cloud Function that detaches billing
-  when spend hits it. Development runs on cassettes so it should never come close. Do not add
-  services that call paid APIs on a loop without a cap.
+  when spend hits it. Development uses free-tier APIs (Gemini flash, Chirp STT) so it should
+  never come close. Do not add services that call paid APIs on a loop without a cap.
 - The most expensive calls are Veo (~$0.15–0.40/sec), Imagen, and Gemini Pro. Keep them on
   cassettes by default.
 
@@ -138,15 +138,12 @@ When someone asks you to build something, do this:
 
 ```python
 # backend/app/providers/base.py defines the interface.
-# backend/app/providers/llm.py is the cassette-aware implementation.
+# backend/app/providers/llm.py wraps the Gemini Developer API.
 # Feature code calls the provider, never google.genai directly.
 result = await providers.llm.complete_json(
     model=..., prompt_version=..., system=..., user=..., schema=...
 )
 ```
-
-Cassette keys are `sha256(provider + model + promptVersion + canonicalRequest)`, so changing a
-prompt intentionally misses the cache.
 
 ## 7. Workstreams
 

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import type videojs from "video.js";
+import "video.js/dist/video-js.css";
+import "./video-player-skin.css";
 import { Alert02Icon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
@@ -11,9 +13,13 @@ import { getPlaybackUrl } from "@/lib/projects";
 import type { Asset } from "@/lib/types";
 
 /*
- * Plays an uploaded source video. Prefers the locally cached upload
- * (IndexedDB, written by the dropzone at upload time) so playback is instant
- * and works offline; otherwise streams from the signed playback URL.
+ * Source video player (video.js default theme + signal accents).
+ *
+ * Prefers the locally cached upload (IndexedDB, written by the dropzone at
+ * upload time) so playback is instant and works offline; otherwise streams
+ * from the signed playback URL. Transcript segments seek the video through a
+ * `creator-studio:seek` window event. Caption cues arrive with the
+ * transcription pipeline (backend stores the VTT; no caption URL yet).
  */
 export function SourceVideoPlayer({
   projectId,
@@ -22,7 +28,6 @@ export function SourceVideoPlayer({
   projectId: string;
   asset: Asset;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [media, setMedia] = useState<{ assetId: string; src: string } | null>(
     null,
   );
@@ -88,26 +93,101 @@ export function SourceVideoPlayer({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl bg-black shadow-sm ring-1 ring-foreground/10">
+    <div className="studio-video overflow-hidden rounded-xl bg-black shadow-sm ring-1 ring-foreground/10">
       {src ? (
-        <motion.video
-          ref={videoRef}
-          controls
-          playsInline
-          preload="metadata"
+        <StudioPlayer
+          key={asset.assetId}
+          projectId={projectId}
           src={src}
-          poster={poster ?? undefined}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="aspect-video max-h-[60vh] w-full"
-        >
-          {/* Caption cues arrive with the transcription pipeline. */}
-          <track kind="captions" />
-        </motion.video>
+          mimeType={asset.mimeType}
+          poster={poster}
+        />
       ) : (
         <Skeleton className="aspect-video w-full rounded-none" />
       )}
+    </div>
+  );
+}
+
+type Player = ReturnType<typeof videojs>;
+
+function StudioPlayer({
+  projectId,
+  src,
+  mimeType,
+  poster,
+}: {
+  projectId: string;
+  src: string;
+  mimeType: string;
+  poster: string | null;
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const playerRef = useRef<Player | null>(null);
+
+  // video.js touches the DOM, so it loads lazily inside the effect: nothing
+  // player-related evaluates during SSR/prerender.
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const { default: videojs } = await import("video.js");
+      if (cancelled || !videoRef.current) return;
+      playerRef.current = videojs(videoRef.current, {
+        controls: true,
+        autoplay: false,
+        preload: "metadata",
+        fluid: true,
+        playsinline: true,
+        responsive: true,
+        poster: poster ?? undefined,
+        sources: [{ src, type: mimeType }],
+        playbackRates: [0.5, 1, 1.25, 1.5, 2],
+        controlBar: {
+          volumePanel: { inline: true },
+        },
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+      playerRef.current?.dispose();
+      playerRef.current = null;
+    };
+  }, [src, mimeType, poster]);
+
+  // The frame poster is captured after the player mounts; push it in when it lands.
+  useEffect(() => {
+    if (poster) playerRef.current?.poster(poster);
+  }, [poster]);
+
+  // Transcript segments seek the video through a window event so the
+  // transcript panel stays decoupled from this player instance.
+  useEffect(() => {
+    const onSeek = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{ projectId: string; seconds: number }>
+      ).detail;
+      if (detail.projectId !== projectId) return;
+      const player = playerRef.current;
+      if (player && Number.isFinite(detail.seconds)) {
+        player.currentTime(Math.max(0, detail.seconds));
+      }
+    };
+    window.addEventListener("creator-studio:seek", onSeek);
+    return () => window.removeEventListener("creator-studio:seek", onSeek);
+  }, [projectId]);
+
+  return (
+    <div data-vjs-player>
+      <video
+        ref={videoRef}
+        className="video-js vjs-big-play-centered"
+        playsInline
+      >
+        {/* Caption cues arrive with the transcription pipeline. */}
+        <track kind="captions" />
+      </video>
     </div>
   );
 }

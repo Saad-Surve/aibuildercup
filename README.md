@@ -50,11 +50,13 @@ terraform plan
 Start with `docs/technical-design/README.md`. The three-engineer split is in
 `docs/technical-design/workstreams.md`.
 
-## Development without spending money
+## Development
 
-Every external call goes through a provider with a cassette implementation. `MOCK_MODE=auto`
-(default) replays recorded responses and only calls the real service on a miss. See
-`docs/technical-design/mock-and-seed.md`.
+Development calls the real services: put a `GEMINI_API_KEY` in `backend/.env` (free key at
+https://aistudio.google.com/apikey) and test uploads with the sample videos in
+`fixtures/media/`. External calls go through providers in `backend/app/providers/`, never
+through a Google SDK in feature code. Keep paid calls (Veo, Imagen, Gemini Pro) capped —
+there is a ~$100 budget with a billing kill switch (see `infra/budget.tf`).
 
 ## GCP project
 

@@ -7,6 +7,7 @@ import type {
   PlaybackUrl,
   Project,
   ProjectList,
+  Transcript,
   UploadSession,
 } from "@/lib/types";
 
@@ -94,6 +95,17 @@ export function completeUpload(
 
 export function getJob(jobId: string): Promise<Job> {
   return apiFetch<Job>(`/jobs/${jobId}`);
+}
+
+export function getTranscript(projectId: string): Promise<Transcript> {
+  return apiFetch<Transcript>(`/projects/${projectId}/transcript`);
+}
+
+export function formatTimestamp(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 export function getPlaybackUrl(

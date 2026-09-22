@@ -135,3 +135,18 @@ export interface AcceptedJob {
   jobId: string;
   status: string;
 }
+
+export interface TranscriptSegment {
+  segmentId: string;
+  index: number;
+  startMs: number;
+  endMs: number;
+  text: string;
+}
+
+export interface Transcript {
+  transcriptId: string;
+  language: string;
+  durationMs: number;
+  segments: TranscriptSegment[];
+}
