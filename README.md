@@ -11,7 +11,7 @@ derivative content. Hackathon project.
 | `backend/` | Engineer B | FastAPI + Google ADK API and workers (uv) |
 | `infra/` | Engineer C | Terraform for all GCP resources |
 | `contracts/` | shared | Frozen API, event, and Firestore contracts |
-| `fixtures/` | shared | Cassettes and seed data for offline development |
+| `fixtures/` | shared | Sample media and seed data |
 | `corpus/` | Engineer C | Localization glossaries and trap list |
 | `docs/` | shared | Technical design |
 

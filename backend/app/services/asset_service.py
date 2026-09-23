@@ -16,7 +16,7 @@ from app.schemas.assets import (
     AssetStatus,
     AssetType,
     CreateUploadSession,
-    PlaybackUrl,
+    DownloadUrl,
     UploadSession,
 )
 from app.schemas.jobs import Job, JobType
@@ -151,7 +151,19 @@ class AssetService:
                 code="UPLOAD_NOT_FOUND",
                 details={"assetId": asset_id},
             )
+        return self.queue_transcription(
+            owner_uid=owner_uid, project_id=project_id, asset_id=asset_id
+        )
 
+    def queue_transcription(self, *, owner_uid: str, project_id: str, asset_id: str) -> Job:
+        """Idempotently mark the asset uploaded, the project processing, and queue transcribe.
+
+        Shared by `POST /assets/{id}/complete` (UX) and the GCS-finalized Pub/Sub handler
+        (trigger of record), so both paths converge on the same job record.
+        """
+        self._require_owned_asset(
+            owner_uid=owner_uid, project_id=project_id, asset_id=asset_id
+        )
         now = datetime.now(UTC)
         self.client.update_document(
             asset_path(owner_uid, project_id, asset_id),
@@ -160,7 +172,6 @@ class AssetService:
         self.projects.mark_processing(
             owner_uid=owner_uid, project_id=project_id, source_asset_id=asset_id
         )
-
         return self.jobs.create(
             owner_uid=owner_uid,
             project_id=project_id,
@@ -169,14 +180,14 @@ class AssetService:
             input={"assetId": asset_id},
         )
 
-    def playback_url(self, *, owner_uid: str, project_id: str, asset_id: str) -> PlaybackUrl:
-        """Short-lived signed read URL so the browser can play the source video directly."""
+    def download_url(self, *, owner_uid: str, project_id: str, asset_id: str) -> DownloadUrl:
+        """Short-lived signed read URL so the browser can stream the source video directly."""
         data = self._require_owned_asset(
             owner_uid=owner_uid, project_id=project_id, asset_id=asset_id
         )
         ttl = self.settings.upload_url_ttl_seconds
         now = datetime.now(UTC)
-        return PlaybackUrl(
+        return DownloadUrl(
             url=self.storage.signed_download_url(
                 data["storagePath"], expires_seconds=ttl
             ),

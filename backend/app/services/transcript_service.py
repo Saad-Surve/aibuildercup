@@ -17,6 +17,8 @@ from app.services.firestore_service import (
     project_path,
     transcript_object_path,
     transcript_path,
+    transcript_segment_path,
+    transcript_srt_object_path,
     transcript_vtt_object_path,
     transcripts_collection_path,
 )
@@ -168,6 +170,28 @@ class TranscriptService:
         segments = [{"segmentId": seg_id, **doc} for seg_id, doc in rows]
         return _to_transcript(transcript_id, data, segments)
 
+    def get_segment(
+        self, *, owner_uid: str, project_id: str, segment_id: str
+    ) -> TranscriptSegment:
+        project = self.client.get_document(project_path(owner_uid, project_id))
+        if project is None or not is_owner(project, owner_uid):
+            raise NotFoundError("Project not found", details={"projectId": project_id})
+        transcript_id = project.get("activeTranscriptId")
+        if not transcript_id:
+            raise NotFoundError("Transcript not ready", details={"projectId": project_id})
+        data = self.client.get_document(
+            transcript_segment_path(owner_uid, project_id, transcript_id, segment_id)
+        )
+        if data is None or not is_owner(data, owner_uid):
+            raise NotFoundError("Segment not found", details={"segmentId": segment_id})
+        return TranscriptSegment(
+            segmentId=segment_id,
+            index=int(data.get("index", 0)),
+            startMs=int(data.get("startMs", 0)),
+            endMs=int(data.get("endMs", 0)),
+            text=str(data.get("text", "")),
+        )
+
     def save(
         self,
         *,
@@ -190,6 +214,7 @@ class TranscriptService:
 
         storage_path = transcript_object_path(owner_uid, project_id, version)
         vtt_path = transcript_vtt_object_path(owner_uid, project_id, language)
+        srt_path = transcript_srt_object_path(owner_uid, project_id, language)
         canonical = {
             "version": version,
             "language": language,
@@ -208,6 +233,9 @@ class TranscriptService:
             storage_path, json.dumps(canonical, indent=2), content_type="application/json"
         )
         self.storage.upload_text(vtt_path, build_vtt(segments), content_type="text/vtt")
+        self.storage.upload_text(
+            srt_path, build_srt(segments), content_type="application/x-subrip"
+        )
 
         self.client.set_document(
             transcript_path(owner_uid, project_id, transcript_id),
@@ -220,6 +248,7 @@ class TranscriptService:
                 "language": language,
                 "storagePath": storage_path,
                 "vttStoragePath": vtt_path,
+                "srtStoragePath": srt_path,
                 "durationMs": duration_ms,
                 "wordCount": len(words),
                 "segmentCount": len(segments),

@@ -30,7 +30,6 @@ users/{uid}
 
 glossaries/{glossaryId}       platform
 demoProfiles/{demoProfileId}  platform
-cassetteIndex/{cassetteKey}   platform, dev only
 ```
 
 ## Rules
@@ -38,5 +37,5 @@ cassetteIndex/{cassetteKey}   platform, dev only
 - Every user-owned document carries `ownerUid`.
 - Store GCS object paths, never signed URLs.
 - Timestamps are Firestore Timestamps in UTC.
-- Only the backend reads `connections`, `glossaries`, `demoProfiles`, `cassetteIndex`.
+- Only the backend reads `connections`, `glossaries`, `demoProfiles`.
 - Ownership is checked in the API, not only in Firestore rules.

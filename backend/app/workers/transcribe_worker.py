@@ -2,9 +2,10 @@
 
 Pipeline (per `docs/technical-design/backend-plan.md` section 7):
 
-video uploaded -> job queued -> STT V2 batch recognition (`long`, GCS input)
--> normalise words -> segment -> canonical JSON + VTT to GCS
--> transcript + segments to Firestore -> project ready -> job succeeded.
+video.uploaded -> transcribe job queued -> STT V2 batch recognition (`chirp_3`, GCS input)
+-> normalize words -> segment -> canonical JSON + VTT + SRT to GCS
+-> transcript + segments to Firestore -> project ready -> job succeeded
+-> publish transcript.ready.
 
 Idempotent: a job that already reached a terminal state (`succeeded`/`failed`/`cancelled`)
 is left untouched so retried Pub/Sub deliveries converge.
@@ -17,6 +18,7 @@ from fastapi import BackgroundTasks
 
 from app.config import Settings, get_settings
 from app.errors import NotFoundError
+from app.events import build_event, topic_for_event
 from app.providers import get_providers
 from app.providers.stt import SttProvider
 from app.schemas.jobs import JobStatus
@@ -28,6 +30,7 @@ from app.services.firestore_service import (
 )
 from app.services.job_service import JobService
 from app.services.project_service import ProjectService
+from app.services.pubsub_service import PubSubClient, get_pubsub_client
 from app.services.storage_service import get_storage_client
 from app.services.transcript_service import TranscriptService, build_segments, normalize_words
 
@@ -50,6 +53,7 @@ async def run_transcribe(
     transcripts: TranscriptService,
     stt: SttProvider,
     settings: Settings,
+    pubsub: PubSubClient | None = None,
 ) -> str | None:
     """Run one transcription job. Returns the transcript id, or None if skipped/failed."""
     try:
@@ -161,6 +165,16 @@ async def run_transcribe(
         output={"artifactIds": [], "storagePaths": [], "transcriptId": transcript_id},
         message="Completed" if words else "Completed — no speech detected",
     )
+    _publish_transcript_ready(
+        pubsub,
+        owner_uid=owner_uid,
+        project_id=project_id,
+        job_id=job_id,
+        transcript_id=transcript_id,
+        language=language,
+        duration_ms=duration_ms,
+        word_count=len(words),
+    )
     logger.info(
         "transcribe job %s done: %d words in %d segments",
         job_id,
@@ -168,6 +182,38 @@ async def run_transcribe(
         len(segments),
     )
     return transcript_id
+
+
+def _publish_transcript_ready(
+    pubsub: PubSubClient | None,
+    *,
+    owner_uid: str,
+    project_id: str,
+    job_id: str,
+    transcript_id: str,
+    language: str,
+    duration_ms: int,
+    word_count: int,
+) -> None:
+    """Announce the next pipeline step. Best-effort: the transcript is already persisted."""
+    if pubsub is None:
+        return
+    event = build_event(
+        event_type="transcript.ready",
+        owner_uid=owner_uid,
+        project_id=project_id,
+        job_id=job_id,
+        payload={
+            "transcriptId": transcript_id,
+            "language": language,
+            "durationMs": duration_ms,
+            "wordCount": word_count,
+        },
+    )
+    try:
+        pubsub.publish(topic=topic_for_event("transcript.ready"), event=event)
+    except Exception:  # noqa: BLE001 - a publish failure must not fail a finished transcript
+        logger.exception("transcribe job %s: failed to publish transcript.ready", job_id)
 
 
 # STT wants a BCP-47 tag. The app stores bare codes ("en", "hi", ...), so map the ones the
@@ -213,6 +259,7 @@ def build_worker_services(
     transcripts: TranscriptService,
     stt: SttProvider,
     settings: Settings,
+    pubsub: PubSubClient | None = None,
 ) -> dict[str, Any]:
     """Bundle worker deps for call sites (API-triggered inline run, Pub/Sub handler)."""
     return {
@@ -223,32 +270,18 @@ def build_worker_services(
         "transcripts": transcripts,
         "stt": stt,
         "settings": settings,
+        "pubsub": pubsub,
     }
 
 
-def transcribe_after_response(
-    background_tasks: BackgroundTasks,
-    *,
-    owner_uid: str,
-    project_id: str,
-    job_id: str,
-) -> None:
-    """Run the transcription worker after the HTTP response is sent.
-
-    This is the interim trigger until the Pub/Sub path lands: `complete_upload` queues the
-    job for the response and schedules the actual work here. Builds live dependencies, so
-    call sites that need fakes (tests) must inject their own scheduler instead.
-    """
+def live_worker_dependencies() -> dict[str, Any]:
+    """Build the real (non-test) dependency bundle once, for any live call site."""
     firestore = get_firestore_client()
     settings = get_settings()
     storage = get_storage_client()
     jobs = JobService(firestore)
     projects = ProjectService(firestore)
-    background_tasks.add_task(
-        run_transcribe,
-        owner_uid=owner_uid,
-        project_id=project_id,
-        job_id=job_id,
+    return build_worker_services(
         firestore=firestore,
         jobs=jobs,
         projects=projects,
@@ -262,4 +295,28 @@ def transcribe_after_response(
         transcripts=TranscriptService(firestore, storage=storage),
         stt=get_providers().stt,
         settings=settings,
+        pubsub=get_pubsub_client(),
+    )
+
+
+def transcribe_after_response(
+    background_tasks: BackgroundTasks,
+    *,
+    owner_uid: str,
+    project_id: str,
+    job_id: str,
+) -> None:
+    """Run the transcription worker after the HTTP response is sent.
+
+    `POST /assets/{id}/complete` is authoritative for the user-visible state and schedules the
+    work here for a fast response; the GCS `object finalized` -> Pub/Sub path is the trigger of
+    record and converges on the same idempotent job. Builds live dependencies, so call sites
+    that need fakes (tests) must inject their own scheduler instead.
+    """
+    background_tasks.add_task(
+        run_transcribe,
+        owner_uid=owner_uid,
+        project_id=project_id,
+        job_id=job_id,
+        **live_worker_dependencies(),
     )

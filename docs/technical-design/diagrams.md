@@ -13,7 +13,7 @@ flowchart LR
     GCS[(Cloud Storage)]
     PubSub{{Pub/Sub}}
     Workers[Cloud Run Workers and Jobs]
-    Gemini[Vertex AI Gemini / ADK]
+    Gemini[Gemini Developer API / ADK]
     STT[Speech-to-Text V2]
     BQ[(BigQuery)]
     Social[YouTube / Meta APIs]
@@ -352,22 +352,18 @@ flowchart TD
     H --> I[Write deletion audit result]
 ~~~
 
-## 16. Provider layer, cassettes, and mock mode
+## 16. Provider layer
 
 ~~~mermaid
 flowchart TD
     A[Worker or agent] --> B[Provider interface]
-    B --> C{MOCK_MODE}
-    C -->|off| D[Real Google service]
-    C -->|on| E[Cassette lookup]
-    C -->|auto| F{Cassette hit?}
-    F -->|yes| E
-    F -->|no| D
-    D --> G[Record response]
-    G --> H[fixtures/cassettes]
-    E --> I[Return response]
-    H --> I
+    B --> C[Real GCP service]
+    C --> D[Response]
+    D --> E[Return to caller]
 ~~~
+
+Feature code never imports a Google SDK directly; every external call goes through a provider in
+`app/providers/`. The earlier cassette/`MOCK_MODE` layer was removed (see backend-plan section 16).
 
 ## 17. Seed and demo scenarios
 
@@ -377,7 +373,7 @@ flowchart LR
     A --> C[GCS demo videos]
     A --> D[Firestore projects, transcripts, analyses, artifacts]
     A --> E[BigQuery posts, metrics, comments, sentiment]
-    A --> F[Fixtures and cassettes]
+    A --> F[Fixtures and seed data]
     B --> G[Frontend renders full workspace]
     C --> G
     D --> G

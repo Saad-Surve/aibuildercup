@@ -63,7 +63,7 @@ async def delete_project(
     user: UserDep,
     service: ServiceDep,
 ) -> Response:
-    service.soft_delete(owner_uid=user.uid, project_id=projectId)
+    service.delete(owner_uid=user.uid, project_id=projectId)
     return Response(
         status_code=status.HTTP_202_ACCEPTED,
         content=b'{"status": "accepted"}',

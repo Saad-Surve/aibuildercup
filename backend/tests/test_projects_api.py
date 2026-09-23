@@ -6,12 +6,12 @@ from fastapi.testclient import TestClient
 from app.dependencies import AuthenticatedUser, current_user, get_project_service
 from app.main import app
 from app.services.project_service import ProjectService
-from tests.fakes import FakeFirestoreClient
+from tests.fakes import FakeFirestoreClient, FakeStorageClient
 
 
 @pytest.fixture
 def client() -> Iterator[TestClient]:
-    service = ProjectService(FakeFirestoreClient())
+    service = ProjectService(FakeFirestoreClient(), storage=FakeStorageClient())
     app.dependency_overrides[current_user] = lambda: AuthenticatedUser(
         uid="uid-1", email="a@b.c"
     )

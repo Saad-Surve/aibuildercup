@@ -1,113 +1,70 @@
-# Creator Helper Studio — Mock, Cassette, and Seed Design
+# Creator Helper Studio — Fixtures, Development, and Seed Design
 
-Goal: develop the entire product without burning AI credits or needing real platform accounts,
-while keeping every integration real enough to flip live for the demo.
+Goal: develop and demo the product without burning paid AI credits, while keeping every
+integration real. Development calls the **live free-tier GCP services** (Gemini flash,
+Speech-to-Text) against the sample videos in `fixtures/media/`.
 
 ## 1. Why
 
-- You do not have social accounts with enough real content to make the connectors interesting.
-- Repeated Gemini / Speech / Veo calls during development are expensive and slow.
-- A demo must always render a full workspace even if a live API is down.
+- Paid calls (Veo, Imagen, Gemini Pro) are expensive and must stay behind the cost cap.
+- A demo must always render a full workspace even if a live dependency is slow.
 
-So: build the real integrations, but run development on deterministic fixtures, and record real
-responses once so they can be replayed.
+## 2. Provider layer (no mock mode)
 
-## 2. Provider abstraction
+Every external dependency sits behind an interface in `backend/app/providers/` with a real
+implementation. Feature code never imports a Google SDK directly.
 
-Every external dependency sits behind an interface with a real implementation and a fixture
-implementation. Selection is by environment variable.
+The earlier cassette / `MOCK_MODE` layer (`off`/`auto`/`on`, `fixtures/cassettes/`) was
+**removed**. There are no mock or cassette branches in the code; see
+[backend-plan.md](./backend-plan.md) section 16. Providers today: `llm.py`, `stt.py`; the rest are
+added as their features land.
+
+## 3. Media fixtures
+
+`fixtures/media/` holds committed sample videos used to exercise the upload -> transcription
+pipeline end to end without hunting for a file:
 
 ```text
-providers/
-  llm.py         Gemini / ADK       RealLlm        CassetteLlm
-  stt.py         Speech-to-Text     RealStt        CassetteStt
-  translate.py   Cloud Translation  RealTranslate  CassetteTranslate
-  tts.py         Text-to-Speech     RealTts        CassetteTts
-  videogen.py    Veo                RealVeo        CassetteVeo
-  imagegen.py    Imagen             RealImage      CassetteImage
-  social.py      YouTube / Meta     RealSocial     FixtureSocial
+career_advice.mp4   explainer.mp4        hindi_education.mp4
+cooking_recipe.mp4  home_workout.mp4     personal_finance.mp4
+tech_review.mp4     travel_vlog.mp4
 ```
 
-A reviewer, a media job, or the chat agent never imports a Google SDK directly. It calls the
-provider. That is what makes the mock layer possible without littering conditionals.
+They are MP4/AAC 44.1 kHz stereo, which is why the STT provider uses an explicit AAC decoding
+config (STT V2 cannot auto-detect AAC in a video container).
 
-## 3. Modes
+## 4. Seed script (planned, not built)
 
-| Mode | Behaviour |
-|---|---|
-| `MOCK_MODE=off` | Always call the real service. Used for the live demo moment. |
-| `MOCK_MODE=auto` | Look up a cassette by request hash. On hit, replay. On miss, call real once and record. Default for development. |
-| `MOCK_MODE=on` | Always replay from cassettes. Never touch the network. Used for offline work and CI. |
-
-`FixtureSocial` is always fixture-backed because real platform access is not guaranteed
-(see the connector risk in `infra-plan.md`). The real connector exists and is exercised manually
-once against a test channel.
-
-## 4. Cassette format
-
-A cassette is one recorded provider response plus the key that identifies the request.
-
-```json
-{
-  "key": "sha256(provider+model+promptVersion+canonicalRequest)",
-  "provider": "llm",
-  "model": "reviewer-flash",
-  "promptVersion": "clarity-v1",
-  "createdAt": "timestamp",
-  "requestSummary": "clarity review, 85 segments, en-IN",
-  "response": { }
-}
-```
-
-Rules:
-
-- The key is a hash of the canonicalised request, so prompt changes intentionally miss the cache.
-- Cassettes live in `fixtures/cassettes/{provider}/{key}.json` and are committed.
-- Never put secrets, user tokens, or private video content in a cassette.
-- Every cassette response is human reviewed before commit.
-
-## 5. Seed script
-
-`backend/scripts/seed.py --demo` creates a reproducible demo world:
+`backend/scripts/seed.py --demo` will create a reproducible demo world:
 
 ```text
 2-3 demo users (Firebase Auth) with completed onboarding
 3 projects, each with one uploaded demo video in GCS
-transcripts with word timestamps + VTT
-analysis runs with findings for all 13 dimensions + heatmap bins
+transcripts with word timestamps + VTT/SRT
+analysis runs with findings + heatmap bins
 clip candidates + one rendered short
 one localized (Hindi) captioned + dubbed version
 a couple of chat threads with messages
 BigQuery rows for posts, metrics, comments, sentiment, audience aggregates
-platform connections in a "connected" state pointing at fixture data
 ```
 
-The seed is idempotent and can be re-run. It reads the same JSON shapes the API returns, so the
-frontend cannot tell the difference between seeded and live data.
+It will be idempotent and read the same JSON shapes the API returns, so the frontend cannot tell
+the difference between seeded and live data. `fixtures/seed/` is reserved for that bundle.
 
-## 6. Demo scenarios
+## 5. Demo scenarios (planned, not built)
 
-`GET /demo/scenarios` lists named scenarios pinned for the stage:
+`GET /demo/scenarios` will list named scenarios pinned for the stage (good video, controversial,
+regional, empty/mid-processing). The project creation dialog's `projects.isDemo` flag will bind a
+project to a scenario.
 
-```text
-good_video        a clean video with a few medium findings
-controversial     a video with truth + legal findings, high severity
-regional          a video that trips the cultural/localization reviewers
-empty             a fresh project mid-processing to show live states
-```
+## 6. Frontend
 
-The project creation dialog offers a "demo project" flag (`projects.isDemo = true`) that binds a
-project to a scenario, so a demo is one click and always lands on interesting content.
+- Types and the API client are generated/derived from `contracts/openapi.yaml`.
+- There is no MSW mock layer; the web app calls the real API.
 
-## 7. Frontend fixtures
+## 7. Acceptance
 
-- A generates TypeScript types and the API client from `contracts/openapi.yaml`.
-- MSW handlers are generated from the same fixture JSON the seed script uses.
-- `NEXT_PUBLIC_MOCK_MODE=on` runs the UI with zero backend, which lets A work fully parallel.
-
-## 8. Acceptance
-
-- `MOCK_MODE=on` runs the entire product with no network and no GCP credentials.
-- `MOCK_MODE=auto` records a cassette the first time a real call happens.
+- Development runs end to end against real free-tier services with `fixtures/media/`.
+- Paid calls (Veo, Imagen, Gemini Pro) never run outside the cost cap.
 - The seed script reproduces an identical demo workspace on a clean project.
-- No secret, token, or private media content appears in any fixture.
+- No secret or token appears in any fixture.

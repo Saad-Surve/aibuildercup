@@ -509,5 +509,5 @@ will be exhausted in a single run.
   analysis coordinator.
 - Reject an analysis run whose projected cost exceeds the project cap.
 - Veo is the most expensive feature by far (roughly $0.15 to $0.40 per second). Keep it on
-  cassettes by default and enable it live only for the demo.
+  the cost cap and enable it live only for the demo.
 - The demo runs against `seed.py --demo` data, never a real creator's private content.

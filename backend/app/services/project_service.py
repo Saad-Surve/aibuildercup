@@ -21,9 +21,11 @@ from app.schemas.projects import (
 )
 from app.services.firestore_service import (
     FirestoreClient,
+    project_object_prefix,
     project_path,
     projects_collection_path,
 )
+from app.services.storage_service import StorageClient
 
 
 def is_owner(document: dict[str, Any], owner_uid: str) -> bool:
@@ -66,8 +68,11 @@ def _to_project(project_id: str, data: dict[str, Any]) -> Project:
 
 
 class ProjectService:
-    def __init__(self, client: FirestoreClient) -> None:
+    def __init__(
+        self, client: FirestoreClient, *, storage: StorageClient | None = None
+    ) -> None:
         self.client = client
+        self.storage = storage
 
     def create(self, *, owner_uid: str, payload: CreateProject) -> Project:
         project_id = uuid4().hex
@@ -182,17 +187,21 @@ class ProjectService:
             },
         )
 
-    def soft_delete(self, *, owner_uid: str, project_id: str) -> None:
-        self._require_owned(owner_uid=owner_uid, project_id=project_id)
-        now = datetime.now(UTC)
-        self.client.update_document(
-            project_path(owner_uid, project_id),
-            {
-                "status": ProjectStatus.archived.value,
-                "archivedAt": now,
-                "updatedAt": now,
-            },
-        )
+    def delete(self, *, owner_uid: str, project_id: str) -> None:
+        """Permanently delete a project and everything it owns.
+
+        Removes every Cloud Storage object under the project prefix (source video, canonical
+        transcript JSON, VTT/SRT captions, and any future derived media) and the whole Firestore
+        subtree (assets, jobs, transcripts + segments). Already-archived projects are still
+        deletable so legacy soft-deleted documents can be cleaned up.
+        """
+        data = self.client.get_document(project_path(owner_uid, project_id))
+        if data is None or not is_owner(data, owner_uid):
+            raise NotFoundError("Project not found", details={"projectId": project_id})
+        if self.storage is None:
+            raise RuntimeError("ProjectService.delete requires a storage client.")
+        self.storage.delete_prefix(project_object_prefix(owner_uid, project_id))
+        self.client.delete_document_tree(project_path(owner_uid, project_id))
 
     def _require_owned(self, *, owner_uid: str, project_id: str) -> dict[str, Any]:
         data = self.client.get_document(project_path(owner_uid, project_id))

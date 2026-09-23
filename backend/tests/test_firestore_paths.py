@@ -6,9 +6,12 @@ from app.services.firestore_service import (
     assets_collection_path,
     job_path,
     jobs_collection_path,
+    parse_source_object_path,
     project_path,
     projects_collection_path,
     source_object_path,
+    transcript_srt_object_path,
+    transcript_vtt_object_path,
     user_path,
 )
 
@@ -48,6 +51,34 @@ def test_source_object_path() -> None:
 def test_source_object_path_rejects_bad_extension(bad_ext: str) -> None:
     with pytest.raises(InvalidPathSegment):
         source_object_path("uid-1", "p1", "a1", bad_ext)
+
+
+def test_caption_object_paths() -> None:
+    assert (
+        transcript_vtt_object_path("uid-1", "p1", "en-US")
+        == "users/uid-1/projects/p1/captions/en_US.vtt"
+    )
+    assert (
+        transcript_srt_object_path("uid-1", "p1", "hi")
+        == "users/uid-1/projects/p1/captions/hi.srt"
+    )
+
+
+def test_parse_source_object_path() -> None:
+    assert parse_source_object_path("users/u1/projects/p1/source/a1.mp4") == (
+        "u1",
+        "p1",
+        "a1",
+    )
+    assert parse_source_object_path("users/u1/projects/p1/source/a1.mov") == (
+        "u1",
+        "p1",
+        "a1",
+    )
+    # Anything that is not a source object is ignored.
+    assert parse_source_object_path("users/u1/projects/p1/transcripts/v1.json") is None
+    assert parse_source_object_path("users/u1/projects/p1/captions/en.vtt") is None
+    assert parse_source_object_path("garbage") is None
 
 
 @pytest.mark.parametrize("bad", ["a/b", "", "a b", "../x", "a.b"])

@@ -4,7 +4,7 @@ import type {
   AssetList,
   CreateProjectInput,
   Job,
-  PlaybackUrl,
+  DownloadUrl,
   Project,
   ProjectList,
   Transcript,
@@ -108,12 +108,12 @@ export function formatTimestamp(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-export function getPlaybackUrl(
+export function getDownloadUrl(
   projectId: string,
   assetId: string,
-): Promise<PlaybackUrl> {
-  return apiFetch<PlaybackUrl>(
-    `/projects/${projectId}/assets/${assetId}/playback-url`,
+): Promise<DownloadUrl> {
+  return apiFetch<DownloadUrl>(
+    `/projects/${projectId}/assets/${assetId}/download-url`,
   );
 }
 

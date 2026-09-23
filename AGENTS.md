@@ -63,7 +63,7 @@ note, the next agent starts blind.
 | `backend/` | FastAPI API + workers + agents | uv |
 | `infra/` | Terraform for all GCP resources | Terraform |
 | `contracts/` | OpenAPI, event, Firestore contracts | — |
-| `fixtures/` | Cassettes + seed data | — |
+| `fixtures/` | Sample media + seed data | — |
 | `corpus/` | Localization glossaries + trap list | — |
 | `docs/technical-design/` | The design | — |
 | `docs/current-progress/` | Timestamped progress notes | — |
@@ -112,8 +112,8 @@ terraform apply
 - **Cost safety:** there is a budget (~$100) and a kill switch Cloud Function that detaches billing
   when spend hits it. Development uses free-tier APIs (Gemini flash, Speech-to-Text) so it should
   never come close. Do not add services that call paid APIs on a loop without a cap.
-- The most expensive calls are Veo (~$0.15–0.40/sec), Imagen, and Gemini Pro. Keep them on
-  cassettes by default.
+- The most expensive calls are Veo (~$0.15–0.40/sec), Imagen, and Gemini Pro. Keep them behind the
+  cost cap; never call them in a dev loop or demo without a bound.
 
 ## 6. How to build a component (the workflow)
 
@@ -126,14 +126,20 @@ When someone asks you to build something, do this:
 3. **Backend:** add the router in `app/api/`, the logic in `app/services/`, and use a provider for
    any external call. Persist via a service, not inline. Every user-owned read/write must check
    `ownerUid`.
-4. **Frontend:** consume the API through `src/lib/api-client.ts`. Add an MSW handler in
-   `src/mocks/handlers.ts` from the same fixture shape so the UI works before the backend exists.
-   Follow the patterns in `web/` — read `web/node_modules/next/dist/docs/` first, this Next.js
-   version differs from older ones.
+4. **Frontend:** consume the API through `src/lib/api-client.ts`. Follow the patterns in `web/` —
+   read `web/node_modules/next/dist/docs/` first, this Next.js version differs from older ones.
 5. **Add tests.** Backend: pure logic (aggregation, path builders, idempotency, normalization)
-   must be unit tested. Add a cassette if the feature calls an external service.
-6. **Verify** with the commands in section 4. Do not claim done without running them.
-7. **Update** `contracts/` if the interface changed, and **always** write a new progress note in
+   must be unit tested. Add a provider in `app/providers/` when the feature calls an external
+   service; feature code never imports a Google SDK directly.
+6. **Wire the delete pathway.** Every new feature must think about deletion. Project data is
+   deleted by Firestore recursive tree + Cloud Storage prefix, so store new project-scoped data
+   under `users/{uid}/projects/{projectId}/...` (Firestore) or the matching object prefix
+   (`project_object_prefix`) and it is covered automatically. Anything stored *outside* those
+   paths (a top-level collection, a different bucket, a third-party record) must be added to the
+   delete path explicitly, with a test. `ProjectService.delete` / `UserService.delete_account`
+   are the reference implementations.
+7. **Verify** with the commands in section 4. Do not claim done without running them.
+8. **Update** `contracts/` if the interface changed, and **always** write a new progress note in
    `docs/current-progress/` before you stop (see the session protocol).
 
 ### Provider pattern (the important one)
@@ -164,11 +170,18 @@ If you need something from another lane, fake it and keep moving. Never block.
 - GCP has no native hard spending cap. We built a kill switch (`infra/budget.tf`).
 - Cloud Text-to-Speech has no IAM role for synthesis; the enabled API is enough.
 - Pub/Sub ack deadline max is 600 seconds.
-- Speech-to-Text long audio uses **batch** recognition (`chirp_3`), not sync.
+- Speech-to-Text long audio uses **batch** recognition (`chirp_3`, `us` multi-region), not sync.
+  STT V2 cannot auto-detect AAC in MP4/MOV/M4A, so those use an explicit decoding config.
+- Transcription is triggered by the GCS `object finalized` Pub/Sub push
+  (`POST /api/internal/pubsub/video-events`); `POST /assets/{id}/complete` is the fast UX path.
+  Both converge on one idempotent `transcribe` job.
 - Firebase ToS acceptance is console-only.
 - Next.js 16 bundles its own docs and regenerates `web/AGENTS.md`; read them before coding.
 - The Firebase default bucket (`habeas-codus.firebasestorage.app`) is **not** used. The app uses
   `habeas-codus-media`.
+- **Delete is real, not soft.** `DELETE /projects/{id}` removes the Firestore subtree and every
+  GCS object under the project prefix; account deletion removes the whole user tree. Keep new
+  project-scoped data under those paths or it will leak (see workflow step 6).
 
 ## 9. Where to look
 
@@ -178,6 +191,6 @@ If you need something from another lane, fake it and keep moving. Never block.
 | What is the DB shape? | `docs/technical-design/db-design.md`, `contracts/firestore.md` |
 | What is the API? | `contracts/openapi.yaml`, `docs/technical-design/api-design.md` |
 | What events flow? | `contracts/events.md` |
-| How does mocking work? | `docs/technical-design/mock-and-seed.md` |
+| How are external calls made? | `docs/technical-design/backend-plan.md` (provider layer) |
 | What GCP resources exist? | `infra/RESOURCES.md` |
 | What has been done? | `docs/current-progress/` |

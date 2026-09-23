@@ -50,6 +50,12 @@ class Settings(BaseSettings):
     stt_sample_rate_hz: int = 44100
     stt_audio_channel_count: int = 2
 
+    # Pub/Sub push verification. When `pubsub_push_audience` is set, the internal push endpoint
+    # requires a valid Google OIDC token for this audience (the Cloud Run URL) minted by
+    # `pubsub_push_service_account`. Left blank locally, where the endpoint is not public.
+    pubsub_push_audience: str | None = None
+    pubsub_push_service_account: str | None = None
+
     max_reviewer_concurrency: int = 4
     max_project_cost_usd: float = 5.0
 

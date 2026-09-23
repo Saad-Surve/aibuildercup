@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from app.errors import NotFoundError
+from app.errors import ConflictError, NotFoundError
 from app.schemas.jobs import JobStatus, JobType
 from app.services.job_service import JobService
 from tests.fakes import FakeFirestoreClient
@@ -74,3 +74,33 @@ def test_get_rejects_job_owned_by_someone_else() -> None:
     )
     with pytest.raises(NotFoundError):
         service.get(owner_uid=UID, job_id="j1")
+
+
+def test_cancel_sets_cancelled_for_queued_job() -> None:
+    service, _ = make_service()
+    job = _create(service)
+    cancelled = service.cancel(owner_uid=UID, job_id=job.jobId)
+    assert cancelled.status == JobStatus.cancelled
+    assert service.get(owner_uid=UID, job_id=job.jobId).status == JobStatus.cancelled
+
+
+def test_cancel_terminal_job_conflicts() -> None:
+    service, _ = make_service()
+    job = _create(service)
+    service.cancel(owner_uid=UID, job_id=job.jobId)
+    with pytest.raises(ConflictError):
+        service.cancel(owner_uid=UID, job_id=job.jobId)
+
+
+def test_cancel_unknown_job_raises_not_found() -> None:
+    service, _ = make_service()
+    with pytest.raises(NotFoundError):
+        service.cancel(owner_uid=UID, job_id="missing")
+
+
+def test_latest_for_project_returns_newest_then_none() -> None:
+    service, _ = make_service()
+    assert service.latest_for_project(owner_uid=UID, project_id="p1") is None
+    job = _create(service)
+    latest = service.latest_for_project(owner_uid=UID, project_id="p1")
+    assert latest is not None and latest.jobId == job.jobId

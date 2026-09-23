@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from app.errors import NotFoundError
+from app.errors import ConflictError, NotFoundError
 from app.schemas.jobs import Job, JobProgress, JobStatus, JobType
 from app.services.firestore_service import (
     FirestoreClient,
@@ -105,6 +105,56 @@ class JobService:
         if data is None or not is_owner(data, owner_uid):
             raise NotFoundError("Job not found", details={"jobId": job_id})
         return data
+
+    def latest_for_project(self, *, owner_uid: str, project_id: str) -> Job | None:
+        rows = self.client.query_collection(
+            jobs_collection_path(owner_uid, project_id),
+            filters=[],
+            order_by=[("createdAt", "DESCENDING")],
+            limit=1,
+            offset=0,
+        )
+        if not rows:
+            return None
+        job_id, data = rows[0]
+        if not is_owner(data, owner_uid):
+            return None
+        return _to_job(job_id, data)
+
+    def cancel(self, *, owner_uid: str, job_id: str) -> Job:
+        """Cancel a queued/running job. Terminal jobs are a conflict."""
+        rows = self.client.query_collection_group(
+            "jobs", filters=[("jobId", "==", job_id)], limit=5
+        )
+        for found_id, data in rows:
+            if not is_owner(data, owner_uid):
+                continue
+            status = data.get("status")
+            if status not in (JobStatus.queued.value, JobStatus.running.value):
+                raise ConflictError(
+                    "Only queued or running jobs can be cancelled.",
+                    code="JOB_NOT_CANCELLABLE",
+                    details={"jobId": job_id, "status": status},
+                )
+            project_id = data["projectId"]
+            path = job_path(owner_uid, project_id, found_id)
+            now = datetime.now(UTC)
+            self.client.update_document(
+                path,
+                {
+                    "status": JobStatus.cancelled.value,
+                    "progress": {
+                        "currentStep": "cancelled",
+                        "percent": int((data.get("progress") or {}).get("percent", 0)),
+                        "message": "Cancelled",
+                    },
+                    "finishedAt": now,
+                    "updatedAt": now,
+                },
+            )
+            updated = self.client.get_document(path) or data
+            return _to_job(found_id, updated)
+        raise NotFoundError("Job not found", details={"jobId": job_id})
 
     def mark_running(
         self, *, owner_uid: str, project_id: str, job_id: str, step: str, message: str

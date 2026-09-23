@@ -71,3 +71,13 @@ variable "github_repository" {
   type        = string
   default     = "Saad-Surve/aibuildercup"
 }
+
+variable "api_url" {
+  description = <<-EOT
+    Public base URL of the API Cloud Run service. When set, the transcribe Pub/Sub
+    subscription pushes GCS `object finalized` events to it (design diagrams 4/5). Leave blank
+    locally; set it to the deployed service URL so the event path is the trigger of record.
+  EOT
+  type        = string
+  default     = ""
+}

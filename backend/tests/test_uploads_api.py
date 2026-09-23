@@ -140,7 +140,7 @@ def test_upload_session_rejects_oversize() -> None:
         app.dependency_overrides.clear()
 
 
-def test_playback_url_returns_signed_url(ctx: Ctx) -> None:
+def test_download_url_returns_signed_url(ctx: Ctx) -> None:
     project_id = ctx.new_project()
     client = TestClient(app)
 
@@ -153,7 +153,7 @@ def test_playback_url_returns_signed_url(ctx: Ctx) -> None:
     client.post(f"/api/projects/{project_id}/assets/{session['assetId']}/complete")
 
     response = client.get(
-        f"/api/projects/{project_id}/assets/{session['assetId']}/playback-url"
+        f"/api/projects/{project_id}/assets/{session['assetId']}/download-url"
     )
     assert response.status_code == 200
     body = response.json()
@@ -162,10 +162,10 @@ def test_playback_url_returns_signed_url(ctx: Ctx) -> None:
     assert body["expiresAt"]
 
 
-def test_playback_url_unknown_asset_returns_not_found(ctx: Ctx) -> None:
+def test_download_url_unknown_asset_returns_not_found(ctx: Ctx) -> None:
     project_id = ctx.new_project()
     response = TestClient(app).get(
-        f"/api/projects/{project_id}/assets/missing/playback-url"
+        f"/api/projects/{project_id}/assets/missing/download-url"
     )
     assert response.status_code == 404
 

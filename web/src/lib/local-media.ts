@@ -362,8 +362,8 @@ async function resolvePoster(ref: PosterRef): Promise<string | null> {
     ref.sizeBytes <= MAX_POSTER_FETCH_BYTES
   ) {
     try {
-      const { getPlaybackUrl } = await import("@/lib/projects");
-      const playback = await getPlaybackUrl(ref.projectId, ref.assetId);
+      const { getDownloadUrl } = await import("@/lib/projects");
+      const playback = await getDownloadUrl(ref.projectId, ref.assetId);
       const response = await fetch(playback.url);
       if (!response.ok) return null;
       const blob = await response.blob();

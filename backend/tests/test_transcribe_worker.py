@@ -31,6 +31,15 @@ class StubStt:
         return f"gs://test-bucket/{storage_path}"
 
 
+class RecordingPubSub:
+    def __init__(self) -> None:
+        self.published: list[dict[str, Any]] = []
+
+    def publish(self, *, topic: str, event: dict[str, Any]) -> str:
+        self.published.append({"topic": topic, "event": event})
+        return "msg-1"
+
+
 class Harness:
     def __init__(self, stt_response: dict[str, Any] | Exception) -> None:
         self.client = FakeFirestoreClient()
@@ -47,6 +56,7 @@ class Harness:
         )
         self.transcripts = TranscriptService(self.client, storage=self.storage)
         self.stt = StubStt(stt_response)
+        self.pubsub = RecordingPubSub()
 
     def project(self, primary_language: str = "en") -> str:
         return self.projects.create(
@@ -74,6 +84,7 @@ class Harness:
             "transcripts": self.transcripts,
             "stt": self.stt,
             "settings": self.settings,
+            "pubsub": self.pubsub,
         }
 
 
@@ -107,6 +118,21 @@ async def test_run_transcribe_success_marks_project_ready() -> None:
     assert asset["status"] == "ready"
     transcript = h.transcripts.get(owner_uid=UID, project_id=project_id)
     assert [s.text for s in transcript.segments] == ["Hello world.", "Lets begin."]
+
+
+async def test_run_transcribe_publishes_transcript_ready() -> None:
+    h = Harness(WORDS)
+    project_id = h.project()
+    _, job_id = h.uploaded_asset(project_id)
+
+    await run_transcribe(owner_uid=UID, project_id=project_id, job_id=job_id, **h.kwargs())
+
+    assert len(h.pubsub.published) == 1
+    published = h.pubsub.published[0]
+    assert published["topic"] == "transcription-events"
+    assert published["event"]["type"] == "transcript.ready"
+    assert published["event"]["projectId"] == project_id
+    assert published["event"]["payload"]["wordCount"] == 4
 
 
 async def test_run_transcribe_stores_detected_language() -> None:

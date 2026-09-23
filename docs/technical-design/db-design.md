@@ -63,7 +63,6 @@ users/{uid}
 
 glossaries/{glossaryId}          platform-level, versioned terminology corpus
 demoProfiles/{demoProfileId}     platform-level, stage demo scenarios
-cassetteIndex/{cassetteKey}      platform-level, record/replay metadata (dev only)
 ~~~
 
 ## 3. User documents
@@ -296,6 +295,7 @@ AI-inferred changes remain pending until the user explicitly approves them.
   "language": "en-IN",
   "storagePath": "users/uid/projects/project-id/transcripts/v1.json",
   "vttStoragePath": "users/uid/projects/project-id/captions/en.vtt",
+  "srtStoragePath": "users/uid/projects/project-id/captions/en.srt",
   "durationMs": 485000,
   "wordCount": 1020,
   "segmentCount": 85,
@@ -641,20 +641,6 @@ Pinned scenarios for the stage. See [mock-and-seed.md](./mock-and-seed.md).
 }
 ~~~
 
-### cassetteIndex/{cassetteKey}
-
-Dev-only index of recorded provider responses. Never stores secrets or private media.
-
-~~~json
-{
-  "provider": "llm",
-  "model": "reviewer-flash",
-  "promptVersion": "clarity-v1",
-  "storagePath": "fixtures/cassettes/llm/<key>.json",
-  "createdAt": "timestamp"
-}
-~~~
-
 ## 9. Firestore indexes
 
 Create composite indexes for:
@@ -680,7 +666,22 @@ The browser may read/write only user-owned, non-sensitive project data. The brow
 - Raw social API payloads.
 - Internal reviewer prompts.
 - Worker job events containing secrets or stack traces.
-- Platform collections: `glossaries`, `demoProfiles`, and `cassetteIndex` are backend-only.
+- Platform collections: `glossaries` and `demoProfiles` are backend-only.
 
 The backend must authorize using both the Firebase UID and the document ownerUid. Firestore rules are a second boundary, not a replacement for backend authorization.
 
+## 11. Deletion
+
+Deletion is **real, not soft**. Two reference implementations define the contract:
+
+- `ProjectService.delete` — deletes every Cloud Storage object under `project_object_prefix`
+  (`users/{uid}/projects/{projectId}/`) and recursively deletes the project Firestore subtree
+  (the project doc plus every subcollection, including nested `transcripts/{id}/segments`).
+- `UserService.delete_account` — deletes every object under `users/{uid}/` and recursively
+  deletes the user subtree.
+
+Because deletion is by **GCS prefix** and **Firestore recursive tree**, any new project-scoped
+data is covered automatically **as long as it lives under the project's Firestore path or object
+prefix**. Anything stored elsewhere (a top-level collection, a different bucket, a third-party
+record) is not covered and must be added to the delete path explicitly, with a test. Treat
+"where does this get deleted?" as a required design question for every new feature.

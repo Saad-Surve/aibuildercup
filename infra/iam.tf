@@ -87,6 +87,13 @@ resource "google_pubsub_topic_iam_member" "gcs_publisher" {
   member  = "serviceAccount:service-${data.google_project.current.number}@gs-project-accounts.iam.gserviceaccount.com"
 }
 
+# The Pub/Sub service agent mints the OIDC push token as the transcribe service account.
+resource "google_service_account_iam_member" "pubsub_push_token_creator" {
+  service_account_id = google_service_account.runtime["transcribe"].name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
 # Eventarc invokes the kill switch using the default compute service account.
 resource "google_project_iam_member" "eventarc_compute_run_invoker" {
   project = var.project_id

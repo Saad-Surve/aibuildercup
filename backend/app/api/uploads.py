@@ -12,7 +12,7 @@ from app.dependencies import (
 from app.schemas.assets import (
     AssetList,
     CreateUploadSession,
-    PlaybackUrl,
+    DownloadUrl,
     UploadSession,
 )
 from app.schemas.common import AcceptedJob
@@ -52,16 +52,16 @@ async def list_assets(
 
 
 @router.get(
-    "/projects/{projectId}/assets/{assetId}/playback-url",
-    response_model=PlaybackUrl,
+    "/projects/{projectId}/assets/{assetId}/download-url",
+    response_model=DownloadUrl,
 )
-async def playback_url(
+async def download_url(
     projectId: str,
     assetId: str,
     user: UserDep,
     service: ServiceDep,
-) -> PlaybackUrl:
-    return service.playback_url(
+) -> DownloadUrl:
+    return service.download_url(
         owner_uid=user.uid, project_id=projectId, asset_id=assetId
     )
 

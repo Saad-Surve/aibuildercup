@@ -37,6 +37,11 @@ def project_path(uid: str, project_id: str) -> str:
     return f"{projects_collection_path(uid)}/{safe_segment(project_id, name='projectId')}"
 
 
+def project_object_prefix(uid: str, project_id: str) -> str:
+    """Object-name prefix that scopes every stored object to one project."""
+    return f"{project_path(uid, project_id)}/"
+
+
 def assets_collection_path(uid: str, project_id: str) -> str:
     return f"{project_path(uid, project_id)}/assets"
 
@@ -105,7 +110,38 @@ def transcript_object_path(uid: str, project_id: str, version: int) -> str:
     return f"{project_path(uid, project_id)}/transcripts/v{version}.json"
 
 
+def transcript_segment_path(
+    uid: str, project_id: str, transcript_id: str, segment_id: str
+) -> str:
+    return (
+        f"{transcript_path(uid, project_id, transcript_id)}/segments/"
+        f"{safe_segment(segment_id, name='segmentId')}"
+    )
+
+
 def transcript_vtt_object_path(uid: str, project_id: str, language: str) -> str:
-    """Derived caption file in Cloud Storage."""
+    """Derived VTT caption file in Cloud Storage."""
     safe_language = safe_segment(language.replace("-", "_"), name="language")
     return f"{project_path(uid, project_id)}/captions/{safe_language}.vtt"
+
+
+def transcript_srt_object_path(uid: str, project_id: str, language: str) -> str:
+    """Derived SRT caption file in Cloud Storage."""
+    safe_language = safe_segment(language.replace("-", "_"), name="language")
+    return f"{project_path(uid, project_id)}/captions/{safe_language}.srt"
+
+
+# `users/{uid}/projects/{projectId}/source/{assetId}.{ext}` — the source object layout is
+# itself parseable, which is how the GCS-finalized Pub/Sub handler recovers ownership.
+_SOURCE_OBJECT = re.compile(
+    r"^users/(?P<uid>[A-Za-z0-9_-]{1,128})/projects/(?P<project_id>[A-Za-z0-9_-]{1,128})"
+    r"/source/(?P<asset_id>[A-Za-z0-9_-]{1,128})\.[^/]+$"
+)
+
+
+def parse_source_object_path(object_name: str) -> tuple[str, str, str] | None:
+    """Return `(uid, project_id, asset_id)` for a source object, or None if it is not one."""
+    match = _SOURCE_OBJECT.match(object_name)
+    if match is None:
+        return None
+    return match.group("uid"), match.group("project_id"), match.group("asset_id")

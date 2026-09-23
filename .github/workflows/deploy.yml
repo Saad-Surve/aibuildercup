@@ -50,7 +50,7 @@ jobs:
             --min-instances 0 \
             --max-instances 1 \
             --no-cpu-throttling \
-            --set-env-vars "^@^ENVIRONMENT=production@PROJECT_ID=habeas-codus@REGION=us-central1@CORS_ALLOWED_ORIGINS=${CORS_ORIGINS}" \
+            --set-env-vars "^@^ENVIRONMENT=production@PROJECT_ID=habeas-codus@REGION=us-central1@CORS_ALLOWED_ORIGINS=${CORS_ORIGINS}@PUBSUB_PUSH_AUDIENCE=${{ vars.API_URL }}@PUBSUB_PUSH_SERVICE_ACCOUNT=creator-studio-transcribe@habeas-codus.iam.gserviceaccount.com" \
             --set-secrets "GEMINI_API_KEY=gemini-api-key:latest"
 
       - uses: oven-sh/setup-bun@v2

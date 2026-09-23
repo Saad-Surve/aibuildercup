@@ -10,7 +10,7 @@ from app.services.project_service import (
     encode_page_token,
     is_owner,
 )
-from tests.fakes import FakeFirestoreClient
+from tests.fakes import FakeFirestoreClient, FakeStorageClient
 
 UID = "uid-1"
 
@@ -71,16 +71,51 @@ def test_update_applies_patch_and_bumps_updated_at() -> None:
     assert updated.updatedAt >= created.updatedAt
 
 
-def test_soft_delete_archives_and_hides_from_list() -> None:
-    service, _ = make_service()
+def test_delete_removes_firestore_tree_and_storage_objects() -> None:
+    client = FakeFirestoreClient()
+    storage = FakeStorageClient()
+    service = ProjectService(client, storage=storage)
     project = service.create(owner_uid=UID, payload=CreateProject(name="Gone"))
-    service.soft_delete(owner_uid=UID, project_id=project.projectId)
+    base = f"users/{UID}/projects/{project.projectId}"
 
-    items, has_more = service.list(owner_uid=UID, limit=20, offset=0)
+    # Everything a project owns: subcollections (incl. nested segments) + GCS objects.
+    client.set_document(f"{base}/assets/a1", {"ownerUid": UID})
+    client.set_document(f"{base}/jobs/j1", {"ownerUid": UID})
+    client.set_document(f"{base}/transcripts/t1", {"ownerUid": UID})
+    client.set_document(f"{base}/transcripts/t1/segments/seg-1", {"ownerUid": UID})
+    storage.objects[f"{base}/source/a1.mp4"] = "bytes"
+    storage.objects[f"{base}/transcripts/v1.json"] = "{}"
+    storage.objects[f"{base}/captions/en.vtt"] = "WEBVTT"
+    storage.objects[f"{base}/captions/en.srt"] = "1"
+
+    service.delete(owner_uid=UID, project_id=project.projectId)
+
+    assert not any(key == base or key.startswith(base + "/") for key in client.docs)
+    assert storage.objects == {}
+    items, _ = service.list(owner_uid=UID, limit=20, offset=0)
     assert items == []
-    assert has_more is False
     with pytest.raises(NotFoundError):
         service.get(owner_uid=UID, project_id=project.projectId)
+
+
+def test_delete_rejects_other_owner() -> None:
+    client = FakeFirestoreClient()
+    service = ProjectService(client, storage=FakeStorageClient())
+    project = service.create(owner_uid="other", payload=CreateProject(name="theirs"))
+    with pytest.raises(NotFoundError):
+        service.delete(owner_uid=UID, project_id=project.projectId)
+
+
+def test_delete_removes_legacy_archived_project() -> None:
+    client = FakeFirestoreClient()
+    service = ProjectService(client, storage=FakeStorageClient())
+    project = service.create(owner_uid=UID, payload=CreateProject(name="Old"))
+    client.update_document(
+        f"users/{UID}/projects/{project.projectId}",
+        {"status": "archived", "archivedAt": datetime.now(UTC)},
+    )
+    service.delete(owner_uid=UID, project_id=project.projectId)
+    assert f"users/{UID}/projects/{project.projectId}" not in client.docs
 
 
 def test_list_orders_by_updated_at_desc_and_paginates() -> None:

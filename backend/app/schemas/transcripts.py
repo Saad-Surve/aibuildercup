@@ -28,6 +28,7 @@ class TranscriptRecord(BaseModel):
     sourceAssetId: str
     storagePath: str
     vttStoragePath: str
+    srtStoragePath: str
     durationMs: int
     wordCount: int
     segmentCount: int

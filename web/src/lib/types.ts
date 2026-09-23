@@ -105,7 +105,7 @@ export interface UploadSession {
   requiredHeaders: Record<string, string>;
 }
 
-export interface PlaybackUrl {
+export interface DownloadUrl {
   url: string;
   expiresAt: string;
 }

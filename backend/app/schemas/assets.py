@@ -55,6 +55,6 @@ class AssetList(BaseModel):
     items: list[Asset]
 
 
-class PlaybackUrl(BaseModel):
+class DownloadUrl(BaseModel):
     url: str
     expiresAt: datetime

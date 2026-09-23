@@ -9,7 +9,7 @@ import { Alert02Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/common/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ensurePoster, getCachedPoster, getVideoBlob } from "@/lib/local-media";
-import { getPlaybackUrl } from "@/lib/projects";
+import { getDownloadUrl } from "@/lib/projects";
 import type { Asset } from "@/lib/types";
 
 /*
@@ -52,7 +52,7 @@ export function SourceVideoPlayer({
         setMedia({ assetId: asset.assetId, src: objectUrl });
       } else {
         try {
-          const playback = await getPlaybackUrl(projectId, asset.assetId);
+          const playback = await getDownloadUrl(projectId, asset.assetId);
           if (alive) setMedia({ assetId: asset.assetId, src: playback.url });
         } catch {
           if (alive) setFailure({ assetId: asset.assetId });

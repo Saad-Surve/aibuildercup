@@ -27,14 +27,13 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
 NEXT_PUBLIC_FIREBASE_APP_ID
 NEXT_PUBLIC_API_BASE_URL
-NEXT_PUBLIC_MOCK_MODE
 ~~~
 
 Never place server secrets or OAuth client secrets in NEXT_PUBLIC variables.
 
-The API client and TypeScript types are generated from `contracts/openapi.yaml`, so the frontend
-and backend cannot drift. With `NEXT_PUBLIC_MOCK_MODE=on`, MSW handlers generated from the same
-fixture JSON let the whole UI run with no backend. See [mock-and-seed.md](./mock-and-seed.md).
+The API client and TypeScript types are derived from `contracts/openapi.yaml`, so the frontend
+and backend cannot drift. There is no MSW mock layer: the web app calls the real API. See
+[mock-and-seed.md](./mock-and-seed.md).
 
 ## 2. Frontend directory structure
 
@@ -70,9 +69,6 @@ src/
 │   └── validators.ts
 ├── generated/
 │   └── api/            types + client generated from contracts/openapi.yaml
-├── mocks/
-│   ├── handlers.ts     MSW handlers built from fixtures
-│   └── browser.ts
 ├── hooks/
 ├── types/
 └── styles/

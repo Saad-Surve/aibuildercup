@@ -125,6 +125,31 @@ def test_save_and_get_roundtrip() -> None:
     assert doc["wordCount"] == 2
     assert h.storage.objects[doc["storagePath"]].startswith('{\n  "version": 1')
     assert h.storage.objects[doc["vttStoragePath"]].startswith("WEBVTT")
+    assert doc["srtStoragePath"].endswith("captions/en_US.srt")
+    assert h.storage.objects[doc["srtStoragePath"]].startswith("1\n")
+
+
+def test_get_segment_returns_owned_segment() -> None:
+    h = Harness()
+    project_id = h.project()
+    h.service.save(
+        owner_uid=UID,
+        project_id=project_id,
+        source_asset_id="asset-1",
+        language="en-US",
+        words=_words(3),
+    )
+    segment = h.service.get_segment(
+        owner_uid=UID, project_id=project_id, segment_id="seg-1"
+    )
+    assert segment.segmentId == "seg-1"
+    assert segment.index == 0
+    assert segment.text
+
+    with pytest.raises(NotFoundError):
+        h.service.get_segment(
+            owner_uid=UID, project_id=project_id, segment_id="seg-999"
+        )
 
 
 def test_get_without_transcript_raises_not_found() -> None:

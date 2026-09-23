@@ -29,7 +29,7 @@ class AuthenticatedUser:
 
 
 def get_project_service() -> ProjectService:
-    return ProjectService(get_firestore_client())
+    return ProjectService(get_firestore_client(), storage=get_storage_client())
 
 
 def get_job_service() -> JobService:

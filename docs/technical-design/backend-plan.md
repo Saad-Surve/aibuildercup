@@ -9,10 +9,10 @@ FastAPI: HTTP API, authentication, request validation, SSE
 Google ADK: project assistant and multi-reviewer orchestration
 Google GenAI SDK: direct structured Gemini calls where an agent is unnecessary
 Pydantic: request/response and reviewer schemas
-Cloud Run: API service
-Cloud Run Jobs: long-running media workers
+Cloud Run: API service (hosts the API and, until workers split out, the Pub/Sub push handler)
+Cloud Run Jobs: long-running media workers (planned)
 Pub/Sub: event delivery
-Provider layer: real + cassette implementations of every external dependency
+Provider layer: one interface per external dependency, real implementations in `app/providers/`
 ~~~
 
 This keeps the agent runtime in one language and makes the Google ADK architecture visible. Genkit is a strong alternative for a TypeScript backend, but using FastAPI, ADK, and Genkit in the same request path would add unnecessary runtime complexity. Genkit is intentionally not used.
@@ -90,7 +90,6 @@ backend/
 │   │   └── facebook.py
 │   ├── providers/
 │   │   ├── base.py
-│   │   ├── cassette.py
 │   │   ├── llm.py
 │   │   ├── stt.py
 │   │   ├── translate.py
@@ -106,8 +105,7 @@ backend/
 │       ├── media_worker.py
 │       └── localization_worker.py
 ├── scripts/
-│   ├── seed.py
-│   └── record_cassettes.py
+│   └── seed.py
 ├── evals/
 │   ├── datasets/
 │   └── run_evals.py
@@ -214,11 +212,11 @@ Use dead-letter topics for messages that exceed retry limits.
 ~~~text
 video.uploaded
   -> validate object metadata
-  -> create transcription job
-  -> call Speech-to-Text V2 batch recognition, model long, GCS input
+  -> create transcription job (idempotent)
+  -> call Speech-to-Text V2 batch recognition, model chirp_3, GCS input
   -> enable word time offsets
   -> normalize response
-  -> segment transcript into sentences and paragraphs
+  -> segment transcript into sentences
   -> generate VTT and SRT
   -> write canonical files to GCS
   -> write metadata and segments to Firestore
@@ -228,6 +226,11 @@ video.uploaded
 Long audio uses batch recognition (sync only handles clips under 60 seconds). STT runs in the
 `us` multi-region, where the multilingual Chirp 3 model is available; `us-east1` is not a valid
 choice for the speech models.
+
+The trigger of record is the Cloud Storage `object finalized` notification: media bucket ->
+`video-events` topic -> push subscription -> `POST /api/internal/pubsub/video-events` ->
+`run_transcribe`. `POST /assets/{id}/complete` stays authoritative for the user-visible state and
+schedules the same idempotent job for a fast response, so both paths converge.
 
 Canonical transcript:
 
@@ -432,8 +435,8 @@ class SocialConnector(Protocol):
 
 Implement YouTube first. Normalize all platforms into common models:
 
-The real connectors are built and exercised manually against a test channel, but development and
-the demo run on `FixtureSocial` because real platform access is not guaranteed in time. See
+The real connectors are built and exercised manually against a test channel. Until platform
+access is guaranteed, development and the demo run on fixture-backed social data. See
 [mock-and-seed.md](./mock-and-seed.md).
 
 ~~~python
@@ -521,23 +524,16 @@ localization-worker
 
 The API runs as a Cloud Run service. Workers can run as Cloud Run services subscribed to Pub/Sub or as Cloud Run Jobs for heavier media processing.
 
-## 16. Provider layer and mock mode
+## 16. Provider layer
 
 No reviewer, worker, or agent imports a Google SDK directly. Everything goes through a provider
-interface that has a real and a cassette implementation. This is what lets the whole product run
-offline and keeps development from burning credits.
+interface in `app/providers/` that has a real implementation backed by the live GCP service.
 
-~~~text
-MOCK_MODE=off    always real
-MOCK_MODE=auto   cassette hit replays, miss calls real once and records
-MOCK_MODE=on     cassette only, never network
-~~~
-
-The cassette key is `sha256(provider + model + promptVersion + canonicalRequest)`, so changing a
-prompt intentionally misses the cache. Cassettes live in `fixtures/cassettes/` and are committed
-after human review. Full detail is in [mock-and-seed.md](./mock-and-seed.md).
-
-`FixtureSocial` is always fixture-backed; the real connectors exist but are not on the dev path.
+The earlier cassette/`MOCK_MODE` layer was **removed**: development runs against the real
+free-tier services (Gemini flash, Speech-to-Text) with the fixtures in `fixtures/media/`. The
+paid calls (Veo, Imagen, Gemini Pro) stay behind a cost cap. `app/providers/` currently contains
+`llm.py` and `stt.py`; `translate`, `tts`, `imagegen`, `videogen`, and `social` providers are
+added as those features land.
 
 ## 17. Localization corpus pipeline
 

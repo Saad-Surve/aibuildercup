@@ -2,6 +2,16 @@
 
 Status: proposed MVP contract
 
+## Implementation status
+
+Implemented today (see `contracts/openapi.yaml`): health, `/me`, onboarding/persona, projects,
+upload-session/complete/assets, `download-url`, jobs (get, cancel) and the project SSE stream,
+transcript (get, get segment), and the internal Pub/Sub push endpoint.
+
+Planned, not yet implemented (kept here and in the contract as `x-status: planned`): analysis
+(findings, heatmap), artifacts, chat, localization/glossaries, transcript regenerate, account
+export, demo/admin seeding. Do not assume these routes exist in the backend.
+
 ## 1. API conventions
 
 Base URL:
@@ -170,7 +180,7 @@ POST /connections/{connectionId}/sync response:
 | GET | /projects | List owned projects |
 | GET | /projects/{projectId} | Get project summary |
 | PATCH | /projects/{projectId} | Update project metadata |
-| DELETE | /projects/{projectId} | Soft-delete project and queue object deletion |
+| DELETE | /projects/{projectId} | Delete the project and all of its data (Firestore subtree + Cloud Storage objects) |
 
 POST /projects request:
 
@@ -264,7 +274,7 @@ data: {"jobId":"job-id","percent":72}
 |---|---|---|
 | GET | /projects/{projectId}/transcript | Get transcript metadata and segments |
 | GET | /projects/{projectId}/transcript/segments/{segmentId} | Get one segment |
-| POST | /projects/{projectId}/transcript/regenerate | Create a new transcript version |
+| POST | /projects/{projectId}/transcript/regenerate | Create a new transcript version (planned) |
 
 Transcript regeneration options:
 
@@ -454,14 +464,8 @@ A flagged phrase becomes a candidate corpus entry for review. See
 
 ## 13. Demo and development endpoints
 
-These are available only when `MOCK_MODE` is not `off`, and are never exposed in the live demo
-configuration.
-
-| Method | Route | Purpose |
-|---|---|---|
-| GET | /demo/scenarios | List pinned demo scenarios |
-| POST | /admin/seed | Seed a demo world (dev only) |
-| GET | /admin/cassettes | List recorded cassettes (dev only) |
+Not implemented: the cassette/`MOCK_MODE` layer and its seeding endpoints were removed. Development
+runs against the real free-tier services with `fixtures/media/`.
 
 ## 14. Project chat
 
@@ -547,6 +551,17 @@ Event envelope:
   "schemaVersion": 1
 }
 ~~~
+
+**Implemented today:** `transcript.ready` is published to `transcription-events` after a
+transcript is stored, and the GCS `object finalized` notification on the media bucket publishes to
+`video-events`, delivered by a push subscription to the internal endpoint:
+
+~~~text
+POST /api/internal/pubsub/video-events     # Pub/Sub push; authenticated with an OIDC token
+~~~
+
+The other event types are declared here but not yet published. Topic routing lives in
+`backend/app/events.py` and mirrors `infra/pubsub.tf`.
 
 ## 17. API security requirements
 

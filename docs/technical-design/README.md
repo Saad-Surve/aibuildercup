@@ -33,9 +33,9 @@ This directory contains the implementation-ready design for the Creator Helper S
    - Terraform structure.
    - GCP projects, APIs, buckets, Pub/Sub, BigQuery, Firestore, human users, service accounts, IAM, secrets, CI/CD, monitoring, and owner checklist.
 
-7. [Mock, cassette, and seed design](./mock-and-seed.md)
-   - Provider abstraction over every external dependency.
-   - Record/replay cassettes, seed script, demo scenarios, frontend MSW fixtures.
+7. [Fixtures and seed design](./mock-and-seed.md)
+   - Provider abstraction over every external dependency (no mock mode).
+   - Media fixtures, seed script, and demo scenarios.
 
 8. [Three-engineer workstream plan](./workstreams.md)
    - Lane ownership for three engineers.
@@ -49,13 +49,13 @@ This directory contains the implementation-ready design for the Creator Helper S
 
 - Region is **`us-central1`** for all services except Speech-to-Text, which uses the **`us` multi-region** (the multilingual Chirp 3 model is GA there but not in `us-central1`); Veo, Imagen, and Text-to-Speech use `us-central1`.
 - Backend is Python FastAPI + Google ADK. Genkit is intentionally not used, to keep one agent runtime.
-- All external dependencies sit behind providers so development runs on cassettes and seeded data.
+- All external dependencies sit behind providers; development runs against the real free-tier services with `fixtures/media/`.
 - Reviewer analysis uses a two-tier fan-out (broad pass per reviewer, then targeted deep review) to bound cost.
 
 ## Suggested implementation order
 
 ~~~text
-1. Contracts, provider/cassette layer, seed skeleton, Terraform bootstrap
+1. Contracts, provider layer, seed skeleton, Terraform bootstrap
 2. Firebase Authentication and API authentication
 3. Project creation and direct Cloud Storage upload
 4. Pub/Sub event handling and transcription worker

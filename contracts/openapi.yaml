@@ -186,7 +186,11 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Project" }
     delete:
-      summary: Soft-delete project and queue object deletion
+      summary: Delete a project and all of its data
+      description: |
+        Permanently removes every Cloud Storage object under the project prefix (source video,
+        transcript JSON, VTT/SRT captions, derived media) and the whole Firestore subtree
+        (assets, jobs, transcripts + segments). Cannot be undone.
       responses:
         "202": { $ref: "#/components/responses/Accepted" }
 
@@ -231,12 +235,12 @@ paths:
       responses:
         "202": { $ref: "#/components/responses/Accepted" }
 
-  /api/projects/{projectId}/assets/{assetId}/playback-url:
+  /api/projects/{projectId}/assets/{assetId}/download-url:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
       - { $ref: "#/components/parameters/AssetId" }
     get:
-      summary: Get a playable URL for an asset
+      summary: Get a short-lived download/playback URL for an asset
       description: |
         Returns a short-lived signed read URL so the browser can stream the source video
         directly from Cloud Storage.
@@ -245,7 +249,7 @@ paths:
           description: OK
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/PlaybackUrl" }
+              schema: { $ref: "#/components/schemas/DownloadUrl" }
 
   /api/jobs/{jobId}:
     parameters:
@@ -259,6 +263,36 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Job" }
 
+  /api/jobs/{jobId}/cancel:
+    parameters:
+      - { $ref: "#/components/parameters/JobId" }
+    post:
+      summary: Cancel a queued or running job
+      description: |
+        Terminal jobs (succeeded/failed/cancelled) return 409 JOB_NOT_CANCELLABLE.
+      responses:
+        "200":
+          description: Cancelled job
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /api/projects/{projectId}/events:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: Server-Sent Events stream of project/job progress
+      description: |
+        Streams `job.progress` events with the current project status, latest job status, and
+        progress until the project reaches a terminal state. Mirrors the SSE stream in
+        `docs/technical-design/api-design.md` section 7.
+      responses:
+        "200":
+          description: text/event-stream
+          content:
+            text/event-stream: {}
+
   /api/projects/{projectId}/transcript:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
@@ -271,7 +305,24 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Transcript" }
 
+  /api/projects/{projectId}/transcript/segments/{segmentId}:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { name: segmentId, in: path, required: true, schema: { type: string } }
+    get:
+      summary: Get one transcript segment
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TranscriptSegment" }
+
   /api/projects/{projectId}/analysis:
+    x-status: planned
+    description: |
+      Not yet implemented. Kept here as the frozen target contract; see
+      `docs/technical-design/api-design.md` for the planned analysis flow.
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
     post:
@@ -294,6 +345,7 @@ paths:
                   status: { type: string }
 
   /api/projects/{projectId}/analysis/{analysisRunId}/findings:
+    x-status: planned
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
       - { $ref: "#/components/parameters/AnalysisRunId" }
@@ -314,6 +366,7 @@ paths:
                     items: { $ref: "#/components/schemas/Finding" }
 
   /api/projects/{projectId}/analysis/{analysisRunId}/heatmap:
+    x-status: planned
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
       - { $ref: "#/components/parameters/AnalysisRunId" }
@@ -332,6 +385,7 @@ paths:
                     items: { $ref: "#/components/schemas/HeatmapBin" }
 
   /api/projects/{projectId}/artifacts:
+    x-status: planned
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
     get:
@@ -366,6 +420,7 @@ paths:
                   jobId: { type: string }
 
   /api/projects/{projectId}/chat/threads/{threadId}/messages:
+    x-status: planned
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
       - { name: threadId, in: path, required: true, schema: { type: string } }
@@ -598,7 +653,7 @@ components:
           type: array
           items: { $ref: "#/components/schemas/Asset" }
 
-    PlaybackUrl:
+    DownloadUrl:
       type: object
       properties:
         url: { type: string, format: uri }

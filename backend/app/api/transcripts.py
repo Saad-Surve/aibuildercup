@@ -7,7 +7,7 @@ from app.dependencies import (
     current_user,
     get_transcript_service,
 )
-from app.schemas.transcripts import Transcript
+from app.schemas.transcripts import Transcript, TranscriptSegment
 from app.services.transcript_service import TranscriptService
 
 router = APIRouter(tags=["transcripts"])
@@ -23,3 +23,18 @@ async def get_transcript(
     service: ServiceDep,
 ) -> Transcript:
     return service.get(owner_uid=user.uid, project_id=projectId)
+
+
+@router.get(
+    "/projects/{projectId}/transcript/segments/{segmentId}",
+    response_model=TranscriptSegment,
+)
+async def get_transcript_segment(
+    projectId: str,
+    segmentId: str,
+    user: UserDep,
+    service: ServiceDep,
+) -> TranscriptSegment:
+    return service.get_segment(
+        owner_uid=user.uid, project_id=projectId, segment_id=segmentId
+    )
