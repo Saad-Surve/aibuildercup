@@ -66,6 +66,15 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     void queryClient.invalidateQueries({ queryKey: ["transcript", projectId] });
   }, [jobStatus, projectId, queryClient]);
 
+  // The transcript panel's own polling pauses while the tab is unfocused, so when the
+  // project turns "ready" (noticed by the background project poll) fetch the transcript
+  // here. This is what makes the content appear without a reload or refocus.
+  const projectStatus = projectQuery.data?.status;
+  useEffect(() => {
+    if (projectStatus !== "ready") return;
+    void queryClient.invalidateQueries({ queryKey: ["transcript", projectId] });
+  }, [projectStatus, projectId, queryClient]);
+
   // When the API lists no assets but this browser still holds the upload,
   // play the local copy instead of asking for another upload. Hooks stay
   // above the early returns.
