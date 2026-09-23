@@ -36,6 +36,14 @@ jobs:
           docker build -t "$REGISTRY/api:$GITHUB_SHA" backend
           docker push "$REGISTRY/api:$GITHUB_SHA"
 
+      - name: Resolve API service URL
+        id: api
+        run: |
+          url="$(gcloud run services describe creator-studio-api \
+            --project "$PROJECT_ID" --region "$REGION" \
+            --format='value(status.url)' 2>/dev/null || true)"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+
       - name: Deploy API
         env:
           CORS_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS || '["https://habeas-codus.web.app","https://habeas-codus.firebaseapp.com"]' }}
@@ -50,7 +58,7 @@ jobs:
             --min-instances 0 \
             --max-instances 1 \
             --no-cpu-throttling \
-            --set-env-vars "^|^ENVIRONMENT=production|PROJECT_ID=habeas-codus|REGION=us-central1|CORS_ALLOWED_ORIGINS=${CORS_ORIGINS}|PUBSUB_PUSH_AUDIENCE=${{ vars.API_URL }}|PUBSUB_PUSH_SERVICE_ACCOUNT=creator-studio-transcribe@habeas-codus.iam.gserviceaccount.com" \
+            --set-env-vars "^|^ENVIRONMENT=production|PROJECT_ID=habeas-codus|REGION=us-central1|CORS_ALLOWED_ORIGINS=${CORS_ORIGINS}|PUBSUB_PUSH_AUDIENCE=${{ steps.api.outputs.url }}|PUBSUB_PUSH_SERVICE_ACCOUNT=creator-studio-transcribe@habeas-codus.iam.gserviceaccount.com" \
             --set-secrets "GEMINI_API_KEY=gemini-api-key:latest"
 
       - uses: oven-sh/setup-bun@v2
