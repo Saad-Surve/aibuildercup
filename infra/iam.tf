@@ -11,6 +11,9 @@ locals {
       "roles/cloudkms.cryptoKeyEncrypterDecrypter",
       # DELETE /api/me removes the Firebase Auth account via the Admin SDK.
       "roles/firebaseauth.admin",
+      # Transcription runs inline in the API service (background task), so the API SA needs
+      # Speech access until the worker moves to its own service.
+      "roles/speech.client",
     ]
     transcribe = [
       "roles/storage.objectAdmin",

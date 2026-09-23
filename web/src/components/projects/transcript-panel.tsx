@@ -31,8 +31,11 @@ export function TranscriptPanel({
     queryKey: ["transcript", projectId],
     queryFn: () => getTranscript(projectId),
     retry: false,
-    refetchInterval: (query) =>
-      query.state.data || !processing ? false : 3000,
+    // Poll until the transcript exists. The project's `processing` flag can be
+    // stale after a reload, so it must not gate the retry — otherwise a ready
+    // transcript never gets fetched.
+    refetchOnMount: "always",
+    refetchInterval: (query) => (query.state.data ? false : 3000),
   });
 
   function seekTo(startMs: number) {
@@ -101,25 +104,35 @@ export function TranscriptPanel({
   const notReady =
     transcriptQuery.error instanceof ApiError &&
     transcriptQuery.error.status === 404;
-  if (notReady && processing) {
+
+  if (transcriptQuery.error && !notReady) {
     return (
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Icon icon={Loading03Icon} className="animate-spin text-signal" />
-            <CardTitle>Transcribing…</CardTitle>
-          </div>
+          <CardTitle>Transcript unavailable</CardTitle>
           <CardDescription>
-            Word timestamps land here as soon as speech recognition finishes.
+            The transcript could not be loaded. Refresh to try again.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-5/6" />
-        </CardContent>
       </Card>
     );
   }
 
-  return null;
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Icon icon={Loading03Icon} className="animate-spin text-signal" />
+          <CardTitle>{processing ? "Transcribing…" : "Transcript pending"}</CardTitle>
+        </div>
+        <CardDescription>
+          Word timestamps land here as soon as speech recognition finishes.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+      </CardContent>
+    </Card>
+  );
 }

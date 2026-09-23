@@ -32,6 +32,12 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const projectQuery = useQuery({
     queryKey: ["project", projectId],
     queryFn: () => getProject(projectId),
+    // Keep the status fresh while the pipeline runs so the workspace flips to
+    // ready even after a reload (when no job id is in memory to poll).
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "processing" || status === "uploading" ? 3000 : false;
+    },
   });
 
   const assetsQuery = useQuery({
@@ -159,7 +165,9 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
 
       {effectiveSource ? (
         <div className="space-y-6">
-          <ProcessingStatusCard project={project} job={jobQuery.data ?? null} />
+          {(processing || project.status === "failed") && (
+            <ProcessingStatusCard project={project} job={jobQuery.data ?? null} />
+          )}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
