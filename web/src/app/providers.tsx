@@ -11,7 +11,9 @@ export function Providers({ children }: { children: ReactNode }) {
           queries: {
             staleTime: 30_000,
             retry: 1,
-            refetchOnWindowFocus: false,
+            // Refetch when the tab regains focus so a transcription that finished while the
+            // tab was in the background shows up without a manual reload.
+            refetchOnWindowFocus: true,
           },
         },
       }),

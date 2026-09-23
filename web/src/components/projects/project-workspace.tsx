@@ -38,6 +38,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       const status = query.state.data?.status;
       return status === "processing" || status === "uploading" ? 3000 : false;
     },
+    refetchIntervalInBackground: true,
   });
 
   const assetsQuery = useQuery({
@@ -53,6 +54,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       const status = query.state.data?.status;
       return status === "queued" || status === "running" ? 3000 : false;
     },
+    refetchIntervalInBackground: true,
   });
 
   // When transcription finishes, refresh the project (status flips to ready)
