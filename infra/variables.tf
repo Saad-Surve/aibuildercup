@@ -42,6 +42,12 @@ variable "temp_retention_days" {
   default     = 7
 }
 
+variable "noncurrent_retention_days" {
+  description = "Lifecycle deletion for noncurrent (archived) versions in versioned buckets. Backstop against version pile-up; never touches live objects."
+  type        = number
+  default     = 30
+}
+
 variable "billing_account_id" {
   description = "Billing account that owns the budget and kill switch."
   type        = string

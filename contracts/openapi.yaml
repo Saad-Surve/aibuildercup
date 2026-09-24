@@ -190,9 +190,11 @@ paths:
       description: |
         Permanently removes every Cloud Storage object under the project prefix (source video,
         transcript JSON, VTT/SRT captions, derived media) and the whole Firestore subtree
-        (assets, jobs, transcripts + segments). Cannot be undone.
+        (assets, jobs, transcripts + segments). Cannot be undone. The delete is
+        synchronous, so a successful response means the data is gone.
       responses:
-        "202": { $ref: "#/components/responses/Accepted" }
+        "204":
+          description: Deleted, no content
 
   /api/projects/{projectId}/upload-session:
     parameters:

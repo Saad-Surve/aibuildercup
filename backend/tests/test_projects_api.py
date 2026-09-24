@@ -63,7 +63,8 @@ def test_update_project(client: TestClient) -> None:
 def test_delete_project(client: TestClient) -> None:
     project_id = client.post("/api/projects", json={"name": "Bye"}).json()["projectId"]
     response = client.delete(f"/api/projects/{project_id}")
-    assert response.status_code == 202
+    assert response.status_code == 204
+    assert response.content == b""
     assert client.get(f"/api/projects/{project_id}").status_code == 404
 
 

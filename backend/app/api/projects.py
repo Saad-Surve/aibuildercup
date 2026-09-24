@@ -57,15 +57,11 @@ async def update_project(
     return service.update(owner_uid=user.uid, project_id=projectId, patch=payload)
 
 
-@router.delete("/projects/{projectId}", status_code=status.HTTP_202_ACCEPTED)
+@router.delete("/projects/{projectId}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
 ) -> Response:
     service.delete(owner_uid=user.uid, project_id=projectId)
-    return Response(
-        status_code=status.HTTP_202_ACCEPTED,
-        content=b'{"status": "accepted"}',
-        media_type="application/json",
-    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

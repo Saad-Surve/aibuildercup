@@ -22,8 +22,14 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getVideoBlobForProject } from "@/lib/local-media";
-import { formatBytes, getJob, getProject, listAssets } from "@/lib/projects";
-import type { Asset, Job } from "@/lib/types";
+import {
+  formatBytes,
+  getJob,
+  getProject,
+  listAssets,
+  subscribeToProjectEvents,
+} from "@/lib/projects";
+import type { Asset, Job, Project } from "@/lib/types";
 
 export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [jobId, setJobId] = useState<string | null>(null);
@@ -73,6 +79,31 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   useEffect(() => {
     if (projectStatus !== "ready") return;
     void queryClient.invalidateQueries({ queryKey: ["transcript", projectId] });
+  }, [projectStatus, projectId, queryClient]);
+
+  // Live progress via the SSE stream. Event-driven cache updates make the
+  // workspace flip the moment the backend state changes; the polling queries
+  // above stay as a fallback if the stream drops or the user is signed out.
+  useEffect(() => {
+    if (projectStatus !== "processing" && projectStatus !== "uploading") return;
+    return subscribeToProjectEvents(projectId, (event) => {
+      queryClient.setQueryData<Project>(["project", projectId], (old) =>
+        old ? { ...old, status: event.status, progress: event.progress } : old,
+      );
+      if (event.job) {
+        const jobSnapshot = event.job;
+        setJobId((previous) => previous ?? jobSnapshot.jobId);
+        queryClient.setQueryData<Job>(["job", jobSnapshot.jobId], (old) =>
+          old
+            ? {
+                ...old,
+                status: jobSnapshot.status,
+                progress: jobSnapshot.progress,
+              }
+            : old,
+        );
+      }
+    });
   }, [projectStatus, projectId, queryClient]);
 
   // When the API lists no assets but this browser still holds the upload,

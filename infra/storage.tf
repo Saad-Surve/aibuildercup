@@ -33,6 +33,21 @@ resource "google_storage_bucket" "buckets" {
     }
   }
 
+  # Backstop against version pile-up in versioned buckets (media, corpus).
+  # Only deletes noncurrent versions after N days; live objects are untouched.
+  dynamic "lifecycle_rule" {
+    for_each = contains(["media", "corpus"], each.key) ? [1] : []
+    content {
+      condition {
+        days_since_noncurrent_time = var.noncurrent_retention_days
+        with_state                 = "ARCHIVED"
+      }
+      action {
+        type = "Delete"
+      }
+    }
+  }
+
   dynamic "cors" {
     for_each = each.key == "media" ? [1] : []
     content {
