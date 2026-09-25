@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { ClosedCaptionIcon, Loading03Icon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
@@ -12,8 +11,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatTimestamp, getTranscript } from "@/lib/projects";
+import { useProjectTranscript } from "@/hooks/use-project-transcript";
 import { ApiError } from "@/lib/api-client";
+import { formatTimestamp } from "@/lib/projects";
 
 /*
  * Transcript viewer for the project workspace. Segments are clickable:
@@ -27,16 +27,9 @@ export function TranscriptPanel({
   projectId: string;
   processing: boolean;
 }) {
-  const transcriptQuery = useQuery({
-    queryKey: ["transcript", projectId],
-    queryFn: () => getTranscript(projectId),
-    retry: false,
-    // Poll until the transcript exists. The project's `processing` flag can be
-    // stale after a reload, so it must not gate the retry — otherwise a ready
-    // transcript never gets fetched.
-    refetchOnMount: "always",
-    refetchInterval: (query) => (query.state.data ? false : 3000),
-  });
+  // Polled until the transcript exists; see `hooks/use-project-transcript.ts`
+  // for why the rules there are load-bearing.
+  const transcriptQuery = useProjectTranscript(projectId);
 
   function seekTo(startMs: number) {
     window.dispatchEvent(

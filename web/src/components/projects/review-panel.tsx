@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useProjectTranscript } from "@/hooks/use-project-transcript";
 import { ApiError } from "@/lib/api-client";
 import {
   dimensionLabel,
@@ -42,7 +43,6 @@ import {
   SEVERITY_ORDER,
   startAnalysis,
 } from "@/lib/analysis";
-import { getTranscript } from "@/lib/projects";
 import type { AnalysisDimension, AnalysisRun, Severity } from "@/lib/types";
 import { CORE_DIMENSIONS } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -70,11 +70,9 @@ export function ReviewPanel({
   const [selectedBinId, setSelectedBinId] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
 
-  const transcriptQuery = useQuery({
-    queryKey: ["transcript", projectId],
-    queryFn: () => getTranscript(projectId),
-    retry: false,
-  });
+  // Same query as the transcript panel, so the two can never disagree about
+  // whether to keep polling for it.
+  const transcriptQuery = useProjectTranscript(projectId);
   const durationMs = transcriptQuery.data?.durationMs ?? 0;
   const hasTranscript = Boolean(transcriptQuery.data);
 
