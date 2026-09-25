@@ -6,6 +6,19 @@
     "public": "web/out",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "cleanUrls": true,
+    "headers": [
+      {
+        "source": "/api/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, must-revalidate"
+          },
+          { "key": "Pragma", "value": "no-cache" },
+          { "key": "Vary", "value": "Authorization" }
+        ]
+      }
+    ],
     "rewrites": [
       {
         "source": "/api/**",

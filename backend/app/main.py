@@ -62,6 +62,14 @@ def create_app() -> FastAPI:
         request.state.request_id = request_id
         response = await call_next(request)
         response.headers["x-request-id"] = request_id
+        # Every response here is authenticated, per-user, and changes on each write.
+        # An intermediary that caches one serves another user's data or, far more
+        # likely, a stale error: Firebase Hosting's CDN cached a 404 from
+        # `/transcript` for ten minutes and hid a transcript that already existed.
+        # Say no-store at the origin so no layer in front can second-guess it.
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Vary"] = "Authorization"
         return response
 
     @app.exception_handler(AppError)
