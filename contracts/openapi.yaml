@@ -321,14 +321,28 @@ paths:
               schema: { $ref: "#/components/schemas/TranscriptSegment" }
 
   /api/projects/{projectId}/analysis:
-    x-status: planned
-    description: |
-      Not yet implemented. Kept here as the frozen target contract; see
-      `docs/technical-design/api-design.md` for the planned analysis flow.
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: List analysis runs, newest first
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/AnalysisRun" }
     post:
       summary: Start multi-reviewer analysis
+      description: |
+        Queues a tier-1 (transcript) multi-reviewer run over the project's active
+        transcript. The six core dimensions always run; `dimensions` may add any of
+        the extended ones. Returns 202 with the analysis run and the job that
+        drives it.
       requestBody:
         required: true
         content:
@@ -345,16 +359,56 @@ paths:
                   analysisRunId: { type: string }
                   jobId: { type: string }
                   status: { type: string }
+        "409":
+          description: The project's cost cap is exhausted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/projects/{projectId}/analysis/{analysisRunId}:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/AnalysisRunId" }
+    get:
+      summary: Get analysis summary
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisRun" }
+
+  /api/projects/{projectId}/analysis/{analysisRunId}/reviewers:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/AnalysisRunId" }
+    get:
+      summary: Per-reviewer status and cost
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/ReviewerRun" }
 
   /api/projects/{projectId}/analysis/{analysisRunId}/findings:
-    x-status: planned
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
       - { $ref: "#/components/parameters/AnalysisRunId" }
       - { name: dimension, in: query, schema: { type: string } }
       - { name: severity, in: query, schema: { $ref: "#/components/schemas/Severity" } }
+      - { name: startMs, in: query, schema: { type: integer, minimum: 0 } }
+      - { name: endMs, in: query, schema: { type: integer, minimum: 0 } }
     get:
       summary: List findings
+      description: |
+        `startMs`/`endMs` select findings that overlap the given window. Filters
+        combine with AND.
       responses:
         "200":
           description: OK
@@ -368,7 +422,6 @@ paths:
                     items: { $ref: "#/components/schemas/Finding" }
 
   /api/projects/{projectId}/analysis/{analysisRunId}/heatmap:
-    x-status: planned
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
       - { $ref: "#/components/parameters/AnalysisRunId" }
@@ -385,6 +438,32 @@ paths:
                   bins:
                     type: array
                     items: { $ref: "#/components/schemas/HeatmapBin" }
+
+  /api/projects/{projectId}/analysis/{analysisRunId}/segment-review:
+    x-status: planned
+    description: |
+      Tier-2 deep review of one time range (multimodal clip + sampled frames). Needs
+      the FFmpeg media worker (`docs/technical-design/diagrams.md` section 7).
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/AnalysisRunId" }
+    post:
+      summary: Deep-review selected video segment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SegmentReviewRequest" }
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId: { type: string }
+                  status: { type: string }
 
   /api/projects/{projectId}/artifacts:
     x-status: planned
@@ -696,37 +775,115 @@ components:
           type: array
           items: { $ref: "#/components/schemas/TranscriptSegment" }
 
+    AnalysisDimension:
+      type: string
+      description: |
+        Reviewer dimensions. `truth_evidence` through `platform_fit` are core and
+        always run; the rest are extended and opt-in.
+      enum:
+        - truth_evidence
+        - clarity
+        - structure_pacing
+        - legal_safety
+        - cultural_localization
+        - platform_fit
+        - audience_fit
+        - brand_voice
+        - engagement_retention
+        - emotional_impact
+        - seo_discoverability
+        - visual_accessibility
+        - conversion_cta
+
     AnalysisRequest:
       type: object
       properties:
         dimensions:
           type: array
-          items:
-            type: string
-            enum:
-              - truth_evidence
-              - clarity
-              - structure_pacing
-              - legal_safety
-              - cultural_localization
-              - platform_fit
-              - audience_fit
-              - brand_voice
-              - engagement_retention
-              - emotional_impact
-              - seo_discoverability
-              - visual_accessibility
-              - conversion_cta
+          description: Extended dimensions to add. Core dimensions always run.
+          items: { $ref: "#/components/schemas/AnalysisDimension" }
         platform: { type: string }
-        includeVisualReview: { type: boolean, default: false }
+        includeVisualReview:
+          type: boolean
+          default: false
+          description: |
+            Reserved for the tier-2 multimodal pass. Accepted and recorded on the run,
+            but no visual findings are produced until the media worker exists.
         transcriptVersion: { type: integer }
+
+    AnalysisRunStatus:
+      type: string
+      enum: [queued, running, ready, partial_failure, failed]
+
+    TokenUsage:
+      type: object
+      properties:
+        input: { type: integer }
+        output: { type: integer }
+
+    AnalysisRun:
+      type: object
+      properties:
+        analysisRunId: { type: string }
+        jobId: { type: string }
+        status: { $ref: "#/components/schemas/AnalysisRunStatus" }
+        transcriptId: { type: string }
+        sourceAssetId: { type: [string, "null"] }
+        personaVersion: { type: [integer, "null"] }
+        fanoutStrategy: { type: string }
+        chunkCount: { type: integer }
+        requestedDimensions:
+          type: array
+          items: { $ref: "#/components/schemas/AnalysisDimension" }
+        completedDimensions:
+          type: array
+          items: { $ref: "#/components/schemas/AnalysisDimension" }
+        overallScore: { type: [number, "null"] }
+        scoreByDimension:
+          type: object
+          additionalProperties: { type: number }
+        findingCounts:
+          type: object
+          properties:
+            none: { type: integer }
+            low: { type: integer }
+            medium: { type: integer }
+            high: { type: integer }
+            critical: { type: integer }
+        modelConfigVersion: { type: string }
+        promptVersion: { type: string }
+        costEstimateUsd: { type: number }
+        error: { type: [object, "null"], additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ReviewerRunStatus:
+      type: string
+      enum: [queued, running, succeeded, failed]
+
+    ReviewerRun:
+      type: object
+      properties:
+        reviewerRunId: { type: string }
+        dimension: { $ref: "#/components/schemas/AnalysisDimension" }
+        status: { $ref: "#/components/schemas/ReviewerRunStatus" }
+        findingCount: { type: integer }
+        costEstimateUsd: { type: number }
+        durationMs: { type: integer }
+        model: { type: [string, "null"] }
+        inputSegmentCount: { type: integer }
+        tokenUsage: { $ref: "#/components/schemas/TokenUsage" }
+        error: { type: [object, "null"], additionalProperties: true }
+        startedAt: { type: [string, "null"], format: date-time }
+        finishedAt: { type: [string, "null"], format: date-time }
 
     Finding:
       type: object
       required: [dimension, score, confidence, severity, evidence, suggestion]
       properties:
         findingId: { type: string }
-        dimension: { type: string }
+        dimension: { $ref: "#/components/schemas/AnalysisDimension" }
+        reviewerRunId: { type: [string, "null"] }
         segmentId: { type: [string, "null"] }
         startMs: { type: integer }
         endMs: { type: integer }
@@ -747,13 +904,24 @@ components:
     HeatmapBin:
       type: object
       properties:
-        dimension: { type: string }
+        binId: { type: string }
+        dimension: { $ref: "#/components/schemas/AnalysisDimension" }
         startMs: { type: integer }
         endMs: { type: integer }
         score: { type: number }
         severity: { $ref: "#/components/schemas/Severity" }
         color: { type: string, enum: [green, yellow, orange, red] }
         findingIds: { type: array, items: { type: string } }
+
+    SegmentReviewRequest:
+      type: object
+      required: [startMs, endMs]
+      properties:
+        startMs: { type: integer, minimum: 0 }
+        endMs: { type: integer, minimum: 0 }
+        dimensions:
+          type: array
+          items: { $ref: "#/components/schemas/AnalysisDimension" }
 
     ArtifactRequest:
       type: object

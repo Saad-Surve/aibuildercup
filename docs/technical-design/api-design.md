@@ -290,6 +290,7 @@ Transcript regeneration options:
 
 | Method | Route | Purpose |
 |---|---|---|
+| GET | /projects/{projectId}/analysis | List analysis runs, newest first |
 | POST | /projects/{projectId}/analysis | Start multi-reviewer analysis |
 | GET | /projects/{projectId}/analysis/{analysisRunId} | Get analysis summary |
 | GET | /projects/{projectId}/analysis/{analysisRunId}/reviewers | Per-reviewer status and cost |

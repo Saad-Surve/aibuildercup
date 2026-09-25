@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { ProcessingStatusCard } from "@/components/projects/processing-status-card";
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge";
+import { ReviewPanel } from "@/components/projects/review-panel";
 import { SourceVideoPlayer } from "@/components/projects/source-video-player";
 import { TranscriptPanel } from "@/components/projects/transcript-panel";
 import { VideoDropzone } from "@/components/projects/video-dropzone";
@@ -180,6 +181,15 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     jobQuery.data?.status === "queued" ||
     jobQuery.data?.status === "running";
 
+  // Same seek channel the transcript panel uses: the player listens for it.
+  function seekTo(startMs: number) {
+    window.dispatchEvent(
+      new CustomEvent("creator-studio:seek", {
+        detail: { projectId, seconds: startMs / 1000 },
+      }),
+    );
+  }
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <Link
@@ -232,6 +242,11 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
               </p>
             </CardContent>
           </Card>
+          <ReviewPanel
+            projectId={projectId}
+            platform={project.targetPlatforms[0] ?? "youtube"}
+            onSeek={seekTo}
+          />
           <TranscriptPanel projectId={projectId} processing={processing} />
         </div>
       ) : (

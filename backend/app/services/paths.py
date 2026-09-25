@@ -131,6 +131,62 @@ def transcript_srt_object_path(uid: str, project_id: str, language: str) -> str:
     return f"{project_path(uid, project_id)}/captions/{safe_language}.srt"
 
 
+def analysis_runs_collection_path(uid: str, project_id: str) -> str:
+    return f"{project_path(uid, project_id)}/analysisRuns"
+
+
+def analysis_run_path(uid: str, project_id: str, analysis_run_id: str) -> str:
+    return (
+        f"{analysis_runs_collection_path(uid, project_id)}/"
+        f"{safe_segment(analysis_run_id, name='analysisRunId')}"
+    )
+
+
+def analysis_reviewers_collection_path(
+    uid: str, project_id: str, analysis_run_id: str
+) -> str:
+    return f"{analysis_run_path(uid, project_id, analysis_run_id)}/reviewers"
+
+
+def reviewer_run_path(
+    uid: str, project_id: str, analysis_run_id: str, reviewer_run_id: str
+) -> str:
+    return (
+        f"{analysis_reviewers_collection_path(uid, project_id, analysis_run_id)}/"
+        f"{safe_segment(reviewer_run_id, name='reviewerRunId')}"
+    )
+
+
+def analysis_findings_collection_path(
+    uid: str, project_id: str, analysis_run_id: str
+) -> str:
+    return f"{analysis_run_path(uid, project_id, analysis_run_id)}/findings"
+
+
+def finding_path(
+    uid: str, project_id: str, analysis_run_id: str, finding_id: str
+) -> str:
+    return (
+        f"{analysis_findings_collection_path(uid, project_id, analysis_run_id)}/"
+        f"{safe_segment(finding_id, name='findingId')}"
+    )
+
+
+def heatmap_bins_collection_path(
+    uid: str, project_id: str, analysis_run_id: str
+) -> str:
+    return f"{analysis_run_path(uid, project_id, analysis_run_id)}/heatmapBins"
+
+
+def heatmap_bin_path(
+    uid: str, project_id: str, analysis_run_id: str, bin_id: str
+) -> str:
+    return (
+        f"{heatmap_bins_collection_path(uid, project_id, analysis_run_id)}/"
+        f"{safe_segment(bin_id, name='binId')}"
+    )
+
+
 # `users/{uid}/projects/{projectId}/source/{assetId}.{ext}` — the source object layout is
 # itself parseable, which is how the GCS-finalized Pub/Sub handler recovers ownership.
 _SOURCE_OBJECT = re.compile(

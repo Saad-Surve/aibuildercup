@@ -2,13 +2,21 @@ import pytest
 
 from app.services.firestore_service import (
     InvalidPathSegment,
+    analysis_findings_collection_path,
+    analysis_reviewers_collection_path,
+    analysis_run_path,
+    analysis_runs_collection_path,
     asset_path,
     assets_collection_path,
+    finding_path,
+    heatmap_bin_path,
+    heatmap_bins_collection_path,
     job_path,
     jobs_collection_path,
     parse_source_object_path,
     project_path,
     projects_collection_path,
+    reviewer_run_path,
     source_object_path,
     transcript_srt_object_path,
     transcript_vtt_object_path,
@@ -64,6 +72,42 @@ def test_caption_object_paths() -> None:
     )
 
 
+def test_analysis_paths() -> None:
+    assert (
+        analysis_runs_collection_path("uid-1", "p1")
+        == "users/uid-1/projects/p1/analysisRuns"
+    )
+    assert (
+        analysis_run_path("uid-1", "p1", "run-1")
+        == "users/uid-1/projects/p1/analysisRuns/run-1"
+    )
+    assert (
+        analysis_reviewers_collection_path("uid-1", "p1", "run-1")
+        == "users/uid-1/projects/p1/analysisRuns/run-1/reviewers"
+    )
+    assert (
+        reviewer_run_path("uid-1", "p1", "run-1", "rev-1")
+        == "users/uid-1/projects/p1/analysisRuns/run-1/reviewers/rev-1"
+    )
+    assert (
+        analysis_findings_collection_path("uid-1", "p1", "run-1")
+        == "users/uid-1/projects/p1/analysisRuns/run-1/findings"
+    )
+    assert (
+        finding_path("uid-1", "p1", "run-1", "f-1")
+        == "users/uid-1/projects/p1/analysisRuns/run-1/findings/f-1"
+    )
+    assert (
+        heatmap_bins_collection_path("uid-1", "p1", "run-1")
+        == "users/uid-1/projects/p1/analysisRuns/run-1/heatmapBins"
+    )
+    # Bin ids are `dimension-startMs`, which is a legal single segment.
+    assert (
+        heatmap_bin_path("uid-1", "p1", "run-1", "clarity-40000")
+        == "users/uid-1/projects/p1/analysisRuns/run-1/heatmapBins/clarity-40000"
+    )
+
+
 def test_parse_source_object_path() -> None:
     assert parse_source_object_path("users/u1/projects/p1/source/a1.mp4") == (
         "u1",
@@ -91,3 +135,11 @@ def test_path_segments_reject_traversal(bad: str) -> None:
         asset_path("uid-1", "p1", bad)
     with pytest.raises(InvalidPathSegment):
         job_path("uid-1", "p1", bad)
+    with pytest.raises(InvalidPathSegment):
+        analysis_run_path("uid-1", "p1", bad)
+    with pytest.raises(InvalidPathSegment):
+        reviewer_run_path("uid-1", "p1", "run-1", bad)
+    with pytest.raises(InvalidPathSegment):
+        finding_path("uid-1", "p1", "run-1", bad)
+    with pytest.raises(InvalidPathSegment):
+        heatmap_bin_path("uid-1", "p1", "run-1", bad)

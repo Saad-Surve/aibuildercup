@@ -5,7 +5,24 @@ interfaces, so all Google API usage lives in `app/providers/` and feature code s
 free of SDK imports and credentials handling.
 """
 
+from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
+
+
+@dataclass(frozen=True)
+class LlmUsage:
+    """Token counts reported by the model after a call."""
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+
+@dataclass(frozen=True)
+class LlmCompletion:
+    """A structured LLM answer plus what it cost in tokens."""
+
+    data: dict[str, Any]
+    usage: LlmUsage = field(default_factory=LlmUsage)
 
 
 @runtime_checkable
@@ -18,7 +35,7 @@ class LlmProvider(Protocol):
         system: str,
         user: str,
         schema: dict[str, Any],
-    ) -> dict[str, Any]: ...
+    ) -> LlmCompletion: ...
 
 
 @runtime_checkable

@@ -59,6 +59,14 @@ class Settings(BaseSettings):
     max_reviewer_concurrency: int = 4
     max_project_cost_usd: float = 5.0
 
+    # Gemini Developer API prices in USD per 1M tokens, used to turn reported token
+    # usage into `costEstimateUsd`. These track the flash-class price list and go stale
+    # when Google reprices or the model registry above is moved to a different class —
+    # override them here rather than at the call sites.
+    # Source: https://ai.google.dev/gemini-api/docs/pricing
+    llm_input_price_per_mtok: float = 0.75
+    llm_output_price_per_mtok: float = 3.75
+
     # Local development: plain user ADC has no service-account identity, so signed URLs are
     # minted for this service account through IAM signBlob (the caller needs
     # roles/iam.serviceAccountTokenCreator on it). Defaults to the Cloud Run runtime SA.

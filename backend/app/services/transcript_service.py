@@ -156,6 +156,14 @@ class TranscriptService:
         transcript_id = project.get("activeTranscriptId")
         if not transcript_id:
             raise NotFoundError("Transcript not ready", details={"projectId": project_id})
+        return self.get_by_id(
+            owner_uid=owner_uid, project_id=project_id, transcript_id=transcript_id
+        )
+
+    def get_by_id(
+        self, *, owner_uid: str, project_id: str, transcript_id: str
+    ) -> Transcript:
+        """Load a specific transcript, whatever the project's active one is now."""
         data = self.client.get_document(transcript_path(owner_uid, project_id, transcript_id))
         if data is None or not is_owner(data, owner_uid):
             raise NotFoundError("Transcript not found", details={"projectId": project_id})

@@ -221,14 +221,14 @@ class PersonaService:
 
     async def _generate_markdown(self, answers: dict[str, Any]) -> str:
         try:
-            result = await self.llm.complete_json(
+            completion = await self.llm.complete_json(
                 model=self.settings.model_orchestrator,
                 prompt_version=PERSONA_PROMPT_VERSION,
                 system=PERSONA_SYSTEM,
                 user=json.dumps(answers, sort_keys=True, default=str),
                 schema=PERSONA_SCHEMA,
             )
-            markdown = result.get("markdown")
+            markdown = completion.data.get("markdown")
             if isinstance(markdown, str) and markdown.strip():
                 return markdown.strip() + "\n"
             logger.warning("Persona provider returned no markdown; using template")

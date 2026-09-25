@@ -10,6 +10,7 @@ import logging
 from typing import Any
 
 from app.config import Settings
+from app.providers.base import LlmCompletion, LlmUsage
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class LlmProvider:
         system: str,
         user: str,
         schema: dict[str, Any],
-    ) -> dict[str, Any]:
+    ) -> LlmCompletion:
         del prompt_version  # Part of the provider interface; unused by the live call.
         return await self._real(model=model, system=system, user=user, schema=schema)
 
@@ -40,7 +41,7 @@ class LlmProvider:
         system: str,
         user: str,
         schema: dict[str, Any],
-    ) -> dict[str, Any]:
+    ) -> LlmCompletion:
         from google import genai
         from google.genai import errors as genai_errors
 
@@ -87,4 +88,19 @@ class LlmProvider:
         text = result.text
         if text is None:
             raise RuntimeError("LLM returned an empty response")
-        return json.loads(text)
+        return LlmCompletion(data=json.loads(text), usage=_usage_from(result))
+
+
+def _usage_from(result: Any) -> LlmUsage:
+    """Read `usage_metadata` off a generate_content result.
+
+    Thinking tokens are billed as output, so they are added to the output count.
+    Anything missing is reported as zero rather than guessed.
+    """
+    metadata = getattr(result, "usage_metadata", None)
+    if metadata is None:
+        return LlmUsage()
+    prompt = getattr(metadata, "prompt_token_count", None) or 0
+    candidates = getattr(metadata, "candidates_token_count", None) or 0
+    thoughts = getattr(metadata, "thoughts_token_count", None) or 0
+    return LlmUsage(input_tokens=int(prompt), output_tokens=int(candidates + thoughts))

@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from app.providers.base import LlmCompletion, LlmUsage
+
 
 class FakeFirestoreClient:
     def __init__(self) -> None:
@@ -117,8 +119,16 @@ class FakeStorageClient:
 class StubLlmProvider:
     """Minimal `LlmProvider` returning a canned response (or raising)."""
 
-    def __init__(self, response: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        response: dict[str, Any] | None = None,
+        *,
+        error: Exception | None = None,
+        usage: LlmUsage | None = None,
+    ) -> None:
         self.response = response or {"markdown": "# Stub persona\n"}
+        self.error = error
+        self.usage = usage or LlmUsage(input_tokens=10, output_tokens=5)
         self.calls: list[dict[str, Any]] = []
 
     async def complete_json(
@@ -129,6 +139,27 @@ class StubLlmProvider:
         system: str,
         user: str,
         schema: dict[str, Any],
-    ) -> dict[str, Any]:
-        self.calls.append({"model": model, "promptVersion": prompt_version, "user": user})
-        return self.response
+    ) -> LlmCompletion:
+        self.calls.append(
+            {
+                "model": model,
+                "promptVersion": prompt_version,
+                "system": system,
+                "user": user,
+                "schema": schema,
+            }
+        )
+        if self.error is not None:
+            raise self.error
+        return LlmCompletion(data=self.response, usage=self.usage)
+
+
+class FakePubSubClient:
+    """Records publishes instead of touching the network."""
+
+    def __init__(self) -> None:
+        self.published: list[tuple[str, dict[str, Any]]] = []
+
+    def publish(self, *, topic: str, event: dict[str, Any]) -> str:
+        self.published.append((topic, event))
+        return f"msg-{len(self.published)}"

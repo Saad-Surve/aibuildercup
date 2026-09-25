@@ -150,3 +150,131 @@ export interface Transcript {
   durationMs: number;
   segments: TranscriptSegment[];
 }
+
+export const ANALYSIS_DIMENSIONS = [
+  "truth_evidence",
+  "clarity",
+  "structure_pacing",
+  "legal_safety",
+  "cultural_localization",
+  "platform_fit",
+  "audience_fit",
+  "brand_voice",
+  "engagement_retention",
+  "emotional_impact",
+  "seo_discoverability",
+  "visual_accessibility",
+  "conversion_cta",
+] as const;
+
+export type AnalysisDimension = (typeof ANALYSIS_DIMENSIONS)[number];
+
+/** The first six dimensions always run; the rest are opt-in. */
+export const CORE_DIMENSIONS: AnalysisDimension[] = [
+  "truth_evidence",
+  "clarity",
+  "structure_pacing",
+  "legal_safety",
+  "cultural_localization",
+  "platform_fit",
+];
+
+export type Severity = "none" | "low" | "medium" | "high" | "critical";
+
+export type HeatmapColor = "green" | "yellow" | "orange" | "red";
+
+export type AnalysisRunStatus =
+  | "queued"
+  | "running"
+  | "ready"
+  | "partial_failure"
+  | "failed";
+
+export type ReviewerRunStatus = "queued" | "running" | "succeeded" | "failed";
+
+export interface TokenUsage {
+  input: number;
+  output: number;
+}
+
+export interface AnalysisRun {
+  analysisRunId: string;
+  jobId: string;
+  status: AnalysisRunStatus;
+  transcriptId: string;
+  sourceAssetId: string | null;
+  personaVersion: number | null;
+  fanoutStrategy: string;
+  chunkCount: number;
+  requestedDimensions: AnalysisDimension[];
+  completedDimensions: AnalysisDimension[];
+  overallScore: number | null;
+  scoreByDimension: Record<string, number>;
+  findingCounts: Record<string, number>;
+  modelConfigVersion: string;
+  promptVersion: string;
+  costEstimateUsd: number;
+  error: { code: string; message: string } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewerRun {
+  reviewerRunId: string;
+  dimension: AnalysisDimension;
+  status: ReviewerRunStatus;
+  findingCount: number;
+  costEstimateUsd: number;
+  durationMs: number;
+  model: string | null;
+  inputSegmentCount: number;
+  tokenUsage: TokenUsage;
+  error: { code: string; message: string } | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+export interface FindingEvidence {
+  quote: string;
+  explanation: string;
+}
+
+export interface Finding {
+  findingId: string;
+  dimension: AnalysisDimension;
+  reviewerRunId: string | null;
+  segmentId: string | null;
+  startMs: number;
+  endMs: number;
+  score: number;
+  confidence: number;
+  severity: Severity;
+  findingType: string;
+  evidence: FindingEvidence;
+  suggestion: string;
+  citations: Record<string, unknown>[];
+}
+
+export interface HeatmapBin {
+  binId: string;
+  dimension: AnalysisDimension;
+  startMs: number;
+  endMs: number;
+  score: number;
+  severity: Severity;
+  color: HeatmapColor;
+  findingIds: string[];
+}
+
+export interface StartAnalysisInput {
+  dimensions?: AnalysisDimension[];
+  platform?: string;
+  includeVisualReview?: boolean;
+  transcriptVersion?: number;
+}
+
+export interface StartAnalysisResponse {
+  analysisRunId: string;
+  jobId: string;
+  status: string;
+}

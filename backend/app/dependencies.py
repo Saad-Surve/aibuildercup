@@ -9,14 +9,17 @@ from app.auth.firebase import delete_user as firebase_delete_user
 from app.auth.firebase import verify_id_token
 from app.config import get_settings
 from app.providers import get_providers
+from app.services.analysis_service import AnalysisService
 from app.services.asset_service import AssetService
 from app.services.firestore_service import get_firestore_client
 from app.services.job_service import JobService
 from app.services.persona_service import PersonaService
 from app.services.project_service import ProjectService
+from app.services.pubsub_service import PubSubClient, get_pubsub_client
 from app.services.storage_service import get_storage_client
 from app.services.transcript_service import TranscriptService
 from app.services.user_service import UserService
+from app.workers.analysis_worker import analysis_after_response
 from app.workers.transcribe_worker import transcribe_after_response
 
 
@@ -67,6 +70,25 @@ TranscribeScheduler = Callable[..., None]
 
 def get_transcribe_scheduler() -> TranscribeScheduler:
     return transcribe_after_response
+
+
+def get_analysis_service() -> AnalysisService:
+    client = get_firestore_client()
+    return AnalysisService(client, jobs=JobService(client), settings=get_settings())
+
+
+# (background_tasks, *, owner_uid, project_id, job_id) -> None. Injected so tests can
+# record scheduling without running the worker.
+AnalysisScheduler = Callable[..., None]
+
+
+def get_analysis_scheduler() -> AnalysisScheduler:
+    return analysis_after_response
+
+
+def get_analysis_pubsub() -> PubSubClient | None:
+    """Event publisher for the analysis API. Overridable in tests."""
+    return get_pubsub_client()
 
 
 def get_persona_service() -> PersonaService:

@@ -4,6 +4,7 @@ import pytest
 
 from app.config import Settings
 from app.errors import ConflictError, NotFoundError
+from app.providers.base import LlmCompletion
 from app.providers.base import LlmProvider as LlmProviderProtocol
 from app.schemas.onboarding import OnboardingStatus, OnboardingStep
 from app.services.persona_service import PersonaService, build_persona_markdown
@@ -16,7 +17,7 @@ UID = "uid-1"
 class _FailingLlm:
     """LLM stub that always raises, to exercise the template fallback."""
 
-    async def complete_json(self, **_: Any) -> dict[str, Any]:
+    async def complete_json(self, **_: Any) -> LlmCompletion:
         raise RuntimeError("boom")
 
 
