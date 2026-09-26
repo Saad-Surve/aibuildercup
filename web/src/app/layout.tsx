@@ -40,16 +40,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${schibsted.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {/*
-         * Runs before first paint: apply the stored sidebar state so a hard
-         * refresh does not render expanded and then animate closed.
-         */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "try{if(localStorage.getItem('hc-sidebar-collapsed')==='1'){document.documentElement.dataset.sidebar='collapsed'}}catch(e){}",
-          }}
-        />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"

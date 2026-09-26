@@ -5,6 +5,13 @@ import { cn } from "@/lib/utils";
 import type { AvatarState } from "@/lib/types";
 
 /*
+ * The manifest's single crop leaves a lot of empty margin around the head, so
+ * the face reads tiny at header sizes. Zoom the SVG inside the clipped circle
+ * (instead of growing the whole component) and anchor on the face.
+ */
+const AVATAR_ZOOM = 1.4;
+
+/*
  * The user's Humation avatar (deterministic SVG, rendered locally — no
  * network, no stored images). Replaces the Google profile photo everywhere.
  *
@@ -43,7 +50,12 @@ export function UserAvatar({
         size={size}
         title={title}
         className="size-auto block"
-        style={{ width: size, height: size }}
+        style={{
+          width: size,
+          height: size,
+          transform: `scale(${AVATAR_ZOOM})`,
+          transformOrigin: "50% 42%",
+        }}
       />
     </span>
   );

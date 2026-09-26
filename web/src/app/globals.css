@@ -89,17 +89,6 @@
 }
 
 /*
- * Sidebar collapse is persisted in localStorage. A tiny blocking script in the
- * root layout sets `data-sidebar` before first paint; this rule applies that
- * width instantly so a hard refresh opens collapsed instead of animating from
- * expanded. `AppShell` removes the attribute on mount so framer-motion owns the
- * width from then on.
- */
-html[data-sidebar="collapsed"] .app-sidebar-rail {
-  width: 64px !important;
-}
-
-/*
  * The project workspace's right panes move with the page but snap their top
  * level with the video card (the `lg:snap-start lg:scroll-mt-20` panes).
  * `proximity` only pulls when a stop lands near a boundary, so normal scrolling

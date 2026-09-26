@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -55,38 +55,11 @@ const NAV: NavItem[] = [
 const COLLAPSE_KEY = "hc-sidebar-collapsed";
 
 /*
- * Collapsed state lives in a tiny external store rather than React state so
- * the persisted value can sync in an effect without a setState-in-effect,
- * and the server snapshot (expanded) always matches first paint.
+ * The collapsed rail is persisted in localStorage. AppShell only mounts on the
+ * client (it sits behind the auth gate), so the stored value can seed useState
+ * directly — no effect, no hydration mismatch, and no expanded-then-collapse
+ * flash on a hard refresh.
  */
-const collapsedStore = {
-  value: false,
-  listeners: new Set<() => void>(),
-  read(): boolean {
-    return this.value;
-  },
-  write(next: boolean): void {
-    if (this.value === next) return;
-    this.value = next;
-    for (const notify of this.listeners) notify();
-  },
-};
-
-function subscribeCollapsed(notify: () => void): () => void {
-  collapsedStore.listeners.add(notify);
-  return () => {
-    collapsedStore.listeners.delete(notify);
-  };
-}
-
-function getCollapsedSnapshot(): boolean {
-  return collapsedStore.read();
-}
-
-function getCollapsedServerSnapshot(): boolean {
-  return false;
-}
-
 function readStoredCollapsed(): boolean {
   try {
     return window.localStorage.getItem(COLLAPSE_KEY) === "1";
@@ -96,28 +69,14 @@ function readStoredCollapsed(): boolean {
 }
 
 function useSidebarCollapsed(): [boolean, (next: boolean) => void] {
-  const collapsed = useSyncExternalStore(
-    subscribeCollapsed,
-    getCollapsedSnapshot,
-    getCollapsedServerSnapshot,
-  );
+  const [collapsed, setCollapsedState] = useState(readStoredCollapsed);
 
   useEffect(() => {
-    collapsedStore.write(readStoredCollapsed());
-    // The pre-paint CSS override has done its job once React has applied the
-    // stored width; hand control back to framer-motion.
-    const frame = window.requestAnimationFrame(() => {
-      document.documentElement.removeAttribute("data-sidebar");
-    });
     const onStorage = (event: StorageEvent) => {
-      if (event.key === COLLAPSE_KEY)
-        collapsedStore.write(event.newValue === "1");
+      if (event.key === COLLAPSE_KEY) setCollapsedState(event.newValue === "1");
     };
     window.addEventListener("storage", onStorage);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener("storage", onStorage);
-    };
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   function setCollapsed(next: boolean): void {
@@ -126,7 +85,7 @@ function useSidebarCollapsed(): [boolean, (next: boolean) => void] {
     } catch {
       // Private mode: collapse still works for this session.
     }
-    collapsedStore.write(next);
+    setCollapsedState(next);
   }
 
   return [collapsed, setCollapsed];
