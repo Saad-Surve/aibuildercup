@@ -31,11 +31,14 @@ class Settings(BaseSettings):
     llm_max_attempts: int = 4
     llm_retry_base_seconds: float = 0.5
 
-    # Model registry. Agents never hardcode model ids; they read these. Gemini 2.5 models are
-    # retired for new AI Studio keys and `gemini-*-pro` is not on the free tier, so default to the
-    # rolling flash alias. Pin a concrete id (e.g. gemini-3.6-flash) if you need reproducibility.
-    model_reviewer: str = "gemini-flash-latest"
-    model_orchestrator: str = "gemini-flash-latest"
+    # Model registry. Agents never hardcode model ids; they read these. Defaults to Gemma 4
+    # (`gemma-4-26b-a4b-it`), hosted on the Gemini Developer API: it is free, has a far more
+    # generous free-tier request quota than the Gemini flash models, and accepts the same
+    # `response_mime_type`/`response_schema` controlled-generation config the provider sends.
+    # Set these back to `gemini-flash-latest` for the stronger Gemini flash-class quality. Pin a
+    # concrete id (e.g. gemma-4-31b-it) if you need reproducibility.
+    model_reviewer: str = "gemma-4-26b-a4b-it"
+    model_orchestrator: str = "gemma-4-26b-a4b-it"
     model_image: str = "imagen-4.0-generate-001"
     model_video: str = "veo-3.1-fast"
     model_stt: str = "chirp_3"
@@ -59,13 +62,13 @@ class Settings(BaseSettings):
     max_reviewer_concurrency: int = 4
     max_project_cost_usd: float = 5.0
 
-    # Gemini Developer API prices in USD per 1M tokens, used to turn reported token
-    # usage into `costEstimateUsd`. These track the flash-class price list and go stale
-    # when Google reprices or the model registry above is moved to a different class —
-    # override them here rather than at the call sites.
+    # LLM prices in USD per 1M tokens, used to turn reported token usage into `costEstimateUsd`.
+    # The default model registry above is Gemma 4, which is free, so these default to zero. If you
+    # move the registry back to a Gemini model, override them here (Gemini flash-class is
+    # ~$0.75 in / $3.75 out); they are not auto-detected from the model id.
     # Source: https://ai.google.dev/gemini-api/docs/pricing
-    llm_input_price_per_mtok: float = 0.75
-    llm_output_price_per_mtok: float = 3.75
+    llm_input_price_per_mtok: float = 0.0
+    llm_output_price_per_mtok: float = 0.0
 
     # Local development: plain user ADC has no service-account identity, so signed URLs are
     # minted for this service account through IAM signBlob (the caller needs
