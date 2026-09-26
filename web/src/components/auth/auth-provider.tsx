@@ -10,9 +10,9 @@ import {
   type ReactNode,
 } from "react";
 import {
-  getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
+  signInWithPopup,
   signInWithRedirect,
   signOut as firebaseSignOut,
   type User,
@@ -55,13 +55,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
 
-    // Completes the in-page Google redirect and surfaces any error it returned.
-    void getRedirectResult(auth).catch((caught) => {
-      if (!active) return;
-      setError(describeError(caught));
-      setStatus("signed_out");
-    });
-
     const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
       if (!active) return;
       setUser(nextUser);
@@ -95,11 +88,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = useCallback(async () => {
     setError(null);
+    const provider = new GoogleAuthProvider();
     try {
-      // Redirect keeps the whole flow in this tab/page instead of spawning a
-      // separate Google popup window.
-      await signInWithRedirect(auth, new GoogleAuthProvider());
+      await signInWithPopup(auth, provider);
     } catch (caught) {
+      // Popup blocked (or disallowed) — fall back to a same-tab redirect.
+      const code =
+        caught && typeof caught === "object" && "code" in caught
+          ? String((caught as { code?: unknown }).code)
+          : "";
+      if (code === "auth/popup-blocked" || code === "auth/operation-not-supported-in-this-environment") {
+        try {
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (fallback) {
+          setError(describeError(fallback));
+          setStatus("signed_out");
+          return;
+        }
+      }
       setError(describeError(caught));
       setStatus("signed_out");
     }
