@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AuthLoadingScreen } from "@/components/auth/auth-loading-screen";
 import { useAuth } from "@/components/auth/auth-provider";
 import { CenteredScreen } from "@/components/common/centered-screen";
+import { Icon } from "@/components/common/icon";
 import { Logo } from "@/components/common/logo";
 import { UserMenu } from "@/components/layout/user-menu";
 import { StepRail } from "@/components/onboarding/step-rail";
@@ -22,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
+import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import {
   ONBOARDING_STEPS,
@@ -231,6 +233,7 @@ export function OnboardingFlow({
                 size="sm"
                 onClick={() => router.push("/profile")}
               >
+                <Icon icon={ArrowLeft01Icon} />
                 Back to profile
               </Button>
             ) : null}

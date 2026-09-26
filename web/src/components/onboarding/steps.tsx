@@ -1,6 +1,9 @@
 "use client";
 
+import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
+
 import { ChipSelect, type ChipOption } from "@/components/common/chip-select";
+import { Icon } from "@/components/common/icon";
 import { PersonaText } from "@/components/common/persona-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -378,7 +381,14 @@ export function DoneStep({
           : `${name ? `${name}, your` : "Your"} persona is saved and the reviewers are calibrated to it. Upload a video to see your first heatmap.`}
       </p>
       <Button size="lg" onClick={onFinish}>
-        {isEdit ? "Back to profile" : "Go to dashboard"}
+        {isEdit ? (
+          <>
+            <Icon icon={ArrowLeft01Icon} />
+            Back to profile
+          </>
+        ) : (
+          "Go to dashboard"
+        )}
       </Button>
     </div>
   );

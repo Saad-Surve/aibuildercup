@@ -176,7 +176,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
 
   if (projectQuery.isLoading) {
     return (
-      <div className="mx-auto max-w-7xl space-y-6">
+      <div className="w-full space-y-6">
         <Skeleton className="h-5 w-24" />
         <div className="space-y-3">
           <Skeleton className="h-8 w-64" />
@@ -229,7 +229,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="w-full space-y-6">
       {/*
        * The top snap stop includes the back link and the header, so mandatory
        * snapping can rest here instead of skipping past "< Projects".
