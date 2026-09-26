@@ -41,48 +41,18 @@ def _result(text: str) -> SimpleNamespace:
     )
 
 
-async def test_llm_uses_gemini_api_key_when_set(monkeypatch) -> None:
+async def test_llm_uses_agent_platform_client(monkeypatch) -> None:
     captured: list[dict] = []
     monkeypatch.setattr(
         "google.genai.Client", lambda **kwargs: _FakeClient(captured, **kwargs)
     )
-    provider = LlmProvider(Settings(gemini_api_key="test-key"))
-
-    await provider.complete_json(
-        model="m", prompt_version="v1", system="s", user="u", schema={}
-    )
-
-    assert captured == [{"api_key": "test-key"}]
-
-
-async def test_llm_requires_api_key(monkeypatch) -> None:
-    captured: list[dict] = []
-    monkeypatch.setattr(
-        "google.genai.Client", lambda **kwargs: _FakeClient(captured, **kwargs)
-    )
-    provider = LlmProvider(Settings(gemini_api_key=None))
-
-    with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
-        await provider.complete_json(
-            model="m", prompt_version="v1", system="s", user="u", schema={}
-        )
-    assert captured == []
-
-
-async def test_llm_vertex_backend_uses_adc_without_api_key(monkeypatch) -> None:
-    captured: list[dict] = []
-    monkeypatch.setattr(
-        "google.genai.Client", lambda **kwargs: _FakeClient(captured, **kwargs)
-    )
-    provider = LlmProvider(
-        Settings(llm_backend="vertex", project_id="proj", vertex_location="global")
-    )
+    provider = LlmProvider(Settings(project_id="proj", vertex_location="global"))
 
     await provider.complete_json(
         model="gemini-3.8-flash", prompt_version="v1", system="s", user="u", schema={}
     )
 
-    # Vertex is authenticated with ADC, so no api_key is passed; project + location instead.
+    # Agent Platform is authenticated with ADC, so no api_key is passed; project + location instead.
     assert captured == [{"vertexai": True, "project": "proj", "location": "global"}]
 
 
@@ -96,9 +66,7 @@ async def test_llm_retries_transient_error_then_succeeds(monkeypatch) -> None:
         failures=1,
     )
     monkeypatch.setattr("google.genai.Client", lambda **_: client)
-    provider = LlmProvider(
-        Settings(gemini_api_key="k", llm_retry_base_seconds=0)
-    )
+    provider = LlmProvider(Settings(llm_retry_base_seconds=0))
 
     result = await provider.complete_json(
         model="m", prompt_version="v1", system="s", user="u", schema={}
@@ -113,7 +81,7 @@ async def test_llm_reports_token_usage(monkeypatch) -> None:
     monkeypatch.setattr(
         "google.genai.Client", lambda **kwargs: _FakeClient(captured, **kwargs)
     )
-    provider = LlmProvider(Settings(gemini_api_key="test-key"))
+    provider = LlmProvider(Settings())
 
     result = await provider.complete_json(
         model="m", prompt_version="v1", system="s", user="u", schema={}
@@ -132,7 +100,7 @@ async def test_llm_usage_defaults_to_zero_when_absent(monkeypatch) -> None:
             )
 
     monkeypatch.setattr("google.genai.Client", lambda **_: _NoUsageClient())
-    provider = LlmProvider(Settings(gemini_api_key="test-key"))
+    provider = LlmProvider(Settings())
 
     result = await provider.complete_json(
         model="m", prompt_version="v1", system="s", user="u", schema={}
@@ -153,9 +121,7 @@ async def test_llm_does_not_retry_client_error(monkeypatch) -> None:
         failures=1,
     )
     monkeypatch.setattr("google.genai.Client", lambda **_: client)
-    provider = LlmProvider(
-        Settings(gemini_api_key="k", llm_retry_base_seconds=0)
-    )
+    provider = LlmProvider(Settings(llm_retry_base_seconds=0))
 
     with pytest.raises(genai_errors.ClientError):
         await provider.complete_json(

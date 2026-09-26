@@ -36,9 +36,9 @@ app/
 ## External services
 
 Every external call goes through a provider in `app/providers/` and hits the real service.
-LLM calls pick a backend from `LLM_BACKEND`: `developer` (Gemini Developer API / AI Studio,
-free, needs `GEMINI_API_KEY`) is the local default and runs free Gemma models so testing never
-spends GCP budget; `vertex` (Gemini Enterprise Agent Platform, formerly Vertex AI) is billable,
-authenticates with ADC, and is meant for the deployed service only. Speech-to-Text does
-transcription, and Cloud Storage and Firestore hold data. Test uploads end to end with the
-sample videos in `../fixtures/media/`.
+LLM calls run on Gemini Enterprise Agent Platform (formerly Vertex AI), authenticated with
+Application Default Credentials (locally `gcloud auth application-default login`; on Cloud Run
+the runtime service account). There are two configs: `backend/.env.example` (local, cheap
+`gemini-3.1-flash-lite`) and `backend/.env.deploy.example` (deployed, `gemini-3.8-flash`).
+Speech-to-Text does transcription, and Cloud Storage and Firestore hold data. Test uploads end
+to end with the sample videos in `../fixtures/media/`.

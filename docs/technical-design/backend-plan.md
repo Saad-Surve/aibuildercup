@@ -19,14 +19,12 @@ This keeps the agent runtime in one language and makes the Google ADK architectu
 
 Deploy everything to **`us-central1`**, except Speech-to-Text: Chirp 3 is GA on the **`us` multi-region** but not in `us-central1`, so STT uses `us`. Veo, Imagen, and Text-to-Speech are all available in `us-central1`; `us-east1` is not a valid choice for the speech models.
 
-Model IDs are never hardcoded in agents. They come from a config-driven registry so a model can be swapped or pinned without touching reviewer code. The backend is switchable too: `LLM_BACKEND=developer` is the Gemini Developer API (AI Studio), free, used locally with free Gemma models so testing never spends the GCP budget; `LLM_BACKEND=vertex` is Gemini Enterprise Agent Platform (formerly Vertex AI), billable against the project and guarded by the billing spend cap, set on the deployed service only.
+Model IDs are never hardcoded in agents. They come from a config-driven registry so a model can be swapped or pinned without touching reviewer code. Every LLM call runs on Gemini Enterprise Agent Platform (formerly Vertex AI) with Application Default Credentials. There are two configs: local (`backend/.env.example`) uses the cheap `gemini-3.1-flash-lite`; deployed (`backend/.env.deploy.example`) uses the stronger `gemini-3.8-flash`.
 
 ~~~text
-LLM_BACKEND=developer                    # developer (AI Studio, free, local) | vertex (Agent Platform, billable, deployed)
-GEMINI_API_KEY=...                       # developer backend only
-VERTEX_LOCATION=global                   # vertex backend only; global is the cheapest endpoint
-MODEL_REVIEWER=gemma-4-26b-a4b-it        # one-shot reviewers (deployed: gemini-<flash-class>)
-MODEL_ORCHESTRATOR=gemma-4-26b-a4b-it    # coordinator + project chat agent (deployed: gemini-<pro-class>)
+VERTEX_LOCATION=global                   # cheapest Gemini endpoint; not tied to `region`
+MODEL_REVIEWER=gemini-3.1-flash-lite     # one-shot reviewers (deployed: gemini-3.8-flash)
+MODEL_ORCHESTRATOR=gemini-3.1-flash-lite # coordinator + project chat agent (deployed: gemini-3.8-flash)
 MODEL_IMAGE=imagen-<version>             # thumbnails
 MODEL_VIDEO=veo-3.1-fast                 # intros/outros
 MODEL_STT=chirp_3                           # transcription (STT V2 batch, us multi-region)

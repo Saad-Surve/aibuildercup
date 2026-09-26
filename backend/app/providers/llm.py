@@ -1,13 +1,8 @@
 """LLM provider.
 
-Thin wrapper over two Google LLM backends, selected by `settings.llm_backend`:
-
-- "developer": the Gemini Developer API (AI Studio), authenticated with `GEMINI_API_KEY`.
-  Free tier — the default so local runs use free Gemma models and never spend GCP budget.
-- "vertex": Gemini Enterprise Agent Platform (formerly Vertex AI), authenticated with
-  Application Default Credentials against the project/location. Billable, deployed only.
-
-Feature code calls this provider, never `google.genai` directly.
+Thin wrapper over Gemini on Agent Platform (Vertex AI), authenticated with Application Default
+Credentials against `settings.project_id` / `settings.vertex_location`. Feature code calls this
+provider, never `google.genai` directly.
 """
 
 import asyncio
@@ -41,32 +36,23 @@ class LlmProvider:
         return await self._real(model=model, system=system, user=user, schema=schema)
 
     def _client(self) -> Any:
-        """Build the GenAI client for the configured backend.
+        """Build the Agent Platform client.
 
-        Lazy imports keep `google.genai` out of the module import path (and out of tests that
-        never touch the network).
+        A lazy import keeps `google.genai` out of the module import path (and out of tests that
+        never touch the network). No API key: ADC supplies credentials.
         """
         from google import genai
 
-        if self.settings.llm_backend == "vertex":
-            logger.info(
-                "LLM via Agent Platform (vertex) project=%s location=%s",
-                self.settings.project_id,
-                self.settings.vertex_location,
-            )
-            return genai.Client(
-                vertexai=True,
-                project=self.settings.project_id,
-                location=self.settings.vertex_location,
-            )
-
-        if not self.settings.gemini_api_key:
-            raise RuntimeError(
-                "GEMINI_API_KEY is not set for the 'developer' LLM backend. Create a key at "
-                "https://aistudio.google.com/apikey, set GEMINI_API_KEY, or set LLM_BACKEND=vertex "
-                "to use Agent Platform with Application Default Credentials."
-            )
-        return genai.Client(api_key=self.settings.gemini_api_key)
+        logger.info(
+            "LLM via Agent Platform project=%s location=%s",
+            self.settings.project_id,
+            self.settings.vertex_location,
+        )
+        return genai.Client(
+            vertexai=True,
+            project=self.settings.project_id,
+            location=self.settings.vertex_location,
+        )
 
     async def _real(
         self,
@@ -79,7 +65,7 @@ class LlmProvider:
         from google.genai import errors as genai_errors
 
         client = self._client()
-        logger.info("LLM call (%s) model=%s", self.settings.llm_backend, model)
+        logger.info("LLM call model=%s", model)
 
         attempts = max(1, self.settings.llm_max_attempts)
         result = None
@@ -101,8 +87,7 @@ class LlmProvider:
                     raise
                 delay = self.settings.llm_retry_base_seconds * (2 ** (attempt - 1))
                 logger.warning(
-                    "LLM backend %s returned %s (%s); retry %d/%d in %.1fs",
-                    self.settings.llm_backend,
+                    "LLM returned %s (%s); retry %d/%d in %.1fs",
                     code,
                     getattr(exc, "status", ""),
                     attempt,

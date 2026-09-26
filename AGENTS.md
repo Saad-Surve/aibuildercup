@@ -42,9 +42,9 @@ note, the next agent starts blind.
    endpoint, update it. The web client is generated from it. Do not let web and backend drift.
 2. **Never import a Google SDK directly in feature code.** Every external call goes through a
    provider in `backend/app/providers/`. Feature code never touches a Google SDK directly.
-3. **Use real services.** Development calls the live GCP APIs (Gemini Developer API,
-   Speech-to-Text, Storage, Firestore). Test uploads with the videos in `fixtures/media/`.
-   Keep paid calls (Veo, Imagen, Gemini Pro) capped.
+3. **Use real services.** Development calls the live GCP APIs (Gemini on Agent Platform /
+   Vertex AI, Speech-to-Text, Storage, Firestore). Test uploads with the videos in
+   `fixtures/media/`. Keep paid calls (Veo, Imagen, Gemini Pro) capped.
 4. **Region is `us-central1`, except Speech-to-Text which uses the `us` multi-region** (Chirp 3
    is GA there). Do not use `us-east1` (Speech-to-Text is not GA there).
 5. **Tooling:** `web/` uses **Bun**. `backend/` uses **uv**. `infra/` uses **Terraform**.
@@ -146,7 +146,7 @@ When someone asks you to build something, do this:
 
 ```python
 # backend/app/providers/base.py defines the interface.
-# backend/app/providers/llm.py wraps the Gemini Developer API.
+# backend/app/providers/llm.py wraps Gemini on Agent Platform (Vertex AI).
 # Feature code calls the provider, never google.genai directly.
 result = await providers.llm.complete_json(
     model=..., prompt_version=..., system=..., user=..., schema=...

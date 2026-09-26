@@ -13,7 +13,7 @@ flowchart LR
     GCS[(Cloud Storage)]
     PubSub{{Pub/Sub}}
     Workers[Cloud Run Workers and Jobs]
-    Gemini[Gemini Developer API / ADK]
+    Gemini[Gemini on Agent Platform (Vertex AI) / ADK]
     STT[Speech-to-Text V2]
     BQ[(BigQuery)]
     Social[YouTube / Meta APIs]
