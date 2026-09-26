@@ -69,6 +69,23 @@ async def test_llm_requires_api_key(monkeypatch) -> None:
     assert captured == []
 
 
+async def test_llm_vertex_backend_uses_adc_without_api_key(monkeypatch) -> None:
+    captured: list[dict] = []
+    monkeypatch.setattr(
+        "google.genai.Client", lambda **kwargs: _FakeClient(captured, **kwargs)
+    )
+    provider = LlmProvider(
+        Settings(llm_backend="vertex", project_id="proj", vertex_location="global")
+    )
+
+    await provider.complete_json(
+        model="gemini-3.8-flash", prompt_version="v1", system="s", user="u", schema={}
+    )
+
+    # Vertex is authenticated with ADC, so no api_key is passed; project + location instead.
+    assert captured == [{"vertexai": True, "project": "proj", "location": "global"}]
+
+
 async def test_llm_retries_transient_error_then_succeeds(monkeypatch) -> None:
     from google.genai import errors as genai_errors
 
