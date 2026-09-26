@@ -5,9 +5,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# A newer push supersedes an in-flight deploy instead of queueing behind it.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
-  id-token: write
 
 env:
   PROJECT_ID: habeas-codus
@@ -15,26 +19,74 @@ env:
   REGISTRY: us-central1-docker.pkg.dev/habeas-codus/creator-studio-containers
 
 jobs:
-  deploy:
+  # Decide what actually changed so a backend-only commit does not rebuild the web
+  # (and vice versa). Runs on every trigger, so required checks still report.
+  changes:
     runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
     steps:
-      - uses: actions/checkout@v4
+      # paths-filter diffs a push against the previous commit, so 2 commits of history
+      # is enough (it deepens on demand for multi-commit pushes).
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+      # SHA-pinned: this third-party action decides whether either deploy runs.
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'backend/**'
+              - 'contracts/**'
+              - '.github/workflows/deploy.yml'
+            web:
+              - 'web/**'
+              - 'firebase.json'
+              - 'contracts/**'
+              - '.github/workflows/deploy.yml'
+
+  api:
+    needs: changes
+    # Fail open: if the filter job errored, deploy rather than silently skipping.
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.result != 'success') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
 
       - id: auth
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SA }}
 
-      - uses: google-github-actions/setup-gcloud@v2
+      # The runner image already ships gcloud; skip_install avoids re-downloading the
+      # SDK (~25s) on every deploy. (The system install is locked, so no extra components.)
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          skip_install: true
 
       - name: Configure Docker auth
         run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
+      - uses: docker/setup-buildx-action@v4
+
+      # The gha layer cache keeps the uv-sync layer warm, so a code-only change rebuilds
+      # in seconds. mode=min keeps the entry small (it shares the repo's 10 GB cache with
+      # the web job) and ignore-error stops a cache failure from failing the deploy.
       - name: Build and push API image
-        run: |
-          docker build -t "$REGISTRY/api:$GITHUB_SHA" backend
-          docker push "$REGISTRY/api:$GITHUB_SHA"
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          push: true
+          tags: ${{ env.REGISTRY }}/api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=min,ignore-error=true
+          provenance: false
 
       - name: Resolve API service URL
         id: api
@@ -66,9 +118,57 @@ jobs:
             --max-instances 1 \
             --memory 1Gi \
             --no-cpu-throttling \
+            --quiet \
             --set-env-vars "^|^ENVIRONMENT=production|PROJECT_ID=habeas-codus|REGION=us-central1|VERTEX_LOCATION=global|MODEL_REVIEWER=${MODEL_REVIEWER}|MODEL_ORCHESTRATOR=${MODEL_ORCHESTRATOR}|LLM_INPUT_PRICE_PER_MTOK=${LLM_INPUT_PRICE_PER_MTOK}|LLM_OUTPUT_PRICE_PER_MTOK=${LLM_OUTPUT_PRICE_PER_MTOK}|CORS_ALLOWED_ORIGINS=${CORS_ORIGINS}|PUBSUB_PUSH_AUDIENCE=${{ steps.api.outputs.url }}|PUBSUB_PUSH_SERVICE_ACCOUNT=creator-studio-transcribe@habeas-codus.iam.gserviceaccount.com"
 
-      - uses: oven-sh/setup-bun@v2
+  web:
+    needs: changes
+    # Fail open: if the filter job errored, deploy rather than silently skipping.
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.web == 'true' || needs.changes.result != 'success') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      # SHA-pinned third-party action.
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+
+      - name: Cache bun packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('web/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      # Turbopack's build cache. NEXT_PUBLIC_API_BASE_URL is inlined at build time, so
+      # vars.API_URL is part of the key: otherwise changing it ships a stale build from
+      # the restore-key fallback.
+      - name: Cache Next build
+        uses: actions/cache@v5
+        with:
+          path: web/.next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('web/bun.lock') }}-${{ vars.API_URL }}-${{ hashFiles('web/src/**', 'web/next.config.ts') }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('web/bun.lock') }}-${{ vars.API_URL }}-
+
+      # npx otherwise re-downloads firebase-tools (~25s) on every run. Scoped to the
+      # npx cache (not all of ~/.npm).
+      - name: Cache firebase-tools
+        uses: actions/cache@v5
+        with:
+          path: ~/.npm/_npx
+          key: npm-firebase-${{ runner.os }}-13
+          restore-keys: npm-firebase-${{ runner.os }}-
 
       - name: Build web (static export)
         working-directory: web
