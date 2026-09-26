@@ -18,15 +18,16 @@ import type { Asset } from "@/lib/types";
  * Prefers the locally cached upload (IndexedDB, written by the dropzone at
  * upload time) so playback is instant and works offline; otherwise streams
  * from the signed playback URL. Transcript segments seek the video through a
- * `creator-studio:seek` window event. Caption cues arrive with the
- * transcription pipeline (backend stores the VTT; no caption URL yet).
+ * `creator-studio:seek` window event.
  */
 export function SourceVideoPlayer({
   projectId,
   asset,
+  onDuration,
 }: {
   projectId: string;
   asset: Asset;
+  onDuration?: (durationMs: number) => void;
 }) {
   const [media, setMedia] = useState<{ assetId: string; src: string } | null>(
     null,
@@ -101,6 +102,7 @@ export function SourceVideoPlayer({
           src={src}
           mimeType={asset.mimeType}
           poster={poster}
+          onDuration={onDuration}
         />
       ) : (
         <Skeleton className="aspect-video w-full rounded-none" />
@@ -116,45 +118,76 @@ function StudioPlayer({
   src,
   mimeType,
   poster,
+  onDuration,
 }: {
   projectId: string;
   src: string;
   mimeType: string;
   poster: string | null;
+  onDuration?: (durationMs: number) => void;
 }) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  // The <video> element is created imperatively and owned by video.js, never by
+  // React. Letting React render it led to the player disposing the node out from
+  // under React on re-render, which is what made the video vanish.
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<Player | null>(null);
+  const onDurationRef = useRef(onDuration);
+  // Read at init time only; later poster changes are applied by the effect below.
+  const initialPosterRef = useRef(poster);
+
+  useEffect(() => {
+    onDurationRef.current = onDuration;
+  }, [onDuration]);
 
   // video.js touches the DOM, so it loads lazily inside the effect: nothing
-  // player-related evaluates during SSR/prerender.
+  // player-related evaluates during SSR/prerender. The player is created once
+  // per source; later poster/size updates are applied to the live instance.
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
     let cancelled = false;
+    let player: Player | null = null;
 
     void (async () => {
       const { default: videojs } = await import("video.js");
-      if (cancelled || !videoRef.current) return;
-      playerRef.current = videojs(videoRef.current, {
+      if (cancelled) return;
+      const video = document.createElement("video");
+      video.className = "video-js vjs-big-play-centered";
+      video.playsInline = true;
+      container.appendChild(video);
+      player = videojs(video, {
         controls: true,
         autoplay: false,
         preload: "metadata",
         fluid: true,
         playsinline: true,
         responsive: true,
-        poster: poster ?? undefined,
+        poster: initialPosterRef.current ?? undefined,
         sources: [{ src, type: mimeType }],
         playbackRates: [0.5, 1, 1.25, 1.5, 2],
         controlBar: {
           volumePanel: { inline: true },
         },
       });
+      playerRef.current = player;
+
+      const reportDuration = () => {
+        const duration = player?.duration();
+        if (typeof duration === "number" && Number.isFinite(duration)) {
+          onDurationRef.current?.(Math.round(duration * 1000));
+        }
+      };
+      player.on("loadedmetadata", reportDuration);
+      player.on("durationchange", reportDuration);
+      reportDuration();
     })();
 
     return () => {
       cancelled = true;
-      playerRef.current?.dispose();
       playerRef.current = null;
+      player?.dispose();
     };
-  }, [src, mimeType, poster]);
+  }, [src, mimeType]);
 
   // The frame poster is captured after the player mounts; push it in when it lands.
   useEffect(() => {
@@ -178,16 +211,5 @@ function StudioPlayer({
     return () => window.removeEventListener("creator-studio:seek", onSeek);
   }, [projectId]);
 
-  return (
-    <div data-vjs-player>
-      <video
-        ref={videoRef}
-        className="video-js vjs-big-play-centered"
-        playsInline
-      >
-        {/* Caption cues arrive with the transcription pipeline. */}
-        <track kind="captions" />
-      </video>
-    </div>
-  );
+  return <div ref={containerRef} className="w-full" />;
 }

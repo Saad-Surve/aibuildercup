@@ -24,7 +24,7 @@ import {
   SEVERITY_LABELS,
 } from "@/lib/analysis";
 import type { Finding, Severity } from "@/lib/types";
-import { WORKSPACE_PANE_CARD } from "@/lib/workspace";
+import { WORKSPACE_PANE_STICKY } from "@/lib/workspace";
 import { cn } from "@/lib/utils";
 
 const SEVERITY_RANK: Record<Severity, number> = {
@@ -85,7 +85,7 @@ export function FindingsPanel({
     );
 
   return (
-    <Card className={WORKSPACE_PANE_CARD}>
+    <Card className={WORKSPACE_PANE_STICKY}>
       <CardHeader className="shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -156,15 +156,20 @@ function FindingRow({
   highlighted: boolean;
   onSeek: (startMs: number) => void;
 }) {
+  const hasEvidence = Boolean(
+    finding.evidence.quote || finding.evidence.explanation,
+  );
   return (
-    <li>
+    <li
+      className={cn(
+        "overflow-hidden rounded-lg border border-border/70 transition-colors hover:bg-muted/40",
+        highlighted && "border-signal bg-signal/10",
+      )}
+    >
       <button
         type="button"
         onClick={() => onSeek(finding.startMs)}
-        className={cn(
-          "block w-full rounded-lg border border-border/70 px-3 py-2.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-          highlighted && "border-signal bg-signal/10",
-        )}
+        className="block w-full px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <span className="tabular text-xs text-signal">
@@ -192,22 +197,8 @@ function FindingRow({
           </span>
         </div>
 
-        {finding.evidence.quote && (
-          <p className="mt-1.5 text-sm text-foreground/90">
-            <span className="text-muted-foreground">“</span>
-            {finding.evidence.quote}
-            <span className="text-muted-foreground">”</span>
-          </p>
-        )}
-
-        {finding.evidence.explanation && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            {finding.evidence.explanation}
-          </p>
-        )}
-
         {finding.suggestion && (
-          <p className="mt-1.5 flex items-start gap-1.5 text-xs text-foreground/80">
+          <p className="mt-1.5 flex items-start gap-1.5 text-sm text-foreground/90">
             <Icon
               icon={ArrowRight01Icon}
               className="mt-0.5 size-3.5 shrink-0 text-signal"
@@ -216,6 +207,30 @@ function FindingRow({
           </p>
         )}
       </button>
+
+      {/* The transcript evidence is kept, but tucked away so rows stay scannable. */}
+      {hasEvidence && (
+        <details className="group border-t border-border/60">
+          <summary className="cursor-pointer list-none px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
+            <span className="group-open:hidden">Show evidence</span>
+            <span className="hidden group-open:inline">Hide evidence</span>
+          </summary>
+          <div className="space-y-1.5 px-3 pb-2.5">
+            {finding.evidence.quote && (
+              <p className="text-sm text-foreground/90">
+                <span className="text-muted-foreground">“</span>
+                {finding.evidence.quote}
+                <span className="text-muted-foreground">”</span>
+              </p>
+            )}
+            {finding.evidence.explanation && (
+              <p className="text-xs text-muted-foreground">
+                {finding.evidence.explanation}
+              </p>
+            )}
+          </div>
+        </details>
+      )}
     </li>
   );
 }

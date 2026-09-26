@@ -153,7 +153,7 @@ export function AvatarCustomizer() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <UserAvatar state={effective} size={96} title="Avatar preview" />
+        <UserAvatar state={effective} size={128} title="Avatar preview" />
         <div className="space-y-2">
           <div className="flex flex-wrap gap-2">
             <Button
@@ -264,7 +264,7 @@ export function AvatarEditorDialog() {
 
   return (
     <div className="flex items-center gap-4">
-      <UserAvatar state={saved} size={64} title="Your avatar" />
+      <UserAvatar state={saved} size={96} title="Your avatar" />
       <div className="space-y-1.5">
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger render={<Button variant="outline" />}>

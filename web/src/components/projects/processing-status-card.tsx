@@ -41,6 +41,22 @@ function stateLabel(step: string | null | undefined, failed: boolean): string {
   return STEP_LABELS[step] ?? "Processing";
 }
 
+/** Semantic pill colours: green means done, blue means working, grey means waiting. */
+function pillClass(step: string | null | undefined, failed: boolean): string {
+  if (failed) {
+    return "border-destructive/30 bg-destructive/10 text-destructive [&_.pill-dot]:bg-destructive";
+  }
+  switch (step) {
+    case "ready":
+    case "done":
+      return "border-sev-good/30 bg-sev-good/10 text-sev-good [&_.pill-dot]:bg-sev-good";
+    case "queued":
+      return "border-border bg-muted text-muted-foreground [&_.pill-dot]:bg-muted-foreground/60";
+    default:
+      return "border-signal/30 bg-signal/10 text-signal [&_.pill-dot]:bg-signal";
+  }
+}
+
 export function ProcessingStatusCard({
   project,
   job,
@@ -81,18 +97,14 @@ export function ProcessingStatusCard({
           </CardTitle>
           <span
             className={cn(
-              "ml-1 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium",
-              failed
-                ? "border-destructive/30 bg-destructive/10 text-destructive"
-                : "border-signal/30 bg-signal/10 text-signal",
+              "ml-1 inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium",
+              pillClass(step, failed),
             )}
           >
             <span
               className={cn(
-                "size-1.5 rounded-full",
-                failed
-                  ? "bg-destructive"
-                  : "animate-pulse bg-signal",
+                "pill-dot size-1.5 rounded-full",
+                !failed && "animate-pulse",
               )}
             />
             {label}

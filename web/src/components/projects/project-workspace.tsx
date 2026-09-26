@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft01Icon, FileVideoIcon } from "@hugeicons/core-free-icons";
+import { format } from "date-fns";
 
 import { Icon } from "@/components/common/icon";
 import { PageHeader } from "@/components/common/page-header";
@@ -26,16 +27,21 @@ import { getVideoBlobForProject } from "@/lib/local-media";
 import {
   completeUpload,
   formatBytes,
+  formatTimestamp,
   getJob,
   getProject,
   listAssets,
   subscribeToProjectEvents,
 } from "@/lib/projects";
 import type { Asset, Job, Project } from "@/lib/types";
-import { WORKSPACE_PANE_CARD } from "@/lib/workspace";
+import {
+  WORKSPACE_PANE_CARD,
+  WORKSPACE_PANE_STACK_SPACER,
+} from "@/lib/workspace";
 
 export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [jobId, setJobId] = useState<string | null>(null);
+  const [durationMs, setDurationMs] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
   const projectQuery = useQuery({
@@ -267,7 +273,6 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                     <CardTitle>Source video</CardTitle>
                   </div>
                   <CardDescription>
-                    {formatBytes(effectiveSource.sizeBytes)} ·{" "}
                     {effectiveSource.mimeType}
                   </CardDescription>
                 </CardHeader>
@@ -276,12 +281,36 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                     <SourceVideoPlayer
                       projectId={projectId}
                       asset={effectiveSource}
+                      onDuration={setDurationMs}
                     />
                   </div>
-                  <p className="mt-3 tabular truncate text-xs text-muted-foreground">
-                    {formatBytes(effectiveSource.sizeBytes)} ·{" "}
-                    {effectiveSource.mimeType} · {effectiveSource.storagePath}
-                  </p>
+                  <dl className="mt-3 grid shrink-0 grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <dt className="text-muted-foreground/70">Duration</dt>
+                      <dd className="tabular text-foreground">
+                        {(durationMs ?? effectiveSource.durationMs) != null
+                          ? formatTimestamp(
+                              durationMs ?? effectiveSource.durationMs ?? 0,
+                            )
+                          : "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground/70">Size</dt>
+                      <dd className="tabular text-foreground">
+                        {formatBytes(effectiveSource.sizeBytes)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground/70">Uploaded</dt>
+                      <dd className="text-foreground">
+                        {format(
+                          new Date(effectiveSource.createdAt),
+                          "d MMM yyyy",
+                        )}
+                      </dd>
+                    </div>
+                  </dl>
                 </CardContent>
               </Card>
             </div>
@@ -302,6 +331,12 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                 onSeek={seekTo}
                 transcriptShouldPoll={processing}
               />
+              {/*
+               * Room below the last pinned pane so it can be pulled all the way up
+               * level with the video card; without it the panes are the same height
+               * as the video column and the last one can never reach the top.
+               */}
+              <div aria-hidden className={WORKSPACE_PANE_STACK_SPACER} />
             </div>
           </div>
         </div>

@@ -45,7 +45,7 @@ import {
 } from "@/lib/analysis";
 import type { AnalysisDimension, AnalysisRun, Severity } from "@/lib/types";
 import { CORE_DIMENSIONS } from "@/lib/types";
-import { WORKSPACE_PANE_CARD } from "@/lib/workspace";
+import { WORKSPACE_PANE_STICKY } from "@/lib/workspace";
 import { cn } from "@/lib/utils";
 
 /*
@@ -179,7 +179,7 @@ export function ReviewPanel({
 
   return (
     <>
-      <Card className={WORKSPACE_PANE_CARD}>
+      <Card className={WORKSPACE_PANE_STICKY}>
         <CardHeader className="shrink-0">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
