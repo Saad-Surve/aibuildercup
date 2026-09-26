@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     # social video (44.1 kHz stereo).
     stt_sample_rate_hz: int = 44100
     stt_audio_channel_count: int = 2
+    # Speaker diarization. When enabled, the worker asks STT to label each word with a speaker
+    # index (Chirp 3 assigns `speaker_label`), segments split on speaker changes, and the UI
+    # shows the turns. Behind a flag so a model/region that rejects the feature can be switched
+    # off with an env var instead of a code change.
+    stt_enable_diarization: bool = True
 
     # Pub/Sub push verification. When `pubsub_push_audience` is set, the internal push endpoint
     # requires a valid Google OIDC token for this audience (the Cloud Run URL) minted by

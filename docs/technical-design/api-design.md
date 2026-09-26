@@ -281,7 +281,7 @@ Transcript regeneration options:
 ~~~json
 {
   "language": "en-IN",
-  "enableSpeakerDiarization": false,
+  "enableSpeakerDiarization": true,
   "generateCaptions": true
 }
 ~~~

@@ -9,6 +9,8 @@ class TranscriptSegment(BaseModel):
     startMs: int = Field(ge=0)
     endMs: int = Field(ge=0)
     text: str
+    # Speaker index from STT diarization. None when diarization is off or undetected.
+    speaker: int | None = None
 
 
 class Transcript(BaseModel):

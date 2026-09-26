@@ -35,13 +35,22 @@ class SttProvider:
         gcs_uri: str,
         language_codes: list[str],
         model: str,
+        enable_diarization: bool = False,
     ) -> dict[str, Any]:
         return await self._real(
-            gcs_uri=gcs_uri, language_codes=language_codes, model=model
+            gcs_uri=gcs_uri,
+            language_codes=language_codes,
+            model=model,
+            enable_diarization=enable_diarization,
         )
 
     async def _real(
-        self, *, gcs_uri: str, language_codes: list[str], model: str
+        self,
+        *,
+        gcs_uri: str,
+        language_codes: list[str],
+        model: str,
+        enable_diarization: bool = False,
     ) -> dict[str, Any]:
         import asyncio
 
@@ -56,14 +65,20 @@ class SttProvider:
             f"projects/{self.settings.project_id}/locations/{self.settings.stt_region}"
             "/recognizers/_"
         )
+        features = speech_v2.RecognitionFeatures(
+            enable_word_time_offsets=True,
+            enable_automatic_punctuation=True,
+        )
+        if enable_diarization:
+            # Chirp 3 assigns a `speaker_label` per word when diarization is requested. The
+            # service decides the speaker count (min/max are documented as not yet used), and
+            # word time offsets — which diarization depends on — are already enabled above.
+            features.diarization_config = speech_v2.SpeakerDiarizationConfig()
         config = speech_v2.RecognitionConfig(
             **self._decoding_config(speech_v2, gcs_uri),
             language_codes=language_codes,
             model=model,
-            features=speech_v2.RecognitionFeatures(
-                enable_word_time_offsets=True,
-                enable_automatic_punctuation=True,
-            ),
+            features=features,
         )
         # Batch recognition writes nothing inline unless asked: request inline results
         # so word timings come back in the operation response (fine for demo-scale
@@ -78,16 +93,30 @@ class SttProvider:
             recognition_output_config=output_config,
         )
         logger.info(
-            "STT v2 batch recognition via %s (model=%s, languages=%s)",
+            "STT v2 batch recognition via %s (model=%s, languages=%s, diarization=%s)",
             gcs_uri,
             model,
             ",".join(language_codes),
+            enable_diarization,
         )
-        operation = await asyncio.to_thread(client.batch_recognize, request=request)
-        # Batch recognition is long-running; poll in a thread so the event loop stays free.
-        # Ack deadline max is 600s, so cap the wait there.
-        result = await asyncio.to_thread(operation.result, 600)
-        return _response_to_dict(result)
+        try:
+            operation = await asyncio.to_thread(client.batch_recognize, request=request)
+            # Batch recognition is long-running; poll in a thread so the event loop stays free.
+            # Ack deadline max is 600s, so cap the wait there.
+            result = await asyncio.to_thread(operation.result, 600)
+            return _response_to_dict(result)
+        except Exception as exc:
+            # Diarization is optional: if a model/region rejects it, fall back to plain
+            # transcription instead of failing the whole job over a nice-to-have.
+            if not enable_diarization or "diarization" not in str(exc).lower():
+                raise
+            logger.warning("STT rejected diarization (%s); retrying without it", exc)
+            return await self._real(
+                gcs_uri=gcs_uri,
+                language_codes=language_codes,
+                model=model,
+                enable_diarization=False,
+            )
 
     def _decoding_config(self, speech_v2: Any, gcs_uri: str) -> dict[str, Any]:
         """Pick a decoding config for the container, falling back to auto-detection."""
@@ -112,8 +141,9 @@ def _response_to_dict(result: Any) -> dict[str, Any]:
     """Normalise a BatchRecognizeResponse (inline results) into plain JSON.
 
     Shape: `results[uri].inline_result.transcript.results[].alternatives[].words[]`, each word
-    carrying `word`, `start_offset` and `end_offset`. Also returns the language the service
-    detected, so the worker can persist it for multilingual uploads.
+    carrying `word`, `start_offset`, `end_offset` and (when diarization is on) `speaker_label`.
+    Also returns the language the service detected, so the worker can persist it for
+    multilingual uploads.
     """
     words: list[dict[str, Any]] = []
     language: str | None = None
@@ -127,6 +157,7 @@ def _response_to_dict(result: Any) -> dict[str, Any]:
                 language = getattr(recognition_result, "language_code", "") or None
             for alt in getattr(recognition_result, "alternatives", []) or []:
                 for word_info in getattr(alt, "words", []) or []:
+                    speaker = int(getattr(word_info, "speaker_label", 0) or 0)
                     words.append(
                         {
                             "word": getattr(word_info, "word", ""),
@@ -134,6 +165,8 @@ def _response_to_dict(result: Any) -> dict[str, Any]:
                                 getattr(word_info, "start_offset", None)
                             ),
                             "endMs": _duration_to_ms(getattr(word_info, "end_offset", None)),
+                            # Proto3 omits a zero speaker label; treat it as "undiarized".
+                            "speaker": speaker or None,
                         }
                     )
     return {"words": words, "language": language}

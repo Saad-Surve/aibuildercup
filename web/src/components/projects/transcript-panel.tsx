@@ -67,6 +67,12 @@ export function TranscriptPanel({
 
   if (transcriptQuery.data) {
     const transcript = transcriptQuery.data;
+    const speakerCount = new Set(
+      transcript.segments
+        .map((segment) => segment.speaker)
+        .filter((speaker): speaker is number => speaker != null),
+    ).size;
+    const showSpeakers = speakerCount > 1;
     return (
       <Card className={WORKSPACE_PANE_SNAP}>
         <CardHeader className="shrink-0">
@@ -77,6 +83,7 @@ export function TranscriptPanel({
             <span className="text-xs text-muted-foreground">
               {transcript.segments.length} segments ·{" "}
               {formatTimestamp(transcript.durationMs)} · {transcript.language}
+              {showSpeakers ? ` · ${speakerCount} speakers` : ""}
             </span>
           </div>
         </CardHeader>
@@ -92,6 +99,11 @@ export function TranscriptPanel({
                   <span className="shrink-0 tabular text-xs text-time underline-offset-2 group-hover:underline">
                     {formatTimestamp(segment.startMs)}
                   </span>
+                  {showSpeakers && segment.speaker != null ? (
+                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 tabular text-xs text-muted-foreground">
+                      S{segment.speaker}
+                    </span>
+                  ) : null}
                   <span className="text-sm">{segment.text}</span>
                 </button>
               </li>

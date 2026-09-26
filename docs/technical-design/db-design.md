@@ -314,6 +314,7 @@ AI-inferred changes remain pending until the user explicitly approves them.
   "startMs": 42000,
   "endMs": 58000,
   "text": "The second concept is...",
+  "speaker": 2,
   "paragraphIndex": 4,
   "topic": "interview preparation",
   "wordCount": 28,

@@ -114,7 +114,10 @@ async def run_transcribe(
     gcs_uri = stt.gcs_uri_for(asset["storagePath"])
     try:
         response = await stt.transcribe(
-            gcs_uri=gcs_uri, language_codes=language_codes, model=settings.model_stt
+            gcs_uri=gcs_uri,
+            language_codes=language_codes,
+            model=settings.model_stt,
+            enable_diarization=settings.stt_enable_diarization,
         )
     except Exception as exc:  # noqa: BLE001 - worker must record provider failures
         logger.warning("transcribe job %s: STT failed (%s); trying normalized audio", job_id, exc)
@@ -272,6 +275,7 @@ async def _retry_with_normalized_audio(
             gcs_uri=stt.gcs_uri_for(tmp_path),
             language_codes=["auto"],
             model=settings.model_stt,
+            enable_diarization=settings.stt_enable_diarization,
         )
     except Exception:  # noqa: BLE001 - the retry failed too; keep the first error
         logger.warning("transcribe job %s: normalized-audio retry failed", job_id)

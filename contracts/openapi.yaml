@@ -794,6 +794,7 @@ components:
         startMs: { type: integer }
         endMs: { type: integer }
         text: { type: string }
+        speaker: { type: [integer, "null"] }
 
     Transcript:
       type: object
