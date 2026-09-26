@@ -14,13 +14,28 @@ about names, food, festivals, currency, schooling, or family structure; a tone t
 reads differently in the target culture (for example bluntness that reads as rudeness);
 words that are traps when localized; numbers, dates, and units in the wrong convention.
 
-Rate the risk to the intended audience, not to a US audience. A stretch that works
-for the target culture gets severity "none".
+Rate the risk to the intended audience, not to a US audience. A stretch that travels
+exceptionally well is a strength (severity "none", score 5).
 
-findingType vocabulary: untranslatable_idiom, culture_reference, locale_assumption,
-tone_mismatch, translation_trap, unit_or_format, strength."""
+findingType vocabulary (severity in brackets):
+  strength               [none]   an example that travels especially well (score 5)
+  untranslatable_idiom   [medium]
+  culture_reference      [medium]
+  locale_assumption      [medium, high]
+  tone_mismatch          [medium]
+  translation_trap       [medium, high]
+  unit_or_format         [low]"""
 
 
 class CulturalLocalizationReviewer(LlmReviewer):
     dimension = AnalysisDimension.cultural_localization
     focus = FOCUS
+    finding_types = (
+        "strength",
+        "untranslatable_idiom",
+        "culture_reference",
+        "locale_assumption",
+        "tone_mismatch",
+        "translation_trap",
+        "unit_or_format",
+    )

@@ -76,14 +76,13 @@ backend/
 │   │   ├── reviewer_base.py
 │   │   ├── truth_agent.py
 │   │   ├── clarity_agent.py
-│   │   ├── structure_agent.py
+│   │   ├── pacing_agent.py
 │   │   ├── cultural_agent.py
 │   │   ├── platform_agent.py
-│   │   ├── seo_agent.py
 │   │   ├── safety_agent.py
-│   │   ├── retention_agent.py
-│   │   ├── accessibility_agent.py
-│   │   └── brand_voice_agent.py
+│   │   ├── emotion_agent.py
+│   │   ├── audience_brand_agent.py
+│   │   └── conversion_agent.py
 │   ├── connectors/
 │   │   ├── base.py
 │   │   ├── youtube.py
@@ -284,7 +283,7 @@ class Finding(BaseModel):
     segment_id: str
     start_ms: int
     end_ms: int
-    score: float = Field(ge=0, le=10)
+    score: int = Field(ge=1, le=5)
     confidence: float = Field(ge=0, le=1)
     severity: Literal["none", "low", "medium", "high", "critical"]
     finding_type: str
@@ -293,26 +292,30 @@ class Finding(BaseModel):
     citations: list[Citation] = []
 ~~~
 
-Reviewer dimensions:
+Reviewer dimensions (2026-09 panel; 13 consolidated to 9):
 
 ~~~text
 core (always run)
   truth_evidence
   clarity
-  structure_pacing
+  pacing_retention        # merged structure_pacing + engagement_retention
   legal_safety
   cultural_localization
   platform_fit
 
 extended (configurable)
-  audience_fit
-  brand_voice
-  engagement_retention
+  audience_brand          # merged audience_fit + brand_voice
   emotional_impact
-  seo_discoverability
-  visual_accessibility
   conversion_cta
+
+retired (never run; kept only so historical runs deserialize)
+  structure_pacing, engagement_retention, audience_fit, brand_voice,
+  seo_discoverability, visual_accessibility
 ~~~
+
+`seo_discoverability` and `visual_accessibility` were dropped: spoken keyword density is
+the wrong signal for modern recommendation systems, and transcript-only accessibility review
+produces false positives without computer vision.
 
 ### Truth reviewer policy
 
@@ -322,7 +325,7 @@ The truth reviewer should:
 2. Identify claims requiring verification.
 3. Use approved grounding/search tools where available.
 4. Return citations for supported claims.
-5. Mark uncertain claims as needs_manual_verification.
+5. Mark uncertain claims as needs_verification.
 
 It must not produce a confident factual verdict solely from model memory.
 
@@ -341,8 +344,11 @@ automatically for `high` and `critical` findings.
 
 ### Calibration
 
-Every reviewer prompt includes a shared 0 to 10 anchor definition so scores do not all collapse
-to 7. Reviewer prompts carry a `promptVersion` and the run records `modelConfigVersion` so two
+Every reviewer prompt includes a shared, discrete 1 to 5 anchor definition (5 outstanding, 1
+disqualifying) and a separate severity scale, so scores do not all collapse to the middle.
+Reviewers report exception-first: a finding is emitted for a real flaw or an exceptional
+strength, never as filler for ordinary sentences, which keeps token cost and heatmap noise
+down. Reviewer prompts carry a `promptVersion` and the run records `modelConfigVersion` so two
 runs are comparable.
 
 ### Bounded parallel execution
@@ -502,7 +508,7 @@ Create a small reviewed dataset with:
 
 ~~~text
 10 clarity examples
-10 structure_pacing examples
+10 pacing_retention examples
 10 truth_evidence examples
 10 cultural_localization examples
 10 legal_safety examples

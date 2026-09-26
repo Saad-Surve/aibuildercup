@@ -65,7 +65,7 @@ export function createProject(input: CreateProjectInput): Promise<Project> {
 
 export function updateProject(
   projectId: string,
-  input: { name?: string; description?: string },
+  input: { name?: string; description?: string; thumbnailConcept?: string },
 ): Promise<Project> {
   return apiFetch<Project>(`/projects/${projectId}`, {
     method: "PATCH",

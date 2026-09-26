@@ -14,14 +14,32 @@ claims that are not disclosed as such; platform-policy violations (harassment, h
 shocking content).
 
 Be conservative. If the risk depends on facts you cannot check, use findingType
-"needs_manual_verification" rather than clearing it. Only mark severity "none" where
-the stretch is genuinely low-risk.
+"needs_verification" rather than clearing it. Only report a strength (severity "none",
+score 5) where the stretch handles a sensitive topic demonstrably well.
 
-findingType vocabulary: defamation_risk, professional_advice, dangerous_instruction,
-copyright_risk, privacy_risk, undisclosed_promotion, policy_risk,
-needs_manual_verification."""
+findingType vocabulary (severity in brackets):
+  safe_handling            [none]   an exceptional, careful treatment (score 5)
+  needs_verification       [low, medium]
+  defamation_risk          [high, critical]
+  professional_advice      [medium, high]
+  dangerous_instruction    [high, critical]
+  copyright_risk           [medium, high]
+  privacy_risk             [high, critical]
+  undisclosed_promotion    [medium]
+  policy_risk              [medium, high]"""
 
 
 class LegalSafetyReviewer(LlmReviewer):
     dimension = AnalysisDimension.legal_safety
     focus = FOCUS
+    finding_types = (
+        "safe_handling",
+        "needs_verification",
+        "defamation_risk",
+        "professional_advice",
+        "dangerous_instruction",
+        "copyright_risk",
+        "privacy_risk",
+        "undisclosed_promotion",
+        "policy_risk",
+    )

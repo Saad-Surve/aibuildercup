@@ -12,44 +12,73 @@ from pydantic import BaseModel, Field
 
 
 class AnalysisDimension(StrEnum):
-    """Reviewer dimensions. Core dimensions always run; the rest are opt-in."""
+    """Reviewer dimensions.
+
+    Active dimensions are the 2026-09 panel: the old `structure_pacing` and
+    `engagement_retention` merged into `pacing_retention`, `audience_fit` and
+    `brand_voice` merged into `audience_brand`, and `seo_discoverability` /
+    `visual_accessibility` were dropped (invalid or harmful without packaging /
+    visual input). The retired values are kept so historical runs still deserialize;
+    they are never requested or run again (see `LEGACY_DIMENSIONS`).
+    """
 
     truth_evidence = "truth_evidence"
     clarity = "clarity"
-    structure_pacing = "structure_pacing"
+    pacing_retention = "pacing_retention"
     legal_safety = "legal_safety"
     cultural_localization = "cultural_localization"
     platform_fit = "platform_fit"
-    audience_fit = "audience_fit"
-    brand_voice = "brand_voice"
-    engagement_retention = "engagement_retention"
+    audience_brand = "audience_brand"
     emotional_impact = "emotional_impact"
-    seo_discoverability = "seo_discoverability"
-    visual_accessibility = "visual_accessibility"
     conversion_cta = "conversion_cta"
 
+    # --- retired (read-only; kept for historical runs) ---
+    structure_pacing = "structure_pacing"
+    engagement_retention = "engagement_retention"
+    audience_fit = "audience_fit"
+    brand_voice = "brand_voice"
+    seo_discoverability = "seo_discoverability"
+    visual_accessibility = "visual_accessibility"
+
+
+#: Retired dimensions: never selected for a new run, still readable on old ones.
+LEGACY_DIMENSIONS: frozenset[AnalysisDimension] = frozenset(
+    {
+        AnalysisDimension.structure_pacing,
+        AnalysisDimension.engagement_retention,
+        AnalysisDimension.audience_fit,
+        AnalysisDimension.brand_voice,
+        AnalysisDimension.seo_discoverability,
+        AnalysisDimension.visual_accessibility,
+    }
+)
+
+#: Selectable dimensions, in canonical order.
+ACTIVE_DIMENSIONS: tuple[AnalysisDimension, ...] = tuple(
+    dimension for dimension in AnalysisDimension if dimension not in LEGACY_DIMENSIONS
+)
 
 #: Always-on dimensions (`docs/technical-design/backend-plan.md` section 8).
 CORE_DIMENSIONS: tuple[AnalysisDimension, ...] = (
     AnalysisDimension.truth_evidence,
     AnalysisDimension.clarity,
-    AnalysisDimension.structure_pacing,
+    AnalysisDimension.pacing_retention,
     AnalysisDimension.legal_safety,
     AnalysisDimension.cultural_localization,
     AnalysisDimension.platform_fit,
 )
 
-#: Dimensions that need sampled frames / clip review. Tier-2 only: a text-only run
-#: still reviews them from the transcript, so they stay selectable.
-VISUAL_DIMENSIONS: frozenset[AnalysisDimension] = frozenset(
-    {AnalysisDimension.visual_accessibility}
-)
-
 
 def resolve_dimensions(requested: list[AnalysisDimension]) -> list[AnalysisDimension]:
-    """Core dimensions plus whatever was requested, in canonical order."""
-    wanted = set(CORE_DIMENSIONS) | set(requested)
-    return [dimension for dimension in AnalysisDimension if dimension in wanted]
+    """Core dimensions plus whatever was requested, in canonical order.
+
+    Legacy dimensions are ignored, so a stale client cannot resurrect a retired
+    reviewer.
+    """
+    wanted = set(CORE_DIMENSIONS) | {
+        dimension for dimension in requested if dimension not in LEGACY_DIMENSIONS
+    }
+    return [dimension for dimension in ACTIVE_DIMENSIONS if dimension in wanted]
 
 
 class Severity(StrEnum):
@@ -105,14 +134,16 @@ class TokenUsage(BaseModel):
 
 class FindingEvidence(BaseModel):
     quote: str = ""
-    explanation: str = ""
+    #: Free-form reasoning emitted before the score, so the model reasons then grades.
+    critique_and_reasoning: str = ""
 
 
 class Finding(BaseModel):
     """One reviewer observation over a span of the transcript.
 
-    Reviewers emit spans that cover the reviewed window, including `severity: none`
-    for parts that are fine. That is what keeps the heatmap track continuous.
+    Reviewers report exception-first: an actionable flaw, or an exceptional strength
+    worth reinforcing. Untouched time simply has no finding; the heatmap shows gaps
+    rather than invented scores.
     """
 
     findingId: str
@@ -121,7 +152,8 @@ class Finding(BaseModel):
     segmentId: str | None = None
     startMs: int = Field(ge=0)
     endMs: int = Field(ge=0)
-    score: float = Field(ge=0, le=10)
+    #: Discrete quality, higher is better: 1 broken ... 5 exceptional.
+    score: int = Field(ge=1, le=5)
     confidence: float = Field(ge=0, le=1)
     severity: Severity
     findingType: str = ""

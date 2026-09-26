@@ -305,16 +305,12 @@ POST /analysis request:
   "dimensions": [
     "truth_evidence",
     "clarity",
-    "structure_pacing",
+    "pacing_retention",
     "legal_safety",
     "cultural_localization",
     "platform_fit",
-    "audience_fit",
-    "brand_voice",
-    "engagement_retention",
+    "audience_brand",
     "emotional_impact",
-    "seo_discoverability",
-    "visual_accessibility",
     "conversion_cta"
   ],
   "platform": "youtube",
@@ -367,7 +363,7 @@ Deep-review request:
 {
   "startMs": 42000,
   "endMs": 58000,
-  "dimensions": ["clarity", "visual_accessibility", "truth_evidence"]
+  "dimensions": ["clarity", "pacing_retention", "truth_evidence"]
 }
 ~~~
 

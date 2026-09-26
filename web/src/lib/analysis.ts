@@ -95,18 +95,14 @@ export function getHeatmap(
 
 export const DIMENSION_LABELS: Record<AnalysisDimension, string> = {
   truth_evidence: "Truth & Evidence",
-  clarity: "Clarity",
-  structure_pacing: "Structure & Pacing",
+  clarity: "Spoken Clarity",
+  pacing_retention: "Pacing & Retention",
   legal_safety: "Legal & Safety",
   cultural_localization: "Culture & Localization",
-  platform_fit: "Platform Fit",
-  audience_fit: "Audience Fit",
-  brand_voice: "Brand Voice",
-  engagement_retention: "Engagement",
+  platform_fit: "Platform Dynamics",
+  audience_brand: "Audience & Brand",
   emotional_impact: "Emotional Impact",
-  seo_discoverability: "SEO",
-  visual_accessibility: "Accessibility",
-  conversion_cta: "Conversion",
+  conversion_cta: "Conversion & CTA",
 };
 
 export function dimensionLabel(dimension: string): string {
@@ -160,7 +156,7 @@ export function heatFill(bin: HeatmapBin): string {
   return HEAT_FILL_CLASS[bin.color] ?? "bg-heat-red";
 }
 
-/** Score as a short mono string: `8.2`, or `—` when a run produced no score. */
+/** Score as a short mono string on the 1-5 scale: `4.2`, or `—` when absent. */
 export function formatScore(score: number | null | undefined): string {
   if (score === null || score === undefined) return "—";
   return score.toFixed(1);
@@ -179,7 +175,7 @@ export function formatCostUsd(usd: number): string {
   return `$${usd.toFixed(2)}`;
 }
 
-/** Friendly label for the model output type, e.g. `needs_manual_verification`. */
+/** Friendly label for the model output type, e.g. `needs_verification`. */
 export function formatFindingType(value: string): string {
   return value.replace(/_/g, " ");
 }

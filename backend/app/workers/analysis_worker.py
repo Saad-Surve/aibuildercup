@@ -35,7 +35,7 @@ from app.schemas.analysis import AnalysisDimension, AnalysisRunStatus, Finding
 from app.schemas.jobs import JobStatus
 from app.services.analysis_service import AnalysisService
 from app.services.cost import estimate_cost_usd
-from app.services.firestore_service import get_firestore_client
+from app.services.firestore_service import get_firestore_client, project_path
 from app.services.heatmap import aggregate_bins, summarize_findings
 from app.services.job_service import JobService
 from app.services.pubsub_service import PubSubClient, get_pubsub_client
@@ -186,6 +186,7 @@ async def run_analysis(
 
     persona_markdown, persona_version = _load_persona(users, storage, owner_uid)
     audience = _load_audience(users, owner_uid)
+    video_title, thumbnail_concept = _load_packaging(analyses, owner_uid, project_id)
     platform = str(run.get("platform") or "youtube")
     reviewer_run_ids = {
         AnalysisDimension(key): value
@@ -200,6 +201,8 @@ async def run_analysis(
         audience=audience,
         language=transcript.language,
         duration_ms=transcript.durationMs,
+        video_title=video_title,
+        thumbnail_concept=thumbnail_concept,
     )
     analyses.mark_running(
         owner_uid=owner_uid,
@@ -477,6 +480,22 @@ def _load_audience(users: UserService, owner_uid: str) -> str:
     except Exception:  # noqa: BLE001
         return ""
     return str(answers.get("audience") or "").strip()[:500]
+
+
+def _load_packaging(
+    analyses: AnalysisService, owner_uid: str, project_id: str
+) -> tuple[str, str]:
+    """(video title, thumbnail concept) for the packaging-aware reviewers.
+
+    The project name doubles as the video title. Never a hard dependency.
+    """
+    try:
+        project = analyses.client.get_document(project_path(owner_uid, project_id)) or {}
+    except Exception:  # noqa: BLE001
+        return "", ""
+    title = str(project.get("name") or "").strip()[:200]
+    thumbnail = str(project.get("thumbnailConcept") or "").strip()[:500]
+    return title, thumbnail
 
 
 def build_worker_services(

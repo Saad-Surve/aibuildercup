@@ -11,10 +11,23 @@ just list? Are people and consequences made concrete rather than kept abstract? 
 there a moment that lands - a turn, an admission, a surprise? Is the emotional
 register right for the subject (for example comedy over something that deserves care)?
 
-findingType vocabulary: flat, emotional_peak, missed_moment, inappropriate_tone,
-emotional_misstep, empathy_gap, strength."""
+findingType vocabulary (severity in brackets):
+  emotional_peak       [none]   a moment that genuinely lands (score 5)
+  flat                 [medium]
+  missed_moment        [medium]
+  inappropriate_tone   [high]
+  emotional_misstep    [medium]
+  empathy_gap          [medium]"""
 
 
 class EmotionalImpactReviewer(LlmReviewer):
     dimension = AnalysisDimension.emotional_impact
     focus = FOCUS
+    finding_types = (
+        "emotional_peak",
+        "flat",
+        "missed_moment",
+        "inappropriate_tone",
+        "emotional_misstep",
+        "empathy_gap",
+    )

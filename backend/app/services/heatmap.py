@@ -9,12 +9,12 @@ Pure functions only — no I/O, no model calls. The rules come from
 4. Preserve every finding id in its bin.
 5. Convert score/severity to a UI color.
 
-Scores are quality scores (higher is better), so a bin's color follows the score
-bands and a `critical` finding forces red regardless of the band.
+Scores are quality scores on a 1-5 scale (higher is better), so a bin's color follows
+the score bands and a `critical` finding forces red regardless of the band.
 
-Bins only exist where a finding exists: the reviewer prompts ask for observations
-that cover the reviewed window (including `severity: none` for what is fine), so a
-finished run yields a continuous track without inventing scores for untouched time.
+Bins only exist where a finding exists. Reviewers report exception-first (a flaw, or an
+exceptional strength), so a finished run yields an event-based track with gaps where
+nothing needed saying, rather than invented scores for untouched time.
 """
 
 from dataclasses import dataclass, field
@@ -48,11 +48,11 @@ def color_for(score: float, severity: Severity) -> HeatmapColor:
     """
     if severity is Severity.critical:
         return HeatmapColor.red
-    if score >= 8:
-        return HeatmapColor.green
-    if score >= 6:
-        return HeatmapColor.yellow
     if score >= 4:
+        return HeatmapColor.green
+    if score >= 3:
+        return HeatmapColor.yellow
+    if score >= 2:
         return HeatmapColor.orange
     return HeatmapColor.red
 

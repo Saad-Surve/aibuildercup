@@ -18,39 +18,31 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from app.agents.accessibility_agent import VisualAccessibilityReviewer
-from app.agents.audience_agent import AudienceFitReviewer
-from app.agents.brand_voice_agent import BrandVoiceReviewer
+from app.agents.audience_brand_agent import AudienceBrandReviewer
 from app.agents.clarity_agent import ClarityReviewer
 from app.agents.conversion_agent import ConversionCtaReviewer
 from app.agents.cultural_agent import CulturalLocalizationReviewer
 from app.agents.emotion_agent import EmotionalImpactReviewer
+from app.agents.pacing_agent import PacingRetentionReviewer
 from app.agents.platform_agent import PlatformFitReviewer
-from app.agents.retention_agent import EngagementRetentionReviewer
 from app.agents.reviewer_base import LlmReviewer, ReviewContext, SegmentRef
 from app.agents.safety_agent import LegalSafetyReviewer
-from app.agents.seo_agent import SeoDiscoverabilityReviewer
-from app.agents.structure_agent import StructurePacingReviewer
 from app.agents.truth_agent import TruthEvidenceReviewer
 from app.providers.base import LlmProvider, LlmUsage
 from app.schemas.analysis import AnalysisDimension, Finding, ReviewerRunStatus
 
 logger = logging.getLogger(__name__)
 
-#: One reviewer class per dimension. Order follows `AnalysisDimension`.
+#: One reviewer class per active dimension. Order follows `AnalysisDimension`.
 REVIEWER_CLASSES: dict[AnalysisDimension, type[LlmReviewer]] = {
     AnalysisDimension.truth_evidence: TruthEvidenceReviewer,
     AnalysisDimension.clarity: ClarityReviewer,
-    AnalysisDimension.structure_pacing: StructurePacingReviewer,
+    AnalysisDimension.pacing_retention: PacingRetentionReviewer,
     AnalysisDimension.legal_safety: LegalSafetyReviewer,
     AnalysisDimension.cultural_localization: CulturalLocalizationReviewer,
     AnalysisDimension.platform_fit: PlatformFitReviewer,
-    AnalysisDimension.audience_fit: AudienceFitReviewer,
-    AnalysisDimension.brand_voice: BrandVoiceReviewer,
-    AnalysisDimension.engagement_retention: EngagementRetentionReviewer,
+    AnalysisDimension.audience_brand: AudienceBrandReviewer,
     AnalysisDimension.emotional_impact: EmotionalImpactReviewer,
-    AnalysisDimension.seo_discoverability: SeoDiscoverabilityReviewer,
-    AnalysisDimension.visual_accessibility: VisualAccessibilityReviewer,
     AnalysisDimension.conversion_cta: ConversionCtaReviewer,
 }
 
@@ -168,6 +160,8 @@ def build_review_contexts(
     audience: str,
     language: str,
     duration_ms: int,
+    video_title: str = "",
+    thumbnail_concept: str = "",
 ) -> list[ReviewContext]:
     return [
         ReviewContext(
@@ -178,6 +172,8 @@ def build_review_contexts(
             duration_ms=duration_ms,
             segments=chunk.segments,
             context_segments=chunk.context_segments,
+            video_title=video_title,
+            thumbnail_concept=thumbnail_concept,
         )
         for chunk in chunks
     ]

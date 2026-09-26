@@ -157,7 +157,7 @@ function FindingRow({
   onSeek: (startMs: number) => void;
 }) {
   const hasEvidence = Boolean(
-    finding.evidence.quote || finding.evidence.explanation,
+    finding.evidence.quote || finding.evidence.critique_and_reasoning,
   );
   return (
     <li
@@ -225,9 +225,9 @@ function FindingRow({
                 <span className="text-muted-foreground">”</span>
               </p>
             )}
-            {finding.evidence.explanation && (
+            {finding.evidence.critique_and_reasoning && (
               <p className="text-xs text-muted-foreground">
-                {finding.evidence.explanation}
+                {finding.evidence.critique_and_reasoning}
               </p>
             )}
           </div>

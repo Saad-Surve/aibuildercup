@@ -50,6 +50,7 @@ export interface Project {
   projectId: string;
   name: string;
   description: string;
+  thumbnailConcept: string;
   primaryLanguage: string;
   targetLanguages: string[];
   targetPlatforms: string[];
@@ -68,6 +69,7 @@ export interface Project {
 export interface CreateProjectInput {
   name: string;
   description?: string;
+  thumbnailConcept?: string;
   primaryLanguage?: string;
   targetLanguages?: string[];
   targetPlatforms?: string[];
@@ -171,16 +173,12 @@ export interface TranscriptVersion {
 export const ANALYSIS_DIMENSIONS = [
   "truth_evidence",
   "clarity",
-  "structure_pacing",
+  "pacing_retention",
   "legal_safety",
   "cultural_localization",
   "platform_fit",
-  "audience_fit",
-  "brand_voice",
-  "engagement_retention",
+  "audience_brand",
   "emotional_impact",
-  "seo_discoverability",
-  "visual_accessibility",
   "conversion_cta",
 ] as const;
 
@@ -190,7 +188,7 @@ export type AnalysisDimension = (typeof ANALYSIS_DIMENSIONS)[number];
 export const CORE_DIMENSIONS: AnalysisDimension[] = [
   "truth_evidence",
   "clarity",
-  "structure_pacing",
+  "pacing_retention",
   "legal_safety",
   "cultural_localization",
   "platform_fit",
@@ -253,7 +251,7 @@ export interface ReviewerRun {
 
 export interface FindingEvidence {
   quote: string;
-  explanation: string;
+  critique_and_reasoning: string;
 }
 
 export interface Finding {

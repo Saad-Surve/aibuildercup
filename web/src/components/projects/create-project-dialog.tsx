@@ -55,6 +55,7 @@ export function CreateProjectDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [thumbnailConcept, setThumbnailConcept] = useState("");
   const [primaryLanguage, setPrimaryLanguage] = useState("en");
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +96,7 @@ export function CreateProjectDialog() {
     mutation.mutate({
       name: name.trim(),
       description: description.trim(),
+      thumbnailConcept: thumbnailConcept.trim(),
       primaryLanguage,
       targetPlatforms: platforms,
     });
@@ -135,6 +137,19 @@ export function CreateProjectDialog() {
                 onChange={(event) => setDescription(event.target.value)}
                 placeholder="What is this video about?"
                 rows={2}
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="project-thumbnail">
+                Thumbnail concept
+              </FieldLabel>
+              <Input
+                id="project-thumbnail"
+                value={thumbnailConcept}
+                onChange={(event) => setThumbnailConcept(event.target.value)}
+                placeholder="Optional — what the thumbnail promises"
+                maxLength={500}
               />
             </Field>
 

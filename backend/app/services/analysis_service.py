@@ -115,6 +115,13 @@ def _to_finding(finding_id: str, data: dict[str, Any]) -> Finding:
     raw_evidence = data.get("evidence") or {}
     if not isinstance(raw_evidence, dict):
         raw_evidence = {}
+    # Legacy runs stored a 0-10 float score and an `explanation` field; clamp and
+    # rename on read so old runs still render instead of 500ing.
+    raw_score = data.get("score", 1)
+    try:
+        score = max(1, min(5, int(round(float(raw_score)))))
+    except (TypeError, ValueError):
+        score = 1
     return Finding(
         findingId=finding_id,
         dimension=AnalysisDimension(data["dimension"]),
@@ -122,13 +129,17 @@ def _to_finding(finding_id: str, data: dict[str, Any]) -> Finding:
         segmentId=data.get("segmentId"),
         startMs=int(data.get("startMs", 0)),
         endMs=int(data.get("endMs", 0)),
-        score=float(data.get("score", 0.0)),
+        score=score,
         confidence=float(data.get("confidence", 0.0)),
         severity=Severity(data.get("severity", Severity.none.value)),
         findingType=data.get("findingType", ""),
         evidence=FindingEvidence(
             quote=str(raw_evidence.get("quote", "")),
-            explanation=str(raw_evidence.get("explanation", "")),
+            critique_and_reasoning=str(
+                raw_evidence.get("critique_and_reasoning")
+                or raw_evidence.get("explanation")
+                or ""
+            ),
         ),
         suggestion=data.get("suggestion", ""),
         citations=list(data.get("citations") or []),
@@ -514,7 +525,9 @@ class AnalysisService:
                     "findingType": finding.findingType,
                     "evidence": {
                         "quote": finding.evidence.quote,
-                        "explanation": finding.evidence.explanation,
+                        "critique_and_reasoning": (
+                            finding.evidence.critique_and_reasoning
+                        ),
                     },
                     "suggestion": finding.suggestion,
                     "citations": finding.citations,

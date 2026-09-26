@@ -28,93 +28,134 @@ from app.schemas.analysis import (
 logger = logging.getLogger(__name__)
 
 #: Bumped whenever reviewer prompts change in a way that alters scores.
-REVIEWER_PROMPT_VERSION = "reviewers-v1"
+REVIEWER_PROMPT_VERSION = "reviewers-v2"
 
 #: Bumped whenever the model/prompt configuration changes as a whole.
-MODEL_CONFIG_VERSION = "analysis-v1"
+MODEL_CONFIG_VERSION = "analysis-v2"
 
 _SEVERITY_VALUES = {severity.value for severity in Severity}
 
-FINDINGS_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "findings": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "segmentId": {"type": "string"},
-                    "startMs": {"type": "integer"},
-                    "endMs": {"type": "integer"},
-                    "score": {"type": "number"},
-                    "confidence": {"type": "number"},
-                    "severity": {
-                        "type": "string",
-                        "enum": [severity.value for severity in Severity],
-                    },
-                    "findingType": {"type": "string"},
-                    "evidence": {
-                        "type": "object",
-                        "properties": {
-                            "quote": {"type": "string"},
-                            "explanation": {"type": "string"},
-                        },
-                        "required": ["quote", "explanation"],
-                    },
-                    "suggestion": {"type": "string"},
-                    "citations": {
-                        "type": "array",
-                        "items": {"type": "object"},
-                    },
-                },
-                "required": [
-                    "segmentId",
-                    "startMs",
-                    "endMs",
-                    "score",
-                    "confidence",
-                    "severity",
-                    "findingType",
-                    "evidence",
-                    "suggestion",
-                ],
-            },
-        }
-    },
-    "required": ["findings"],
-}
+#: The panel role. `{dimension_label}` / `{dimension_value}` are the only substitutions.
+ROLE = (
+    "You are an elite video script and retention analyst on a creator advisory panel. "
+    "Your sole focus today is {dimension_label} ({dimension_value}).\n\n"
+    "GUIDELINES:\n"
+    "1. Speak to the medium: this is spoken conversational audio for digital video, not "
+    "an academic essay. Natural contractions, rhetorical questions, conversational "
+    "tangents, and informal registers are expected and encouraged when they sustain "
+    "attention.\n"
+    "2. Be surgically specific: every critique needs a direct quote and an immediate, "
+    "rewrite-ready suggestion.\n"
+    "3. Reason before grading: analyze why an element succeeds or fails before assigning "
+    "severity and a score."
+)
 
 SCORE_ANCHORS = """\
-SCORE ANCHORS - use the whole range; do not cluster around 7:
-  9.0-10.0  Excellent. Publishable as-is.
-  8.0-8.9   Strong. At most one minor nit.
-  6.0-7.9   Acceptable. One clear improvement would help.
-  4.0-5.9   Weak. A viewer would notice the problem.
-  2.0-3.9   Poor. A serious problem.
-  0.0-1.9   Broken. Fix before publishing.
+EVALUATION SCALE - discrete 1-5, higher is better:
+  5  Outstanding. Masterclass execution. Keep as-is.                  (severity: none)
+  4  Strong. Engaging and effective; minor polish possible.           (severity: none)
+  3  Needs polish. Noticeable friction; distracts or slows pacing.    (severity: low or medium)
+  2  Poor. Actively loses viewers, trust, or clarity; rewrite it.     (severity: high)
+  1  Disqualifying. Broken, deceptive, legally hazardous, unwatchable. (severity: critical)
 
-SEVERITY - how bad the problem is, judged separately from the score:
-  none      No problem here. Use for strengths and for stretches that are simply fine.
+SEVERITY - judged separately from the score, how bad the problem is:
+  none      No problem. Use only for an exceptional strength (score 5).
   low       Minor. Worth a note, not urgent.
   medium    Noticeable. Should be fixed.
   high      Serious. Will cost the creator viewers, trust, or reach.
-  critical  Dangerous or disqualifying. Fix before this is published."""
+  critical  Dangerous or disqualifying. Fix before this is published.
+
+REPORTING THRESHOLD - exception-first, do NOT narrate the whole transcript:
+  a) A concrete friction point or flaw (severity low/medium/high/critical), or
+  b) An exceptional, high-impact technique worth reinforcing (score 5, severity none).
+  Ordinary, fine sentences get no finding. Silence is not a finding."""
 
 OUTPUT_RULES = """\
 OUTPUT RULES:
 1. Report findings ONLY for the segments listed under REVIEW WINDOW. Segments under
    CONTEXT are for continuity of understanding; never report them.
-2. Cover the whole REVIEW WINDOW, in order. Emit an observation for every coherent
-   span, including spans that are fine (severity "none"). Merge neighbouring segments
-   that share one judgement into a single span.
+2. Exception-first: emit a finding only for a real flaw, or for an exceptional
+   strength (score 5). Leave ordinary, fine stretches unreported; do not emit filler
+   observations. Merge neighbouring segments that share one judgement.
 3. Every finding must quote the exact words it is about, at most 25 words.
 4. startMs and endMs are milliseconds and must fall inside the quoted words and
    inside the segment times you were given. endMs > startMs.
-5. score is quality on the anchors above: higher is better.
-6. suggestion is one concrete action the creator can take, or "" when severity is "none".
+5. score is the discrete 1-5 quality scale above; severity is judged separately.
+6. suggestion is one concrete, rewrite-ready action, or "" only when severity is
+   "none" (an exceptional strength).
 7. Never invent facts, names, numbers, quotes, or sources. If a claim cannot be
-   settled from the transcript alone, use findingType "needs_manual_verification".
+   settled from the transcript alone, use findingType "needs_verification".
 8. Return JSON only, matching the schema you are given. No markdown, no commentary."""
+
+
+def findings_schema(finding_types: Sequence[str]) -> dict[str, Any]:
+    """JSON schema for one reviewer's output.
+
+    Property order matters: autoregressive models generate keys in order, so `evidence`
+    (reasoning) precedes `severity`/`score` to force reason-then-grade. `findingType` is
+    constrained to that reviewer's vocabulary so the model cannot invent types.
+    """
+    return {
+        "type": "object",
+        "properties": {
+            "findings": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "segmentId": {"type": "string"},
+                        "startMs": {"type": "integer"},
+                        "endMs": {"type": "integer"},
+                        "evidence": {
+                            "type": "object",
+                            "properties": {
+                                "quote": {"type": "string", "maxLength": 300},
+                                "critique_and_reasoning": {
+                                    "type": "string",
+                                    "description": (
+                                        "Analyze why this specific line succeeds or fails "
+                                        "before scoring."
+                                    ),
+                                },
+                            },
+                            "required": ["quote", "critique_and_reasoning"],
+                        },
+                        "findingType": {
+                            "type": "string",
+                            "enum": list(finding_types) or ["observation"],
+                        },
+                        "severity": {
+                            "type": "string",
+                            "enum": [severity.value for severity in Severity],
+                        },
+                        "score": {"type": "integer", "minimum": 1, "maximum": 5},
+                        "suggestion": {
+                            "type": "string",
+                            "description": (
+                                "Concrete rewrite or editorial action; empty only when "
+                                "severity is none."
+                            ),
+                        },
+                        "citations": {
+                            "type": "array",
+                            "items": {"type": "object"},
+                        },
+                    },
+                    "required": [
+                        "segmentId",
+                        "startMs",
+                        "endMs",
+                        "evidence",
+                        "findingType",
+                        "severity",
+                        "score",
+                        "suggestion",
+                    ],
+                },
+            }
+        },
+        "required": ["findings"],
+    }
 
 
 @dataclass(frozen=True)
@@ -138,6 +179,9 @@ class ReviewContext:
     duration_ms: int
     segments: tuple[SegmentRef, ...]
     context_segments: tuple[SegmentRef, ...] = ()
+    #: Packaging context: a hook can only be judged against the title/thumbnail promise.
+    video_title: str = ""
+    thumbnail_concept: str = ""
 
 
 @dataclass(frozen=True)
@@ -156,19 +200,33 @@ class Reviewer(Protocol):
     ) -> ReviewResult: ...
 
 
+#: Display labels. Kept explicit so acronyms do not render as `Seo` / `Cta`.
+DIMENSION_LABELS: dict[AnalysisDimension, str] = {
+    AnalysisDimension.truth_evidence: "Truth & Evidence",
+    AnalysisDimension.clarity: "Spoken Clarity",
+    AnalysisDimension.pacing_retention: "Pacing & Retention",
+    AnalysisDimension.legal_safety: "Legal & Safety",
+    AnalysisDimension.cultural_localization: "Culture & Localization",
+    AnalysisDimension.platform_fit: "Platform Dynamics",
+    AnalysisDimension.audience_brand: "Audience & Brand",
+    AnalysisDimension.emotional_impact: "Emotional Impact",
+    AnalysisDimension.conversion_cta: "Conversion & CTA",
+}
+
+
 def dimension_label(dimension: AnalysisDimension) -> str:
-    return dimension.value.replace("_", " ").title()
+    return DIMENSION_LABELS.get(
+        dimension, dimension.value.replace("_", " ").title()
+    )
 
 
 def build_system_prompt(dimension: AnalysisDimension, focus: str) -> str:
     """Shared role + anchors + rules, with the dimension rubric spliced in."""
     return "\n\n".join(
         [
-            (
-                "You are one of thirteen specialist reviewers in a creator video review "
-                f"panel. Your only job today is {dimension_label(dimension)} "
-                f"({dimension.value}). Be specific, evidence-first, and strict: vague "
-                "praise and vague criticism are both useless to the creator."
+            ROLE.format(
+                dimension_label=dimension_label(dimension),
+                dimension_value=dimension.value,
             ),
             f"WHAT TO REVIEW FOR ({dimension_label(dimension)}):\n{focus.strip()}",
             SCORE_ANCHORS,
@@ -181,10 +239,13 @@ def build_user_prompt(context: ReviewContext, dimension: AnalysisDimension) -> s
     """Assemble the transcript window and the creator context."""
     header = [
         f"# Review task: {dimension_label(dimension)} ({dimension.value})",
+        f"Video title: {context.video_title or 'untitled'}",
         f"Target platform: {context.platform or 'unspecified'}",
         f"Spoken language: {context.language or 'unspecified'}",
         f"Video duration: {context.duration_ms} ms",
     ]
+    if context.thumbnail_concept:
+        header.append(f"Thumbnail concept: {context.thumbnail_concept}")
     if context.audience:
         header.append(f"Intended audience: {context.audience}")
     if context.persona:
@@ -208,15 +269,12 @@ def _format_segments(segments: Sequence[SegmentRef]) -> list[str]:
 def severity_for_score(score: float) -> Severity:
     """Fallback severity for model output that omits or mangles it.
 
-    Mirrors the score bands from `backend-plan.md` section 9 so an unlabelled
-    observation still colours the heatmap sensibly.
+    Mirrors the 1-5 scale so an unlabelled observation still colours the heatmap sensibly.
     """
-    if score >= 8:
-        return Severity.none
-    if score >= 6:
-        return Severity.low
     if score >= 4:
-        return Severity.medium
+        return Severity.none
+    if score >= 3:
+        return Severity.low
     if score >= 2:
         return Severity.high
     return Severity.critical
@@ -264,7 +322,7 @@ def normalize_findings(
 ) -> list[Finding]:
     """Turn untrusted model output into validated `Finding` records.
 
-    Guarantees on every emitted finding: score in [0, 10], confidence in [0, 1],
+    Guarantees on every emitted finding: score in [1, 5], confidence in [0, 1],
     timestamps ordered and inside `[0, duration_ms]`, a severity from the enum, and a
     `segmentId` that resolves to a real segment (or None). Entries that cannot be
     salvaged are dropped rather than guessed at.
@@ -299,11 +357,11 @@ def _normalize_one(
     if not isinstance(entry, dict):
         return None
 
-    score = _as_float(entry.get("score"))
-    if score is None:
+    raw_score = _as_float(entry.get("score"))
+    if raw_score is None:
         logger.warning("reviewer %s: dropping finding without a score", dimension.value)
         return None
-    score = _clamp(score, 0.0, 10.0)
+    score = int(round(_clamp(raw_score, 1.0, 5.0)))
 
     confidence = _as_float(entry.get("confidence"))
     confidence = _clamp(confidence if confidence is not None else 0.5, 0.0, 1.0)
@@ -349,13 +407,17 @@ def _normalize_one(
         segmentId=segment.segment_id if segment else None,
         startMs=start_ms,
         endMs=end_ms,
-        score=round(score, 2),
+        score=score,
         confidence=round(confidence, 2),
         severity=severity,
         findingType=str(entry.get("findingType") or "observation")[:120],
         evidence=FindingEvidence(
             quote=str(evidence.get("quote") or "")[:2000],
-            explanation=str(evidence.get("explanation") or "")[:2000],
+            critique_and_reasoning=str(
+                evidence.get("critique_and_reasoning")
+                or evidence.get("explanation")
+                or ""
+            )[:2000],
         ),
         suggestion=str(entry.get("suggestion") or "")[:2000],
         citations=citations,
@@ -376,12 +438,14 @@ def _segment_by_id(
 class LlmReviewer:
     """A reviewer that runs one structured LLM call over one transcript window.
 
-    Subclasses set `dimension` and `focus`; everything else is shared so the
-    thirteen reviewers cannot drift apart in rubric or output handling.
+    Subclasses set `dimension`, `focus`, and `finding_types`; everything else is shared
+    so the reviewers cannot drift apart in rubric, schema, or output handling.
     """
 
     dimension: AnalysisDimension
     focus: str = ""
+    #: Allowed `findingType` values. Constrains the schema so the model cannot invent types.
+    finding_types: tuple[str, ...] = ()
 
     def __init__(self, llm: LlmProvider, *, model: str) -> None:
         self.llm = llm
@@ -395,7 +459,7 @@ class LlmReviewer:
             prompt_version=REVIEWER_PROMPT_VERSION,
             system=build_system_prompt(self.dimension, self.focus),
             user=build_user_prompt(context, self.dimension),
-            schema=FINDINGS_SCHEMA,
+            schema=findings_schema(self.finding_types),
         )
         findings = normalize_findings(
             completion.data,
@@ -408,11 +472,12 @@ class LlmReviewer:
 
 
 __all__ = [
-    "FINDINGS_SCHEMA",
+    "DIMENSION_LABELS",
     "LlmReviewer",
     "MODEL_CONFIG_VERSION",
     "OUTPUT_RULES",
     "REVIEWER_PROMPT_VERSION",
+    "ROLE",
     "SCORE_ANCHORS",
     "ReviewContext",
     "ReviewResult",
@@ -421,6 +486,7 @@ __all__ = [
     "build_system_prompt",
     "build_user_prompt",
     "dimension_label",
+    "findings_schema",
     "normalize_findings",
     "resolve_segment",
     "severity_for_score",

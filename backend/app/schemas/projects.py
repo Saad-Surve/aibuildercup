@@ -17,6 +17,8 @@ class ProjectStatus(StrEnum):
 class CreateProject(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     description: str = ""
+    #: Packaging context for the reviewers: what the thumbnail promises.
+    thumbnailConcept: str = ""
     primaryLanguage: str = "en"
     targetLanguages: list[str] = Field(default_factory=list)
     targetPlatforms: list[str] = Field(default_factory=list)
@@ -27,6 +29,7 @@ class CreateProject(BaseModel):
 class UpdateProject(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = None
+    thumbnailConcept: str | None = None
 
 
 class ProjectProgress(BaseModel):
@@ -39,6 +42,7 @@ class Project(BaseModel):
     projectId: str
     name: str
     description: str
+    thumbnailConcept: str = ""
     primaryLanguage: str
     targetLanguages: list[str]
     targetPlatforms: list[str]

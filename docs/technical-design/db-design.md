@@ -191,12 +191,12 @@ AI-inferred changes remain pending until the user explicitly approves them.
   "progress": {
     "stage": "analysis",
     "percent": 72,
-    "message": "Running structure reviewer"
+    "message": "Running pacing reviewer"
   },
   "summary": {
     "durationMs": 485000,
     "transcriptWordCount": 1020,
-    "overallScore": 7.4,
+    "overallScore": 3.7,
     "criticalFindingCount": 0,
     "highFindingCount": 2
   },
@@ -272,9 +272,9 @@ AI-inferred changes remain pending until the user explicitly approves them.
 ~~~json
 {
   "type": "job.started | job.progress | job.retrying | job.succeeded | job.failed",
-  "message": "Structure reviewer completed",
+  "message": "Pacing reviewer completed",
   "metadata": {
-    "reviewer": "structure_pacing",
+    "reviewer": "pacing_retention",
     "count": 14
   },
   "createdAt": "timestamp"
@@ -336,14 +336,14 @@ Keep word-level data in the canonical Cloud Storage JSON unless word-level editi
   "status": "ready",
   "fanoutStrategy": "two_tier",
   "chunkCount": 4,
-  "requestedDimensions": ["truth_evidence", "clarity", "structure_pacing", "legal_safety"],
-  "completedDimensions": ["truth_evidence", "clarity", "structure_pacing", "legal_safety"],
-  "overallScore": 7.4,
+  "requestedDimensions": ["truth_evidence", "clarity", "pacing_retention", "legal_safety"],
+  "completedDimensions": ["truth_evidence", "clarity", "pacing_retention", "legal_safety"],
+  "overallScore": 3.7,
   "scoreByDimension": {
-    "truth_evidence": 8.2,
-    "clarity": 7.0,
-    "structure_pacing": 6.4,
-    "legal_safety": 9.1
+    "truth_evidence": 4.1,
+    "clarity": 3.5,
+    "pacing_retention": 3.2,
+    "legal_safety": 4.6
   },
   "findingCounts": {
     "low": 10,
@@ -389,13 +389,13 @@ Keep word-level data in the canonical Cloud Storage JSON unless word-level editi
   "segmentId": "seg-12",
   "startMs": 42000,
   "endMs": 58000,
-  "score": 7,
+  "score": 3,
   "confidence": 0.86,
   "severity": "medium",
-  "findingType": "ambiguity",
+  "findingType": "ambiguous_referent",
   "evidence": {
     "quote": "The second concept...",
-    "explanation": "The concept is introduced without definition."
+    "critique_and_reasoning": "The concept is introduced without definition."
   },
   "suggestion": "Add a one-sentence definition before continuing.",
   "citations": [],
@@ -412,7 +412,7 @@ Keep word-level data in the canonical Cloud Storage JSON unless word-level editi
   "dimension": "clarity",
   "startMs": 40000,
   "endMs": 45000,
-  "score": 7.5,
+  "score": 3.5,
   "severity": "medium",
   "findingIds": ["finding-1", "finding-2"],
   "color": "yellow",

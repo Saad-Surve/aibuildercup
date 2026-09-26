@@ -727,6 +727,9 @@ components:
       properties:
         name: { type: string }
         description: { type: string }
+        thumbnailConcept:
+          type: string
+          description: What the thumbnail promises, so a hook can be judged against it.
         primaryLanguage: { type: string, default: en }
         targetLanguages: { type: array, items: { type: string } }
         targetPlatforms: { type: array, items: { type: string } }
@@ -858,21 +861,25 @@ components:
       type: string
       description: |
         Reviewer dimensions. `truth_evidence` through `platform_fit` are core and
-        always run; the rest are extended and opt-in.
+        always run; `audience_brand`, `emotional_impact`, and `conversion_cta` are
+        opt-in. The trailing values are retired (kept so historical runs still
+        deserialize; never requested or run).
       enum:
         - truth_evidence
         - clarity
-        - structure_pacing
+        - pacing_retention
         - legal_safety
         - cultural_localization
         - platform_fit
+        - audience_brand
+        - emotional_impact
+        - conversion_cta
+        - structure_pacing
+        - engagement_retention
         - audience_fit
         - brand_voice
-        - engagement_retention
-        - emotional_impact
         - seo_discoverability
         - visual_accessibility
-        - conversion_cta
 
     AnalysisRequest:
       type: object
@@ -966,7 +973,7 @@ components:
         segmentId: { type: [string, "null"] }
         startMs: { type: integer }
         endMs: { type: integer }
-        score: { type: number, minimum: 0, maximum: 10 }
+        score: { type: integer, minimum: 1, maximum: 5 }
         confidence: { type: number, minimum: 0, maximum: 1 }
         severity: { $ref: "#/components/schemas/Severity" }
         findingType: { type: string }
@@ -974,7 +981,7 @@ components:
           type: object
           properties:
             quote: { type: string }
-            explanation: { type: string }
+            critique_and_reasoning: { type: string }
         suggestion: { type: string }
         citations:
           type: array

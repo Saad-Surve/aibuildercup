@@ -256,6 +256,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                 projectId={projectId}
                 initialName={project.name}
                 initialDescription={project.description}
+                initialThumbnailConcept={project.thumbnailConcept}
               />
               <DeleteProjectDialog
                 projectId={projectId}

@@ -38,15 +38,20 @@ export function EditProjectDialog({
   projectId,
   initialName,
   initialDescription,
+  initialThumbnailConcept,
 }: {
   projectId: string;
   initialName: string;
   initialDescription: string;
+  initialThumbnailConcept: string;
 }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
+  const [thumbnailConcept, setThumbnailConcept] = useState(
+    initialThumbnailConcept,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
@@ -54,6 +59,7 @@ export function EditProjectDialog({
       updateProject(projectId, {
         name: name.trim(),
         description: description.trim(),
+        thumbnailConcept: thumbnailConcept.trim(),
       }),
     onSuccess: (project) => {
       queryClient.setQueryData(["project", projectId], project);
@@ -68,6 +74,7 @@ export function EditProjectDialog({
     if (next) {
       setName(initialName);
       setDescription(initialDescription);
+      setThumbnailConcept(initialThumbnailConcept);
       setError(null);
     }
     if (!next && mutation.isPending) return;
@@ -119,6 +126,20 @@ export function EditProjectDialog({
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
                 rows={3}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="edit-project-thumbnail">
+                Thumbnail concept
+              </FieldLabel>
+              <Input
+                id="edit-project-thumbnail"
+                value={thumbnailConcept}
+                onChange={(event) =>
+                  setThumbnailConcept(event.target.value)
+                }
+                placeholder="Optional — what the thumbnail promises"
+                maxLength={500}
               />
             </Field>
             {error ? <FieldError>{error}</FieldError> : null}
