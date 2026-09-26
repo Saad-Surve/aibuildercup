@@ -45,18 +45,22 @@ export const TRANSCRIPT_POLL_MS = 10_000;
  */
 export function useProjectTranscript(
   projectId: string,
-  options?: { shouldPoll?: boolean },
+  options?: { shouldPoll?: boolean; version?: number | null },
 ) {
   const shouldPoll = options?.shouldPoll ?? true;
+  const version = options?.version ?? null;
   return useQuery<Transcript>({
-    queryKey: ["transcript", projectId],
-    queryFn: () => getTranscript(projectId),
+    queryKey: ["transcript", projectId, version ?? "active"],
+    queryFn: () => getTranscript(projectId, version),
     retry: false,
     staleTime: 0,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     refetchIntervalInBackground: true,
+    // Only the active transcript is polled; a pinned older version is static.
     refetchInterval: (query) =>
-      query.state.data || !shouldPoll ? false : TRANSCRIPT_POLL_MS,
+      query.state.data || !shouldPoll || version != null
+        ? false
+        : TRANSCRIPT_POLL_MS,
   });
 }

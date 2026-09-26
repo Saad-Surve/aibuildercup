@@ -12,7 +12,11 @@ from app.dependencies import (
 )
 from app.schemas.common import AcceptedJob
 from app.schemas.jobs import JobStatus
-from app.schemas.transcripts import Transcript, TranscriptSegment
+from app.schemas.transcripts import (
+    Transcript,
+    TranscriptSegment,
+    TranscriptVersionList,
+)
 from app.services.asset_service import AssetService
 from app.services.transcript_service import TranscriptService
 
@@ -29,8 +33,24 @@ async def get_transcript(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
+    version: int | None = None,
 ) -> Transcript:
-    return service.get(owner_uid=user.uid, project_id=projectId)
+    """The active transcript, or a specific saved version when `version` is given."""
+    return service.get(owner_uid=user.uid, project_id=projectId, version=version)
+
+
+@router.get(
+    "/projects/{projectId}/transcript/versions",
+    response_model=TranscriptVersionList,
+)
+async def list_transcript_versions(
+    projectId: str,
+    user: UserDep,
+    service: ServiceDep,
+) -> TranscriptVersionList:
+    return TranscriptVersionList(
+        items=service.list_versions(owner_uid=user.uid, project_id=projectId)
+    )
 
 
 @router.post(

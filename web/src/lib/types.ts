@@ -159,6 +159,15 @@ export interface Transcript {
   segments: TranscriptSegment[];
 }
 
+export interface TranscriptVersion {
+  transcriptId: string;
+  version: number;
+  language: string;
+  durationMs: number;
+  wordCount: number;
+  createdAt: string | null;
+}
+
 export const ANALYSIS_DIMENSIONS = [
   "truth_evidence",
   "clarity",

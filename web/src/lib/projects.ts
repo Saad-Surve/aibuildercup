@@ -11,6 +11,7 @@ import type {
   ProjectList,
   ProjectStatus,
   Transcript,
+  TranscriptVersion,
   UploadSession,
 } from "@/lib/types";
 
@@ -186,8 +187,20 @@ export function subscribeToProjectEvents(
   return () => controller.abort();
 }
 
-export function getTranscript(projectId: string): Promise<Transcript> {
-  return apiFetch<Transcript>(`/projects/${projectId}/transcript`);
+export function getTranscript(
+  projectId: string,
+  version?: number | null,
+): Promise<Transcript> {
+  const suffix = version != null ? `?version=${version}` : "";
+  return apiFetch<Transcript>(`/projects/${projectId}/transcript${suffix}`);
+}
+
+export function listTranscriptVersions(
+  projectId: string,
+): Promise<{ items: TranscriptVersion[] }> {
+  return apiFetch<{ items: TranscriptVersion[] }>(
+    `/projects/${projectId}/transcript/versions`,
+  );
 }
 
 /** Queue a fresh transcription run for the project's source video. */

@@ -36,3 +36,18 @@ class TranscriptRecord(BaseModel):
     segmentCount: int
     createdAt: datetime
     updatedAt: datetime
+
+
+class TranscriptVersion(BaseModel):
+    """One saved transcript generation, for the version picker."""
+
+    transcriptId: str
+    version: int
+    language: str
+    durationMs: int = Field(ge=0)
+    wordCount: int = 0
+    createdAt: datetime | None = None
+
+
+class TranscriptVersionList(BaseModel):
+    items: list[TranscriptVersion] = Field(default_factory=list)

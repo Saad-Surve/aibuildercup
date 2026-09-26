@@ -182,23 +182,17 @@ export function ReviewPanel({
         <CardHeader className="shrink-0">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <div className="flex flex-wrap items-baseline gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {isRunning ? (
                   <Icon
                     icon={Loading03Icon}
-                    className="self-center animate-spin text-signal"
+                    className="animate-spin text-signal"
                   />
                 ) : (
-                  <Icon
-                    icon={PlayIcon}
-                    className="self-center text-muted-foreground"
-                  />
+                  <Icon icon={PlayIcon} className="text-muted-foreground" />
                 )}
                 <CardTitle>Review</CardTitle>
-                <span
-                  className="h-4 w-px self-center bg-border"
-                  aria-hidden="true"
-                />
+                <span className="h-4 w-px bg-border" aria-hidden="true" />
                 <span className="text-sm text-muted-foreground">
                   {statusLabel(run, hasTranscript)}
                 </span>
@@ -206,20 +200,20 @@ export function ReviewPanel({
             </div>
 
             <div className="flex items-center gap-2">
-              {runs.length > 1 && (
+              {runs.length > 0 && (
                 <Select
                   value={activeRunId ?? ""}
                   onValueChange={(value) =>
                     setSelectedRunId(value as string | null)
                   }
                 >
-                  <SelectTrigger size="sm" className="w-32">
-                    <SelectValue placeholder="Latest run" />
+                  <SelectTrigger size="sm" className="w-20">
+                    <SelectValue placeholder="Latest" />
                   </SelectTrigger>
                   <SelectContent>
                     {runs.map((item, index) => (
                       <SelectItem key={item.analysisRunId} value={item.analysisRunId}>
-                        Run {runs.length - index}
+                        v{runs.length - index}
                       </SelectItem>
                     ))}
                   </SelectContent>

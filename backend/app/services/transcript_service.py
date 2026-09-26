@@ -11,7 +11,7 @@ from typing import Any
 from uuid import uuid4
 
 from app.errors import NotFoundError
-from app.schemas.transcripts import Transcript, TranscriptSegment
+from app.schemas.transcripts import Transcript, TranscriptSegment, TranscriptVersion
 from app.services.firestore_service import (
     FirestoreClient,
     project_path,
@@ -176,16 +176,65 @@ class TranscriptService:
         self.client = client
         self.storage = storage
 
-    def get(self, *, owner_uid: str, project_id: str) -> Transcript:
+    def get(
+        self, *, owner_uid: str, project_id: str, version: int | None = None
+    ) -> Transcript:
         project = self.client.get_document(project_path(owner_uid, project_id))
         if project is None or not is_owner(project, owner_uid):
             raise NotFoundError("Project not found", details={"projectId": project_id})
-        transcript_id = project.get("activeTranscriptId")
-        if not transcript_id:
-            raise NotFoundError("Transcript not ready", details={"projectId": project_id})
+        if version is None:
+            transcript_id = project.get("activeTranscriptId")
+            if not transcript_id:
+                raise NotFoundError(
+                    "Transcript not ready", details={"projectId": project_id}
+                )
+        else:
+            rows = self.client.query_collection(
+                transcripts_collection_path(owner_uid, project_id),
+                filters=[("version", "==", version)],
+                order_by=[],
+                limit=1,
+                offset=0,
+            )
+            match = next(
+                (tid, data) for tid, data in rows if is_owner(data, owner_uid)
+            )
+            if match is None:
+                raise NotFoundError(
+                    "Transcript version not found",
+                    details={"projectId": project_id, "version": version},
+                )
+            transcript_id = match[0]
         return self.get_by_id(
             owner_uid=owner_uid, project_id=project_id, transcript_id=transcript_id
         )
+
+    def list_versions(
+        self, *, owner_uid: str, project_id: str
+    ) -> list[TranscriptVersion]:
+        """Every saved transcript generation, oldest first."""
+        project = self.client.get_document(project_path(owner_uid, project_id))
+        if project is None or not is_owner(project, owner_uid):
+            raise NotFoundError("Project not found", details={"projectId": project_id})
+        rows = self.client.query_collection(
+            transcripts_collection_path(owner_uid, project_id),
+            filters=[],
+            order_by=[("version", "ASCENDING")],
+            limit=100,
+            offset=0,
+        )
+        return [
+            TranscriptVersion(
+                transcriptId=transcript_id,
+                version=int(data.get("version", 0)),
+                language=str(data.get("language", "")),
+                durationMs=int(data.get("durationMs", 0)),
+                wordCount=int(data.get("wordCount", 0)),
+                createdAt=data.get("createdAt"),
+            )
+            for transcript_id, data in rows
+            if is_owner(data, owner_uid)
+        ]
 
     def get_by_id(
         self, *, owner_uid: str, project_id: str, transcript_id: str

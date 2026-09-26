@@ -89,13 +89,10 @@ export function FindingsPanel({
     <Card className={WORKSPACE_PANE_SNAP}>
       <CardHeader className="shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-baseline gap-2">
-            <Icon
-              icon={Search01Icon}
-              className="self-center text-muted-foreground"
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            <Icon icon={Search01Icon} className="text-muted-foreground" />
             <CardTitle>Findings</CardTitle>
-            <span className="h-4 w-px self-center bg-border" aria-hidden="true" />
+            <span className="h-4 w-px bg-border" aria-hidden="true" />
             <span className="text-sm text-muted-foreground">
               {selectedSet
                 ? `The ${visible.length} moment${

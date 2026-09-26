@@ -319,12 +319,30 @@ paths:
       - { $ref: "#/components/parameters/ProjectId" }
     get:
       summary: Get transcript metadata and segments
+      parameters:
+        - name: version
+          in: query
+          required: false
+          description: A specific saved transcript generation; defaults to the active one.
+          schema: { type: integer }
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Transcript" }
+
+  /api/projects/{projectId}/transcript/versions:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: List saved transcript versions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TranscriptVersionList" }
 
   /api/projects/{projectId}/transcript/retranscribe:
     parameters:
@@ -818,6 +836,23 @@ components:
         segments:
           type: array
           items: { $ref: "#/components/schemas/TranscriptSegment" }
+
+    TranscriptVersion:
+      type: object
+      properties:
+        transcriptId: { type: string }
+        version: { type: integer }
+        language: { type: string }
+        durationMs: { type: integer }
+        wordCount: { type: integer }
+        createdAt: { type: [string, "null"], format: date-time }
+
+    TranscriptVersionList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/TranscriptVersion" }
 
     AnalysisDimension:
       type: string
