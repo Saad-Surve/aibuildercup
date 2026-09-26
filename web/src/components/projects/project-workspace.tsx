@@ -193,7 +193,10 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     );
   }
 
-  if (projectQuery.isError || !projectQuery.data) {
+  // Only a *missing* project is "not found". A transient refetch error keeps the
+  // last good project data (React Query preserves it), so it must NOT flash the
+  // not-found screen while the pipeline is still polling.
+  if (!projectQuery.data) {
     return (
       <div className="mx-auto max-w-4xl space-y-4">
         <PageHeader title="Project not found" />

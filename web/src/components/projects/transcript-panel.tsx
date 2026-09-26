@@ -118,7 +118,9 @@ export function TranscriptPanel({
     transcriptQuery.error instanceof ApiError &&
     transcriptQuery.error.status === 404;
 
-  if (transcriptQuery.error && !notReady) {
+  // A transient/in-flight error while the worker is still running is not a
+  // verdict: keep showing the progress state and let the next poll replace it.
+  if (transcriptQuery.error && !notReady && !processing) {
     return (
       <Card className={WORKSPACE_PANE_SNAP}>
         <CardHeader className="shrink-0">
