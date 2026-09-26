@@ -245,6 +245,44 @@ class JobService:
             },
         )
 
+    def requeue_failed(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        job_id: str,
+        input: dict[str, Any] | None = None,
+    ) -> Job:
+        """Reset a failed job to `queued` so it can run again.
+
+        `POST /assets/{id}/complete` finds the existing job through its idempotency key;
+        without this reset the worker skips it as terminal and the project is stuck in
+        `processing` forever. Only failed jobs are reset — queued, running, succeeded and
+        cancelled jobs are returned untouched.
+        """
+        data = self.load_for_worker(owner_uid=owner_uid, project_id=project_id, job_id=job_id)
+        if data.get("status") != JobStatus.failed.value:
+            return _to_job(job_id, data)
+        now = datetime.now(UTC)
+        changes: dict[str, Any] = {
+            "status": JobStatus.queued.value,
+            "error": None,
+            "attempt": 0,
+            "progress": {
+                "currentStep": "queued",
+                "percent": 0,
+                "message": "Waiting to start",
+            },
+            "startedAt": None,
+            "finishedAt": None,
+            "updatedAt": now,
+        }
+        if input is not None:
+            changes["input"] = input
+        self.client.update_document(job_path(owner_uid, project_id, job_id), changes)
+        updated = self.client.get_document(job_path(owner_uid, project_id, job_id)) or data
+        return _to_job(job_id, updated)
+
     def _find_by_idempotency_key(
         self, *, owner_uid: str, project_id: str, idempotency_key: str
     ) -> Job | None:

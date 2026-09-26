@@ -62,6 +62,16 @@ export function createProject(input: CreateProjectInput): Promise<Project> {
   });
 }
 
+export function updateProject(
+  projectId: string,
+  input: { name?: string; description?: string },
+): Promise<Project> {
+  return apiFetch<Project>(`/projects/${projectId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
 export function deleteProject(projectId: string): Promise<void> {
   return apiFetch<void>(`/projects/${projectId}`, {
     method: "DELETE",

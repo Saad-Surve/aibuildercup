@@ -24,6 +24,7 @@ import {
   SEVERITY_LABELS,
 } from "@/lib/analysis";
 import type { Finding, Severity } from "@/lib/types";
+import { WORKSPACE_PANE_CARD } from "@/lib/workspace";
 import { cn } from "@/lib/utils";
 
 const SEVERITY_RANK: Record<Severity, number> = {
@@ -84,8 +85,8 @@ export function FindingsPanel({
     );
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className={WORKSPACE_PANE_CARD}>
+      <CardHeader className="shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <CardTitle className="flex items-center gap-2">
@@ -114,7 +115,7 @@ export function FindingsPanel({
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="min-h-0 flex-1 overflow-y-auto">
         {loading ? (
           <div className="space-y-2">
             <Skeleton className="h-14 w-full" />

@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.schemas.onboarding import OnboardingState, OnboardingStatus, OnboardingStep
-from app.schemas.users import Me, Preferences
+from app.schemas.users import AvatarState, Me, Preferences
 from app.services.firestore_service import FirestoreClient, user_path
 from app.services.paths import user_object_prefix
 from app.services.storage_service import StorageClient
@@ -88,6 +88,7 @@ class UserService:
         onboarding = data.get("onboarding") or {}
         persona = data.get("persona") or {}
         preferences = data.get("preferences") or {}
+        avatar = data.get("avatar")
         return Me(
             uid=owner_uid,
             displayName=data.get("displayName"),
@@ -98,7 +99,17 @@ class UserService:
                 timezone=preferences.get("timezone", "UTC"),
                 defaultLanguage=preferences.get("defaultLanguage", "en"),
             ),
+            avatar=AvatarState(**avatar) if isinstance(avatar, dict) else None,
         )
+
+    def save_avatar(self, owner_uid: str, avatar: AvatarState) -> AvatarState:
+        """Persist the avatar on the user document so it follows the user everywhere."""
+        self.ensure_user(owner_uid)
+        self.client.update_document(
+            user_path(owner_uid),
+            {"avatar": avatar.model_dump(), "updatedAt": datetime.now(UTC)},
+        )
+        return avatar
 
     def get_onboarding(self, owner_uid: str) -> OnboardingState:
         data = self.get_user(owner_uid)

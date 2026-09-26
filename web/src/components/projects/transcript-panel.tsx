@@ -14,22 +14,29 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useProjectTranscript } from "@/hooks/use-project-transcript";
 import { ApiError } from "@/lib/api-client";
 import { formatTimestamp } from "@/lib/projects";
+import { WORKSPACE_PANE_CARD } from "@/lib/workspace";
 
 /*
  * Transcript viewer for the project workspace. Segments are clickable:
  * choosing one seeks the source video through a window event the player
  * listens for, so the panel stays decoupled from the player instance.
+ *
+ * The card is a fixed-height flex column (like the video and review cards), and
+ * only the segment list scrolls — the header stays put.
  */
 export function TranscriptPanel({
   projectId,
   processing,
+  failureMessage,
 }: {
   projectId: string;
   processing: boolean;
+  failureMessage?: string | null;
 }) {
   // Polled until the transcript exists; see `hooks/use-project-transcript.ts`
-  // for why the rules there are load-bearing.
-  const transcriptQuery = useProjectTranscript(projectId);
+  // for why the rules there are load-bearing. Polling follows `processing` so
+  // a failed project stops asking instead of polling forever.
+  const transcriptQuery = useProjectTranscript(projectId, { shouldPoll: processing });
 
   function seekTo(startMs: number) {
     window.dispatchEvent(
@@ -41,8 +48,8 @@ export function TranscriptPanel({
 
   if (transcriptQuery.isLoading) {
     return (
-      <Card>
-        <CardHeader>
+      <Card className={WORKSPACE_PANE_CARD}>
+        <CardHeader className="shrink-0">
           <div className="flex items-center gap-2">
             <Icon icon={ClosedCaptionIcon} className="text-muted-foreground" />
             <CardTitle>Transcript</CardTitle>
@@ -61,8 +68,8 @@ export function TranscriptPanel({
   if (transcriptQuery.data) {
     const transcript = transcriptQuery.data;
     return (
-      <Card>
-        <CardHeader>
+      <Card className={WORKSPACE_PANE_CARD}>
+        <CardHeader className="shrink-0">
           <div className="flex items-center gap-2">
             <Icon icon={ClosedCaptionIcon} className="text-muted-foreground" />
             <CardTitle>Transcript</CardTitle>
@@ -72,8 +79,8 @@ export function TranscriptPanel({
             {formatTimestamp(transcript.durationMs)} · {transcript.language}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <ol className="max-h-96 space-y-1 overflow-y-auto pr-1">
+        <CardContent className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <ol className="space-y-1">
             {transcript.segments.map((segment) => (
               <li key={segment.segmentId}>
                 <button
@@ -100,11 +107,30 @@ export function TranscriptPanel({
 
   if (transcriptQuery.error && !notReady) {
     return (
-      <Card>
-        <CardHeader>
+      <Card className={WORKSPACE_PANE_CARD}>
+        <CardHeader className="shrink-0">
           <CardTitle>Transcript unavailable</CardTitle>
           <CardDescription>
-            The transcript could not be loaded. Refresh to try again.
+            {transcriptQuery.error instanceof Error &&
+            transcriptQuery.error.message
+              ? transcriptQuery.error.message
+              : "The transcript could not be loaded. Refresh to try again."}
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  // The pipeline settled without producing a transcript (failed, or nothing
+  // was ever queued). Polling is off, so say so instead of spinning forever.
+  if (!processing) {
+    return (
+      <Card className={WORKSPACE_PANE_CARD}>
+        <CardHeader className="shrink-0">
+          <CardTitle>Transcript unavailable</CardTitle>
+          <CardDescription>
+            {failureMessage ??
+              "Transcription did not finish for this video. Retry from the workspace to try again."}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -112,11 +138,11 @@ export function TranscriptPanel({
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className={WORKSPACE_PANE_CARD}>
+      <CardHeader className="shrink-0">
         <div className="flex items-center gap-2">
           <Icon icon={Loading03Icon} className="animate-spin text-signal" />
-          <CardTitle>{processing ? "Transcribing…" : "Transcript pending"}</CardTitle>
+          <CardTitle>Transcribing…</CardTitle>
         </div>
         <CardDescription>
           Word timestamps land here as soon as speech recognition finishes.

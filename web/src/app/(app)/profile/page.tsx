@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Delete02Icon, Edit02Icon } from "@hugeicons/core-free-icons";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { AvatarEditorDialog } from "@/components/avatar/avatar-customizer";
 import { Icon } from "@/components/common/icon";
 import { PageHeader } from "@/components/common/page-header";
 import { PersonaText } from "@/components/common/persona-text";
@@ -150,6 +151,19 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
       */}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Avatar</CardTitle>
+          <CardDescription>
+            A hand-drawn Humation avatar, saved to your account and shown in the
+            header.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AvatarEditorDialog />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

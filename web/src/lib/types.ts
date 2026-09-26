@@ -3,6 +3,12 @@ export interface Preferences {
   defaultLanguage: string;
 }
 
+export interface AvatarState {
+  seed: string | null;
+  selections: Record<string, string>;
+  colors: Record<string, string>;
+}
+
 export interface Me {
   uid: string;
   displayName: string | null;
@@ -10,6 +16,7 @@ export interface Me {
   onboardingCompleted: boolean;
   personaVersion: number | null;
   preferences: Preferences;
+  avatar: AvatarState | null;
 }
 
 export interface Persona {

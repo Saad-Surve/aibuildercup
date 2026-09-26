@@ -9,7 +9,7 @@ from app.dependencies import (
     get_identity_deleter,
     get_user_service,
 )
-from app.schemas.users import Me
+from app.schemas.users import AvatarState, Me
 from app.services.user_service import UserService
 
 router = APIRouter(tags=["users"])
@@ -28,6 +28,16 @@ async def get_me(user: UserDep, service: UserServiceDep) -> Me:
         photo_url=user.picture,
     )
     return service.to_me(user.uid, data)
+
+
+@router.put("/me/avatar", response_model=AvatarState)
+async def put_avatar(
+    payload: AvatarState,
+    user: UserDep,
+    service: UserServiceDep,
+) -> AvatarState:
+    """Save the user's Humation avatar (seed + per-slot part and color overrides)."""
+    return service.save_avatar(user.uid, payload)
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)

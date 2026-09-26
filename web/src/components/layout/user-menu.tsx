@@ -9,8 +9,8 @@ import {
 import { useTheme } from "next-themes";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { UserAvatar } from "@/components/avatar/user-avatar";
 import { Icon } from "@/components/common/icon";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,9 +23,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useUserAvatar } from "@/lib/avatar";
 
 export function UserMenu() {
   const { user, profile, signOut } = useAuth();
+  const avatar = useUserAvatar();
   const { theme, setTheme } = useTheme();
   const name = profile?.displayName ?? user?.displayName ?? "Creator";
   const email = profile?.email ?? user?.email ?? "";
@@ -43,10 +45,7 @@ export function UserMenu() {
       >
         <span className="rounded-full bg-gradient-to-br from-cyan-400 via-fuchsia-500 to-orange-400 p-[2px]">
           <span className="block rounded-full bg-background p-[2px]">
-            <Avatar className="size-8">
-              <AvatarImage src={user?.photoURL ?? undefined} alt="" />
-              <AvatarFallback>{name.slice(0, 1).toUpperCase()}</AvatarFallback>
-            </Avatar>
+            <UserAvatar state={avatar} size={32} title={name} />
           </span>
         </span>
       </DropdownMenuTrigger>

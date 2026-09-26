@@ -19,7 +19,7 @@ from app.schemas.assets import (
     DownloadUrl,
     UploadSession,
 )
-from app.schemas.jobs import Job, JobType
+from app.schemas.jobs import Job, JobStatus, JobType
 from app.services.firestore_service import (
     FirestoreClient,
     asset_path,
@@ -152,18 +152,45 @@ class AssetService:
                 details={"assetId": asset_id},
             )
         return self.queue_transcription(
-            owner_uid=owner_uid, project_id=project_id, asset_id=asset_id
+            owner_uid=owner_uid, project_id=project_id, asset_id=asset_id, retry_failed=True
         )
 
-    def queue_transcription(self, *, owner_uid: str, project_id: str, asset_id: str) -> Job:
+    def queue_transcription(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        asset_id: str,
+        retry_failed: bool = False,
+    ) -> Job:
         """Idempotently mark the asset uploaded, the project processing, and queue transcribe.
 
         Shared by `POST /assets/{id}/complete` (UX) and the GCS-finalized Pub/Sub handler
-        (trigger of record), so both paths converge on the same job record.
+        (trigger of record), so both paths converge on the same job record. The UX path asks
+        to retry a failed job (`retry_failed=True`); the Pub/Sub path stays a pure no-op when
+        the job already exists, so a redelivered event can never restart a finished run.
         """
         self._require_owned_asset(
             owner_uid=owner_uid, project_id=project_id, asset_id=asset_id
         )
+        job = self.jobs.create(
+            owner_uid=owner_uid,
+            project_id=project_id,
+            job_type=JobType.transcribe,
+            idempotency_key=f"transcribe-{project_id}-{asset_id}-v1",
+            input={"assetId": asset_id},
+        )
+        if retry_failed and job.status == JobStatus.failed:
+            job = self.jobs.requeue_failed(
+                owner_uid=owner_uid,
+                project_id=project_id,
+                job_id=job.jobId,
+                input={"assetId": asset_id},
+            )
+        # A finished or already-running job owns the asset/project state: do not drag a ready
+        # project back to `processing` (which used to strand a re-completed upload).
+        if job.status in (JobStatus.succeeded, JobStatus.running):
+            return job
         now = datetime.now(UTC)
         self.client.update_document(
             asset_path(owner_uid, project_id, asset_id),
@@ -172,13 +199,7 @@ class AssetService:
         self.projects.mark_processing(
             owner_uid=owner_uid, project_id=project_id, source_asset_id=asset_id
         )
-        return self.jobs.create(
-            owner_uid=owner_uid,
-            project_id=project_id,
-            job_type=JobType.transcribe,
-            idempotency_key=f"transcribe-{project_id}-{asset_id}-v1",
-            input={"assetId": asset_id},
-        )
+        return job
 
     def download_url(self, *, owner_uid: str, project_id: str, asset_id: str) -> DownloadUrl:
         """Short-lived signed read URL so the browser can stream the source video directly."""

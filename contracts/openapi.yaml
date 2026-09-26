@@ -62,6 +62,25 @@ paths:
           description: Account deleted
         "401": { $ref: "#/components/responses/Unauthorized" }
 
+  /api/me/avatar:
+    put:
+      summary: Save the user's Humation avatar
+      description: |
+        Replaces the avatar stored on the user document. The avatar is a deterministic
+        seed plus optional per-slot part selections and color overrides, rendered locally.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AvatarState" }
+      responses:
+        "200":
+          description: Saved avatar
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AvatarState" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /api/onboarding:
     get:
       summary: Read onboarding progress
@@ -631,6 +650,17 @@ components:
           properties:
             timezone: { type: string }
             defaultLanguage: { type: string }
+        avatar: { $ref: "#/components/schemas/AvatarState" }
+
+    AvatarState:
+      type: object
+      description: |
+        Humation avatar: a deterministic seed plus per-slot part selections and
+        color overrides. Rendered locally; stored on the user document.
+      properties:
+        seed: { type: [string, "null"] }
+        selections: { type: object, additionalProperties: { type: string } }
+        colors: { type: object, additionalProperties: { type: string } }
 
     OnboardingState:
       type: object

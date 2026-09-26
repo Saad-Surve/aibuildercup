@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft01Icon, FileVideoIcon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
@@ -24,6 +24,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { getVideoBlobForProject } from "@/lib/local-media";
 import {
+  completeUpload,
   formatBytes,
   getJob,
   getProject,
@@ -31,6 +32,7 @@ import {
   subscribeToProjectEvents,
 } from "@/lib/projects";
 import type { Asset, Job, Project } from "@/lib/types";
+import { WORKSPACE_PANE_CARD } from "@/lib/workspace";
 
 export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [jobId, setJobId] = useState<string | null>(null);
@@ -113,6 +115,28 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [localAsset, setLocalAsset] = useState<Asset | null>(null);
   const assetsLoading = assetsQuery.isLoading;
   const assetsData = assetsQuery.data;
+  const sourceAsset = assetsData?.items.find(
+    (asset) => asset.type === "source_video",
+  );
+
+  // Retry a failed transcription. `POST /assets/{id}/complete` reuses the existing job
+  // and the backend requeues it, so no re-upload is needed; the same job id is then
+  // polled and the project flips back to `processing`.
+  const retryTranscription = useMutation({
+    mutationFn: () => {
+      if (!sourceAsset) throw new Error("No source video to retry.");
+      return completeUpload(projectId, sourceAsset.assetId);
+    },
+    onSuccess: (accepted) => {
+      setJobId(accepted.jobId);
+      void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      void queryClient.invalidateQueries({ queryKey: ["job", accepted.jobId] });
+      void queryClient.invalidateQueries({
+        queryKey: ["transcript", projectId],
+      });
+    },
+  });
+
   useEffect(() => {
     const source = assetsData?.items.find(
       (asset) => asset.type === "source_video",
@@ -171,9 +195,6 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   }
 
   const project = projectQuery.data;
-  const sourceAsset = assetsData?.items.find(
-    (asset) => asset.type === "source_video",
-  );
 
   const effectiveSource = sourceAsset ?? localAsset;
   const processing =
@@ -191,7 +212,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       <Link
         href="/projects"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -218,36 +239,71 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       {effectiveSource ? (
         <div className="space-y-6">
           {(processing || project.status === "failed") && (
-            <ProcessingStatusCard project={project} job={jobQuery.data ?? null} />
+            <ProcessingStatusCard
+              project={project}
+              job={jobQuery.data ?? null}
+              onRetry={
+                sourceAsset ? () => retryTranscription.mutate() : undefined
+              }
+              retrying={retryTranscription.isPending}
+            />
           )}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Icon icon={FileVideoIcon} className="text-muted-foreground" />
-                <CardTitle>Source video</CardTitle>
-              </div>
-              <CardDescription>
-                {formatBytes(effectiveSource.sizeBytes)} ·{" "}
-                {effectiveSource.mimeType}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <SourceVideoPlayer
+
+          {/*
+           * Two panes: the source video stays pinned on the left while the right
+           * column stacks the transcript, the reviewer heatmap, and the findings.
+           * Every card shares one fixed height and scrolls its own body, so the
+           * page never grows or reflows as transcript and findings arrive.
+           */}
+          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+            <div className="lg:sticky lg:top-20">
+              <Card className={WORKSPACE_PANE_CARD}>
+                <CardHeader className="shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Icon
+                      icon={FileVideoIcon}
+                      className="text-muted-foreground"
+                    />
+                    <CardTitle>Source video</CardTitle>
+                  </div>
+                  <CardDescription>
+                    {formatBytes(effectiveSource.sizeBytes)} ·{" "}
+                    {effectiveSource.mimeType}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex min-h-0 flex-1 flex-col">
+                  <div className="flex min-h-0 flex-1 items-center [&>*]:w-full">
+                    <SourceVideoPlayer
+                      projectId={projectId}
+                      asset={effectiveSource}
+                    />
+                  </div>
+                  <p className="mt-3 tabular truncate text-xs text-muted-foreground">
+                    {formatBytes(effectiveSource.sizeBytes)} ·{" "}
+                    {effectiveSource.mimeType} · {effectiveSource.storagePath}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-6">
+              <TranscriptPanel
                 projectId={projectId}
-                asset={effectiveSource}
+                processing={processing}
+                failureMessage={
+                  project.status === "failed"
+                    ? (project.progress?.message ?? null)
+                    : null
+                }
               />
-              <p className="tabular truncate text-xs text-muted-foreground">
-                {formatBytes(effectiveSource.sizeBytes)} ·{" "}
-                {effectiveSource.mimeType} · {effectiveSource.storagePath}
-              </p>
-            </CardContent>
-          </Card>
-          <ReviewPanel
-            projectId={projectId}
-            platform={project.targetPlatforms[0] ?? "youtube"}
-            onSeek={seekTo}
-          />
-          <TranscriptPanel projectId={projectId} processing={processing} />
+              <ReviewPanel
+                projectId={projectId}
+                platform={project.targetPlatforms[0] ?? "youtube"}
+                onSeek={seekTo}
+                transcriptShouldPoll={processing}
+              />
+            </div>
+          </div>
         </div>
       ) : (
         <Card>

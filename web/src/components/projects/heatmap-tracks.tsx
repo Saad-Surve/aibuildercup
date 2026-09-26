@@ -16,7 +16,7 @@ import {
   SEVERITY_DOT_CLASS,
   SEVERITY_LABELS,
 } from "@/lib/analysis";
-import type { AnalysisDimension, HeatmapBin } from "@/lib/types";
+import type { AnalysisDimension, HeatmapBin, Severity } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /*
@@ -46,6 +46,7 @@ export function HeatmapTracks({
   onSeek,
   selectedBinId,
   onSelectBin,
+  severityFilter = [],
 }: {
   bins: HeatmapBin[];
   durationMs: number;
@@ -54,6 +55,8 @@ export function HeatmapTracks({
   onSeek: (startMs: number) => void;
   selectedBinId: string | null;
   onSelectBin: (bin: HeatmapBin | null) => void;
+  /** Severities the review panel is currently filtering to; others are dimmed. */
+  severityFilter?: Severity[];
 }) {
   const [hovered, setHovered] = useState<HeatmapBin | null>(null);
 
@@ -108,6 +111,7 @@ export function HeatmapTracks({
                   score={scores[dimension]}
                   hoveredBinId={hoveredBin?.binId ?? null}
                   selectedBinId={selectedBinId}
+                  severityFilter={severityFilter}
                   onHover={setHovered}
                   onSelect={(bin) => {
                     onSelectBin(bin);
@@ -161,6 +165,7 @@ function TrackRow({
   score,
   hoveredBinId,
   selectedBinId,
+  severityFilter,
   onHover,
   onSelect,
 }: {
@@ -170,6 +175,7 @@ function TrackRow({
   score: number | undefined;
   hoveredBinId: string | null;
   selectedBinId: string | null;
+  severityFilter: Severity[];
   onHover: (bin: HeatmapBin | null) => void;
   onSelect: (bin: HeatmapBin) => void;
 }) {
@@ -230,6 +236,8 @@ function TrackRow({
           const width = ((bin.endMs - bin.startMs) / durationMs) * 100;
           const isHovered = bin.binId === hoveredBinId;
           const isSelected = bin.binId === selectedBinId;
+          const isDimmed =
+            severityFilter.length > 0 && !severityFilter.includes(bin.severity);
           return (
             <button
               key={bin.binId}
@@ -244,8 +252,9 @@ function TrackRow({
               onClick={() => onSelect(bin)}
               onKeyDown={(event) => onBinKeyDown(event, index)}
               className={cn(
-                "absolute top-0 bottom-0 border-r border-card/70 transition-[filter,transform] duration-150",
+                "absolute top-0 bottom-0 border-r border-card/70 transition-[filter,opacity,transform] duration-150",
                 heatFill(bin),
+                isDimmed && !isHovered && !isSelected && "opacity-25",
                 isHovered && "z-10 brightness-125",
                 isSelected && "z-20 ring-2 ring-signal ring-inset",
               )}

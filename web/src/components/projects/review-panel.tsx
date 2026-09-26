@@ -45,6 +45,7 @@ import {
 } from "@/lib/analysis";
 import type { AnalysisDimension, AnalysisRun, Severity } from "@/lib/types";
 import { CORE_DIMENSIONS } from "@/lib/types";
+import { WORKSPACE_PANE_CARD } from "@/lib/workspace";
 import { cn } from "@/lib/utils";
 
 /*
@@ -59,10 +60,13 @@ export function ReviewPanel({
   projectId,
   platform,
   onSeek,
+  transcriptShouldPoll,
 }: {
   projectId: string;
   platform: string;
   onSeek: (startMs: number) => void;
+  /** Whether the shared transcript query should keep polling. Defaults to true. */
+  transcriptShouldPoll?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
@@ -72,7 +76,9 @@ export function ReviewPanel({
 
   // Same query as the transcript panel, so the two can never disagree about
   // whether to keep polling for it.
-  const transcriptQuery = useProjectTranscript(projectId);
+  const transcriptQuery = useProjectTranscript(projectId, {
+    shouldPoll: transcriptShouldPoll,
+  });
   const durationMs = transcriptQuery.data?.durationMs ?? 0;
   const hasTranscript = Boolean(transcriptQuery.data);
 
@@ -173,8 +179,8 @@ export function ReviewPanel({
 
   return (
     <>
-      <Card>
-        <CardHeader>
+      <Card className={WORKSPACE_PANE_CARD}>
+        <CardHeader className="shrink-0">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
@@ -231,7 +237,7 @@ export function ReviewPanel({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto">
           {startError && (
             <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               <Icon icon={Alert02Icon} className="mt-0.5 size-4 shrink-0" />
@@ -315,6 +321,7 @@ export function ReviewPanel({
               onSeek={onSeek}
               selectedBinId={selectedBin?.binId ?? null}
               onSelectBin={(bin) => setSelectedBinId(bin?.binId ?? null)}
+              severityFilter={severityFilter}
             />
           )}
         </CardContent>

@@ -6,6 +6,14 @@ import { getTranscript } from "@/lib/projects";
 import type { Transcript } from "@/lib/types";
 
 /**
+ * How often to re-ask for a transcript that does not exist yet.
+ *
+ * Transcription takes minutes, so asking every few seconds is pure load: ten
+ * seconds still picks the transcript up promptly while the pipeline runs.
+ */
+export const TRANSCRIPT_POLL_MS = 10_000;
+
+/**
  * The project's transcript, polled until it exists.
  *
  * The transcript is the one resource that starts out *absent* and appears later:
@@ -15,8 +23,11 @@ import type { Transcript } from "@/lib/types";
  *
  * Rules that must hold:
  *
- *  - **Never stop polling while there is no data.** A 404 is the expected answer
- *    until the worker finishes; it is not the end of the story.
+ *  - **Never stop polling while there is no data *and the pipeline is running*.**
+ *    A 404 is the expected answer until the worker finishes; it is not the end
+ *    of the story. But once the project settles (ready/failed) with no
+ *    transcript coming, polling must stop — otherwise a failed project polls
+ *    forever. Callers pass `shouldPoll` from the workspace `processing` flag.
  *  - **Poll while the tab is backgrounded.** Every other query in the workspace
  *    sets `refetchIntervalInBackground`, and TanStack skips an interval tick
  *    entirely when the window is unfocused without it
@@ -32,7 +43,11 @@ import type { Transcript } from "@/lib/types";
  * disagreed about whether to poll — the one that polled was not the one that
  * won.
  */
-export function useProjectTranscript(projectId: string) {
+export function useProjectTranscript(
+  projectId: string,
+  options?: { shouldPoll?: boolean },
+) {
+  const shouldPoll = options?.shouldPoll ?? true;
   return useQuery<Transcript>({
     queryKey: ["transcript", projectId],
     queryFn: () => getTranscript(projectId),
@@ -41,6 +56,7 @@ export function useProjectTranscript(projectId: string) {
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     refetchIntervalInBackground: true,
-    refetchInterval: (query) => (query.state.data ? false : 3000),
+    refetchInterval: (query) =>
+      query.state.data || !shouldPoll ? false : TRANSCRIPT_POLL_MS,
   });
 }

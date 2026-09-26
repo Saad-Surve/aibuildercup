@@ -99,7 +99,8 @@
   --input: oklch(0.92 0 0);
   --ring: var(--signal);
 
-  --signal: oklch(0.54 0.17 258);
+  /* --signal: oklch(0.54 0.17 258); */
+  --signal: oklch(65.6% 0.241 354.308);
   --signal-foreground: oklch(0.99 0 0);
 
   --sev-none: oklch(0.55 0.01 260);

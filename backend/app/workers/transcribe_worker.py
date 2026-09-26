@@ -12,6 +12,7 @@ is left untouched so retried Pub/Sub deliveries converge.
 """
 
 import logging
+import os
 from typing import Any
 
 from fastapi import BackgroundTasks
@@ -27,8 +28,10 @@ from app.services.firestore_service import (
     FirestoreClient,
     asset_path,
     get_firestore_client,
+    project_object_prefix,
 )
 from app.services.job_service import JobService
+from app.services.media import extract_aac_track, mux_m4a
 from app.services.project_service import ProjectService
 from app.services.pubsub_service import PubSubClient, get_pubsub_client
 from app.services.storage_service import get_storage_client
@@ -114,19 +117,46 @@ async def run_transcribe(
             gcs_uri=gcs_uri, language_codes=language_codes, model=settings.model_stt
         )
     except Exception as exc:  # noqa: BLE001 - worker must record provider failures
-        logger.exception("transcribe job %s: STT failed", job_id)
-        jobs.mark_failed(
+        logger.warning("transcribe job %s: STT failed (%s); trying normalized audio", job_id, exc)
+        jobs.update_progress(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message=f"Speech recognition failed: {exc}",
+            percent=30,
+            step="speech_to_text",
+            message="Retrying with normalized audio",
         )
-        projects.mark_failed(
+        retry_response = await _retry_with_normalized_audio(
+            storage_path=asset["storagePath"],
             owner_uid=owner_uid,
             project_id=project_id,
-            message="Transcription failed. Retry from the workspace.",
+            job_id=job_id,
+            stt=stt,
+            transcripts=transcripts,
+            jobs=jobs,
+            settings=settings,
         )
-        return None
+        if retry_response is None:
+            logger.exception("transcribe job %s: STT failed", job_id)
+            firestore.update_document(
+                asset_path(owner_uid, project_id, asset_id), {"status": "failed"}
+            )
+            jobs.mark_failed(
+                owner_uid=owner_uid,
+                project_id=project_id,
+                job_id=job_id,
+                message=f"Speech recognition failed: {exc}",
+            )
+            # Persist the concrete reason on the project too: the UI loses the job id on
+            # reload and used to fall back to a generic message, so the reason vanished.
+            projects.mark_failed(
+                owner_uid=owner_uid,
+                project_id=project_id,
+                message=_failure_message(exc),
+            )
+            return None
+        response = retry_response
+        logger.info("transcribe job %s: normalized-audio retry accepted", job_id)
 
     words = normalize_words(response)
     language = response.get("language") or _project_language(firestore, owner_uid, project_id)
@@ -182,6 +212,75 @@ async def run_transcribe(
         len(segments),
     )
     return transcript_id
+
+
+# Containers worth re-muxing when STT rejects them. The provider already routes these
+# through explicit decoding, so a failure here means the container itself confused
+# the importer — not the codec, which the fallback preserves untouched.
+_NORMALIZE_EXTENSIONS = frozenset({".mp4", ".mov", ".m4v", ".m4a"})
+
+
+def _failure_message(exc: BaseException) -> str:
+    """User-facing reason stored on the project so a failure survives a page reload."""
+    detail = str(exc).strip()
+    if not detail:
+        return "Transcription failed. Retry from the workspace."
+    return f"Transcription failed: {detail}"
+
+
+async def _retry_with_normalized_audio(
+    *,
+    storage_path: str,
+    owner_uid: str,
+    project_id: str,
+    job_id: str,
+    stt: SttProvider,
+    transcripts: TranscriptService,
+    jobs: JobService,
+    settings: Settings,
+) -> dict[str, Any] | None:
+    """Re-mux a rejected container's AAC track into a clean `.m4a` and retry STT once.
+
+    Returns the STT response, or None when the file is not a normalizable MP4-family
+    container (caller keeps the original STT error). The temp object lives under the
+    project prefix, so project deletion covers it even if cleanup below is skipped.
+    """
+    if os.path.splitext(storage_path)[1].lower() not in _NORMALIZE_EXTENSIONS:
+        return None
+    try:
+        source = transcripts.storage.download_bytes(storage_path)
+    except Exception:  # noqa: BLE001 - fall through to the original STT error
+        logger.warning("transcribe job %s: cannot download source for retry", job_id)
+        return None
+    if len(source) > settings.max_upload_size_bytes:
+        logger.warning("transcribe job %s: source too large to normalize", job_id)
+        return None
+    track = extract_aac_track(source)
+    if track is None:
+        logger.warning("transcribe job %s: no AAC-LC track to normalize", job_id)
+        return None
+    tmp_path = f"{project_object_prefix(owner_uid, project_id)}transcribe-tmp/{job_id}.m4a"
+    try:
+        transcripts.storage.upload_bytes(
+            tmp_path, mux_m4a(track), content_type="audio/mp4"
+        )
+    except Exception:  # noqa: BLE001 - fall through to the original STT error
+        logger.warning("transcribe job %s: cannot stage normalized audio", job_id)
+        return None
+    try:
+        return await stt.transcribe(
+            gcs_uri=stt.gcs_uri_for(tmp_path),
+            language_codes=["auto"],
+            model=settings.model_stt,
+        )
+    except Exception:  # noqa: BLE001 - the retry failed too; keep the first error
+        logger.warning("transcribe job %s: normalized-audio retry failed", job_id)
+        return None
+    finally:
+        try:
+            transcripts.storage.delete_prefix(tmp_path)
+        except Exception:  # noqa: BLE001 - temp is under the project prefix; delete covers it
+            logger.warning("transcribe job %s: cannot clean up normalized audio", job_id)
 
 
 def _publish_transcript_ready(

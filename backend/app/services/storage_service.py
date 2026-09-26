@@ -44,6 +44,10 @@ class StorageClient(Protocol):
 
     def download_text(self, path: str) -> str: ...
 
+    def upload_bytes(self, path: str, data: bytes, *, content_type: str) -> None: ...
+
+    def download_bytes(self, path: str) -> bytes: ...
+
     def object_exists(self, path: str) -> bool: ...
 
     def signed_download_url(self, path: str, *, expires_seconds: int = 900) -> str: ...
@@ -125,6 +129,14 @@ class GoogleStorageClient:
     def download_text(self, path: str) -> str:
         blob = self._bucket.blob(validate_object_path(path))
         return blob.download_as_text()
+
+    def upload_bytes(self, path: str, data: bytes, *, content_type: str) -> None:
+        blob = self._bucket.blob(validate_object_path(path))
+        blob.upload_from_string(data, content_type=content_type)
+
+    def download_bytes(self, path: str) -> bytes:
+        blob = self._bucket.blob(validate_object_path(path))
+        return blob.download_as_bytes()
 
     def object_exists(self, path: str) -> bool:
         return bool(self._bucket.blob(validate_object_path(path)).exists())
