@@ -27,7 +27,7 @@ marching-dash flow lines, Connected pill),
 an asymmetric feature bento with hands-on mini demos (draggable heatmap cursor, SRT block,
 clip-cut interaction, translation stepper, send/typing/reply chat, draft→edit→final
 pages — no card icons, no hover elevation, per-card accent colours), a dotted three-step
-workflow, a gradient CTA panel with a single "Start creating" button, and a footer with a
+workflow, an ink CTA panel whose base carries a review-timeline severity ribbon (green-dominant, one critical notch, one honest no‑data gap) with a single "Start creating" button, and a footer with a
 force-fit SVG outline wordmark (`textLength` + `lengthAdjust="spacing"`). The page owns
 its scroll container with hidden scrollbar chrome
 (`no-scrollbar`). Motion there is scroll-driven, hover/drag/click interaction, or

@@ -1,5 +1,5 @@
 /*
- * Landing atmosphere: a clean light base with warm / cool haze at the edges,
+ * Landing atmosphere: a clean base with a neutral haze at the edges,
  * plus a small, deliberately art-directed set of creator-motif vignettes kept
  * strictly at the periphery so the hero stays dominant:
  *
@@ -23,16 +23,16 @@ export function LandingBackground() {
       <div className="absolute inset-0 bg-background" />
       <div className="absolute left-1/2 top-[-20%] h-[40rem] w-[60rem] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse,rgba(255,255,255,0.9),transparent_70%)] blur-2xl" />
 
-      {/* coloured haze at the edges */}
-      <div className="absolute -left-48 -top-44 h-[48rem] w-[48rem] rounded-full bg-[radial-gradient(circle,rgba(217,119,6,0.12),transparent_66%)] blur-3xl" />
-      <div className="absolute -right-56 -top-28 h-[52rem] w-[52rem] rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.11),transparent_66%)] blur-3xl" />
-      <div className="absolute -bottom-60 left-1/2 h-[46rem] w-[66rem] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse,rgba(56,189,248,0.09),transparent_70%)] blur-3xl" />
+      {/* neutral haze at the edges — no hue, so severity stays the only colour */}
+      <div className="absolute -left-48 -top-44 h-[48rem] w-[48rem] rounded-full bg-foreground/[0.04] blur-3xl" />
+      <div className="absolute -right-56 -top-28 h-[52rem] w-[52rem] rounded-full bg-foreground/[0.03] blur-3xl" />
+      <div className="absolute -bottom-60 left-1/2 h-[46rem] w-[66rem] -translate-x-1/2 rounded-full bg-foreground/[0.025] blur-3xl" />
 
       {/* ——— left vignette: review timeline ——— */}
       <div className="absolute -left-20 top-[20%] hidden w-72 lg:block">
         <div className="relative -rotate-[8deg]">
-          {/* soft wash behind the card */}
-          <div className="absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle,rgba(217,119,6,0.14),transparent_70%)] blur-2xl" />
+          {/* soft neutral wash behind the card */}
+          <div className="absolute -inset-6 rounded-[2rem] bg-foreground/[0.05] blur-2xl" />
           <div className="relative rounded-2xl border border-black/[0.06] bg-white/75 p-4 shadow-xl shadow-black/[0.06] backdrop-blur-xl">
             {/* header */}
             <div className="flex items-center justify-between">
@@ -110,7 +110,7 @@ export function LandingBackground() {
       {/* ——— right vignette: short clip ——— */}
       <div className="absolute -right-20 top-[16%] hidden w-72 lg:block">
         <div className="relative rotate-[8deg]">
-          <div className="absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle,rgba(124,58,237,0.13),transparent_70%)] blur-2xl" />
+          <div className="absolute -inset-6 rounded-[2rem] bg-foreground/[0.05] blur-2xl" />
           <div className="relative rounded-2xl border border-black/[0.06] bg-white/75 p-3.5 shadow-xl shadow-black/[0.06] backdrop-blur-xl">
             <div className="flex items-center justify-between px-0.5">
               <span className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-foreground/60">
@@ -121,7 +121,7 @@ export function LandingBackground() {
               </span>
             </div>
             {/* thumbnail */}
-            <div className="relative mt-2.5 aspect-video overflow-hidden rounded-xl bg-gradient-to-br from-sky-500 via-violet-500 to-amber-500">
+            <div className="relative mt-2.5 aspect-video overflow-hidden rounded-xl bg-zinc-900">
               <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
               {/* stylised waveform etched on the thumbnail */}
               <div className="absolute inset-x-6 bottom-2.5 flex items-end justify-center gap-[3px] opacity-80">
@@ -187,7 +187,7 @@ export function LandingBackground() {
             <span
               key={i}
               style={{ height: `${h}px` }}
-              className="w-1.5 rounded-full bg-gradient-to-t from-sky-700 via-violet-700 to-amber-600"
+              className="w-1.5 rounded-full bg-foreground/30"
             />
           ),
         )}
@@ -220,7 +220,7 @@ export function LandingBackground() {
                 Export ready
               </span>
               <span className="mt-1 block h-1 w-28 overflow-hidden rounded-full bg-foreground/[0.08]">
-                <span className="block h-full w-3/4 rounded-full bg-gradient-to-r from-sky-500/80 via-violet-500/80 to-amber-500/80" />
+                <span className="block h-full w-3/4 rounded-full bg-signal" />
               </span>
             </span>
             <span className="tabular text-[0.62rem] text-foreground/45">
