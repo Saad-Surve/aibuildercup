@@ -2,17 +2,16 @@
 
 import {
   ArrowRight01Icon,
-  EyeIcon,
-  EyeOffIcon,
   Loading03Icon,
   Search01Icon,
+  ViewIcon,
+  ViewOffIcon,
 } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -90,20 +89,19 @@ export function FindingsPanel({
     <Card className={WORKSPACE_PANE_SNAP}>
       <CardHeader className="shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Icon icon={Search01Icon} className="text-muted-foreground" />
-              Findings
-            </CardTitle>
-            <CardDescription>
+          <div className="flex flex-wrap items-center gap-2">
+            <Icon icon={Search01Icon} className="text-muted-foreground" />
+            <CardTitle>Findings</CardTitle>
+            <span className="h-4 w-px bg-border" aria-hidden="true" />
+            <span className="text-xs text-muted-foreground">
               {selectedSet
                 ? `The ${visible.length} moment${
                     visible.length === 1 ? "" : "s"
-                  } marked on the selected segment.`
+                  } on the selected segment.`
                 : `${visible.length} of ${findings.length} observation${
                     findings.length === 1 ? "" : "s"
                   }, worst first.`}
-            </CardDescription>
+            </span>
           </div>
           {selectedSet && (
             <button
@@ -117,7 +115,7 @@ export function FindingsPanel({
         </div>
       </CardHeader>
 
-      <CardContent className="min-h-0 flex-1 overflow-y-auto">
+      <CardContent className="scroll-fade-y min-h-0 flex-1 overflow-y-auto">
         {loading ? (
           <div className="space-y-2">
             <Skeleton className="h-14 w-full" />
@@ -214,8 +212,8 @@ function FindingRow({
       {hasEvidence && (
         <details className="group border-t border-border/60">
           <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
-            <Icon icon={EyeIcon} className="size-3.5 group-open:hidden" />
-            <Icon icon={EyeOffIcon} className="hidden size-3.5 group-open:inline" />
+            <Icon icon={ViewIcon} className="size-3.5 group-open:hidden" />
+            <Icon icon={ViewOffIcon} className="hidden size-3.5 group-open:inline" />
             <span className="group-open:hidden">Show evidence</span>
             <span className="hidden group-open:inline">Hide evidence</span>
           </summary>

@@ -17,7 +17,7 @@ export const WORKSPACE_PANE_CARD = `${WORKSPACE_PANE_HEIGHT} flex min-h-0 flex-c
  * `globals.css`). Panes do not overlap: each one scrolls up and out as the next
  * arrives.
  */
-export const WORKSPACE_PANE_SNAP = `${WORKSPACE_PANE_CARD} lg:snap-start lg:snap-always lg:scroll-mt-20`;
+export const WORKSPACE_PANE_SNAP = `${WORKSPACE_PANE_CARD} lg:snap-start lg:scroll-mt-20`;
 
 /** Extra room after the last pane so it can snap level with the video card. */
 export const WORKSPACE_PANE_STACK_SPACER = "hidden h-[28vh] shrink-0 lg:block";

@@ -6,6 +6,7 @@ import {
   Alert02Icon,
   Loading03Icon,
   PlayIcon,
+  SparklesIcon,
 } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
@@ -15,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -30,7 +30,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useProjectTranscript } from "@/hooks/use-project-transcript";
 import { ApiError } from "@/lib/api-client";
 import {
-  dimensionLabel,
   formatCostUsd,
   formatScore,
   getAnalysisRun,
@@ -183,7 +182,7 @@ export function ReviewPanel({
         <CardHeader className="shrink-0">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {isRunning ? (
                   <Icon
                     icon={Loading03Icon}
@@ -193,10 +192,11 @@ export function ReviewPanel({
                   <Icon icon={PlayIcon} className="text-muted-foreground" />
                 )}
                 <CardTitle>Review</CardTitle>
+                <span className="h-4 w-px bg-border" aria-hidden="true" />
+                <span className="text-xs text-muted-foreground">
+                  {statusLabel(run, hasTranscript)}
+                </span>
               </div>
-              <CardDescription>
-                {describeRun(run, reviewers.length, hasTranscript)}
-              </CardDescription>
             </div>
 
             <div className="flex items-center gap-2">
@@ -231,13 +231,18 @@ export function ReviewPanel({
                     : "Available once the transcript is ready"
                 }
               >
-                {startMutation.isPending ? "Starting…" : "Run analysis"}
+                <Icon icon={SparklesIcon} />
+                {startMutation.isPending
+                  ? "Starting…"
+                  : runs.length > 0
+                    ? "Run analysis again"
+                    : "Run analysis"}
               </Button>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto">
+        <CardContent className="scroll-fade-y min-h-0 flex-1 space-y-4 overflow-y-auto">
           {startError && (
             <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               <Icon icon={Alert02Icon} className="mt-0.5 size-4 shrink-0" />
@@ -303,13 +308,6 @@ export function ReviewPanel({
             })}
           </div>
 
-          {run && (
-            <ReviewerStrip
-              reviewers={reviewers}
-              fallbackDimensions={laneDimensions}
-            />
-          )}
-
           {runsQuery.isLoading ? (
             <Skeleton className="h-full min-h-40 w-full" />
           ) : (
@@ -343,77 +341,18 @@ export function ReviewPanel({
   );
 }
 
-function describeRun(
-  run: AnalysisRun | null,
-  reviewerCount: number,
-  hasTranscript: boolean,
-): string {
-  if (!run) {
-    return hasTranscript
-      ? "Thirteen reviewers read your transcript and mark where it works and where it breaks."
-      : "The review opens up once the transcript is ready.";
+function statusLabel(run: AnalysisRun | null, hasTranscript: boolean): string {
+  if (!run) return hasTranscript ? "Not started" : "Waiting for transcript";
+  switch (run.status) {
+    case "ready":
+      return "Finished";
+    case "partial_failure":
+      return "Finished with gaps";
+    case "failed":
+      return "Failed";
+    case "running":
+      return "Reviewing";
+    default:
+      return "Queued";
   }
-  const dimensions = run.requestedDimensions.length || reviewerCount;
-  const status =
-    run.status === "ready"
-      ? "Finished"
-      : run.status === "partial_failure"
-        ? "Finished with gaps"
-        : run.status === "failed"
-          ? "Failed"
-          : run.status === "running"
-            ? "Reviewers are working through the transcript"
-            : "Queued";
-  return `${status} · ${dimensions} dimensions · ${run.chunkCount || 1} transcript window${
-    run.chunkCount === 1 ? "" : "s"
-  }`;
-}
-
-function ReviewerStrip({
-  reviewers,
-  fallbackDimensions,
-}: {
-  reviewers: {
-    dimension: AnalysisDimension;
-    status: string;
-    findingCount: number;
-    error: { code: string; message: string } | null;
-  }[];
-  fallbackDimensions: AnalysisDimension[];
-}) {
-  const rows =
-    reviewers.length > 0
-      ? reviewers.map((item) => ({
-          dimension: item.dimension,
-          status: item.status,
-          findingCount: item.findingCount,
-          failed: item.status === "failed",
-        }))
-      : fallbackDimensions.map((dimension) => ({
-          dimension,
-          status: "queued",
-          findingCount: 0,
-          failed: false,
-        }));
-
-  return (
-    <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-      {rows.map((row) => (
-        <li key={row.dimension} className="inline-flex items-center gap-1.5">
-          <span
-            className={cn(
-              "size-1.5 rounded-full",
-              row.failed
-                ? "bg-sev-critical"
-                : row.status === "succeeded"
-                  ? "bg-sev-good"
-                  : "bg-muted-foreground/40",
-            )}
-          />
-          {dimensionLabel(row.dimension)}
-          {row.failed && <span className="text-sev-critical">failed</span>}
-        </li>
-      ))}
-    </ul>
-  );
 }

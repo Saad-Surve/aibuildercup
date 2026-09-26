@@ -70,16 +70,17 @@ export function TranscriptPanel({
     return (
       <Card className={WORKSPACE_PANE_SNAP}>
         <CardHeader className="shrink-0">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Icon icon={ClosedCaptionIcon} className="text-muted-foreground" />
             <CardTitle>Transcript</CardTitle>
+            <span className="h-4 w-px bg-border" aria-hidden="true" />
+            <span className="text-xs text-muted-foreground">
+              {transcript.segments.length} segments ·{" "}
+              {formatTimestamp(transcript.durationMs)} · {transcript.language}
+            </span>
           </div>
-          <CardDescription>
-            {transcript.segments.length} segments ·{" "}
-            {formatTimestamp(transcript.durationMs)} · {transcript.language}
-          </CardDescription>
         </CardHeader>
-        <CardContent className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <CardContent className="scroll-fade-y min-h-0 flex-1 overflow-y-auto pr-1">
           <ol className="space-y-1">
             {transcript.segments.map((segment) => (
               <li key={segment.segmentId}>

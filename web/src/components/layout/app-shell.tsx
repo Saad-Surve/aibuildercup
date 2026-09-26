@@ -11,6 +11,7 @@ import {
   Plug01Icon,
   Settings01Icon,
   SidebarLeft01Icon,
+  SidebarRight01Icon,
   UserIcon,
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
@@ -281,7 +282,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className="flex h-9 w-full items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
-            <Icon icon={SidebarLeft01Icon} />
+            <Icon icon={collapsed ? SidebarRight01Icon : SidebarLeft01Icon} />
             <NavLabel collapsed={collapsed}>Collapse</NavLabel>
           </button>
         </div>

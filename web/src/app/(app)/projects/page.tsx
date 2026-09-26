@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import { FolderOpenIcon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
@@ -64,15 +63,10 @@ export default function ProjectsPage() {
         </Empty>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project, index) => (
-            <motion.div
-              key={project.projectId}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: Math.min(index, 8) * 0.05 }}
-            >
+          {projects.map((project) => (
+            <div key={project.projectId}>
               <ProjectCard project={project} />
-            </motion.div>
+            </div>
           ))}
         </div>
       )}

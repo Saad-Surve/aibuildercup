@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import { ArrowRight01Icon, FolderOpenIcon } from "@hugeicons/core-free-icons";
 
 import { useAuth } from "@/components/auth/auth-provider";
@@ -81,15 +80,10 @@ export default function DashboardPage() {
           </Empty>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {recent.map((project, index) => (
-              <motion.div
-                key={project.projectId}
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: Math.min(index, 5) * 0.06 }}
-              >
+            {recent.map((project) => (
+              <div key={project.projectId}>
                 <ProjectCard project={project} />
-              </motion.div>
+              </div>
             ))}
           </div>
         )}

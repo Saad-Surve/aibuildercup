@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { Icon } from "@/components/common/icon";
 import { PageHeader } from "@/components/common/page-header";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
+import { EditProjectDialog } from "@/components/projects/edit-project-dialog";
 import { ProcessingStatusCard } from "@/components/projects/processing-status-card";
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge";
 import { ReviewPanel } from "@/components/projects/review-panel";
@@ -219,22 +220,30 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <Link
-        href="/projects"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <Icon icon={ArrowLeft01Icon} />
-        Projects
-      </Link>
+      {/*
+       * The top snap stop includes the back link and the header, so mandatory
+       * snapping can rest here instead of skipping past "< Projects".
+       */}
+      <div className="space-y-6 lg:snap-start lg:scroll-mt-20">
+        <Link
+          href="/projects"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <Icon icon={ArrowLeft01Icon} />
+          Projects
+        </Link>
 
-      {/* A stop at the top so mandatory snapping can rest on the page header. */}
-      <div className="lg:snap-start lg:snap-always lg:scroll-mt-20">
         <PageHeader
           title={project.name}
           description={project.description || undefined}
           actions={
             <>
               <ProjectStatusBadge status={project.status} />
+              <EditProjectDialog
+                projectId={projectId}
+                initialName={project.name}
+                initialDescription={project.description}
+              />
               <DeleteProjectDialog
                 projectId={projectId}
                 projectName={project.name}

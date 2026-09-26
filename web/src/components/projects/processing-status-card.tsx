@@ -53,7 +53,7 @@ function pillClass(step: string | null | undefined, failed: boolean): string {
     case "queued":
       return "border-border bg-muted text-muted-foreground [&_.pill-dot]:bg-muted-foreground/60";
     default:
-      return "border-signal/30 bg-signal/10 text-signal [&_.pill-dot]:bg-signal";
+      return "border-sev-low/30 bg-sev-low/10 text-sev-low [&_.pill-dot]:bg-sev-low";
   }
 }
 
@@ -89,7 +89,7 @@ export function ProcessingStatusCard({
             icon={failed ? Alert02Icon : Loading03Icon}
             className={cn(
               "size-4",
-              failed ? "text-destructive" : "animate-spin text-signal",
+              failed ? "text-destructive" : "animate-spin text-sev-low",
             )}
           />
           <CardTitle>
