@@ -1,8 +1,14 @@
 "use client";
 
-import { ClosedCaptionIcon, Loading03Icon } from "@hugeicons/core-free-icons";
+import {
+  ClosedCaptionIcon,
+  Loading03Icon,
+  SparklesIcon,
+} from "@hugeicons/core-free-icons";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Icon } from "@/components/common/icon";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,7 +19,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProjectTranscript } from "@/hooks/use-project-transcript";
 import { ApiError } from "@/lib/api-client";
-import { formatTimestamp } from "@/lib/projects";
+import { formatTimestamp, retranscribeTranscript } from "@/lib/projects";
 import { WORKSPACE_PANE_SNAP } from "@/lib/workspace";
 
 /*
@@ -37,6 +43,15 @@ export function TranscriptPanel({
   // for why the rules there are load-bearing. Polling follows `processing` so
   // a failed project stops asking instead of polling forever.
   const transcriptQuery = useProjectTranscript(projectId, { shouldPoll: processing });
+  const queryClient = useQueryClient();
+
+  const rerun = useMutation({
+    mutationFn: () => retranscribeTranscript(projectId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      void queryClient.invalidateQueries({ queryKey: ["transcript", projectId] });
+    },
+  });
 
   function seekTo(startMs: number) {
     window.dispatchEvent(
@@ -76,15 +91,32 @@ export function TranscriptPanel({
     return (
       <Card className={WORKSPACE_PANE_SNAP}>
         <CardHeader className="shrink-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <Icon icon={ClosedCaptionIcon} className="text-muted-foreground" />
+          <div className="flex flex-wrap items-baseline gap-2">
+            <Icon
+              icon={ClosedCaptionIcon}
+              className="self-center text-muted-foreground"
+            />
             <CardTitle>Transcript</CardTitle>
-            <span className="h-4 w-px bg-border" aria-hidden="true" />
-            <span className="text-xs text-muted-foreground">
+            <span className="h-4 w-px self-center bg-border" aria-hidden="true" />
+            <span className="text-sm text-muted-foreground">
               {transcript.segments.length} segments ·{" "}
               {formatTimestamp(transcript.durationMs)} · {transcript.language}
               {showSpeakers ? ` · ${speakerCount} speakers` : ""}
             </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="ml-auto"
+              onClick={() => rerun.mutate()}
+              disabled={rerun.isPending || processing}
+              title={
+                processing ? "Transcription is already running" : undefined
+              }
+            >
+              <Icon icon={SparklesIcon} />
+              {rerun.isPending ? "Starting…" : "Run transcript again"}
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="scroll-fade-y min-h-0 flex-1 overflow-y-auto py-2 pr-1">

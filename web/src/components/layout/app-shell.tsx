@@ -179,6 +179,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const readyItems = NAV.filter((item) => item.ready);
   const [collapsed, setCollapsed] = useSidebarCollapsed();
+  // The project workspace goes full-bleed: the nav rail would otherwise shift
+  // the header avatar and squeeze the two panes.
+  const hideRail = pathname.startsWith("/projects/view");
 
   function toggleCollapsed() {
     setCollapsed(!collapsed);
@@ -186,12 +189,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-[100dvh]">
-      <motion.aside
-        initial={false}
-        animate={{ width: collapsed ? 64 : 240 }}
-        transition={{ type: "tween", ...RAIL_TWEEN }}
-        className="app-sidebar-rail sticky top-0 hidden h-[100dvh] shrink-0 flex-col overflow-hidden border-r border-transparent shadow-[inset_-1px_0_0_0_var(--color-border)] md:flex"
-      >
+      {!hideRail && (
+        <motion.aside
+          initial={false}
+          animate={{ width: collapsed ? 64 : 240 }}
+          transition={{ type: "tween", ...RAIL_TWEEN }}
+          className="app-sidebar-rail sticky top-0 hidden h-[100dvh] shrink-0 flex-col overflow-hidden border-r border-transparent shadow-[inset_-1px_0_0_0_var(--color-border)] md:flex"
+        >
         <div className="relative flex h-14 shrink-0 items-center px-6">
           <motion.div
             initial={false}
@@ -254,6 +258,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </motion.aside>
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-transparent bg-background/80 px-4 shadow-[inset_0_-1px_0_0_var(--color-border)] backdrop-blur md:px-6">

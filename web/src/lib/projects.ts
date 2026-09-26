@@ -190,6 +190,16 @@ export function getTranscript(projectId: string): Promise<Transcript> {
   return apiFetch<Transcript>(`/projects/${projectId}/transcript`);
 }
 
+/** Queue a fresh transcription run for the project's source video. */
+export function retranscribeTranscript(
+  projectId: string,
+): Promise<AcceptedJob> {
+  return apiFetch<AcceptedJob>(
+    `/projects/${projectId}/transcript/retranscribe`,
+    { method: "POST" },
+  );
+}
+
 export function formatTimestamp(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const minutes = Math.floor(totalSeconds / 60);

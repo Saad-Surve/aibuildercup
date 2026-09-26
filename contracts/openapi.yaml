@@ -326,6 +326,19 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Transcript" }
 
+  /api/projects/{projectId}/transcript/retranscribe:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    post:
+      summary: Re-run transcription for the project's source video
+      description: |
+        Queues a fresh transcribe job for the project's source video and returns it. Unlike
+        completing the upload (which is idempotent per asset), this always starts a new run, so
+        a finished transcript can be regenerated.
+      responses:
+        "202": { $ref: "#/components/responses/Accepted" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /api/projects/{projectId}/transcript/segments/{segmentId}:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }

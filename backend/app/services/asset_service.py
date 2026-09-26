@@ -24,6 +24,7 @@ from app.services.firestore_service import (
     FirestoreClient,
     asset_path,
     assets_collection_path,
+    project_path,
     source_object_path,
 )
 from app.services.job_service import JobService
@@ -198,6 +199,49 @@ class AssetService:
         )
         self.projects.mark_processing(
             owner_uid=owner_uid, project_id=project_id, source_asset_id=asset_id
+        )
+        return job
+
+    def retranscribe_source(self, *, owner_uid: str, project_id: str) -> Job:
+        """Queue a fresh transcribe job for the project's source video.
+
+        Re-completing the upload only returns the original idempotent job, so a transcript
+        could never be regenerated after the first run. This mints a new job with a
+        per-version key (the project's transcript version counter) instead. A double click
+        before the new transcript lands maps to the same key and stays idempotent.
+        """
+        self.projects.get(owner_uid=owner_uid, project_id=project_id)
+        source = next(
+            (
+                asset
+                for asset in self.list(owner_uid=owner_uid, project_id=project_id)
+                if asset.type == AssetType.source_video.value
+            ),
+            None,
+        )
+        if source is None:
+            raise NotFoundError(
+                "Source video not found", details={"projectId": project_id}
+            )
+        if not self.storage.object_exists(source.storagePath):
+            raise BadRequestError(
+                "The source video is missing from storage.",
+                code="SOURCE_NOT_FOUND",
+                details={"assetId": source.assetId},
+            )
+        raw = self.client.get_document(project_path(owner_uid, project_id)) or {}
+        run = int(raw.get("transcriptVersionCounter", 0) or 0) + 1
+        job = self.jobs.create(
+            owner_uid=owner_uid,
+            project_id=project_id,
+            job_type=JobType.transcribe,
+            idempotency_key=f"transcribe-{project_id}-{source.assetId}-r{run}",
+            input={"assetId": source.assetId},
+        )
+        if job.status in (JobStatus.succeeded, JobStatus.running):
+            return job
+        self.projects.mark_processing(
+            owner_uid=owner_uid, project_id=project_id, source_asset_id=source.assetId
         )
         return job
 
