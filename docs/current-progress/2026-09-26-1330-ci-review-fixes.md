@@ -47,11 +47,30 @@ against the live docs and applied the fixes. No backend or web feature code chan
 - Added `backend/.dockerignore` (`.venv`, caches, `tests`, `.env*`). `backend/` is 384 MB locally;
   without it any local/self-hosted build ships that as context.
 
+## Measured (run 36244193869)
+
+**Warm: 60s wall, success — was ~2m45s on the old single-job workflow (~2.8x faster).**
+
+- Cold (first run, empty caches): 3m29s — the Docker build is a full build (1m25s) since there
+  is no layer cache yet. Steady state is the warm number below.
+- Warm (rerun with populated caches): 60s wall. The `changes` gate is 6s, then `api` (43s) and
+  `web` (46s) run in parallel, so wall ≈ gate + max ≈ 60s.
+
+| Step | Old flow | Warm now |
+|---|---|---|
+| API image build + push | ~40s | **4s** |
+| API Cloud Run deploy | ~28s | 15s |
+| web `bun install` + `next build` | ~31s | **8s** |
+| web Firebase deploy | ~25s | 11s |
+| `setup-gcloud` | ~25s (SDK download) | 5s (`skip_install`) |
+
+The gha layer cache is doing the heavy lifting on the image build; the bun/Next caches on the
+web build. Both were populated by the cold run.
+
 ## Not done / next step
 
-- **First push populates the caches** — the real warm-run numbers are unknown until then. Re-read
-  the run; if the Docker cache still thrashes, drop `mode` to `min` with a `scope` or shrink the
-  Next cache.
+- The warm run confirms the caches are working, so `mode=min` is fine — no need to touch the
+  Docker cache. The Next cache is the same size class; watch it only if the repo cache hits 10 GB.
 - **`actions/checkout@v5` left as-is** (already Node 24). `checkout@v6`/`v7` and `cache@v6` exist;
   bump only after reading their release notes.
 - **`cancel-in-progress: true`** can kill a run mid `gcloud run deploy`. Acceptable for now; flip
