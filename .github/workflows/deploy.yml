@@ -47,6 +47,13 @@ jobs:
       - name: Deploy API
         env:
           CORS_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS || '["https://habeas-codus.web.app","https://habeas-codus.firebaseapp.com"]' }}
+          # Deployed model config (see backend/.env.deploy.example). Override any of these with
+          # repo variables; the fallbacks are the intended production values. No LLM API key:
+          # the runtime service account authenticates to Agent Platform (Vertex AI) with ADC.
+          MODEL_REVIEWER: ${{ vars.MODEL_REVIEWER || 'gemini-3.8-flash' }}
+          MODEL_ORCHESTRATOR: ${{ vars.MODEL_ORCHESTRATOR || 'gemini-3.8-flash' }}
+          LLM_INPUT_PRICE_PER_MTOK: ${{ vars.LLM_INPUT_PRICE_PER_MTOK || '0.75' }}
+          LLM_OUTPUT_PRICE_PER_MTOK: ${{ vars.LLM_OUTPUT_PRICE_PER_MTOK || '3.75' }}
         run: |
           gcloud run deploy creator-studio-api \
             --project "$PROJECT_ID" \
@@ -58,8 +65,7 @@ jobs:
             --min-instances 0 \
             --max-instances 1 \
             --no-cpu-throttling \
-            --set-env-vars "^|^ENVIRONMENT=production|PROJECT_ID=habeas-codus|REGION=us-central1|CORS_ALLOWED_ORIGINS=${CORS_ORIGINS}|PUBSUB_PUSH_AUDIENCE=${{ steps.api.outputs.url }}|PUBSUB_PUSH_SERVICE_ACCOUNT=creator-studio-transcribe@habeas-codus.iam.gserviceaccount.com" \
-            --set-secrets "GEMINI_API_KEY=gemini-api-key:latest"
+            --set-env-vars "^|^ENVIRONMENT=production|PROJECT_ID=habeas-codus|REGION=us-central1|VERTEX_LOCATION=global|MODEL_REVIEWER=${MODEL_REVIEWER}|MODEL_ORCHESTRATOR=${MODEL_ORCHESTRATOR}|LLM_INPUT_PRICE_PER_MTOK=${LLM_INPUT_PRICE_PER_MTOK}|LLM_OUTPUT_PRICE_PER_MTOK=${LLM_OUTPUT_PRICE_PER_MTOK}|CORS_ALLOWED_ORIGINS=${CORS_ORIGINS}|PUBSUB_PUSH_AUDIENCE=${{ steps.api.outputs.url }}|PUBSUB_PUSH_SERVICE_ACCOUNT=creator-studio-transcribe@habeas-codus.iam.gserviceaccount.com"
 
       - uses: oven-sh/setup-bun@v2
 
