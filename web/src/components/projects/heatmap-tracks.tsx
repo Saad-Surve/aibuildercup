@@ -129,31 +129,34 @@ export function HeatmapTracks({
 
 /** Hairline time ruler. Ticks sit at their true percentage, not evenly spaced. */
 function TimeRuler({ ticks }: { ticks: number[] }) {
+  // Mirror the TrackRow layout (inset + label column + gap + score column) so
+  // the ticks line up with the bars instead of floating over the labels.
   return (
-    <div className="relative h-5 border-b border-border/70">
-      {ticks.map((tick, index) => {
-        const position = ticks.length > 1 ? (index / (ticks.length - 1)) * 100 : 0;
-        return (
-          <span
-            key={tick}
-            className={cn(
-              "tabular absolute top-1.5 text-[10px] leading-none text-muted-foreground/80",
-              index === 0
-                ? "left-1"
-                : index === ticks.length - 1
-                  ? "right-1"
-                  : "-translate-x-1/2",
-            )}
-            style={
-              index === 0 || index === ticks.length - 1
-                ? undefined
-                : { left: `${position}%` }
-            }
-          >
-            {formatDurationMs(tick)}
-          </span>
-        );
-      })}
+    <div className="flex items-center gap-2 border-b border-border/70 px-1">
+      <span className="w-[8.5rem] shrink-0" aria-hidden="true" />
+      <div className="relative h-5 flex-1">
+        {ticks.map((tick, index) => {
+          const position =
+            ticks.length > 1 ? (index / (ticks.length - 1)) * 100 : 0;
+          return (
+            <span
+              key={tick}
+              className={cn(
+                "tabular absolute bottom-0.5 text-[10px] leading-none text-muted-foreground/80",
+                index === 0
+                  ? "left-0"
+                  : index === ticks.length - 1
+                    ? "right-0"
+                    : "-translate-x-1/2",
+              )}
+              style={index === 0 || index === ticks.length - 1 ? undefined : { left: `${position}%` }}
+            >
+              {formatDurationMs(tick)}
+            </span>
+          );
+        })}
+      </div>
+      <span className="w-9 shrink-0" aria-hidden="true" />
     </div>
   );
 }

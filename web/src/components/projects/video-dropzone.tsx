@@ -93,7 +93,7 @@ export function VideoDropzone({
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         className={cn(
-          "flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-12 text-center transition-colors",
+          "flex flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-12 text-center transition-colors",
           dragging && "border-signal bg-signal/5",
         )}
       >

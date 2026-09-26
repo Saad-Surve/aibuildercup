@@ -201,7 +201,7 @@ export function AvatarCustomizer() {
                   aria-pressed={selected}
                   onClick={() => pickPart(group.slot, part.id)}
                   className={cn(
-                    "size-14 shrink-0 rounded-xl bg-muted p-1 transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                    "size-14 shrink-0 rounded-lg bg-muted p-1 transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                     selected
                       ? "shadow-sm ring-2 ring-signal"
                       : "border border-transparent shadow-none ring-1 ring-foreground/10 hover:ring-foreground/25",

@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useProjectTranscript } from "@/hooks/use-project-transcript";
 import { ApiError } from "@/lib/api-client";
 import { formatTimestamp } from "@/lib/projects";
-import { WORKSPACE_PANE_STICKY } from "@/lib/workspace";
+import { WORKSPACE_PANE_SNAP } from "@/lib/workspace";
 
 /*
  * Transcript viewer for the project workspace. Segments are clickable:
@@ -48,7 +48,7 @@ export function TranscriptPanel({
 
   if (transcriptQuery.isLoading) {
     return (
-      <Card className={WORKSPACE_PANE_STICKY}>
+      <Card className={WORKSPACE_PANE_SNAP}>
         <CardHeader className="shrink-0">
           <div className="flex items-center gap-2">
             <Icon icon={ClosedCaptionIcon} className="text-muted-foreground" />
@@ -68,7 +68,7 @@ export function TranscriptPanel({
   if (transcriptQuery.data) {
     const transcript = transcriptQuery.data;
     return (
-      <Card className={WORKSPACE_PANE_STICKY}>
+      <Card className={WORKSPACE_PANE_SNAP}>
         <CardHeader className="shrink-0">
           <div className="flex items-center gap-2">
             <Icon icon={ClosedCaptionIcon} className="text-muted-foreground" />
@@ -86,9 +86,9 @@ export function TranscriptPanel({
                 <button
                   type="button"
                   onClick={() => seekTo(segment.startMs)}
-                  className="flex w-full items-baseline gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-muted"
+                  className="group flex w-full items-baseline gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-muted"
                 >
-                  <span className="shrink-0 tabular text-xs text-signal">
+                  <span className="shrink-0 tabular text-xs text-signal underline-offset-2 group-hover:underline">
                     {formatTimestamp(segment.startMs)}
                   </span>
                   <span className="text-sm">{segment.text}</span>
@@ -107,7 +107,7 @@ export function TranscriptPanel({
 
   if (transcriptQuery.error && !notReady) {
     return (
-      <Card className={WORKSPACE_PANE_STICKY}>
+      <Card className={WORKSPACE_PANE_SNAP}>
         <CardHeader className="shrink-0">
           <CardTitle>Transcript unavailable</CardTitle>
           <CardDescription>
@@ -125,7 +125,7 @@ export function TranscriptPanel({
   // was ever queued). Polling is off, so say so instead of spinning forever.
   if (!processing) {
     return (
-      <Card className={WORKSPACE_PANE_STICKY}>
+      <Card className={WORKSPACE_PANE_SNAP}>
         <CardHeader className="shrink-0">
           <CardTitle>Transcript unavailable</CardTitle>
           <CardDescription>
@@ -138,7 +138,7 @@ export function TranscriptPanel({
   }
 
   return (
-    <Card className={WORKSPACE_PANE_STICKY}>
+    <Card className={WORKSPACE_PANE_SNAP}>
       <CardHeader className="shrink-0">
         <div className="flex items-center gap-2">
           <Icon icon={Loading03Icon} className="animate-spin text-signal" />

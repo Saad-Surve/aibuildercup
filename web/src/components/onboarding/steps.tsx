@@ -347,7 +347,7 @@ export function PersonaStep({ persona }: { persona: Persona | null }) {
     <div className="space-y-4">
       <Badge variant="secondary">Version {persona.version}</Badge>
 
-      <div className="rounded-xl bg-card p-5 ring-1 ring-foreground/10">
+      <div className="rounded-lg bg-card p-5 ring-1 ring-foreground/10">
         <PersonaText content={persona.content} />
       </div>
 

@@ -83,7 +83,7 @@ export function SourceVideoPlayer({
 
   if (failed) {
     return (
-      <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl bg-muted text-center shadow-sm ring-1 ring-foreground/10">
+      <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-lg bg-muted text-center shadow-sm ring-1 ring-foreground/10">
         <Icon icon={Alert02Icon} className="size-5 text-muted-foreground" />
         <p className="px-6 text-sm text-muted-foreground">
           Could not load this video. It may have been uploaded in another
@@ -94,7 +94,7 @@ export function SourceVideoPlayer({
   }
 
   return (
-    <div className="studio-video overflow-hidden rounded-xl bg-black shadow-sm ring-1 ring-foreground/10">
+    <div className="studio-video overflow-hidden rounded-lg bg-black shadow-sm ring-1 ring-foreground/10">
       {src ? (
         <StudioPlayer
           key={asset.assetId}
