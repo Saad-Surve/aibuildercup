@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert02Icon,
@@ -85,6 +85,12 @@ export function ReviewPanel({
     queryKey: ["analysis-runs", projectId],
     queryFn: () => listAnalysisRuns(projectId),
     retry: false,
+    // Keep the list fresh while a run is in flight: its status drives the Run
+    // button and the reviewer counter, and a stale list used to leave the panel
+    // stuck on "Reviewing" until a manual reload.
+    refetchInterval: (query) =>
+      (query.state.data?.items ?? []).some(isInFlight) ? 4000 : false,
+    refetchIntervalInBackground: true,
   });
   const runs = useMemo(
     () => runsQuery.data?.items ?? [],
@@ -93,19 +99,21 @@ export function ReviewPanel({
   const activeRun: AnalysisRun | null =
     runs.find((run) => run.analysisRunId === selectedRunId) ?? runs[0] ?? null;
   const activeRunId = activeRun?.analysisRunId ?? null;
-  const isRunning =
-    activeRun?.status === "queued" || activeRun?.status === "running";
 
   const runQuery = useQuery({
     queryKey: ["analysis-run", projectId, activeRunId],
     queryFn: () => getAnalysisRun(projectId, activeRunId as string),
     enabled: Boolean(activeRunId),
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      return status === "queued" || status === "running" ? 2000 : false;
-    },
+    refetchInterval: (query) => (isInFlight(query.state.data) ? 2000 : false),
     refetchIntervalInBackground: true,
   });
+
+  // The freshest view of the run: the polled single run once it exists, the list
+  // row before that. Every polling decision reads from here, never from the list,
+  // so the intervals cannot disagree with the status the header shows.
+  const run = runQuery.data ?? activeRun;
+  const runStatus = run?.status ?? null;
+  const isRunning = isInFlight(run);
 
   const reviewersQuery = useQuery({
     queryKey: ["analysis-reviewers", projectId, activeRunId],
@@ -131,6 +139,26 @@ export function ReviewPanel({
     refetchIntervalInBackground: true,
   });
 
+  // The interval queries stop the instant the run settles, which can drop the
+  // very last poll (findings and bins are written just before the run flips to
+  // ready). Force one final fetch per run on the in-flight -> settled
+  // transition, so a finished review always lands without a manual reload.
+  const settledRunRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!activeRunId || runStatus === null) return;
+    if (isRunning || settledRunRef.current === activeRunId) return;
+    settledRunRef.current = activeRunId;
+    void queryClient.invalidateQueries({
+      queryKey: ["analysis-reviewers", projectId, activeRunId],
+    });
+    void queryClient.invalidateQueries({
+      queryKey: ["analysis-heatmap", projectId, activeRunId],
+    });
+    void queryClient.invalidateQueries({
+      queryKey: ["analysis-findings", projectId, activeRunId],
+    });
+  }, [activeRunId, runStatus, isRunning, projectId, queryClient]);
+
   const startMutation = useMutation({
     mutationFn: () => startAnalysis(projectId, { platform }),
     onSuccess: (response) => {
@@ -151,7 +179,6 @@ export function ReviewPanel({
     },
   });
 
-  const run = runQuery.data ?? activeRun;
   const reviewers = reviewersQuery.data?.items ?? [];
   const bins = heatmapQuery.data?.bins ?? [];
   const findings = findingsQuery.data?.items ?? [];
@@ -339,6 +366,10 @@ export function ReviewPanel({
       />
     </>
   );
+}
+
+function isInFlight(run: { status: string } | null | undefined): boolean {
+  return run?.status === "queued" || run?.status === "running";
 }
 
 function statusLabel(run: AnalysisRun | null, hasTranscript: boolean): string {
