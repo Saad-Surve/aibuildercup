@@ -115,7 +115,7 @@ export function FindingsPanel({
         </div>
       </CardHeader>
 
-      <CardContent className="scroll-fade-y min-h-0 flex-1 overflow-y-auto">
+      <CardContent className="scroll-fade-y min-h-0 flex-1 overflow-y-auto py-2">
         {loading ? (
           <div className="space-y-2">
             <Skeleton className="h-14 w-full" />
@@ -172,7 +172,7 @@ function FindingRow({
         className="block w-full px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <span className="tabular text-xs text-signal">
+          <span className="tabular text-xs text-time">
             {formatDurationMs(finding.startMs)}
           </span>
           <span className="inline-flex items-center gap-1.5 text-xs">

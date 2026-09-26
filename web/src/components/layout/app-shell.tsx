@@ -104,12 +104,20 @@ function useSidebarCollapsed(): [boolean, (next: boolean) => void] {
 
   useEffect(() => {
     collapsedStore.write(readStoredCollapsed());
+    // The pre-paint CSS override has done its job once React has applied the
+    // stored width; hand control back to framer-motion.
+    const frame = window.requestAnimationFrame(() => {
+      document.documentElement.removeAttribute("data-sidebar");
+    });
     const onStorage = (event: StorageEvent) => {
       if (event.key === COLLAPSE_KEY)
         collapsedStore.write(event.newValue === "1");
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
 
   function setCollapsed(next: boolean): void {
@@ -223,7 +231,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         initial={false}
         animate={{ width: collapsed ? 64 : 240 }}
         transition={{ type: "tween", ...RAIL_TWEEN }}
-        className="sticky top-0 hidden h-[100dvh] shrink-0 flex-col overflow-hidden border-r border-transparent shadow-[inset_-1px_0_0_0_var(--color-border)] md:flex"
+        className="app-sidebar-rail sticky top-0 hidden h-[100dvh] shrink-0 flex-col overflow-hidden border-r border-transparent shadow-[inset_-1px_0_0_0_var(--color-border)] md:flex"
       >
         <div className="relative flex h-14 shrink-0 items-center px-6">
           <motion.div

@@ -28,15 +28,15 @@
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
 }
 
-/* Signal big-play button. */
+/* Big-play button: video.js default grey, not the app accent. */
 .studio-video .vjs-big-play-button {
-  background-color: var(--signal);
+  background-color: rgb(82 82 82);
   border-color: transparent;
 }
 
 .studio-video .vjs-big-play-button:hover,
 .studio-video .vjs-big-play-button:focus {
-  background-color: var(--signal);
+  background-color: rgb(107 107 107);
 }
 
 /* Signal selection in rate/captions menus. */

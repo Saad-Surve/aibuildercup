@@ -299,7 +299,7 @@ function ReadoutStrip({
     >
       {bin ? (
         <>
-          <span className="text-foreground">
+          <span className="text-time">
             {formatDurationMs(bin.startMs)}–{formatDurationMs(bin.endMs)}
           </span>
           <span className="text-foreground">{formatScore(bin.score)}</span>

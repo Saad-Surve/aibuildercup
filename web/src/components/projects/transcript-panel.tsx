@@ -80,7 +80,7 @@ export function TranscriptPanel({
             </span>
           </div>
         </CardHeader>
-        <CardContent className="scroll-fade-y min-h-0 flex-1 overflow-y-auto pr-1">
+        <CardContent className="scroll-fade-y min-h-0 flex-1 overflow-y-auto py-2 pr-1">
           <ol className="space-y-1">
             {transcript.segments.map((segment) => (
               <li key={segment.segmentId}>
@@ -89,7 +89,7 @@ export function TranscriptPanel({
                   onClick={() => seekTo(segment.startMs)}
                   className="group flex w-full items-baseline gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-muted"
                 >
-                  <span className="shrink-0 tabular text-xs text-signal underline-offset-2 group-hover:underline">
+                  <span className="shrink-0 tabular text-xs text-time underline-offset-2 group-hover:underline">
                     {formatTimestamp(segment.startMs)}
                   </span>
                   <span className="text-sm">{segment.text}</span>

@@ -176,9 +176,19 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
 
   if (projectQuery.isLoading) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6">
-        <Skeleton className="h-8 w-56" />
-        <Skeleton className="h-40 w-full" />
+      <div className="mx-auto max-w-7xl space-y-6">
+        <Skeleton className="h-5 w-24" />
+        <div className="space-y-3">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-80" />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+          <Skeleton className={`${WORKSPACE_PANE_CARD} w-full`} />
+          <div className="space-y-10">
+            <Skeleton className={`${WORKSPACE_PANE_CARD} w-full`} />
+            <Skeleton className={`${WORKSPACE_PANE_CARD} w-full`} />
+          </div>
+        </div>
       </div>
     );
   }
@@ -224,7 +234,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
        * The top snap stop includes the back link and the header, so mandatory
        * snapping can rest here instead of skipping past "< Projects".
        */}
-      <div className="space-y-6 lg:snap-start lg:scroll-mt-20">
+      <div className="space-y-6 lg:snap-start lg:snap-always lg:scroll-mt-20">
         <Link
           href="/projects"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
