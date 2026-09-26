@@ -21,5 +21,9 @@ function statusVariant(
 }
 
 export function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
-  return <Badge variant={statusVariant(status)}>{STATUS_LABEL[status]}</Badge>;
+  return (
+    <Badge className="h-7 px-2.5" variant={statusVariant(status)}>
+      {STATUS_LABEL[status]}
+    </Badge>
+  );
 }

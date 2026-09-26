@@ -227,20 +227,23 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
         Projects
       </Link>
 
-      <PageHeader
-        title={project.name}
-        description={project.description || undefined}
-        actions={
-          <>
-            <ProjectStatusBadge status={project.status} />
-            <DeleteProjectDialog
-              projectId={projectId}
-              projectName={project.name}
-              assetIds={effectiveSource ? [effectiveSource.assetId] : []}
-            />
-          </>
-        }
-      />
+      {/* A stop at the top so mandatory snapping can rest on the page header. */}
+      <div className="lg:snap-start lg:snap-always lg:scroll-mt-20">
+        <PageHeader
+          title={project.name}
+          description={project.description || undefined}
+          actions={
+            <>
+              <ProjectStatusBadge status={project.status} />
+              <DeleteProjectDialog
+                projectId={projectId}
+                projectName={project.name}
+                assetIds={effectiveSource ? [effectiveSource.assetId] : []}
+              />
+            </>
+          }
+        />
+      </div>
 
       {effectiveSource ? (
         <div className="space-y-6">
@@ -315,7 +318,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
               </Card>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-10">
               <TranscriptPanel
                 projectId={projectId}
                 processing={processing}
@@ -332,9 +335,9 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                 transcriptShouldPoll={processing}
               />
               {/*
-               * Room below the last pinned pane so it can be pulled all the way up
-               * level with the video card; without it the panes are the same height
-               * as the video column and the last one can never reach the top.
+               * Room below the last pane so it can snap level with the video card;
+               * the panes are the same height as the video column, so without it
+               * the last one can never reach the top.
                */}
               <div aria-hidden className={WORKSPACE_PANE_STACK_SPACER} />
             </div>

@@ -2,6 +2,8 @@
 
 import {
   ArrowRight01Icon,
+  EyeIcon,
+  EyeOffIcon,
   Loading03Icon,
   Search01Icon,
 } from "@hugeicons/core-free-icons";
@@ -211,7 +213,9 @@ function FindingRow({
       {/* The transcript evidence is kept, but tucked away so rows stay scannable. */}
       {hasEvidence && (
         <details className="group border-t border-border/60">
-          <summary className="cursor-pointer list-none px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
+            <Icon icon={EyeIcon} className="size-3.5 group-open:hidden" />
+            <Icon icon={EyeOffIcon} className="hidden size-3.5 group-open:inline" />
             <span className="group-open:hidden">Show evidence</span>
             <span className="hidden group-open:inline">Hide evidence</span>
           </summary>

@@ -284,7 +284,7 @@ export function ReviewPanel({
                   onClick={() => toggleSeverity(severity)}
                   title={`Show ${severity} findings`}
                   className={cn(
-                    "inline-flex h-6 items-center gap-1.5 rounded-4xl border px-2 text-xs transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                    "inline-flex h-7 items-center gap-1.5 rounded-4xl border px-2.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                     active
                       ? "border-signal bg-signal text-signal-foreground"
                       : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -311,7 +311,7 @@ export function ReviewPanel({
           )}
 
           {runsQuery.isLoading ? (
-            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-full min-h-40 w-full" />
           ) : (
             <HeatmapTracks
               bins={bins}

@@ -95,7 +95,7 @@
  */
 @media (min-width: 1024px) {
   html {
-    scroll-snap-type: y proximity;
+    scroll-snap-type: y mandatory;
   }
 }
 
