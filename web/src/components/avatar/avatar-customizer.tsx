@@ -189,7 +189,7 @@ export function AvatarCustomizer() {
           {/* py-2 breathing room: the scroll container clips anything that
               reaches its edge, which used to slice the selected rings and the
               buttons' rounded corners top and bottom. */}
-          <div className="flex gap-2 overflow-x-auto px-0.5 py-2">
+          <div className="flex flex-wrap gap-2 px-0.5 py-2">
             {group.parts.map((part) => {
               const selected = effective.selections[group.slot] === part.id;
               return (

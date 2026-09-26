@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Film01Icon } from "@hugeicons/core-free-icons";
+import { format } from "date-fns";
 
 import { Icon } from "@/components/common/icon";
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ensurePoster, ensureProjectPoster } from "@/lib/local-media";
-import { listAssets } from "@/lib/projects";
+import { formatBytes, formatTimestamp, listAssets } from "@/lib/projects";
 import type { Project } from "@/lib/types";
 
 /*
@@ -74,7 +75,7 @@ function ProjectThumb({ projectId }: { projectId: string }) {
 
 /*
  * Loading placeholder that mirrors the real card layout (16:9 thumb, title
- * row with status, two description lines) so the grid doesn't jump.
+ * row with status, description lines, and metadata grid) so the grid doesn't jump.
  */
 export function ProjectCardSkeleton() {
   return (
@@ -91,12 +92,26 @@ export function ProjectCardSkeleton() {
       <CardContent className="space-y-2">
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-3/4" />
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
       </CardContent>
     </Card>
   );
 }
 
 export function ProjectCard({ project }: { project: Project }) {
+  const assetsQuery = useQuery({
+    queryKey: ["assets", project.projectId],
+    queryFn: () => listAssets(project.projectId),
+    staleTime: 60_000,
+  });
+  const source = assetsQuery.data?.items.find(
+    (asset) => asset.type === "source_video",
+  );
+
   return (
     <Link
       href={`/projects/view?projectId=${project.projectId}`}
@@ -116,6 +131,31 @@ export function ProjectCard({ project }: { project: Project }) {
           <p className="line-clamp-2 min-h-10 text-sm text-muted-foreground">
             {project.description || "No description."}
           </p>
+          <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
+            <div>
+              <dt className="text-muted-foreground/70">Duration</dt>
+              <dd className="tabular text-foreground">
+                {source?.durationMs != null
+                  ? formatTimestamp(source.durationMs)
+                  : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground/70">Size</dt>
+              <dd className="tabular text-foreground">
+                {source ? formatBytes(source.sizeBytes) : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground/70">Uploaded</dt>
+              <dd className="text-foreground">
+                {format(
+                  new Date(source?.createdAt ?? project.createdAt),
+                  "d MMM yyyy",
+                )}
+              </dd>
+            </div>
+          </dl>
         </CardContent>
       </Card>
     </Link>

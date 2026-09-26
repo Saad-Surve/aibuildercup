@@ -22,7 +22,9 @@ import { listProjects } from "@/lib/projects";
 
 export default function ProjectsPage() {
   const query = useQuery({ queryKey: ["projects"], queryFn: listProjects });
-  const projects = query.data?.items ?? [];
+  const projects = (query.data?.items ?? []).toSorted(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">

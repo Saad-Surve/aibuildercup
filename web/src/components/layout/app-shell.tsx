@@ -180,6 +180,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const readyItems = NAV.filter((item) => item.ready);
   const [collapsed, setCollapsed] = useSidebarCollapsed();
 
+  useEffect(() => {
+    document.documentElement.classList.add("no-scrollbar");
+    return () => document.documentElement.classList.remove("no-scrollbar");
+  }, []);
+
   function toggleCollapsed() {
     setCollapsed(!collapsed);
   }
