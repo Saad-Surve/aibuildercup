@@ -130,8 +130,7 @@ export function TranscriptPanel({
             <CardTitle>Transcript</CardTitle>
             <span className="h-4 w-px bg-border" aria-hidden="true" />
             <span className="text-sm text-muted-foreground">
-              {transcript.segments.length} segments ·{" "}
-              {formatTimestamp(transcript.durationMs)} · {transcript.language}
+              {transcript.segments.length} segments · {transcript.language}
               {showSpeakers ? ` · ${speakerCount} speakers` : ""}
             </span>
             <div className="ml-auto flex items-center gap-2">
@@ -141,7 +140,9 @@ export function TranscriptPanel({
                   onValueChange={(value) => setVersion(Number(value))}
                 >
                   <SelectTrigger size="sm" className="w-20">
-                    <SelectValue placeholder="Version" />
+                    <SelectValue placeholder="Version">
+                      {(value) => (value ? `v${value}` : "Version")}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {versions.map((item) => (

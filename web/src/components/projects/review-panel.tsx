@@ -235,7 +235,16 @@ export function ReviewPanel({
                   }
                 >
                   <SelectTrigger size="sm" className="w-20">
-                    <SelectValue placeholder="Latest" />
+                    <SelectValue placeholder="Latest">
+                      {(value) => {
+                        const index = runs.findIndex(
+                          (item) => item.analysisRunId === value,
+                        );
+                        return index >= 0
+                          ? `v${runs.length - index}`
+                          : "Latest";
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {runs.map((item, index) => (
