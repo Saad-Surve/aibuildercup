@@ -33,6 +33,11 @@ backend is removed entirely; every LLM call now goes through Gemini Enterprise A
   `0.75 / 3.75` + Pub/Sub push vars).
 - Docs: `backend-plan.md`, `backend/README.md`, `AGENTS.md`, `diagrams.md` updated to say
   Agent Platform (Vertex AI) instead of the Gemini Developer API.
+- `.github/workflows/deploy.yml`: the Cloud Run deploy step now sets `VERTEX_LOCATION=global`
+  and the deployed model config (`gemini-3.8-flash` + `0.75 / 3.75` prices, overridable via
+  repo vars `MODEL_REVIEWER` / `MODEL_ORCHESTRATOR` / `LLM_*_PRICE_PER_MTOK`), and no longer
+  mounts the `GEMINI_API_KEY` secret. That secret still exists in Secret Manager but is now
+  unused (it was created manually, not via Terraform).
 
 ## Local env action required
 
@@ -51,6 +56,9 @@ remove `GEMINI_API_KEY` and any `LLM_BACKEND`, set `MODEL_REVIEWER` / `MODEL_ORC
 
 ## Not done / next step
 
-- Set the Cloud Run service env from `.env.deploy.example` and redeploy.
+- Confirm the deploy workflow run succeeds and the API comes up with `LLM_BACKEND` gone /
+  `MODEL_REVIEWER=gemini-3.8-flash`; the runtime SA already has the Vertex AI role and
+  `aiplatform.googleapis.com` is enabled.
 - Run one real analysis end to end on `fixtures/media/` with the new defaults.
 - Optional cost lever: batch/flex is 50% off if analysis can move to the Batch API.
+- Optional cleanup: delete the unused `gemini-api-key` Secret Manager secret.
