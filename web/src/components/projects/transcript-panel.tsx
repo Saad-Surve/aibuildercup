@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import {
+  ArrowDown01Icon,
   ClosedCaptionIcon,
+  FileExportIcon,
   Loading03Icon,
   SparklesIcon,
 } from "@hugeicons/core-free-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
 import { Button } from "@/components/ui/button";
@@ -17,6 +20,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -32,6 +41,12 @@ import {
   listTranscriptVersions,
   retranscribeTranscript,
 } from "@/lib/projects";
+import {
+  downloadTranscript,
+  TRANSCRIPT_EXPORT_FORMATS,
+  transcriptFileBase,
+  type TranscriptExportFormat,
+} from "@/lib/transcript-export";
 import { WORKSPACE_PANE_SNAP } from "@/lib/workspace";
 
 /*
@@ -44,11 +59,13 @@ import { WORKSPACE_PANE_SNAP } from "@/lib/workspace";
  */
 export function TranscriptPanel({
   projectId,
+  projectName,
   processing,
   live = false,
   failureMessage,
 }: {
   projectId: string;
+  projectName?: string;
   processing: boolean;
   /** Whether the realtime socket is connected; polling is the degraded fallback. */
   live?: boolean;
@@ -79,6 +96,9 @@ export function TranscriptPanel({
       // Follow the new active version once the rerun finishes.
       setVersion(null);
       void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      void queryClient.invalidateQueries({
+        queryKey: ["transcript", projectId],
+      });
       void queryClient.invalidateQueries({
         queryKey: ["transcript", projectId],
       });
@@ -123,42 +143,71 @@ export function TranscriptPanel({
         .filter((speaker): speaker is number => speaker != null),
     ).size;
     const showSpeakers = speakerCount > 1;
-    const speakerName = (speaker: number) =>
-      transcript.speakerLabels?.[String(speaker)] ?? `S${speaker}`;
+    const activeVersion = version ?? latestVersion;
+
+    function handleExport(format: TranscriptExportFormat) {
+      downloadTranscript(
+        transcript,
+        format,
+        transcriptFileBase(projectName, activeVersion, projectId),
+      );
+      const option = TRANSCRIPT_EXPORT_FORMATS.find(
+        (item) => item.value === format,
+      );
+      toast.success(`Exported ${option?.label ?? format}`);
+    }
+
     return (
       <Card className={WORKSPACE_PANE_SNAP}>
         <CardHeader className="shrink-0">
           <div className="flex flex-wrap items-center gap-2">
             <Icon icon={ClosedCaptionIcon} className="text-muted-foreground" />
             <CardTitle>Transcript</CardTitle>
-            <span className="h-4 w-px bg-border" aria-hidden="true" />
-            <span className="text-sm text-muted-foreground">
-              {transcript.segments.length} segments · {transcript.language}
-              {showSpeakers ? ` · ${speakerCount} speakers` : ""}
-            </span>
+            {versions.length > 0 && (
+              <Select
+                value={String(activeVersion ?? "")}
+                onValueChange={(value) => setVersion(Number(value))}
+              >
+                <SelectTrigger size="sm" className="w-20">
+                  <SelectValue placeholder="Version">
+                    {(value) => (value ? `v${value}` : "Version")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="min-w-0">
+                  {versions.map((item) => (
+                    <SelectItem
+                      key={item.transcriptId}
+                      value={String(item.version)}
+                    >
+                      v{item.version}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <div className="ml-auto flex items-center gap-2">
-              {versions.length > 0 && (
-                <Select
-                  value={String(version ?? latestVersion ?? "")}
-                  onValueChange={(value) => setVersion(Number(value))}
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={<Button type="button" size="sm" variant="outline" />}
                 >
-                  <SelectTrigger size="sm" className="w-20">
-                    <SelectValue placeholder="Version">
-                      {(value) => (value ? `v${value}` : "Version")}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {versions.map((item) => (
-                      <SelectItem
-                        key={item.transcriptId}
-                        value={String(item.version)}
-                      >
-                        v{item.version}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+                  <Icon icon={FileExportIcon} />
+                  Export
+                  <Icon
+                    icon={ArrowDown01Icon}
+                    className="text-muted-foreground"
+                  />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {TRANSCRIPT_EXPORT_FORMATS.map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => handleExport(option.value)}
+                    >
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 type="button"
                 size="sm"

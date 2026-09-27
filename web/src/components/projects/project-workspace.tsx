@@ -311,6 +311,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
             <div className="space-y-10">
               <TranscriptPanel
                 projectId={projectId}
+                projectName={project.name}
                 processing={processing}
                 live={connected}
                 failureMessage={

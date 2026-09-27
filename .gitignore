@@ -4,3 +4,6 @@
 .firebase/
 fixtures/media
 .tmp
+
+# Background dev server logs
+.logs/
