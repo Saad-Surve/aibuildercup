@@ -177,7 +177,7 @@ function TimestampInput({
       }}
       inputMode="numeric"
       title="Edit start time (mm:ss)"
-      className="tabular h-7 w-14 shrink-0 px-1 text-center text-xs"
+      className="tabular h-8 w-14 shrink-0 px-1 text-center text-xs"
     />
   );
 }
@@ -228,13 +228,6 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
         .filter((speaker): speaker is number => speaker != null),
     ),
   ).toSorted((a, b) => a - b);
-  const maxSpeaker = detectedSpeakers.length
-    ? (detectedSpeakers[detectedSpeakers.length - 1] ?? 1)
-    : 0;
-  const speakerTargets = Array.from(
-    { length: Math.max(maxSpeaker + 1, 2) },
-    (_, index) => index + 1,
-  );
 
   const needle = find.trim();
   const matchCount = needle
@@ -321,6 +314,19 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
         ...segment,
         text: segment.text.replace(pattern, replace),
       })),
+    );
+  }
+
+  /** Replace the needle in one segment only (the row-level "Replace"). */
+  function replaceOne(segmentId: string) {
+    if (!needle) return;
+    const pattern = new RegExp(escapeRegExp(needle), "gi");
+    applyToDraft((current) =>
+      current.map((segment) =>
+        segment.segmentId === segmentId
+          ? { ...segment, text: segment.text.replace(pattern, replace) }
+          : segment,
+      ),
     );
   }
 
@@ -432,7 +438,7 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
       <div className="flex flex-col gap-6 lg:h-[calc(100dvh-6.5rem)]">
         {/* Row 1: small player on the left, edit toolbar filling the rest. */}
         <div className="shrink-0 grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-stretch lg:snap-start lg:snap-always lg:scroll-mt-20">
-          <div className="overflow-hidden rounded-xl">
+          <div className="overflow-hidden rounded-lg shadow-sm ring-1 ring-foreground/10">
             {sourceAsset ? (
               <SourceVideoPlayer
                 projectId={projectId}
@@ -486,7 +492,6 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
                 </div>
                 <Button
                   type="button"
-                  size="sm"
                   variant="outline"
                   onClick={replaceAll}
                   disabled={!needle}
@@ -496,9 +501,7 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
                 </Button>
                 <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
                   <DialogTrigger
-                    render={
-                      <Button type="button" size="sm" variant="outline" />
-                    }
+                    render={<Button type="button" variant="outline" />}
                   >
                     <Icon icon={UserEdit01Icon} />
                     Rename speaker
@@ -513,43 +516,30 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
                     </DialogHeader>
                     <div className="grid grid-cols-2 gap-3">
                       <Field>
-                        <FieldLabel>From</FieldLabel>
-                        <Select
+                        <FieldLabel>From speaker</FieldLabel>
+                        <Input
                           value={renameFrom}
-                          onValueChange={(value) => setRenameFrom(value ?? "1")}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue>{(value) => `S${value}`}</SelectValue>
-                          </SelectTrigger>
-                          <SelectContent className="min-w-0">
-                            {(detectedSpeakers.length
-                              ? detectedSpeakers
-                              : [1]
-                            ).map((speaker) => (
-                              <SelectItem key={speaker} value={String(speaker)}>
-                                S{speaker}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          onChange={(event) =>
+                            setRenameFrom(
+                              event.target.value.replace(/[^0-9]/g, ""),
+                            )
+                          }
+                          inputMode="numeric"
+                          placeholder="1"
+                        />
                       </Field>
                       <Field>
-                        <FieldLabel>To</FieldLabel>
-                        <Select
+                        <FieldLabel>To speaker</FieldLabel>
+                        <Input
                           value={renameTo}
-                          onValueChange={(value) => setRenameTo(value ?? "1")}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue>{(value) => `S${value}`}</SelectValue>
-                          </SelectTrigger>
-                          <SelectContent className="min-w-0">
-                            {speakerTargets.map((speaker) => (
-                              <SelectItem key={speaker} value={String(speaker)}>
-                                S{speaker}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          onChange={(event) =>
+                            setRenameTo(
+                              event.target.value.replace(/[^0-9]/g, ""),
+                            )
+                          }
+                          inputMode="numeric"
+                          placeholder="1"
+                        />
                       </Field>
                     </div>
                     <DialogFooter>
@@ -640,7 +630,7 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
                     <Button
                       type="button"
                       variant="ghost"
-                      size="icon-sm"
+                      size="icon"
                       className="shrink-0 text-muted-foreground"
                       onClick={() => seekTo(segment.startMs)}
                       title="Seek to this segment"
@@ -679,7 +669,7 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
                           })
                         }
                       >
-                        <SelectTrigger size="sm" className="w-14 shrink-0">
+                        <SelectTrigger className="w-14 shrink-0">
                           <SelectValue>
                             {(value) => (value === "none" ? "—" : `S${value}`)}
                           </SelectValue>
@@ -704,10 +694,23 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
                       rows={1}
                       className="min-h-8 resize-none py-1 text-sm"
                     />
+                    {matches ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 text-muted-foreground"
+                        onClick={() => replaceOne(segment.segmentId)}
+                        title="Replace in this segment"
+                      >
+                        <Icon icon={Refresh01Icon} />
+                        <span className="sr-only">Replace in this segment</span>
+                      </Button>
+                    ) : null}
                     <Button
                       type="button"
                       variant="ghost"
-                      size="icon-sm"
+                      size="icon"
                       className="shrink-0 text-muted-foreground"
                       onClick={() => insertSegmentAfter(segment.segmentId)}
                       title="Insert segment below"
@@ -718,7 +721,7 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
                     <Button
                       type="button"
                       variant="ghost"
-                      size="icon-sm"
+                      size="icon"
                       className="shrink-0 text-muted-foreground"
                       onClick={() => deleteSegment(segment.segmentId)}
                       title="Delete segment"
