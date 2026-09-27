@@ -7,8 +7,10 @@ import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
 import { PageHeader } from "@/components/common/page-header";
-import { TranscriptEditor } from "@/components/projects/transcript-editor";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  TranscriptEditor,
+  TranscriptEditorSkeleton,
+} from "@/components/projects/transcript-editor";
 
 function TranscriptEditRoute() {
   const searchParams = useSearchParams();
@@ -37,14 +39,7 @@ function TranscriptEditRoute() {
 
 export default function TranscriptEditPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="mx-auto max-w-4xl space-y-6">
-          <Skeleton className="h-8 w-56" />
-          <Skeleton className="h-40 w-full" />
-        </div>
-      }
-    >
+    <Suspense fallback={<TranscriptEditorSkeleton />}>
       <TranscriptEditRoute />
     </Suspense>
   );

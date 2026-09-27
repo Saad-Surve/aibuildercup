@@ -67,6 +67,30 @@ function newSegmentId(): string {
   return `seg-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/**
+ * Loading placeholder for the editor. Mirrors the real page: a back-link line
+ * and title, then the video + controls row above the transcript pane, which
+ * fills the rest of the viewport on large screens.
+ */
+export function TranscriptEditorSkeleton() {
+  return (
+    <div className="flex w-full flex-col">
+      <div className="space-y-6 pb-6">
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-7 w-72" />
+      </div>
+
+      <div className="flex flex-col gap-6 lg:h-[calc(100dvh-6.5rem)]">
+        <div className="shrink-0 grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-stretch">
+          <Skeleton className="aspect-video w-full rounded-xl" />
+          <Skeleton className="min-h-40 w-full rounded-lg" />
+        </div>
+        <Skeleton className="min-h-64 flex-1 rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
 /** Parse `mm:ss`, `hh:mm:ss`, or a bare seconds value into milliseconds. */
 function parseTimestamp(value: string): number | null {
   const text = value.trim();
@@ -355,17 +379,7 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
   );
 
   if (transcriptQuery.isLoading || projectQuery.isLoading) {
-    return (
-      <div className="w-full space-y-6">
-        {backLink}
-        <Skeleton className="h-8 w-56" />
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-          <Skeleton className="aspect-video w-full" />
-          <Skeleton className="h-28 w-full" />
-        </div>
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
+    return <TranscriptEditorSkeleton />;
   }
 
   if (!transcript) {
@@ -382,321 +396,354 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="flex w-full flex-col gap-6 lg:h-[calc(100dvh-7.5rem)]">
-      {backLink}
+    <div className="flex w-full flex-col">
+      {/*
+       * First snap stop: the back link and the title. Keeping the back link in
+       * a stop means page scrolling can always rest with it on screen instead
+       * of skipping straight past it.
+       */}
+      <div className="space-y-6 pb-6 lg:snap-start lg:snap-always lg:scroll-mt-20">
+        {backLink}
 
-      <PageHeader
-        className="shrink-0"
-        title="Edit transcript"
-        description={
-          projectQuery.data
-            ? `${projectQuery.data.name} — saving creates a new version, so the original stays available.`
-            : "Saving creates a new version, so the original transcript stays available."
-        }
-      />
+        <PageHeader
+          className="shrink-0"
+          title={
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              Edit transcript
+              {projectQuery.data ? (
+                <>
+                  <span className="h-4 w-px bg-border" aria-hidden="true" />
+                  <span className="text-sm font-normal text-muted-foreground">
+                    {projectQuery.data.name}
+                  </span>
+                </>
+              ) : null}
+            </span>
+          }
+        />
+      </div>
 
-      {/* Top strip: small player on the left, edit toolbar filling the rest. */}
-      <div className="shrink-0 grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-stretch">
-        <div className="overflow-hidden rounded-xl">
-          {sourceAsset ? (
-            <SourceVideoPlayer
-              projectId={projectId}
-              asset={sourceAsset}
-              onDuration={setVideoDurationMs}
-            />
-          ) : (
-            <div className="flex aspect-video w-full items-center justify-center bg-muted text-center text-xs text-muted-foreground ring-1 ring-foreground/10">
-              Video is not available in this browser.
-            </div>
-          )}
-        </div>
+      {/*
+       * Second snap stop: the video + controls row. The section is exactly one
+       * viewport tall minus the shell header and the same gap the row snaps
+       * with, so the row leaves an even gap above and below it once snapped
+       * and the transcript below fills everything in between.
+       */}
+      <div className="flex flex-col gap-6 lg:h-[calc(100dvh-6.5rem)]">
+        {/* Row 1: small player on the left, edit toolbar filling the rest. */}
+        <div className="shrink-0 grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-stretch lg:snap-start lg:snap-always lg:scroll-mt-20">
+          <div className="overflow-hidden rounded-xl">
+            {sourceAsset ? (
+              <SourceVideoPlayer
+                projectId={projectId}
+                asset={sourceAsset}
+                onDuration={setVideoDurationMs}
+              />
+            ) : (
+              <div className="flex aspect-video w-full items-center justify-center bg-muted text-center text-xs text-muted-foreground ring-1 ring-foreground/10">
+                Video is not available in this browser.
+              </div>
+            )}
+          </div>
 
-        <Card className="flex flex-col">
-          <CardContent className="flex flex-1 flex-col gap-4">
-            <div className="flex flex-wrap items-end gap-2">
-              <div className="w-44 space-y-1.5">
-                <label
-                  htmlFor="transcript-find"
-                  className="text-xs font-medium text-muted-foreground"
-                >
-                  Find
-                </label>
-                <div className="relative">
-                  <Icon
-                    icon={Search01Icon}
-                    className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-muted-foreground"
-                  />
+          <Card className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col gap-4">
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="w-44 space-y-1.5">
+                  <label
+                    htmlFor="transcript-find"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Find
+                  </label>
+                  <div className="relative">
+                    <Icon
+                      icon={Search01Icon}
+                      className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-muted-foreground"
+                    />
+                    <Input
+                      id="transcript-find"
+                      value={find}
+                      onChange={(event) => setFind(event.target.value)}
+                      placeholder="Search text"
+                      className="pl-7"
+                    />
+                  </div>
+                </div>
+                <div className="w-44 space-y-1.5">
+                  <label
+                    htmlFor="transcript-replace"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Replace with
+                  </label>
                   <Input
-                    id="transcript-find"
-                    value={find}
-                    onChange={(event) => setFind(event.target.value)}
-                    placeholder="Search text"
-                    className="pl-7"
+                    id="transcript-replace"
+                    value={replace}
+                    onChange={(event) => setReplace(event.target.value)}
+                    placeholder="Replacement"
                   />
                 </div>
-              </div>
-              <div className="w-44 space-y-1.5">
-                <label
-                  htmlFor="transcript-replace"
-                  className="text-xs font-medium text-muted-foreground"
-                >
-                  Replace with
-                </label>
-                <Input
-                  id="transcript-replace"
-                  value={replace}
-                  onChange={(event) => setReplace(event.target.value)}
-                  placeholder="Replacement"
-                />
-              </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={replaceAll}
-                disabled={!needle}
-              >
-                <Icon icon={Refresh01Icon} />
-                Replace all
-              </Button>
-              <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
-                <DialogTrigger
-                  render={<Button type="button" size="sm" variant="outline" />}
-                >
-                  <Icon icon={UserEdit01Icon} />
-                  Rename speaker
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Rename speaker</DialogTitle>
-                    <DialogDescription>
-                      Move every line by one speaker onto another. Useful when
-                      diarization splits one voice in two.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field>
-                      <FieldLabel>From</FieldLabel>
-                      <Select
-                        value={renameFrom}
-                        onValueChange={(value) => setRenameFrom(value ?? "1")}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue>{(value) => `S${value}`}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="min-w-0">
-                          {(detectedSpeakers.length
-                            ? detectedSpeakers
-                            : [1]
-                          ).map((speaker) => (
-                            <SelectItem key={speaker} value={String(speaker)}>
-                              S{speaker}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Field>
-                      <FieldLabel>To</FieldLabel>
-                      <Select
-                        value={renameTo}
-                        onValueChange={(value) => setRenameTo(value ?? "1")}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue>{(value) => `S${value}`}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="min-w-0">
-                          {speakerTargets.map((speaker) => (
-                            <SelectItem key={speaker} value={String(speaker)}>
-                              S{speaker}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </div>
-                  <DialogFooter>
-                    <DialogClose
-                      render={
-                        <Button type="button" variant="outline" size="sm" />
-                      }
-                    >
-                      Cancel
-                    </DialogClose>
-                    <Button type="button" size="sm" onClick={renameSpeaker}>
-                      Apply
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-muted-foreground">
-                {needle
-                  ? `${matchCount} ${matchCount === 1 ? "segment" : "segments"} match “${needle}”`
-                  : dirty
-                    ? "Unsaved changes"
-                    : "No changes"}
-              </p>
-              <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
-                  onClick={() => setDraft(null)}
-                  disabled={!dirty || save.isPending}
+                  onClick={replaceAll}
+                  disabled={!needle}
                 >
-                  <Icon icon={Cancel01Icon} />
-                  Discard
+                  <Icon icon={Refresh01Icon} />
+                  Replace all
                 </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => save.mutate()}
-                  disabled={!dirty || save.isPending}
-                >
-                  <Icon icon={FloppyDiskIcon} />
-                  {save.isPending ? "Saving…" : "Save"}
-                </Button>
+                <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+                  <DialogTrigger
+                    render={
+                      <Button type="button" size="sm" variant="outline" />
+                    }
+                  >
+                    <Icon icon={UserEdit01Icon} />
+                    Rename speaker
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Rename speaker</DialogTitle>
+                      <DialogDescription>
+                        Move every line by one speaker onto another. Useful when
+                        diarization splits one voice in two.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field>
+                        <FieldLabel>From</FieldLabel>
+                        <Select
+                          value={renameFrom}
+                          onValueChange={(value) => setRenameFrom(value ?? "1")}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue>{(value) => `S${value}`}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent className="min-w-0">
+                            {(detectedSpeakers.length
+                              ? detectedSpeakers
+                              : [1]
+                            ).map((speaker) => (
+                              <SelectItem key={speaker} value={String(speaker)}>
+                                S{speaker}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field>
+                        <FieldLabel>To</FieldLabel>
+                        <Select
+                          value={renameTo}
+                          onValueChange={(value) => setRenameTo(value ?? "1")}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue>{(value) => `S${value}`}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent className="min-w-0">
+                            {speakerTargets.map((speaker) => (
+                              <SelectItem key={speaker} value={String(speaker)}>
+                                S{speaker}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </div>
+                    <DialogFooter>
+                      <DialogClose
+                        render={
+                          <Button type="button" variant="outline" size="sm" />
+                        }
+                      >
+                        Cancel
+                      </DialogClose>
+                      <Button type="button" size="sm" onClick={renameSpeaker}>
+                        Apply
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
+
+              <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">
+                  {needle
+                    ? `${matchCount} ${matchCount === 1 ? "segment" : "segments"} match “${needle}”`
+                    : dirty
+                      ? "Unsaved changes"
+                      : "No changes"}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setDraft(null)}
+                    disabled={!dirty || save.isPending}
+                  >
+                    <Icon icon={Cancel01Icon} />
+                    Discard
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => save.mutate()}
+                    disabled={!dirty || save.isPending}
+                  >
+                    <Icon icon={FloppyDiskIcon} />
+                    {save.isPending ? "Saving…" : "Save"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Lower pane: the editable transcript itself. Fixed height so it scrolls
+          internally, and a snap stop so page scrolling snaps its top under the
+          header (mirrors the project workspace panes). */}
+        <Card className="flex min-h-0 flex-1 flex-col max-h-[min(70vh,36rem)] lg:max-h-none">
+          <CardHeader className="shrink-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Icon
+                icon={ClosedCaptionIcon}
+                className="text-muted-foreground"
+              />
+              <CardTitle>Transcript</CardTitle>
+              <span className="h-4 w-px bg-border" aria-hidden="true" />
+              <span className="text-sm text-muted-foreground">
+                {segments.length}{" "}
+                {segments.length === 1 ? "segment" : "segments"}
+                {" · "}
+                {transcript.language}
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent className="scroll-fade-y min-h-0 flex-1 overflow-y-auto overscroll-y-contain py-3">
+            <ol className="space-y-0.5">
+              {segments.map((segment) => {
+                const matches =
+                  needle.length > 0 &&
+                  segment.text.toLowerCase().includes(needle.toLowerCase());
+                return (
+                  <li
+                    key={segment.segmentId}
+                    className={`relative flex items-start gap-1.5 rounded-lg px-1.5 py-1 transition-colors ${
+                      matches
+                        ? "bg-signal/5 ring-1 ring-signal/30"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="shrink-0 text-muted-foreground"
+                      onClick={() => seekTo(segment.startMs)}
+                      title="Seek to this segment"
+                    >
+                      <Icon icon={PlayIcon} />
+                      <span className="sr-only">Seek to this segment</span>
+                    </Button>
+                    <TimestampInput
+                      key={`${segment.segmentId}-${segment.startMs}`}
+                      valueMs={segment.startMs}
+                      maxMs={maxDurationMs}
+                      onCommit={(startMs) =>
+                        updateSegment(segment.segmentId, {
+                          startMs,
+                          endMs: clampEnd(
+                            segment.endMs,
+                            startMs,
+                            maxDurationMs,
+                          ),
+                        })
+                      }
+                    />
+                    {detectedSpeakers.length > 0 ? (
+                      <Select
+                        value={
+                          segment.speaker != null
+                            ? String(segment.speaker)
+                            : "none"
+                        }
+                        onValueChange={(value) =>
+                          updateSegment(segment.segmentId, {
+                            speaker:
+                              value === "none" || value == null
+                                ? null
+                                : Number(value),
+                          })
+                        }
+                      >
+                        <SelectTrigger size="sm" className="w-14 shrink-0">
+                          <SelectValue>
+                            {(value) => (value === "none" ? "—" : `S${value}`)}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="min-w-0">
+                          <SelectItem value="none">—</SelectItem>
+                          {detectedSpeakers.map((speaker) => (
+                            <SelectItem key={speaker} value={String(speaker)}>
+                              S{speaker}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : null}
+                    <Textarea
+                      value={segment.text}
+                      onChange={(event) =>
+                        updateSegment(segment.segmentId, {
+                          text: event.target.value,
+                        })
+                      }
+                      rows={1}
+                      className="min-h-8 resize-none py-1 text-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="shrink-0 text-muted-foreground"
+                      onClick={() => insertSegmentAfter(segment.segmentId)}
+                      title="Insert segment below"
+                    >
+                      <Icon icon={Add01Icon} />
+                      <span className="sr-only">Insert segment below</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="shrink-0 text-muted-foreground"
+                      onClick={() => deleteSegment(segment.segmentId)}
+                      title="Delete segment"
+                    >
+                      <Icon icon={Delete02Icon} />
+                      <span className="sr-only">Delete segment</span>
+                    </Button>
+                  </li>
+                );
+              })}
+            </ol>
+            <div className="flex justify-center pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addSegment}
+              >
+                <Icon icon={Add01Icon} />
+                Add segment
+              </Button>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Lower pane: the editable transcript itself. Fills whatever height the
-          top strip leaves, so the window never scrolls on this page. */}
-      <Card className="flex min-h-0 flex-1 flex-col max-h-[min(70vh,36rem)] lg:max-h-none">
-        <CardHeader className="shrink-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <Icon icon={ClosedCaptionIcon} className="text-muted-foreground" />
-            <CardTitle>Transcript</CardTitle>
-            <span className="h-4 w-px bg-border" aria-hidden="true" />
-            <span className="text-sm text-muted-foreground">
-              {segments.length} {segments.length === 1 ? "segment" : "segments"}
-              {" · "}
-              {transcript.language}
-            </span>
-          </div>
-        </CardHeader>
-        <CardContent className="scroll-fade-y min-h-0 flex-1 overflow-y-auto overscroll-y-contain py-3">
-          <ol className="space-y-0.5">
-            {segments.map((segment) => {
-              const matches =
-                needle.length > 0 &&
-                segment.text.toLowerCase().includes(needle.toLowerCase());
-              return (
-                <li
-                  key={segment.segmentId}
-                  className={`relative flex items-start gap-1.5 rounded-lg px-1.5 py-1 transition-colors ${
-                    matches
-                      ? "bg-signal/5 ring-1 ring-signal/30"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="shrink-0 text-muted-foreground"
-                    onClick={() => seekTo(segment.startMs)}
-                    title="Seek to this segment"
-                  >
-                    <Icon icon={PlayIcon} />
-                    <span className="sr-only">Seek to this segment</span>
-                  </Button>
-                  <TimestampInput
-                    key={`${segment.segmentId}-${segment.startMs}`}
-                    valueMs={segment.startMs}
-                    maxMs={maxDurationMs}
-                    onCommit={(startMs) =>
-                      updateSegment(segment.segmentId, {
-                        startMs,
-                        endMs: clampEnd(segment.endMs, startMs, maxDurationMs),
-                      })
-                    }
-                  />
-                  {detectedSpeakers.length > 0 ? (
-                    <Select
-                      value={
-                        segment.speaker != null
-                          ? String(segment.speaker)
-                          : "none"
-                      }
-                      onValueChange={(value) =>
-                        updateSegment(segment.segmentId, {
-                          speaker:
-                            value === "none" || value == null
-                              ? null
-                              : Number(value),
-                        })
-                      }
-                    >
-                      <SelectTrigger size="sm" className="w-14 shrink-0">
-                        <SelectValue>
-                          {(value) => (value === "none" ? "—" : `S${value}`)}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="min-w-0">
-                        <SelectItem value="none">—</SelectItem>
-                        {detectedSpeakers.map((speaker) => (
-                          <SelectItem key={speaker} value={String(speaker)}>
-                            S{speaker}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : null}
-                  <Textarea
-                    value={segment.text}
-                    onChange={(event) =>
-                      updateSegment(segment.segmentId, {
-                        text: event.target.value,
-                      })
-                    }
-                    rows={1}
-                    className="min-h-8 resize-none py-1 text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="shrink-0 text-muted-foreground"
-                    onClick={() => insertSegmentAfter(segment.segmentId)}
-                    title="Insert segment below"
-                  >
-                    <Icon icon={Add01Icon} />
-                    <span className="sr-only">Insert segment below</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="shrink-0 text-muted-foreground"
-                    onClick={() => deleteSegment(segment.segmentId)}
-                    title="Delete segment"
-                  >
-                    <Icon icon={Delete02Icon} />
-                    <span className="sr-only">Delete segment</span>
-                  </Button>
-                </li>
-              );
-            })}
-          </ol>
-          <div className="flex justify-center pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addSegment}
-            >
-              <Icon icon={Add01Icon} />
-              Add segment
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
