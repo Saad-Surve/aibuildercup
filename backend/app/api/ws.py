@@ -226,6 +226,13 @@ async def ws_endpoint(socket: WebSocket) -> None:
     if owner_uid is None:
         return  # rejected: accepted, then closed with 4401
 
+    # Accept immediately. Without this the handshake stays unaccepted until the
+    # first send (Starlette auto-accepts on send), which only happens on the
+    # reader's first frame or the writer's 30s ping — Cloud Run's front end gives
+    # up and returns 403 well before that, so the client saw a socket that never
+    # opened. `_authenticate` already accepts on the failure path.
+    await socket.accept()
+
     queue: asyncio.Queue[dict] = asyncio.Queue(maxsize=256)
     client = get_firestore_client()
     jobs = JobService(client)

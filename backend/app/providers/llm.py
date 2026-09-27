@@ -22,6 +22,9 @@ TRANSIENT_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 class LlmProvider:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        # Built once and reused: constructing a client is not free, and the
+        # worker calls this per reviewer.
+        self._cached_client: Any | None = None
 
     async def complete_json(
         self,
@@ -36,23 +39,25 @@ class LlmProvider:
         return await self._real(model=model, system=system, user=user, schema=schema)
 
     def _client(self) -> Any:
-        """Build the Agent Platform client.
+        """Build (once) the Agent Platform client.
 
-        A lazy import keeps `google.genai` out of the module import path (and out of tests that
-        never touch the network). No API key: ADC supplies credentials.
+        A lazy import keeps `google.genai` out of the module import path. No API
+        key: ADC supplies credentials.
         """
-        from google import genai
+        if self._cached_client is None:
+            from google import genai
 
-        logger.info(
-            "LLM via Agent Platform project=%s location=%s",
-            self.settings.project_id,
-            self.settings.vertex_location,
-        )
-        return genai.Client(
-            vertexai=True,
-            project=self.settings.project_id,
-            location=self.settings.vertex_location,
-        )
+            logger.info(
+                "LLM via Agent Platform project=%s location=%s",
+                self.settings.project_id,
+                self.settings.vertex_location,
+            )
+            self._cached_client = genai.Client(
+                vertexai=True,
+                project=self.settings.project_id,
+                location=self.settings.vertex_location,
+            )
+        return self._cached_client
 
     async def _real(
         self,
@@ -71,7 +76,12 @@ class LlmProvider:
         result = None
         for attempt in range(1, attempts + 1):
             try:
-                result = client.models.generate_content(
+                # `generate_content` is synchronous and takes seconds. Calling it
+                # directly inside this coroutine blocks the event loop, which
+                # starves the realtime websocket and every other request on the
+                # instance (this is a single-instance service). Off-loop it goes.
+                result = await asyncio.to_thread(
+                    client.models.generate_content,
                     model=model,
                     contents=user,
                     config={
