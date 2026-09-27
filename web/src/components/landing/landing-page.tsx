@@ -30,8 +30,7 @@ import { Button } from "@/components/ui/button";
  * static peripheral backdrop; below it sit a capability strip, a platforms
  * flow section (derivatives → studio → brand destinations, original SVGs),
  * an asymmetric feature bento with hands-on mini demos, a dotted three-step
- * workflow, an ink CTA panel carrying a review-timeline ribbon, and a footer
- * with a force-fit SVG wordmark.
+ * workflow, a gradient CTA panel, and a footer with a force-fit SVG wordmark.
  *
  * Nothing moves on its own except the orchestrated flow packets and typing
  * dots, both gated behind prefers-reduced-motion. Everything else is
@@ -85,25 +84,6 @@ const DERIVS = [
   { title: "Short clip", meta: "0:32 · 9:16", color: "#f43f5e" },
   { title: "Captions", meta: "EN → HI", color: "#6366f1" },
   { title: "Blog draft", meta: "Ready to publish", color: "#f59e0b" },
-];
-
-/*
- * The CTA's review timeline. Severity segments with a single no-data gap —
- * the review is exception-first, so gaps are honest. Colour is data here;
- * this is the only place the heatmap scale appears outside a demo.
- */
-const CTA_RIBBON = [
-  { grow: 4, tone: "bg-heat-green" },
-  { grow: 2, tone: "bg-heat-green" },
-  { grow: 2, tone: "bg-heat-yellow" },
-  { grow: 5, tone: "bg-heat-green" },
-  { grow: 1, tone: "bg-heat-red" },
-  { grow: 3, tone: "bg-heat-orange" },
-  { grow: 4, tone: "bg-heat-green" },
-  { grow: 2, tone: "bg-heat-yellow" },
-  { grow: 3, tone: "bg-transparent" },
-  { grow: 6, tone: "bg-heat-green" },
-  { grow: 2, tone: "bg-heat-yellow" },
 ];
 
 /* ——— flow orchestration: one master rAF timeline ———
@@ -1327,12 +1307,16 @@ export function LandingPage() {
       {/* ——— CTA ——— */}
       <section className="border-t border-border/60">
         <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
-          <div className="relative overflow-hidden rounded-2xl bg-foreground text-background">
-            <div className="relative mx-auto flex max-w-xl flex-col items-center px-6 pt-16 pb-24 text-center sm:px-12">
-              <h2 className="font-serif text-3xl leading-tight font-medium tracking-tight text-balance text-background sm:text-5xl">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-700 via-violet-700 to-amber-600 px-6 py-16 text-center sm:px-12">
+            <div
+              aria-hidden="true"
+              className="absolute -top-24 left-1/2 h-64 w-[36rem] -translate-x-1/2 rounded-full bg-white/15 blur-3xl"
+            />
+            <div className="relative mx-auto flex max-w-xl flex-col items-center">
+              <h2 className="font-serif text-3xl leading-tight font-medium tracking-tight text-balance text-white sm:text-5xl">
                 Your next video deserves a studio
               </h2>
-              <p className="mt-4 max-w-md text-pretty text-sm text-background/70 sm:text-base">
+              <p className="mt-4 max-w-md text-pretty text-sm text-white/80 sm:text-base">
                 Join Resonance and turn one upload into transcripts, reviews,
                 clips, posts, and dubbing.
               </p>
@@ -1340,33 +1324,15 @@ export function LandingPage() {
                 <button
                   type="button"
                   onClick={signInWithGoogle}
-                  className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-background px-7 text-sm font-semibold whitespace-nowrap text-foreground transition-all duration-200 hover:-translate-y-px active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background/70 focus-visible:ring-offset-2 focus-visible:ring-offset-foreground"
+                  className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-white px-7 text-sm font-semibold whitespace-nowrap text-zinc-900 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.5)] transition-all duration-200 hover:-translate-y-px hover:shadow-[0_20px_48px_-16px_rgba(0,0,0,0.55)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
                 >
                   Start creating
                   <Icon icon={ArrowRight01Icon} className="size-4" />
                 </button>
               </div>
-              <p className="mt-5 text-xs text-background/55">
+              <p className="mt-5 text-xs text-white/70">
                 Free to start · Continue with Google · Your footage stays yours
               </p>
-            </div>
-
-            {/* The flagship reduced to geometry: a review timeline across the
-                panel's base. Severity segments, one honest no-data gap, and a
-                playhead — the same read as the heatmap in the app. */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-x-0 bottom-0 flex h-10 items-stretch gap-[3px] opacity-90"
-            >
-              {CTA_RIBBON.map((segment, index) => (
-                <span
-                  key={index}
-                  style={{ flexGrow: segment.grow }}
-                  className={segment.tone}
-                />
-              ))}
-              <span className="pointer-events-none absolute inset-y-0 left-[61%] w-px bg-background/60" />
-              <span className="pointer-events-none absolute top-0 left-[61%] -ml-[3px] size-[6px] rounded-full bg-background" />
             </div>
           </div>
         </div>
