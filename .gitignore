@@ -7,3 +7,9 @@ fixtures/media
 
 # Background dev server logs
 .logs/
+
+# Local reference sketches (untracked by request)
+image.png
+
+# Editor scratch (Competitive Programming Helper)
+.cph/

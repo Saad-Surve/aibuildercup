@@ -8,6 +8,7 @@ import type {
   Project,
   ProjectList,
   Transcript,
+  TranscriptSegment,
   TranscriptVersion,
   UploadSession,
 } from "@/lib/types";
@@ -132,6 +133,21 @@ export function retranscribeTranscript(
     `/projects/${projectId}/transcript/retranscribe`,
     { method: "POST" },
   );
+}
+
+/**
+ * Persist edited transcript segments. The API saves them as a new active
+ * version and returns it, so history (including the machine transcript) stays
+ * recoverable through the version picker.
+ */
+export function updateTranscript(
+  projectId: string,
+  input: { language?: string | null; segments: TranscriptSegment[] },
+): Promise<Transcript> {
+  return apiFetch<Transcript>(`/projects/${projectId}/transcript`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
 }
 
 export function formatTimestamp(ms: number): string {

@@ -353,6 +353,24 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Transcript" }
+    put:
+      summary: Save edited transcript segments as a new active version
+      description: |
+        Backs the transcript editor's Save action. Persists the submitted segments as a new
+        saved version and makes it the active transcript. Runs no speech-to-text, so it is
+        cheap and synchronous. Empty segments are dropped and timings are clamped.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TranscriptUpdate" }
+      responses:
+        "200":
+          description: The new active transcript
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Transcript" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
   /api/projects/{projectId}/transcript/versions:
     parameters:
@@ -892,6 +910,26 @@ components:
             cleanup (for example {"0": "Host", "1": "Guest"}). Empty when the voices
             could not be named.
           additionalProperties: { type: string }
+
+    TranscriptSegmentUpdate:
+      type: object
+      required: [segmentId, index, startMs, endMs, text]
+      properties:
+        segmentId: { type: string }
+        index: { type: integer }
+        startMs: { type: integer }
+        endMs: { type: integer }
+        text: { type: string }
+        speaker: { type: [integer, "null"] }
+
+    TranscriptUpdate:
+      type: object
+      required: [segments]
+      properties:
+        language: { type: [string, "null"] }
+        segments:
+          type: array
+          items: { $ref: "#/components/schemas/TranscriptSegmentUpdate" }
 
     TranscriptVersion:
       type: object

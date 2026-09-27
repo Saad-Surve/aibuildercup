@@ -15,6 +15,7 @@ from app.schemas.jobs import JobStatus
 from app.schemas.transcripts import (
     Transcript,
     TranscriptSegment,
+    TranscriptUpdate,
     TranscriptVersionList,
 )
 from app.services.asset_service import AssetService
@@ -79,6 +80,26 @@ async def retranscribe_transcript(
             job_id=job.jobId,
         )
     return AcceptedJob(jobId=job.jobId, status=job.status.value)
+
+
+@router.put("/projects/{projectId}/transcript", response_model=Transcript)
+async def update_transcript(
+    projectId: str,
+    payload: TranscriptUpdate,
+    user: UserDep,
+    service: ServiceDep,
+) -> Transcript:
+    """Save edited segments as a new active transcript version.
+
+    Backs the transcript editor's Save action. Runs no STT: it persists what the
+    user typed, reusing the active transcript's language and source asset.
+    """
+    return service.update(
+        owner_uid=user.uid,
+        project_id=projectId,
+        language=payload.language,
+        segments=[segment.model_dump() for segment in payload.segments],
+    )
 
 
 @router.get(

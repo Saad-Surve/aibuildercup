@@ -56,9 +56,7 @@ def normalize_words(response: dict[str, Any]) -> list[dict[str, Any]]:
             speaker = int(speaker) if speaker is not None else None
         except (TypeError, ValueError):
             speaker = None
-        words.append(
-            {"word": text, "startMs": start_ms, "endMs": end_ms, "speaker": speaker}
-        )
+        words.append({"word": text, "startMs": start_ms, "endMs": end_ms, "speaker": speaker})
     words.sort(key=lambda w: (w["startMs"], w["endMs"]))
     return words
 
@@ -235,18 +233,14 @@ class TranscriptService:
         self.client = client
         self.storage = storage
 
-    def get(
-        self, *, owner_uid: str, project_id: str, version: int | None = None
-    ) -> Transcript:
+    def get(self, *, owner_uid: str, project_id: str, version: int | None = None) -> Transcript:
         project = self.client.get_document(project_path(owner_uid, project_id))
         if project is None or not is_owner(project, owner_uid):
             raise NotFoundError("Project not found", details={"projectId": project_id})
         if version is None:
             transcript_id = project.get("activeTranscriptId")
             if not transcript_id:
-                raise NotFoundError(
-                    "Transcript not ready", details={"projectId": project_id}
-                )
+                raise NotFoundError("Transcript not ready", details={"projectId": project_id})
         else:
             rows = self.client.query_collection(
                 transcripts_collection_path(owner_uid, project_id),
@@ -255,9 +249,7 @@ class TranscriptService:
                 limit=1,
                 offset=0,
             )
-            match = next(
-                (tid, data) for tid, data in rows if is_owner(data, owner_uid)
-            )
+            match = next((tid, data) for tid, data in rows if is_owner(data, owner_uid))
             if match is None:
                 raise NotFoundError(
                     "Transcript version not found",
@@ -268,9 +260,7 @@ class TranscriptService:
             owner_uid=owner_uid, project_id=project_id, transcript_id=transcript_id
         )
 
-    def list_versions(
-        self, *, owner_uid: str, project_id: str
-    ) -> list[TranscriptVersion]:
+    def list_versions(self, *, owner_uid: str, project_id: str) -> list[TranscriptVersion]:
         """Every saved transcript generation, oldest first."""
         project = self.client.get_document(project_path(owner_uid, project_id))
         if project is None or not is_owner(project, owner_uid):
@@ -295,9 +285,7 @@ class TranscriptService:
             if is_owner(data, owner_uid)
         ]
 
-    def get_by_id(
-        self, *, owner_uid: str, project_id: str, transcript_id: str
-    ) -> Transcript:
+    def get_by_id(self, *, owner_uid: str, project_id: str, transcript_id: str) -> Transcript:
         """Load a specific transcript, whatever the project's active one is now."""
         data = self.client.get_document(transcript_path(owner_uid, project_id, transcript_id))
         if data is None or not is_owner(data, owner_uid):
@@ -313,9 +301,7 @@ class TranscriptService:
         segments = [{"segmentId": seg_id, **doc} for seg_id, doc in rows]
         return _to_transcript(transcript_id, data, segments)
 
-    def get_segment(
-        self, *, owner_uid: str, project_id: str, segment_id: str
-    ) -> TranscriptSegment:
+    def get_segment(self, *, owner_uid: str, project_id: str, segment_id: str) -> TranscriptSegment:
         project = self.client.get_document(project_path(owner_uid, project_id))
         if project is None or not is_owner(project, owner_uid):
             raise NotFoundError("Project not found", details={"projectId": project_id})
@@ -358,12 +344,97 @@ class TranscriptService:
         project = self.client.get_document(project_path(owner_uid, project_id))
         if project is None or not is_owner(project, owner_uid):
             raise NotFoundError("Project not found", details={"projectId": project_id})
-
         if segments is None:
             segments = build_segments(words)
         if duration_ms is None or duration_ms <= 0:
             duration_ms = max((w["endMs"] for w in words), default=0)
-        version = int(project.get("transcriptVersionCounter", 0) or 0) + 1
+        return self._persist_segments(
+            owner_uid=owner_uid,
+            project_id=project_id,
+            source_asset_id=source_asset_id,
+            language=language,
+            segments=segments,
+            version=int(project.get("transcriptVersionCounter", 0) or 0) + 1,
+            speaker_labels=speaker_labels,
+            duration_ms=duration_ms,
+        )
+
+    def update(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        segments: list[dict[str, Any]],
+        language: str | None = None,
+    ) -> Transcript:
+        """Save edited segments as a new active transcript version.
+
+        Editing never mutates history: a new version is written and made active,
+        so the version picker can always fall back to the machine transcript.
+        """
+        project = self.client.get_document(project_path(owner_uid, project_id))
+        if project is None or not is_owner(project, owner_uid):
+            raise NotFoundError("Project not found", details={"projectId": project_id})
+        active_id = project.get("activeTranscriptId")
+        if not active_id:
+            raise NotFoundError("Transcript not ready", details={"projectId": project_id})
+        current = self.client.get_document(transcript_path(owner_uid, project_id, active_id))
+        if current is None or not is_owner(current, owner_uid):
+            raise NotFoundError("Transcript not found", details={"projectId": project_id})
+        transcript_id = self._persist_segments(
+            owner_uid=owner_uid,
+            project_id=project_id,
+            source_asset_id=str(current.get("sourceAssetId", "")),
+            language=language or str(current.get("language", "en")),
+            segments=self._normalise_edited_segments(segments),
+            version=int(project.get("transcriptVersionCounter", 0) or 0) + 1,
+        )
+        return self.get_by_id(
+            owner_uid=owner_uid, project_id=project_id, transcript_id=transcript_id
+        )
+
+    @staticmethod
+    def _normalise_edited_segments(
+        segments: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Clamp timings, reindex, and drop empty rows from editor input."""
+        normalised: list[dict[str, Any]] = []
+        for segment in segments:
+            text = str(segment.get("text", "")).strip()
+            if not text:
+                continue
+            start_ms = max(0, int(segment.get("startMs", 0) or 0))
+            end_ms = max(start_ms, int(segment.get("endMs", start_ms) or start_ms))
+            speaker = segment.get("speaker")
+            normalised.append(
+                {
+                    "segmentId": str(segment.get("segmentId") or f"seg-{len(normalised) + 1}"),
+                    "index": len(normalised),
+                    "startMs": start_ms,
+                    "endMs": end_ms,
+                    "text": text,
+                    "speaker": int(speaker) if speaker is not None else None,
+                }
+            )
+        return normalised
+
+    def _persist_segments(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        source_asset_id: str,
+        language: str,
+        segments: list[dict[str, Any]],
+        version: int,
+        speaker_labels: dict[str, str] | None = None,
+        duration_ms: int | None = None,
+    ) -> str:
+        # The caller's real media duration wins when known; otherwise fall back to the
+        # last segment so the transcript never outruns the video.
+        duration_ms = int(duration_ms or 0) or max(
+            (int(s["endMs"]) for s in segments), default=0
+        )
         transcript_id = uuid4().hex
         now = datetime.now(UTC)
         speaker_labels = speaker_labels or {}
@@ -392,9 +463,7 @@ class TranscriptService:
             storage_path, json.dumps(canonical, indent=2), content_type="application/json"
         )
         self.storage.upload_text(vtt_path, build_vtt(segments), content_type="text/vtt")
-        self.storage.upload_text(
-            srt_path, build_srt(segments), content_type="application/x-subrip"
-        )
+        self.storage.upload_text(srt_path, build_srt(segments), content_type="application/x-subrip")
 
         self.client.set_document(
             transcript_path(owner_uid, project_id, transcript_id),
@@ -409,7 +478,7 @@ class TranscriptService:
                 "vttStoragePath": vtt_path,
                 "srtStoragePath": srt_path,
                 "durationMs": duration_ms,
-                "wordCount": len(words),
+                "wordCount": sum(len(str(s["text"]).split()) for s in segments),
                 "segmentCount": len(segments),
                 "speakerCount": _speaker_count(segments),
                 "speakerLabels": speaker_labels,

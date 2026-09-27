@@ -6,9 +6,11 @@ import {
   ClosedCaptionIcon,
   FileExportIcon,
   Loading03Icon,
+  PencilEdit02Icon,
   SparklesIcon,
 } from "@hugeicons/core-free-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
@@ -72,6 +74,7 @@ export function TranscriptPanel({
   failureMessage?: string | null;
 }) {
   const [version, setVersion] = useState<number | null>(null);
+  const router = useRouter();
   // `processing` gates the missing-transcript messaging; polling only happens
   // when push is unavailable (`live` false). See the hook for the full rules.
   const transcriptQuery = useProjectTranscript(projectId, {
@@ -186,6 +189,30 @@ export function TranscriptPanel({
               </Select>
             )}
             <div className="ml-auto flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => rerun.mutate()}
+                disabled={rerun.isPending || processing}
+                title={
+                  processing ? "Transcription is already running" : undefined
+                }
+              >
+                <Icon icon={SparklesIcon} />
+                {rerun.isPending ? "Starting…" : "Re-run"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  router.push(`/projects/transcript?projectId=${projectId}`)
+                }
+              >
+                <Icon icon={PencilEdit02Icon} />
+                Edit
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={<Button type="button" size="sm" variant="outline" />}
@@ -208,23 +235,10 @@ export function TranscriptPanel({
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => rerun.mutate()}
-                disabled={rerun.isPending || processing}
-                title={
-                  processing ? "Transcription is already running" : undefined
-                }
-              >
-                <Icon icon={SparklesIcon} />
-                {rerun.isPending ? "Starting…" : "Run transcript again"}
-              </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="scroll-fade-y min-h-0 flex-1 overflow-y-auto py-2 pr-1">
+        <CardContent className="scroll-fade-y min-h-0 flex-1 overflow-y-auto overscroll-y-contain py-2 pr-1">
           <ol className="space-y-1">
             {transcript.segments.map((segment) => (
               <li key={segment.segmentId}>
