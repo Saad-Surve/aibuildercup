@@ -429,7 +429,7 @@ Show tool activity such as Finding transcript evidence or Creating clip candidat
 5. Build onboarding and persona preview.
 6. Build project list and project creation.
 7. Build direct video upload.
-8. Build processing status and SSE updates.
+8. Build processing status and realtime WebSocket updates.
 9. Build video player and transcript view.
 10. Build heatmap tracks and findings drawer.
 11. Add artifact gallery.

@@ -20,6 +20,11 @@ from app.agents.analysis_coordinator import DimensionOutcome
 from app.agents.reviewer_base import MODEL_CONFIG_VERSION, REVIEWER_PROMPT_VERSION
 from app.config import Settings
 from app.errors import ConflictError, NotFoundError
+from app.realtime.events import (
+    emit_analysis_progress,
+    emit_analysis_ready,
+    has_subscribers,
+)
 from app.schemas.analysis import (
     AnalysisDimension,
     AnalysisRequest,
@@ -458,6 +463,9 @@ class AnalysisService:
             analysis_run_id,
             {"status": AnalysisRunStatus.running.value, "chunkCount": chunk_count},
         )
+        self._emit_reviewer_progress(
+            owner_uid, project_id, analysis_run_id, status=AnalysisRunStatus.running
+        )
 
     def save_reviewer_outcome(
         self,
@@ -498,6 +506,9 @@ class AnalysisService:
             },
         )
         stored = self.client.get_document(path) or {}
+        self._emit_reviewer_progress(
+            owner_uid, project_id, analysis_run_id, status=AnalysisRunStatus.running
+        )
         return _to_reviewer_run(outcome.reviewer_run_id, stored)
 
     def save_findings(
@@ -591,6 +602,14 @@ class AnalysisService:
                 "error": error,
             },
         )
+        emit_analysis_ready(
+            owner_uid,
+            project_id,
+            analysis_run_id=analysis_run_id,
+            status=status,
+            overall_score=summary.overall_score,
+            finding_counts=summary.counts,
+        )
         return self.get_run(
             owner_uid=owner_uid,
             project_id=project_id,
@@ -598,6 +617,53 @@ class AnalysisService:
         )
 
     # ------------------------------------------------------------- internals
+
+    def _emit_reviewer_progress(
+        self,
+        owner_uid: str,
+        project_id: str,
+        analysis_run_id: str,
+        *,
+        status: AnalysisRunStatus,
+    ) -> None:
+        """Push an `analysis.progress` frame with per-reviewer status.
+
+        Only reads the reviewer subcollection when a socket is actually watching;
+        without subscribers this is a no-op so worker writes stay cheap.
+        """
+        if not has_subscribers(owner_uid, project_id):
+            return
+        try:
+            reviewers = self.get_reviewers(
+                owner_uid=owner_uid,
+                project_id=project_id,
+                analysis_run_id=analysis_run_id,
+            )
+        except Exception:  # noqa: BLE001 — progress reporting must not fail the write
+            logger.exception("analysis %s: could not build reviewer status", analysis_run_id)
+            return
+        completed = [
+            r.dimension.value
+            for r in reviewers
+            if r.status == ReviewerRunStatus.succeeded
+        ]
+        statuses = [
+            {
+                "dimension": r.dimension.value,
+                "status": r.status.value,
+                "findingCount": r.findingCount,
+                "error": (r.error or {}).get("message") if r.error else None,
+            }
+            for r in reviewers
+        ]
+        emit_analysis_progress(
+            owner_uid,
+            project_id,
+            analysis_run_id=analysis_run_id,
+            status=status,
+            completed_dimensions=completed,
+            reviewer_statuses=statuses,
+        )
 
     def _persona_version(self, owner_uid: str) -> int | None:
         """Which persona revision this analysis is based on, when there is one."""

@@ -13,12 +13,7 @@ import { Icon } from "@/components/common/icon";
 import { FindingsPanel } from "@/components/projects/findings-panel";
 import { HeatmapTracks } from "@/components/projects/heatmap-tracks";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -59,12 +54,15 @@ export function ReviewPanel({
   projectId,
   platform,
   onSeek,
-  transcriptShouldPoll,
+  live = false,
+  transcriptShouldPoll = false,
 }: {
   projectId: string;
   platform: string;
   onSeek: (startMs: number) => void;
-  /** Whether the shared transcript query should keep polling. Defaults to true. */
+  /** Whether the realtime socket is connected; intervals are the fallback only. */
+  live?: boolean;
+  /** Whether the shared transcript query should fall back to polling. */
   transcriptShouldPoll?: boolean;
 }) {
   const queryClient = useQueryClient();
@@ -85,17 +83,14 @@ export function ReviewPanel({
     queryKey: ["analysis-runs", projectId],
     queryFn: () => listAnalysisRuns(projectId),
     retry: false,
-    // Keep the list fresh while a run is in flight: its status drives the Run
-    // button and the reviewer counter, and a stale list used to leave the panel
-    // stuck on "Reviewing" until a manual reload.
+    // Realtime `analysis.*` events invalidate this list. The interval below is
+    // the degraded fallback: only while a run is in flight AND the socket is
+    // down, so a finished review can never leave the panel stuck on "Reviewing".
     refetchInterval: (query) =>
-      (query.state.data?.items ?? []).some(isInFlight) ? 4000 : false,
+      !live && (query.state.data?.items ?? []).some(isInFlight) ? 8000 : false,
     refetchIntervalInBackground: true,
   });
-  const runs = useMemo(
-    () => runsQuery.data?.items ?? [],
-    [runsQuery.data],
-  );
+  const runs = useMemo(() => runsQuery.data?.items ?? [], [runsQuery.data]);
   const activeRun: AnalysisRun | null =
     runs.find((run) => run.analysisRunId === selectedRunId) ?? runs[0] ?? null;
   const activeRunId = activeRun?.analysisRunId ?? null;
@@ -104,13 +99,14 @@ export function ReviewPanel({
     queryKey: ["analysis-run", projectId, activeRunId],
     queryFn: () => getAnalysisRun(projectId, activeRunId as string),
     enabled: Boolean(activeRunId),
-    refetchInterval: (query) => (isInFlight(query.state.data) ? 2000 : false),
+    refetchInterval: (query) =>
+      !live && isInFlight(query.state.data) ? 5000 : false,
     refetchIntervalInBackground: true,
   });
 
-  // The freshest view of the run: the polled single run once it exists, the list
-  // row before that. Every polling decision reads from here, never from the list,
-  // so the intervals cannot disagree with the status the header shows.
+  // The freshest view of the run: the realtime-patched single run once it
+  // exists, the list row before that. Every decision reads from here, never
+  // from the list, so the two cannot disagree about the shown status.
   const run = runQuery.data ?? activeRun;
   const runStatus = run?.status ?? null;
   const isRunning = isInFlight(run);
@@ -119,7 +115,7 @@ export function ReviewPanel({
     queryKey: ["analysis-reviewers", projectId, activeRunId],
     queryFn: () => listReviewers(projectId, activeRunId as string),
     enabled: Boolean(activeRunId),
-    refetchInterval: isRunning ? 2000 : false,
+    refetchInterval: !live && isRunning ? 5000 : false,
     refetchIntervalInBackground: true,
   });
 
@@ -127,7 +123,7 @@ export function ReviewPanel({
     queryKey: ["analysis-heatmap", projectId, activeRunId],
     queryFn: () => getHeatmap(projectId, activeRunId as string),
     enabled: Boolean(activeRunId),
-    refetchInterval: isRunning ? 3000 : false,
+    refetchInterval: !live && isRunning ? 8000 : false,
     refetchIntervalInBackground: true,
   });
 
@@ -135,7 +131,7 @@ export function ReviewPanel({
     queryKey: ["analysis-findings", projectId, activeRunId],
     queryFn: () => listFindings(projectId, activeRunId as string),
     enabled: Boolean(activeRunId),
-    refetchInterval: isRunning ? 3000 : false,
+    refetchInterval: !live && isRunning ? 8000 : false,
     refetchIntervalInBackground: true,
   });
 
@@ -187,10 +183,9 @@ export function ReviewPanel({
   // so switching runs drops the selection without any effect or state cleanup.
   const selectedBin = bins.find((bin) => bin.binId === selectedBinId) ?? null;
 
-  const laneDimensions: AnalysisDimension[] =
-    run?.requestedDimensions?.length
-      ? run.requestedDimensions
-      : CORE_DIMENSIONS;
+  const laneDimensions: AnalysisDimension[] = run?.requestedDimensions?.length
+    ? run.requestedDimensions
+    : CORE_DIMENSIONS;
 
   const scores = run?.scoreByDimension ?? {};
   const findingCounts = run?.findingCounts ?? {};
@@ -248,7 +243,10 @@ export function ReviewPanel({
                   </SelectTrigger>
                   <SelectContent>
                     {runs.map((item, index) => (
-                      <SelectItem key={item.analysisRunId} value={item.analysisRunId}>
+                      <SelectItem
+                        key={item.analysisRunId}
+                        value={item.analysisRunId}
+                      >
                         v{runs.length - index}
                       </SelectItem>
                     ))}
@@ -297,9 +295,7 @@ export function ReviewPanel({
             <span>
               Reviewers{" "}
               <span className="text-foreground">
-                {
-                  reviewers.filter((item) => item.status === "succeeded").length
-                }
+                {reviewers.filter((item) => item.status === "succeeded").length}
                 /{reviewers.length || laneDimensions.length}
               </span>
             </span>
@@ -334,7 +330,9 @@ export function ReviewPanel({
                   <span
                     className={cn(
                       "size-1.5 rounded-full",
-                      active ? "bg-signal-foreground" : SEVERITY_DOT_CLASS[severity],
+                      active
+                        ? "bg-signal-foreground"
+                        : SEVERITY_DOT_CLASS[severity],
                     )}
                   />
                   {SEVERITY_LABELS[severity]}

@@ -32,9 +32,9 @@ import {
   getJob,
   getProject,
   listAssets,
-  subscribeToProjectEvents,
 } from "@/lib/projects";
-import type { Asset, Job, Project } from "@/lib/types";
+import { useProjectEvents } from "@/hooks/use-project-events";
+import type { Asset, Job } from "@/lib/types";
 import {
   WORKSPACE_PANE_CARD,
   WORKSPACE_PANE_STACK_SPACER,
@@ -45,14 +45,20 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [durationMs, setDurationMs] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
+  // One realtime socket drives the whole workspace: project status, job
+  // progress, transcript arrival, and analysis reviewers. `connected` gates the
+  // slow polling fallback used only if the socket cannot be established.
+  const { connected } = useProjectEvents(projectId, { onJobId: setJobId });
+
   const projectQuery = useQuery({
     queryKey: ["project", projectId],
     queryFn: () => getProject(projectId),
-    // Keep the status fresh while the pipeline runs so the workspace flips to
-    // ready even after a reload (when no job id is in memory to poll).
+    // Realtime patches the cache; this interval is the degraded fallback, only
+    // while the pipeline runs and the socket is down.
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return status === "processing" || status === "uploading" ? 3000 : false;
+      const running = status === "processing" || status === "uploading";
+      return running && !connected ? 8000 : false;
     },
     refetchIntervalInBackground: true,
   });
@@ -68,53 +74,16 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     enabled: Boolean(jobId),
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return status === "queued" || status === "running" ? 3000 : false;
+      const running = status === "queued" || status === "running";
+      return running && !connected ? 8000 : false;
     },
     refetchIntervalInBackground: true,
   });
 
-  // When transcription finishes, refresh the project (status flips to ready)
-  // and let the transcript panel pick up the new segments.
-  const jobStatus = jobQuery.data?.status;
-  useEffect(() => {
-    if (jobStatus !== "succeeded") return;
-    void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-    void queryClient.invalidateQueries({ queryKey: ["transcript", projectId] });
-  }, [jobStatus, projectId, queryClient]);
-
-  // The transcript panel's own polling pauses while the tab is unfocused, so when the
-  // project turns "ready" (noticed by the background project poll) fetch the transcript
-  // here. This is what makes the content appear without a reload or refocus.
-  const projectStatus = projectQuery.data?.status;
-  useEffect(() => {
-    if (projectStatus !== "ready") return;
-    void queryClient.invalidateQueries({ queryKey: ["transcript", projectId] });
-  }, [projectStatus, projectId, queryClient]);
-
-  // Live progress via the SSE stream. Event-driven cache updates make the
-  // workspace flip the moment the backend state changes; the polling queries
-  // above stay as a fallback if the stream drops or the user is signed out.
-  useEffect(() => {
-    if (projectStatus !== "processing" && projectStatus !== "uploading") return;
-    return subscribeToProjectEvents(projectId, (event) => {
-      queryClient.setQueryData<Project>(["project", projectId], (old) =>
-        old ? { ...old, status: event.status, progress: event.progress } : old,
-      );
-      if (event.job) {
-        const jobSnapshot = event.job;
-        setJobId((previous) => previous ?? jobSnapshot.jobId);
-        queryClient.setQueryData<Job>(["job", jobSnapshot.jobId], (old) =>
-          old
-            ? {
-                ...old,
-                status: jobSnapshot.status,
-                progress: jobSnapshot.progress,
-              }
-            : old,
-        );
-      }
-    });
-  }, [projectStatus, projectId, queryClient]);
+  // The job/transcript/project invalidations that used to live here are now
+  // emitted by the realtime hook: `transcript.ready`, a transcribe job
+  // succeeding, and the project turning `ready` all invalidate the transcript
+  // query, so it refetches exactly once when the content appears.
 
   // When the API lists no assets but this browser still holds the upload,
   // play the local copy instead of asking for another upload. Hooks stay
@@ -298,9 +267,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                     />
                     <CardTitle>Source video</CardTitle>
                   </div>
-                  <CardDescription>
-                    {effectiveSource.mimeType}
-                  </CardDescription>
+                  <CardDescription>{effectiveSource.mimeType}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex min-h-0 flex-1 flex-col">
                   <div className="flex min-h-0 flex-1 items-center [&>*]:w-full">
@@ -345,6 +312,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
               <TranscriptPanel
                 projectId={projectId}
                 processing={processing}
+                live={connected}
                 failureMessage={
                   project.status === "failed"
                     ? (project.progress?.message ?? null)
@@ -355,7 +323,8 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                 projectId={projectId}
                 platform={project.targetPlatforms[0] ?? "youtube"}
                 onSeek={seekTo}
-                transcriptShouldPoll={processing}
+                live={connected}
+                transcriptShouldPoll={processing && !connected}
               />
               {/*
                * Room below the last pane so it can snap level with the video card;

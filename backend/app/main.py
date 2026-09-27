@@ -17,6 +17,7 @@ from app.api import (
     transcripts,
     uploads,
     users,
+    ws,
 )
 from app.config import get_settings
 from app.errors import AppError, error_body
@@ -124,6 +125,7 @@ def create_app() -> FastAPI:
     app.include_router(projects.router, prefix="/api")
     app.include_router(uploads.router, prefix="/api")
     app.include_router(jobs.router, prefix="/api")
+    app.include_router(ws.router, prefix="/api")
     app.include_router(transcripts.router, prefix="/api")
     app.include_router(analysis.router, prefix="/api")
     app.include_router(internal.router, prefix="/api")

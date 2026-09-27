@@ -45,18 +45,20 @@ import { WORKSPACE_PANE_SNAP } from "@/lib/workspace";
 export function TranscriptPanel({
   projectId,
   processing,
+  live = false,
   failureMessage,
 }: {
   projectId: string;
   processing: boolean;
+  /** Whether the realtime socket is connected; polling is the degraded fallback. */
+  live?: boolean;
   failureMessage?: string | null;
 }) {
   const [version, setVersion] = useState<number | null>(null);
-  // Polled until the transcript exists; see `hooks/use-project-transcript.ts`
-  // for why the rules there are load-bearing. Polling follows `processing` so
-  // a failed project stops asking instead of polling forever.
+  // `processing` gates the missing-transcript messaging; polling only happens
+  // when push is unavailable (`live` false). See the hook for the full rules.
   const transcriptQuery = useProjectTranscript(projectId, {
-    shouldPoll: processing,
+    shouldPoll: processing && !live,
     version,
   });
   const queryClient = useQueryClient();
@@ -77,7 +79,9 @@ export function TranscriptPanel({
       // Follow the new active version once the rerun finishes.
       setVersion(null);
       void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-      void queryClient.invalidateQueries({ queryKey: ["transcript", projectId] });
+      void queryClient.invalidateQueries({
+        queryKey: ["transcript", projectId],
+      });
       void queryClient.invalidateQueries({
         queryKey: ["transcript-versions", projectId],
       });
@@ -123,10 +127,7 @@ export function TranscriptPanel({
       <Card className={WORKSPACE_PANE_SNAP}>
         <CardHeader className="shrink-0">
           <div className="flex flex-wrap items-center gap-2">
-            <Icon
-              icon={ClosedCaptionIcon}
-              className="text-muted-foreground"
-            />
+            <Icon icon={ClosedCaptionIcon} className="text-muted-foreground" />
             <CardTitle>Transcript</CardTitle>
             <span className="h-4 w-px bg-border" aria-hidden="true" />
             <span className="text-sm text-muted-foreground">

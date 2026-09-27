@@ -42,3 +42,77 @@ job.failed
 - Every event carries `ownerUid` and `projectId` when applicable.
 - Failures after max attempts go to the matching dead-letter topic.
 - Never put secrets or raw private media in a payload.
+
+---
+
+# Realtime WebSocket protocol (browser-facing)
+
+Replaces the retired `GET /projects/{id}/events` SSE stream. One WebSocket per browser
+session; the client subscribes per project after connecting. Frame schemas are defined in
+`openapi.yaml` (`WsClientMessage` / `WsServerMessage`), endpoint contract at `/api/ws`.
+
+## Transport and auth
+
+- Endpoint: `{WS_BASE}/api/ws?token=<firebaseIdToken>`. The token is a Firebase ID token,
+  verified server-side exactly like HTTP bearer auth. Browsers cannot set an
+  `Authorization` header on a WebSocket, hence the query parameter. A missing or invalid
+  token closes the socket immediately with code `4401` (no data is sent first); the client
+  reconnects after refreshing the token.
+- In prod the socket targets the Cloud Run service URL directly (Firebase Hosting rewrites
+  do not proxy WebSocket upgrades); in dev it is the API origin. `NEXT_PUBLIC_WS_BASE_URL`
+  configures the base at web build time.
+- Cloud Run applies its request timeout to sockets, so connection lifetime is bounded.
+  Clients must reconnect on close and refresh the token each attempt (it expires hourly).
+
+## Messages
+
+Client → server (JSON, one object per frame):
+
+```json
+{"type": "subscribe.project", "projectId": "project-id"}
+{"type": "ping"}
+```
+
+Server → client:
+
+```json
+{"type": "snapshot.project", "projectId": "...", "status": "processing",
+ "progress": {"stage": "transcription", "percent": 30, "message": "..."},
+ "job": {"jobId": "...", "type": "transcribe", "status": "running",
+         "progress": {"percent": 30, "step": "speech_to_text", "message": "..."}}}
+
+{"type": "project.progress", "projectId": "...", "status": "ready",
+ "progress": {"stage": "transcription", "percent": 100, "message": null}}
+
+{"type": "job.progress", "projectId": "...", "jobId": "...", "jobType": "transcribe",
+ "status": "running", "progress": {"percent": 30, "step": "speech_to_text", "message": "..."},
+ "error": null}
+
+{"type": "transcript.ready", "projectId": "...", "transcriptId": "...",
+ "jobId": "...", "durationMs": 123000, "language": "en"}
+
+{"type": "analysis.progress", "projectId": "...", "analysisRunId": "...",
+ "status": "running", "completedDimensions": ["clarity"],
+ "reviewerStatuses": [{"dimension": "clarity", "status": "succeeded",
+                       "findingCount": 3, "error": null}]}
+
+{"type": "analysis.ready", "projectId": "...", "analysisRunId": "...",
+ "status": "ready", "overallScore": 3.4,
+ "findingCounts": {"none": 0, "low": 2, "medium": 1, "high": 0, "critical": 1}}
+
+{"type": "pong"}
+{"type": "error", "code": "NOT_FOUND", "message": "Project not found"}
+```
+
+## Rules
+
+- The server sends `snapshot.project` immediately after a successful subscribe; the
+  client uses it to prime the progress UI without an extra HTTP fetch.
+- Events are emitted when the backing documents are written, inside the job write path —
+  there is no separate broker to poll. If no socket is subscribed, emission is a no-op.
+- `analysis.progress` events fire per reviewer outcome (not just per job tick), giving
+  reviewer-level liveness the SSE stream never had.
+- Keepalive: either side sends `ping`; the peer answers `pong`. The server pings every
+  ~30s. Server-initiated close → client reconnects with backoff.
+- Malformed or unauthorized frames: the server sends `error` and closes the socket.
+

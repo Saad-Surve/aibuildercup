@@ -11,6 +11,7 @@ from typing import Any
 from uuid import uuid4
 
 from app.errors import ConflictError, NotFoundError
+from app.realtime.events import emit_job
 from app.schemas.jobs import Job, JobProgress, JobStatus, JobType
 from app.services.firestore_service import (
     FirestoreClient,
@@ -153,14 +154,21 @@ class JobService:
                 },
             )
             updated = self.client.get_document(path) or data
+            emit_job(
+                owner_uid,
+                project_id,
+                job_id=found_id,
+                status=JobStatus.cancelled,
+                percent=int((data.get("progress") or {}).get("percent", 0)),
+                step="cancelled",
+                message="Cancelled",
+            )
             return _to_job(found_id, updated)
         raise NotFoundError("Job not found", details={"jobId": job_id})
 
     def mark_running(
         self, *, owner_uid: str, project_id: str, job_id: str, step: str, message: str
     ) -> None:
-        from datetime import UTC, datetime
-
         now = datetime.now(UTC)
         self.client.update_document(
             job_path(owner_uid, project_id, job_id),
@@ -170,6 +178,15 @@ class JobService:
                 "startedAt": now,
                 "updatedAt": now,
             },
+        )
+        emit_job(
+            owner_uid,
+            project_id,
+            job_id=job_id,
+            status=JobStatus.running,
+            percent=5,
+            step=step,
+            message=message,
         )
 
     def update_progress(
@@ -182,18 +199,26 @@ class JobService:
         step: str,
         message: str,
     ) -> None:
-        from datetime import UTC, datetime
-
+        percent = max(0, min(100, percent))
         self.client.update_document(
             job_path(owner_uid, project_id, job_id),
             {
                 "progress": {
                     "currentStep": step,
-                    "percent": max(0, min(100, percent)),
+                    "percent": percent,
                     "message": message,
                 },
                 "updatedAt": datetime.now(UTC),
             },
+        )
+        emit_job(
+            owner_uid,
+            project_id,
+            job_id=job_id,
+            status=JobStatus.running,
+            percent=percent,
+            step=step,
+            message=message,
         )
 
     def mark_succeeded(
@@ -205,8 +230,6 @@ class JobService:
         output: dict[str, Any] | None = None,
         message: str = "Completed",
     ) -> None:
-        from datetime import UTC, datetime
-
         now = datetime.now(UTC)
         self.client.update_document(
             job_path(owner_uid, project_id, job_id),
@@ -222,6 +245,15 @@ class JobService:
                 "updatedAt": now,
             },
         )
+        emit_job(
+            owner_uid,
+            project_id,
+            job_id=job_id,
+            status=JobStatus.succeeded,
+            percent=100,
+            step="done",
+            message=message,
+        )
 
     def mark_failed(
         self,
@@ -232,17 +264,25 @@ class JobService:
         message: str,
         code: str = "TRANSCRIBE_FAILED",
     ) -> None:
-        from datetime import UTC, datetime
-
         now = datetime.now(UTC)
+        error = {"code": code, "message": message}
         self.client.update_document(
             job_path(owner_uid, project_id, job_id),
             {
                 "status": JobStatus.failed.value,
-                "error": {"code": code, "message": message},
+                "error": error,
                 "finishedAt": now,
                 "updatedAt": now,
             },
+        )
+        # No progress write on failure: send status + error and let the client
+        # keep the last known progress rather than regressing to zero.
+        emit_job(
+            owner_uid,
+            project_id,
+            job_id=job_id,
+            status=JobStatus.failed,
+            error=error,
         )
 
     def requeue_failed(
@@ -280,6 +320,15 @@ class JobService:
         if input is not None:
             changes["input"] = input
         self.client.update_document(job_path(owner_uid, project_id, job_id), changes)
+        emit_job(
+            owner_uid,
+            project_id,
+            job_id=job_id,
+            status=JobStatus.queued,
+            percent=0,
+            step="queued",
+            message="Waiting to start",
+        )
         updated = self.client.get_document(job_path(owner_uid, project_id, job_id)) or data
         return _to_job(job_id, updated)
 

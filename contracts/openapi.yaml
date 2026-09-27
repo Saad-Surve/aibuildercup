@@ -299,20 +299,42 @@ paths:
               schema: { $ref: "#/components/schemas/Job" }
         "409": { $ref: "#/components/responses/Conflict" }
 
-  /api/projects/{projectId}/events:
-    parameters:
-      - { $ref: "#/components/parameters/ProjectId" }
+  /api/ws:
     get:
-      summary: Server-Sent Events stream of project/job progress
+      # WebSocket upgrade. Browsers cannot set Authorization headers on a
+      # WebSocket, so the Firebase ID token travels as `?token=`; the server
+      # verifies it exactly like HTTP bearer auth before accepting the socket.
+      # In prod the socket targets the Cloud Run service URL directly (Firebase
+      # Hosting rewrites do not proxy WebSocket upgrades); NEXT_PUBLIC_WS_BASE_URL
+      # carries that base. Cloud Run request timeout bounds connection lifetime —
+      # the client reconnects (and refreshes its token) automatically.
+      summary: WebSocket for project realtime events
       description: |
-        Streams `job.progress` events with the current project status, latest job status, and
-        progress until the project reaches a terminal state. Mirrors the SSE stream in
-        `docs/technical-design/api-design.md` section 7.
+        Replaces the retired SSE stream. One socket per browser session; the client
+        subscribes per project after connecting. Message shapes are in
+        `WsClientMessage` / `WsServerMessage` (also see contracts/events.md,
+        section "Realtime WebSocket protocol").
+      x-websocket-protocol: |
+        1. Connect: GET {WS_BASE}/api/ws?token=<firebaseIdToken>
+           - The upgrade is accepted, then closed with code 4401 if the token is
+             missing/expired. No data is sent on an unauthenticated socket; the
+             client reconnects with a fresh token. (A 401 denial response is not
+             used: Starlette does not mark the handshake complete for it.)
+        2. Client → server: {"type":"subscribe.project","projectId":"..."}
+           - Ownership is verified (404 semantics on mismatch); failure closes with
+             {"type":"error","code":"..."}.
+        3. Server → client: {"type":"snapshot.project", ...ProjectState} — the
+           full current state immediately on subscribe, so the client never
+           needs a separate HTTP fetch to prime progress UI.
+        4. Server → client: typed events (ProjectProgressEvent, JobProgressEvent,
+           TranscriptReadyEvent, AnalysisProgressEvent, ReviewerOutcomeEvent,
+           AnalysisReadyEvent) as the corresponding Firestore writes happen.
+        5. Either side may send {"type":"ping"}; the peer answers {"type":"pong"}.
+        6. Server closes when the project is idle or at the platform timeout;
+           the client reconnects and resubscribes.
       responses:
-        "200":
-          description: text/event-stream
-          content:
-            text/event-stream: {}
+        "101":
+          description: WebSocket upgrade (protocol messages as defined above)
 
   /api/projects/{projectId}/transcript:
     parameters:
@@ -998,6 +1020,162 @@ components:
         severity: { $ref: "#/components/schemas/Severity" }
         color: { type: string, enum: [green, yellow, orange, red] }
         findingIds: { type: array, items: { type: string } }
+
+    # --- Realtime WebSocket frames -------------------------------------------------
+    # The websocket carries snapshots and progress deltas. Payloads reuse the
+    # Project/Job progress sub-objects so the client cache can patch directly.
+
+    WsPing:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [ping] }
+
+    WsSubscribeProject:
+      type: object
+      required: [type, projectId]
+      properties:
+        type: { type: string, enum: [subscribe.project] }
+        projectId: { type: string }
+
+    WsClientMessage:
+      oneOf:
+        - $ref: "#/components/schemas/WsSubscribeProject"
+        - $ref: "#/components/schemas/WsPing"
+
+    ProjectProgress:
+      type: object
+      description: Project.progress sub-object (also embedded in Project).
+      properties:
+        stage: { type: [string, "null"] }
+        percent: { type: integer }
+        message: { type: [string, "null"] }
+
+    JobProgress:
+      type: object
+      description: Job.progress sub-object (also embedded in Job).
+      properties:
+        percent: { type: integer }
+        step: { type: string }
+        message: { type: string }
+
+    WsSnapshotProject:
+      type: object
+      required: [type, projectId, status]
+      properties:
+        type: { type: string, enum: [snapshot.project] }
+        projectId: { type: string }
+        status:
+          type: string
+          enum: [draft, uploading, processing, ready, partial_failure, failed, archived]
+        progress: { $ref: "#/components/schemas/ProjectProgress" }
+        job:
+          type: [object, "null"]
+          properties:
+            jobId: { type: string }
+            type: { type: string }
+            status: { type: string, enum: [queued, running, succeeded, failed, cancelled] }
+            progress: { $ref: "#/components/schemas/JobProgress" }
+
+    WsEventProjectProgress:
+      type: object
+      required: [type, projectId, status]
+      properties:
+        type: { type: string, enum: [project.progress] }
+        projectId: { type: string }
+        status:
+          type: string
+          enum: [draft, uploading, processing, ready, partial_failure, failed, archived]
+        progress: { $ref: "#/components/schemas/ProjectProgress" }
+
+    WsEventJobProgress:
+      type: object
+      required: [type, projectId, jobId]
+      properties:
+        type: { type: string, enum: [job.progress] }
+        projectId: { type: string }
+        jobId: { type: string }
+        jobType: { type: string }
+        status: { type: string, enum: [queued, running, succeeded, failed, cancelled] }
+        progress: { $ref: "#/components/schemas/JobProgress" }
+        error: { type: [object, "null"], additionalProperties: true }
+
+    WsEventTranscriptReady:
+      type: object
+      required: [type, projectId, transcriptId]
+      properties:
+        type: { type: string, enum: [transcript.ready] }
+        projectId: { type: string }
+        transcriptId: { type: string }
+        jobId: { type: [string, "null"] }
+        durationMs: { type: integer }
+        language: { type: string }
+
+    WsEventAnalysisProgress:
+      type: object
+      required: [type, projectId, analysisRunId]
+      properties:
+        type: { type: string, enum: [analysis.progress] }
+        projectId: { type: string }
+        analysisRunId: { type: string }
+        status: { $ref: "#/components/schemas/AnalysisRunStatus" }
+        completedDimensions:
+          type: array
+          items: { $ref: "#/components/schemas/AnalysisDimension" }
+        reviewerStatuses:
+          type: array
+          description: One entry per reviewer, as known at emit time.
+          items:
+            type: object
+            required: [dimension, status]
+            properties:
+              dimension: { $ref: "#/components/schemas/AnalysisDimension" }
+              status: { $ref: "#/components/schemas/ReviewerRunStatus" }
+              findingCount: { type: [integer, "null"] }
+              error: { type: [string, "null"] }
+
+    WsEventAnalysisReady:
+      type: object
+      required: [type, projectId, analysisRunId]
+      properties:
+        type: { type: string, enum: [analysis.ready] }
+        projectId: { type: string }
+        analysisRunId: { type: string }
+        status: { $ref: "#/components/schemas/AnalysisRunStatus" }
+        overallScore: { type: [number, "null"] }
+        findingCounts:
+          type: object
+          properties:
+            none: { type: integer }
+            low: { type: integer }
+            medium: { type: integer }
+            high: { type: integer }
+            critical: { type: integer }
+
+    WsError:
+      type: object
+      required: [type, code, message]
+      properties:
+        type: { type: string, enum: [error] }
+        code: { type: string }
+        message: { type: string }
+
+    WsPong:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [pong] }
+
+    WsServerMessage:
+      oneOf:
+        - { $ref: "#/components/schemas/WsSnapshotProject" }
+        - { $ref: "#/components/schemas/WsEventProjectProgress" }
+        - { $ref: "#/components/schemas/WsEventJobProgress" }
+        - { $ref: "#/components/schemas/WsEventTranscriptReady" }
+        - { $ref: "#/components/schemas/WsEventAnalysisProgress" }
+        - { $ref: "#/components/schemas/WsEventAnalysisReady" }
+        - { $ref: "#/components/schemas/WsError" }
+        - { $ref: "#/components/schemas/WsPong" }
 
     SegmentReviewRequest:
       type: object

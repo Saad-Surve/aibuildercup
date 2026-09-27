@@ -5,7 +5,7 @@ Status: proposed MVP contract
 ## Implementation status
 
 Implemented today (see `contracts/openapi.yaml`): health, `/me`, onboarding/persona, projects,
-upload-session/complete/assets, `download-url`, jobs (get, cancel) and the project SSE stream,
+upload-session/complete/assets, `download-url`, jobs (get, cancel), the realtime WebSocket,
 transcript (get, get segment), and the internal Pub/Sub push endpoint.
 
 Planned, not yet implemented (kept here and in the contract as `x-status: planned`): analysis
@@ -26,7 +26,7 @@ Authentication:
 Authorization: Bearer <Firebase ID token>
 ~~~
 
-All long-running work returns 202 Accepted and a job reference. The client polls the job endpoint or subscribes to project events with Server-Sent Events.
+All long-running work returns 202 Accepted and a job reference. The client subscribes to a single project WebSocket for progress; polling endpoints remain as the fetch layer (and a degraded fallback when the socket is unavailable).
 
 ### Error envelope
 
@@ -241,7 +241,7 @@ Trigger of record:
 |---|---|---|
 | GET | /jobs/{jobId} | Get job status |
 | POST | /jobs/{jobId}/cancel | Cancel queued/running job |
-| GET | /projects/{projectId}/events | SSE progress stream |
+| WS | /api/ws | Realtime project progress (WebSocket) |
 
 GET /jobs/{jobId} response:
 
@@ -261,12 +261,40 @@ GET /jobs/{jobId} response:
 }
 ~~~
 
-SSE example:
+Realtime (WebSocket). The former SSE stream (`GET /projects/{id}/events`) was
+replaced: it was a server-side Firestore poll, and the client still had to poll
+alongside it. One socket now carries project, job, transcript, and analysis
+events.
 
 ~~~text
-event: job.progress
-data: {"jobId":"job-id","percent":72}
+GET {WS_BASE}/api/ws?token=<firebaseIdToken>
+
+client -> {"type":"subscribe.project","projectId":"project-id"}
+server -> {"type":"snapshot.project","status":"processing", ...}   # immediate
+server -> {"type":"project.progress","status":"ready", ...}
+server -> {"type":"job.progress","jobId":"...","progress":{"percent":72}}
+server -> {"type":"transcript.ready","transcriptId":"...","durationMs":123000}
+server -> {"type":"analysis.progress","analysisRunId":"...","reviewerStatuses":[...]}
+server -> {"type":"analysis.ready","analysisRunId":"...","findingCounts":{...}}
 ~~~
+
+Details:
+
+- Browsers cannot set an `Authorization` header on the upgrade, so the Firebase
+  ID token travels as `?token=`; the server verifies it exactly like HTTP bearer
+  auth and closes with code 4401 on failure (accepting first, so no spurious
+  ASGI handshake error is logged).
+- Events are emitted from the job/project/analysis write paths via an in-process
+  hub (`backend/app/realtime/`), so they fire when the backing documents are
+  written, not on a timer. Publish is a no-op when nobody is subscribed.
+- In production the socket targets the **Cloud Run service URL** directly
+  (`NEXT_PUBLIC_WS_BASE_URL`): Firebase Hosting rewrites do not proxy WebSocket
+  upgrades. The HTTP API still goes through the `/api/**` rewrite.
+- Cloud Run bounds request duration; the client reconnects with backoff and a
+  fresh token. On reconnect it re-invalidates the resource queries, and the
+  subscriber-time snapshot re-primes the progress UI.
+- Frame schemas: `WsClientMessage` / `WsServerMessage` in `contracts/openapi.yaml`;
+  protocol rules in `contracts/events.md`.
 
 ## 8. Transcripts
 

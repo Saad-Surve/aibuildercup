@@ -22,6 +22,7 @@ from app.errors import NotFoundError
 from app.events import build_event, topic_for_event
 from app.providers import get_providers
 from app.providers.stt import SttProvider
+from app.realtime.events import emit_transcript_ready
 from app.schemas.jobs import JobStatus
 from app.services.asset_service import AssetService
 from app.services.firestore_service import (
@@ -299,6 +300,16 @@ def _publish_transcript_ready(
     word_count: int,
 ) -> None:
     """Announce the next pipeline step. Best-effort: the transcript is already persisted."""
+    # Realtime (browser) announcement is independent of Pub/Sub, which feeds
+    # other infrastructure consumers and may be unconfigured locally.
+    emit_transcript_ready(
+        owner_uid,
+        project_id,
+        transcript_id=transcript_id,
+        job_id=job_id,
+        language=language,
+        duration_ms=duration_ms,
+    )
     if pubsub is None:
         return
     event = build_event(

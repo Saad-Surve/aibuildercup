@@ -1,6 +1,4 @@
-import { API_BASE_URL } from "@/lib/api-base";
 import { apiFetch } from "@/lib/api-client";
-import { auth } from "@/lib/firebase";
 import type {
   AcceptedJob,
   AssetList,
@@ -9,7 +7,6 @@ import type {
   DownloadUrl,
   Project,
   ProjectList,
-  ProjectStatus,
   Transcript,
   TranscriptVersion,
   UploadSession,
@@ -109,82 +106,6 @@ export function completeUpload(
 
 export function getJob(jobId: string): Promise<Job> {
   return apiFetch<Job>(`/jobs/${jobId}`);
-}
-
-export interface ProjectProgressEvent {
-  projectId: string;
-  status: ProjectStatus;
-  progress: Project["progress"];
-  job: {
-    jobId: string;
-    status: Job["status"];
-    progress: Job["progress"];
-  } | null;
-}
-
-/**
- * Subscribe to the backend SSE stream `GET /projects/{id}/events`.
- *
- * Plain `EventSource` cannot send the Firebase `Authorization` header, so this
- * uses `fetch` + a `ReadableStream` reader and parses `job.progress` frames.
- * Failures are silent on purpose: the workspace keeps its polling queries as
- * a fallback, so a dropped stream only means slower updates, never a stuck UI.
- * Returns an unsubscribe function.
- */
-export function subscribeToProjectEvents(
-  projectId: string,
-  onEvent: (event: ProjectProgressEvent) => void,
-): () => void {
-  const controller = new AbortController();
-
-  async function run(): Promise<void> {
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token || controller.signal.aborted) return;
-      const response = await fetch(
-        `${API_BASE_URL}/projects/${projectId}/events`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "text/event-stream",
-          },
-          signal: controller.signal,
-        },
-      );
-      if (!response.ok || !response.body) return;
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const frames = buffer.split("\n\n");
-        buffer = frames.pop() ?? "";
-        for (const frame of frames) {
-          const dataLine = frame
-            .split("\n")
-            .filter((line) => line.startsWith("data:"));
-          if (dataLine.length === 0) continue;
-          try {
-            onEvent(
-              JSON.parse(
-                dataLine.map((line) => line.slice(5)).join("\n"),
-              ) as ProjectProgressEvent,
-            );
-          } catch {
-            // Ignore a malformed frame; the next one carries fresh state.
-          }
-        }
-        if (controller.signal.aborted) break;
-      }
-    } catch {
-      // Abort or network error: polling fallback keeps the UI fresh.
-    }
-  }
-
-  void run();
-  return () => controller.abort();
 }
 
 export function getTranscript(

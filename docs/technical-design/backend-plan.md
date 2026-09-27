@@ -5,7 +5,7 @@
 Use Python FastAPI plus Google ADK for the MVP backend.
 
 ~~~text
-FastAPI: HTTP API, authentication, request validation, SSE
+FastAPI: HTTP API, authentication, request validation, realtime WebSocket
 Google ADK: project assistant and multi-reviewer orchestration
 Google GenAI SDK: direct structured Gemini calls where an agent is unnecessary
 Pydantic: request/response and reviewer schemas

@@ -12,6 +12,7 @@ from typing import Any
 from uuid import uuid4
 
 from app.errors import BadRequestError, NotFoundError
+from app.realtime.events import emit_project
 from app.schemas.projects import (
     CreateProject,
     Project,
@@ -146,6 +147,14 @@ class ProjectService:
                 "updatedAt": now,
             },
         )
+        emit_project(
+            owner_uid,
+            project_id,
+            status=ProjectStatus.processing,
+            stage="transcription",
+            percent=0,
+            message="Queued for transcription",
+        )
 
     def mark_transcript_ready(
         self,
@@ -176,6 +185,14 @@ class ProjectService:
                 "updatedAt": now,
             },
         )
+        emit_project(
+            owner_uid,
+            project_id,
+            status=ProjectStatus.ready,
+            stage="ready",
+            percent=100,
+            message="Transcript ready",
+        )
 
     def mark_failed(self, *, owner_uid: str, project_id: str, message: str) -> None:
         self._require_owned(owner_uid=owner_uid, project_id=project_id)
@@ -187,6 +204,14 @@ class ProjectService:
                 "progress": {"stage": "failed", "percent": 0, "message": message},
                 "updatedAt": now,
             },
+        )
+        emit_project(
+            owner_uid,
+            project_id,
+            status=ProjectStatus.failed,
+            stage="failed",
+            percent=0,
+            message=message,
         )
 
     def delete(self, *, owner_uid: str, project_id: str) -> None:

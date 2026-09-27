@@ -118,6 +118,7 @@ jobs:
             --max-instances 1 \
             --memory 1Gi \
             --no-cpu-throttling \
+            --timeout 3600 \
             --quiet \
             --set-env-vars "^|^ENVIRONMENT=production|PROJECT_ID=habeas-codus|REGION=us-central1|VERTEX_LOCATION=global|MODEL_REVIEWER=${MODEL_REVIEWER}|MODEL_ORCHESTRATOR=${MODEL_ORCHESTRATOR}|LLM_INPUT_PRICE_PER_MTOK=${LLM_INPUT_PRICE_PER_MTOK}|LLM_OUTPUT_PRICE_PER_MTOK=${LLM_OUTPUT_PRICE_PER_MTOK}|CORS_ALLOWED_ORIGINS=${CORS_ORIGINS}|PUBSUB_PUSH_AUDIENCE=${{ steps.api.outputs.url }}|PUBSUB_PUSH_SERVICE_ACCOUNT=creator-studio-transcribe@habeas-codus.iam.gserviceaccount.com"
 
@@ -138,6 +139,17 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SA }}
 
+      # The realtime WebSocket must reach the Cloud Run service directly: Firebase
+      # Hosting rewrites do not proxy WebSocket upgrades. Resolve the stable service
+      # URL here (after auth) so it can be inlined into the web build.
+      - id: api_url
+        name: Resolve API URL for the WebSocket
+        run: |
+          url="$(gcloud run services describe creator-studio-api \
+            --project "$PROJECT_ID" --region "$REGION" \
+            --format='value(status.url)')"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+
       # SHA-pinned third-party action.
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -157,9 +169,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: web/.next/cache
-          key: next-${{ runner.os }}-${{ hashFiles('web/bun.lock') }}-${{ vars.API_URL }}-${{ hashFiles('web/src/**', 'web/next.config.ts') }}
+          key: next-${{ runner.os }}-${{ hashFiles('web/bun.lock') }}-${{ vars.API_URL }}-${{ steps.api_url.outputs.url }}-${{ hashFiles('web/src/**', 'web/next.config.ts') }}
           restore-keys: |
-            next-${{ runner.os }}-${{ hashFiles('web/bun.lock') }}-${{ vars.API_URL }}-
+            next-${{ runner.os }}-${{ hashFiles('web/bun.lock') }}-${{ vars.API_URL }}-${{ steps.api_url.outputs.url }}-
 
       # npx otherwise re-downloads firebase-tools (~25s) on every run. Scoped to the
       # npx cache (not all of ~/.npm).
@@ -174,6 +186,9 @@ jobs:
         working-directory: web
         env:
           NEXT_PUBLIC_API_BASE_URL: ${{ vars.API_URL }}
+          # WebSocket base: the Cloud Run URL directly (Hosting rewrites do not
+          # proxy upgrades). Falls back to the API origin when empty.
+          NEXT_PUBLIC_WS_BASE_URL: ${{ steps.api_url.outputs.url }}
           NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyAjWq40FQKv6pN9LJI1glJq6gsfOTMNi7Q
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: habeas-codus.firebaseapp.com
           NEXT_PUBLIC_FIREBASE_PROJECT_ID: habeas-codus

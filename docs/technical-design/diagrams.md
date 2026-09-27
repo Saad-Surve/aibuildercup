@@ -128,7 +128,7 @@ sequenceDiagram
     GCS->>PubSub: object finalized notification
     PubSub->>Worker: video.uploaded
     Worker->>FS: Create transcribe job (idempotent)
-    UI->>API: Subscribe to project events (SSE)
+    UI->>API: Subscribe to project events (WebSocket /api/ws)
 ~~~
 
 ## 5. Transcription and captions
