@@ -468,6 +468,30 @@ paths:
                     type: array
                     items: { $ref: "#/components/schemas/ReviewerRun" }
 
+  /api/projects/{projectId}/analysis/{analysisRunId}/reviewers/{reviewerRunId}/context/{index}:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/AnalysisRunId" }
+      - { name: reviewerRunId, in: path, required: true, schema: { type: string } }
+      - { name: index, in: path, required: true, schema: { type: integer, minimum: 0 } }
+    get:
+      summary: Signed URL for one reviewer-fetched frame or clip
+      description: |
+        Returns a short-lived signed URL for one frame/clip the reviewer fetched through
+        the footage tools. The client requests this lazily, only when the user expands a
+        reviewer's evidence, so reviewers-list polling stays cheap.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContextArtifactUrl" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/projects/{projectId}/analysis/{analysisRunId}/findings:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
@@ -861,6 +885,13 @@ components:
         segments:
           type: array
           items: { $ref: "#/components/schemas/TranscriptSegment" }
+        speakerLabels:
+          type: object
+          description: |
+            Map of speaker index to a short role or name inferred during transcript
+            cleanup (for example {"0": "Host", "1": "Guest"}). Empty when the voices
+            could not be named.
+          additionalProperties: { type: string }
 
     TranscriptVersion:
       type: object
@@ -915,8 +946,10 @@ components:
           type: boolean
           default: false
           description: |
-            Reserved for the tier-2 multimodal pass. Accepted and recorded on the run,
-            but no visual findings are produced until the media worker exists.
+            Reserved for the on-demand tier-2 multimodal deep review. Tier-1 reviewers
+            may already request a frame or a short clip through the FFmpeg visual-context
+            tools when they are enabled (`REVIEW_VISUAL_TOOLS_ENABLED`); this flag is for
+            the separate deep-review flow.
         transcriptVersion: { type: integer }
 
     AnalysisRunStatus:
@@ -969,6 +1002,34 @@ components:
       type: string
       enum: [queued, running, succeeded, failed]
 
+    ContextArtifactUrl:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string }
+        contentType: { type: string }
+        expiresIn: { type: integer }
+
+    ReviewerToolCall:
+      type: object
+      required: [tool]
+      properties:
+        tool:
+          type: string
+          enum: [extract_frame, cut_clip]
+        timestampMs:
+          type: integer
+          description: The moment (ms) the reviewer asked to inspect.
+        label:
+          type: string
+        mimeType: { type: string }
+        contentPath:
+          type: string
+          description: |
+            Cloud Storage object holding the fetched frame/clip. Empty when the call
+            failed. Fetch it via the reviewer context endpoint for a signed URL.
+        ok: { type: boolean }
+
     ReviewerRun:
       type: object
       properties:
@@ -980,6 +1041,13 @@ components:
         durationMs: { type: integer }
         model: { type: [string, "null"] }
         inputSegmentCount: { type: integer }
+        toolCalls:
+          type: array
+          description: |
+            Footage the reviewer pulled in through the function-calling tools
+            (extract_frame / cut_clip) before finalising. Empty when it graded from the
+            transcript alone.
+          items: { $ref: "#/components/schemas/ReviewerToolCall" }
         tokenUsage: { $ref: "#/components/schemas/TokenUsage" }
         error: { type: [object, "null"], additionalProperties: true }
         startedAt: { type: [string, "null"], format: date-time }

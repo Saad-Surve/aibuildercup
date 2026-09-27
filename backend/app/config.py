@@ -39,9 +39,26 @@ class Settings(BaseSettings):
     # controlled generation. Pin a concrete id if you need reproducibility.
     model_reviewer: str = "gemini-3.1-flash-lite"
     model_orchestrator: str = "gemini-3.1-flash-lite"
+    model_transcript_repair: str = "gemini-3.1-flash-lite"
     model_image: str = "imagen-4.0-generate-001"
     model_video: str = "veo-3.1-fast"
     model_stt: str = "chirp_3"
+
+    # Transcript cleanup: after Chirp returns, one cheap LLM pass fixes only obvious
+    # recognition errors and infers speaker turns. Best-effort; a failure keeps the raw
+    # transcript. Disable to compare raw STT output.
+    transcript_repair_enabled: bool = True
+    transcript_repair_max_chars: int = 12_000
+
+    # Reviewer footage tools (FFmpeg). When on, a reviewer may call extract_frame /
+    # cut_clip during its own review, then grade with the footage attached. Bounded per
+    # reviewer call: `max_visual_context_requests` is the total tool calls, and
+    # `visual_tool_max_rounds` is how many tool round-trips are allowed.
+    review_visual_tools_enabled: bool = True
+    max_visual_context_requests: int = 3
+    visual_tool_max_rounds: int = 2
+    visual_clip_window_seconds: int = 5
+    ffmpeg_path: str = "ffmpeg"
 
     # Speech-to-Text location. Chirp 3 (multilingual, language-agnostic transcription) is GA on
     # the `us` multi-region but not in `us-central1`, so STT is the one service that does not use

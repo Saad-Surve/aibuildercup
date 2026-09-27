@@ -21,6 +21,7 @@ from app.config import Settings, get_settings
 from app.errors import NotFoundError
 from app.events import build_event, topic_for_event
 from app.providers import get_providers
+from app.providers.base import LlmProvider
 from app.providers.stt import SttProvider
 from app.realtime.events import emit_transcript_ready
 from app.schemas.jobs import JobStatus
@@ -36,6 +37,7 @@ from app.services.media import extract_aac_track, mux_m4a
 from app.services.project_service import ProjectService
 from app.services.pubsub_service import PubSubClient, get_pubsub_client
 from app.services.storage_service import get_storage_client
+from app.services.transcript_repair import repair_transcript
 from app.services.transcript_service import TranscriptService, build_segments, normalize_words
 
 logger = logging.getLogger(__name__)
@@ -56,6 +58,7 @@ async def run_transcribe(
     assets: AssetService,
     transcripts: TranscriptService,
     stt: SttProvider,
+    llm: LlmProvider,
     settings: Settings,
     pubsub: PubSubClient | None = None,
 ) -> str | None:
@@ -173,6 +176,29 @@ async def run_transcribe(
         message="Segmenting transcript",
     )
     segments = build_segments(words)
+
+    # Post-Chirp cleanup: fix obvious recognition errors and infer speaker turns. Best-effort
+    # by design (the pass never raises), so raw STT output is the floor, never lost.
+    speaker_labels: dict[str, str] = {}
+    if settings.transcript_repair_enabled and segments:
+        jobs.update_progress(
+            owner_uid=owner_uid,
+            project_id=project_id,
+            job_id=job_id,
+            percent=80,
+            step="polishing",
+            message="Checking the transcript",
+        )
+        repair = await repair_transcript(
+            segments,
+            language=language,
+            llm=llm,
+            model=settings.model_transcript_repair,
+            max_chars=settings.transcript_repair_max_chars,
+        )
+        segments = repair.segments
+        speaker_labels = repair.speaker_labels
+
     duration_ms = max((w["endMs"] for w in words), default=0)
 
     transcript_id = transcripts.save(
@@ -181,6 +207,8 @@ async def run_transcribe(
         source_asset_id=asset_id,
         language=language,
         words=words,
+        segments=segments,
+        speaker_labels=speaker_labels,
     )
     firestore.update_document(
         asset_path(owner_uid, project_id, asset_id), {"status": "ready", "durationMs": duration_ms}
@@ -372,6 +400,7 @@ def build_worker_services(
     assets: AssetService,
     transcripts: TranscriptService,
     stt: SttProvider,
+    llm: LlmProvider,
     settings: Settings,
     pubsub: PubSubClient | None = None,
 ) -> dict[str, Any]:
@@ -383,6 +412,7 @@ def build_worker_services(
         "assets": assets,
         "transcripts": transcripts,
         "stt": stt,
+        "llm": llm,
         "settings": settings,
         "pubsub": pubsub,
     }
@@ -408,6 +438,7 @@ def live_worker_dependencies() -> dict[str, Any]:
         ),
         transcripts=TranscriptService(firestore, storage=storage),
         stt=get_providers().stt,
+        llm=get_providers().llm,
         settings=settings,
         pubsub=get_pubsub_client(),
     )

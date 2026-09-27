@@ -25,6 +25,7 @@ Model IDs are never hardcoded in agents. They come from a config-driven registry
 VERTEX_LOCATION=global                   # cheapest Gemini endpoint; not tied to `region`
 MODEL_REVIEWER=gemini-3.1-flash-lite     # one-shot reviewers (deployed: gemini-3.8-flash)
 MODEL_ORCHESTRATOR=gemini-3.1-flash-lite # coordinator + project chat agent (deployed: gemini-3.8-flash)
+MODEL_TRANSCRIPT_REPAIR=gemini-3.1-flash-lite # post-Chirp cleanup + speaker inference
 MODEL_IMAGE=imagen-<version>             # thumbnails
 MODEL_VIDEO=veo-3.1-fast                 # intros/outros
 MODEL_STT=chirp_3                           # transcription (STT V2 batch, us multi-region)
@@ -217,6 +218,7 @@ video.uploaded
   -> enable word time offsets
   -> normalize response
   -> segment transcript into sentences
+  -> LLM cleanup: fix recogniser errors + infer speakers (best-effort)
   -> generate VTT and SRT
   -> write canonical files to GCS
   -> write metadata and segments to Firestore
@@ -226,6 +228,14 @@ video.uploaded
 Long audio uses batch recognition (sync only handles clips under 60 seconds). STT runs in the
 `us` multi-region, where the multilingual Chirp 3 model is available; `us-east1` is not a valid
 choice for the speech models.
+
+After Chirp returns, one cheap LLM pass (`app/services/transcript_repair.py`,
+`MODEL_TRANSCRIPT_REPAIR`) proofreads the segments and infers speaker turns. It is deliberately
+conservative: it fixes only clear recognition errors (homophones, mangled proper nouns, split or
+merged words, missing sentence punctuation) and is forbidden from rewriting, paraphrasing,
+translating, or tidying the speaker's language. The same pass can name voices, exposed as the
+transcript's `speakerLabels`. The pass is best-effort: any failure keeps the raw STT output, so
+cleanup can never cost a transcript.
 
 The trigger of record is the Cloud Storage `object finalized` notification: media bucket ->
 `video-events` topic -> push subscription -> `POST /api/internal/pubsub/video-events` ->
@@ -338,6 +348,21 @@ chunked into roughly 8k to 12k token windows with overlap when the transcript is
 reviewer returns findings keyed by segment id with timestamps. Cost is bounded at one call per
 reviewer per chunk.
 
+Tier 1 may also pull *visual* context mid-review through two FFmpeg-backed tools
+(`app/services/video_tools.py`): `extract_frame` (one still at a timestamp) and `cut_clip` (a
+short clip centred on a timestamp, default +/- 5s). These are real **function-calling** tools:
+the reviewer is given the two function declarations and may call them during its own review
+(the model decides; the prompt tells it to fetch footage before assigning `high` or `critical`
+to anything that could be visual). The provider runs the loop, so each call is executed, its
+frame/clip is returned to the model as a multimodal function response, and the reviewer then
+produces the findings with the footage attached. The fetched media is stored under the project
+prefix (`review-context/{analysisRunId}/{reviewerRunId}/...`, covered by project delete) and
+listed on the reviewer run as `toolCalls`; the UI shows it as an evidence trail via a lazy
+signed-URL endpoint. Every reviewer call is bounded by `MAX_VISUAL_CONTEXT_REQUESTS` (total
+calls) and `VISUAL_TOOL_MAX_ROUNDS` (round-trips); `REVIEW_VISUAL_TOOLS_ENABLED` turns it off.
+This is how a transcript-only reviewer gets ground truth about the part it is reviewing without
+a separate deep-review flow.
+
 Tier 2, deep and on demand: multimodal review of a specific time range. FFmpeg extracts the clip
 plus sampled frames, and Gemini reviews video input. Triggered by the Deep Review button or
 automatically for `high` and `critical` findings.
@@ -429,6 +454,11 @@ thumbnail frame extraction
 ~~~
 
 Write temporary outputs under a job-specific path and delete them with a lifecycle policy. For exact clip boundaries, re-encode rather than relying only on stream copy.
+
+The reviewer visual-context tools (section 8) run FFmpeg in the API image instead of a job:
+they are in the request path of a live reviewer, so a job round-trip would be too slow. The API
+image installs FFmpeg for exactly this, streams the source directly from a signed URL, and keeps
+the output in memory (nothing is persisted, so there is no new delete path).
 
 ## 12. Social connectors
 

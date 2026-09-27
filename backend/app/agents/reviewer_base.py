@@ -17,21 +17,26 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 from uuid import uuid4
 
-from app.providers.base import LlmProvider, LlmUsage
+from app.providers.base import LlmProvider, LlmUsage, MediaPart
 from app.schemas.analysis import (
     AnalysisDimension,
     Finding,
     FindingEvidence,
     Severity,
 )
+from app.services.video_tools import (
+    ContextArtifactStore,
+    MediaToolkit,
+    review_tool_specs,
+)
 
 logger = logging.getLogger(__name__)
 
 #: Bumped whenever reviewer prompts change in a way that alters scores.
-REVIEWER_PROMPT_VERSION = "reviewers-v2"
+REVIEWER_PROMPT_VERSION = "reviewers-v4"
 
 #: Bumped whenever the model/prompt configuration changes as a whole.
-MODEL_CONFIG_VERSION = "analysis-v2"
+MODEL_CONFIG_VERSION = "analysis-v4"
 
 _SEVERITY_VALUES = {severity.value for severity in Severity}
 
@@ -69,6 +74,21 @@ REPORTING THRESHOLD - exception-first, do NOT narrate the whole transcript:
   a) A concrete friction point or flaw (severity low/medium/high/critical), or
   b) An exceptional, high-impact technique worth reinforcing (score 5, severity none).
   Ordinary, fine sentences get no finding. Silence is not a finding."""
+
+VISUAL_TOOLS_PROMPT = """\
+FOOTAGE TOOLS. You can inspect the video itself, not just the transcript. Two tools are
+available during this review:
+  - extract_frame(timestampMs): one still frame; use for on-screen text, a chart, a face,
+    a costume, a product, or any single moment.
+  - cut_clip(timestampMs): a short clip around the moment (~{window} seconds either side);
+    use when motion, a reaction, an edit, or timing matters.
+CALL A TOOL whenever a judgement depends on something you cannot settle from the words
+alone. In particular, before you assign severity "high" or "critical" to a finding whose
+evidence could be visual, fetch the footage and confirm. Do not call the tools for purely
+spoken-language judgements. You may make at most {max_calls} call(s); one well-chosen clip
+often beats several stills. After the footage comes back you will see it and produce the
+final findings, so do not restate the transcript - judge what you actually saw.
+"""
 
 OUTPUT_RULES = """\
 OUTPUT RULES:
@@ -185,11 +205,33 @@ class ReviewContext:
 
 
 @dataclass(frozen=True)
+class ToolCallRecord:
+    """One footage tool the reviewer called, for persistence and the UI.
+
+    `content_path` is the Cloud Storage object holding the frame/clip (empty when the
+    call failed or no store was configured).
+    """
+
+    tool: str
+    timestamp_ms: int = 0
+    label: str = ""
+    mime_type: str = ""
+    content_path: str = ""
+    ok: bool = True
+    error: str = ""
+
+
+@dataclass(frozen=True)
 class ReviewResult:
-    """Findings for one reviewer call plus what the call cost."""
+    """Findings for one reviewer call plus what the call cost and fetched."""
 
     findings: tuple[Finding, ...] = ()
     usage: LlmUsage = field(default_factory=LlmUsage)
+    tool_calls: tuple[ToolCallRecord, ...] = ()
+
+    @property
+    def visual_context_count(self) -> int:
+        return len(self.tool_calls)
 
 
 class Reviewer(Protocol):
@@ -220,19 +262,36 @@ def dimension_label(dimension: AnalysisDimension) -> str:
     )
 
 
-def build_system_prompt(dimension: AnalysisDimension, focus: str) -> str:
-    """Shared role + anchors + rules, with the dimension rubric spliced in."""
-    return "\n\n".join(
-        [
-            ROLE.format(
-                dimension_label=dimension_label(dimension),
-                dimension_value=dimension.value,
-            ),
-            f"WHAT TO REVIEW FOR ({dimension_label(dimension)}):\n{focus.strip()}",
-            SCORE_ANCHORS,
-            OUTPUT_RULES,
-        ]
-    )
+def build_system_prompt(
+    dimension: AnalysisDimension,
+    focus: str,
+    *,
+    visual_tools: bool = False,
+    max_tool_calls: int = 0,
+    clip_window_seconds: int = 5,
+) -> str:
+    """Shared role + anchors + rules, with the dimension rubric spliced in.
+
+    When `visual_tools` is set the reviewer is also told it may call the footage tools
+    during the review.
+    """
+    sections = [
+        ROLE.format(
+            dimension_label=dimension_label(dimension),
+            dimension_value=dimension.value,
+        ),
+        f"WHAT TO REVIEW FOR ({dimension_label(dimension)}):\n{focus.strip()}",
+        SCORE_ANCHORS,
+        OUTPUT_RULES,
+    ]
+    if visual_tools:
+        sections.append(
+            VISUAL_TOOLS_PROMPT.format(
+                window=max(1, clip_window_seconds),
+                max_calls=max(1, max_tool_calls),
+            )
+        )
+    return "\n\n".join(sections)
 
 
 def build_user_prompt(context: ReviewContext, dimension: AnalysisDimension) -> str:
@@ -436,10 +495,13 @@ def _segment_by_id(
 
 
 class LlmReviewer:
-    """A reviewer that runs one structured LLM call over one transcript window.
+    """A reviewer that runs a structured, tool-enabled review of one window.
 
-    Subclasses set `dimension`, `focus`, and `finding_types`; everything else is shared
-    so the reviewers cannot drift apart in rubric, schema, or output handling.
+    Subclasses set `dimension`, `focus`, and `finding_types`; everything else is shared so
+    the reviewers cannot drift apart in rubric, schema, or output handling. When a
+    `visual_tools` toolkit is supplied, the reviewer can call its two footage tools during
+    the review - the model decides, the loop is bounded - and the calls ride back on the
+    result for persistence and the UI.
     """
 
     dimension: AnalysisDimension
@@ -447,28 +509,109 @@ class LlmReviewer:
     #: Allowed `findingType` values. Constrains the schema so the model cannot invent types.
     finding_types: tuple[str, ...] = ()
 
-    def __init__(self, llm: LlmProvider, *, model: str) -> None:
+    def __init__(
+        self,
+        llm: LlmProvider,
+        *,
+        model: str,
+        visual_tools: MediaToolkit | None = None,
+        context_store: ContextArtifactStore | None = None,
+    ) -> None:
         self.llm = llm
         self.model = model
+        self.visual_tools = visual_tools
+        self.context_store = context_store
 
     async def review(
         self, context: ReviewContext, *, reviewer_run_id: str = ""
     ) -> ReviewResult:
-        completion = await self.llm.complete_json(
+        system = build_system_prompt(
+            self.dimension,
+            self.focus,
+            visual_tools=self.visual_tools is not None,
+            max_tool_calls=self.visual_tools.max_requests if self.visual_tools else 0,
+            clip_window_seconds=(
+                self.visual_tools.window_seconds if self.visual_tools else 5
+            ),
+        )
+        user = build_user_prompt(context, self.dimension)
+
+        if self.visual_tools is None:
+            completion = await self.llm.complete_json(
+                model=self.model,
+                prompt_version=REVIEWER_PROMPT_VERSION,
+                system=system,
+                user=user,
+                schema=findings_schema(self.finding_types),
+            )
+            return ReviewResult(
+                findings=tuple(self._normalize(completion.data, context, reviewer_run_id)),
+                usage=completion.usage,
+            )
+
+        toolkit = self.visual_tools
+        store = self.context_store
+        records: list[ToolCallRecord] = []
+        index = 0
+
+        async def execute(name: str, arguments: dict[str, Any]) -> list[MediaPart]:
+            nonlocal index
+            parts = await toolkit.execute(name, arguments)
+            media: list[MediaPart] = []
+            for part in parts:
+                path = ""
+                if store is not None:
+                    try:
+                        path = store.save(
+                            part, reviewer_run_id=reviewer_run_id, tool=name, index=index
+                        )
+                    except Exception:  # noqa: BLE001 - storage must not lose the review
+                        logger.warning(
+                            "reviewer %s: could not store context artifact",
+                            self.dimension.value,
+                            exc_info=True,
+                        )
+                records.append(
+                    ToolCallRecord(
+                        tool=name,
+                        timestamp_ms=_as_int(arguments.get("timestampMs")) or 0,
+                        label=part.label,
+                        mime_type=part.mime_type,
+                        content_path=path,
+                        ok=True,
+                    )
+                )
+                media.append(part)
+                index += 1
+            return media
+
+        completion = await self.llm.complete_json_with_tools(
             model=self.model,
             prompt_version=REVIEWER_PROMPT_VERSION,
-            system=build_system_prompt(self.dimension, self.focus),
-            user=build_user_prompt(context, self.dimension),
+            system=system,
+            user=user,
             schema=findings_schema(self.finding_types),
+            tools=review_tool_specs(clip_window_seconds=toolkit.window_seconds),
+            execute=execute,
+            max_tool_rounds=toolkit.max_rounds,
+            max_tool_calls=toolkit.max_requests,
         )
-        findings = normalize_findings(
-            completion.data,
+        return ReviewResult(
+            findings=tuple(self._normalize(completion.data, context, reviewer_run_id)),
+            usage=completion.usage,
+            tool_calls=tuple(records),
+        )
+
+    def _normalize(
+        self, raw: dict[str, Any], context: ReviewContext, reviewer_run_id: str
+    ) -> list[Finding]:
+        return normalize_findings(
+            raw,
             dimension=self.dimension,
             reviewer_run_id=reviewer_run_id,
             segments=context.segments,
             duration_ms=context.duration_ms,
         )
-        return ReviewResult(findings=tuple(findings), usage=completion.usage)
 
 
 __all__ = [
@@ -483,6 +626,8 @@ __all__ = [
     "ReviewResult",
     "Reviewer",
     "SegmentRef",
+    "ToolCallRecord",
+    "VISUAL_TOOLS_PROMPT",
     "build_system_prompt",
     "build_user_prompt",
     "dimension_label",

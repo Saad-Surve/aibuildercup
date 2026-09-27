@@ -35,13 +35,23 @@ from app.schemas.analysis import AnalysisDimension, AnalysisRunStatus, Finding
 from app.schemas.jobs import JobStatus
 from app.services.analysis_service import AnalysisService
 from app.services.cost import estimate_cost_usd
-from app.services.firestore_service import get_firestore_client, project_path
+from app.services.firestore_service import (
+    asset_path,
+    get_firestore_client,
+    project_object_prefix,
+    project_path,
+)
 from app.services.heatmap import aggregate_bins, summarize_findings
 from app.services.job_service import JobService
 from app.services.pubsub_service import PubSubClient, get_pubsub_client
 from app.services.storage_service import StorageClient, get_storage_client
 from app.services.transcript_service import TranscriptService
 from app.services.user_service import UserService
+from app.services.video_tools import (
+    GcsContextArtifactStore,
+    MediaToolkit,
+    ffmpeg_available,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -217,7 +227,27 @@ async def run_analysis(
         len(chunks),
     )
 
-    reviewers = build_reviewers(llm, model=settings.model_reviewer, dimensions=dimensions)
+    visual_tools = _build_visual_tools(
+        analyses,
+        storage,
+        settings,
+        owner_uid=owner_uid,
+        project_id=project_id,
+        run=run,
+        duration_ms=transcript.durationMs,
+    )
+    context_store = (
+        _build_context_store(storage, owner_uid, project_id, analysis_run_id)
+        if visual_tools is not None
+        else None
+    )
+    reviewers = build_reviewers(
+        llm,
+        model=settings.model_reviewer,
+        dimensions=dimensions,
+        visual_tools=visual_tools,
+        context_store=context_store,
+    )
     completed: list[DimensionOutcome] = []
     all_findings: list[Finding] = []
     total_dimensions = max(1, len(dimensions))
@@ -496,6 +526,74 @@ def _load_packaging(
     title = str(project.get("name") or "").strip()[:200]
     thumbnail = str(project.get("thumbnailConcept") or "").strip()[:500]
     return title, thumbnail
+
+
+def _build_visual_tools(
+    analyses: AnalysisService,
+    storage: StorageClient,
+    settings: Settings,
+    *,
+    owner_uid: str,
+    project_id: str,
+    run: dict[str, Any],
+    duration_ms: int,
+) -> MediaToolkit | None:
+    """Build the FFmpeg-backed visual toolkit for this run, or None if unavailable.
+
+    The source is handed to FFmpeg as a short-lived signed URL, so the API never has to
+    download the whole video into memory. Every failure here is non-fatal: reviewers
+    simply run transcript-only, exactly as before the tools existed.
+    """
+    if not settings.review_visual_tools_enabled:
+        return None
+    if not ffmpeg_available(settings.ffmpeg_path):
+        logger.warning(
+            "visual reviewer tools disabled: ffmpeg not found at %s", settings.ffmpeg_path
+        )
+        return None
+    asset_id = run.get("sourceAssetId")
+    if not asset_id:
+        return None
+    try:
+        asset = analyses.client.get_document(
+            asset_path(owner_uid, project_id, str(asset_id))
+        )
+    except Exception:  # noqa: BLE001 - visual context is an enhancement, not a dependency
+        logger.warning("visual reviewer tools: could not load source asset", exc_info=True)
+        return None
+    if not asset or asset.get("ownerUid") != owner_uid:
+        return None
+    storage_path = asset.get("storagePath")
+    if not storage_path:
+        return None
+    try:
+        source = storage.signed_download_url(str(storage_path), expires_seconds=3600)
+    except Exception:  # noqa: BLE001
+        logger.warning("visual reviewer tools: cannot sign source video URL", exc_info=True)
+        return None
+    logger.info("visual reviewer tools enabled for %s/%s", owner_uid, project_id)
+    return MediaToolkit(
+        source=source,
+        duration_ms=duration_ms,
+        ffmpeg_path=settings.ffmpeg_path,
+        window_seconds=settings.visual_clip_window_seconds,
+        max_requests=settings.max_visual_context_requests,
+        max_rounds=settings.visual_tool_max_rounds,
+    )
+
+
+def _build_context_store(
+    storage: StorageClient,
+    owner_uid: str,
+    project_id: str,
+    analysis_run_id: str,
+) -> GcsContextArtifactStore:
+    """Store reviewer-fetched footage under the project prefix (covered by project delete)."""
+    prefix = (
+        f"{project_object_prefix(owner_uid, project_id)}"
+        f"review-context/{analysis_run_id}/"
+    )
+    return GcsContextArtifactStore(storage, prefix)
 
 
 def build_worker_services(

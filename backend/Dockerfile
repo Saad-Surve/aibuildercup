@@ -8,6 +8,12 @@ COPY --from=ghcr.io/astral-sh/uv@sha256:04d046b13e60d6bcec73cbc5e1cad25d680dea90
 
 WORKDIR /app
 
+# FFmpeg powers the reviewer visual-context tools (frame extraction and clip cutting).
+# One layer, cleaned, so the image does not carry apt lists.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Bytecode-compile at build time (faster Cloud Run cold start) and copy rather than
 # hardlink so the cache mount and the final layer cannot share inodes.
 ENV UV_COMPILE_BYTECODE=1 \

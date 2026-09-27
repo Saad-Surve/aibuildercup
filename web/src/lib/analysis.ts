@@ -91,6 +91,24 @@ export function getHeatmap(
   );
 }
 
+export interface ContextArtifactUrl {
+  url: string;
+  contentType: string;
+  expiresIn: number;
+}
+
+/** Lazy signed URL for one frame/clip a reviewer fetched. */
+export function getReviewerContextUrl(
+  projectId: string,
+  analysisRunId: string,
+  reviewerRunId: string,
+  index: number,
+): Promise<ContextArtifactUrl> {
+  return apiFetch<ContextArtifactUrl>(
+    `/projects/${projectId}/analysis/${analysisRunId}/reviewers/${reviewerRunId}/context/${index}`,
+  );
+}
+
 // --- presentation -----------------------------------------------------------
 
 export const DIMENSION_LABELS: Record<AnalysisDimension, string> = {

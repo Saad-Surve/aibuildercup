@@ -123,6 +123,8 @@ export function TranscriptPanel({
         .filter((speaker): speaker is number => speaker != null),
     ).size;
     const showSpeakers = speakerCount > 1;
+    const speakerName = (speaker: number) =>
+      transcript.speakerLabels?.[String(speaker)] ?? `S${speaker}`;
     return (
       <Card className={WORKSPACE_PANE_SNAP}>
         <CardHeader className="shrink-0">
@@ -186,8 +188,8 @@ export function TranscriptPanel({
                     {formatTimestamp(segment.startMs)}
                   </span>
                   {showSpeakers && segment.speaker != null ? (
-                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 tabular text-xs text-muted-foreground">
-                      S{segment.speaker}
+                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                      {speakerName(segment.speaker)}
                     </span>
                   ) : null}
                   <span className="text-sm">{segment.text}</span>

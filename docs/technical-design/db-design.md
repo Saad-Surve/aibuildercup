@@ -300,6 +300,7 @@ AI-inferred changes remain pending until the user explicitly approves them.
   "wordCount": 1020,
   "segmentCount": 85,
   "speakerCount": 1,
+  "speakerLabels": { "0": "Host", "1": "Guest" },
   "createdAt": "timestamp",
   "updatedAt": "timestamp"
 }
@@ -368,6 +369,16 @@ Keep word-level data in the canonical Cloud Storage JSON unless word-level editi
   "status": "succeeded",
   "model": "configured-gemini-model",
   "inputSegmentCount": 85,
+  "toolCalls": [
+    {
+      "tool": "cut_clip",
+      "timestampMs": 26000,
+      "label": "Clip 00:21.0-00:31.0 (around 00:26.0)",
+      "mimeType": "video/mp4",
+      "contentPath": "users/uid/projects/project-id/review-context/{analysisRunId}/{reviewerRunId}/00-cut_clip.mp4",
+      "ok": true
+    }
+  ],
   "findingCount": 4,
   "tokenUsage": {
     "input": 12000,

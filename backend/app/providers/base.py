@@ -5,6 +5,7 @@ interfaces, so all Google API usage lives in `app/providers/` and feature code s
 free of SDK imports and credentials handling.
 """
 
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
@@ -18,11 +19,54 @@ class LlmUsage:
 
 
 @dataclass(frozen=True)
+class MediaPart:
+    """One media attachment for a multimodal LLM call (image or short video).
+
+    `label` is a short human-readable tag (for example "frame @ 01:23") that the
+    provider prepends as text so the model can tell several attachments apart.
+    """
+
+    mime_type: str
+    data: bytes
+    label: str = ""
+
+
+@dataclass(frozen=True)
+class ToolSpec:
+    """A function the model may call, described in JSON-schema terms.
+
+    Feature code declares tools with this provider-neutral shape; the provider turns
+    them into SDK function declarations.
+    """
+
+    name: str
+    description: str
+    parameters: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class ToolCall:
+    """One function call the model made, plus the media the tool returned."""
+
+    name: str
+    arguments: dict[str, Any] = field(default_factory=dict)
+    media: tuple[MediaPart, ...] = ()
+    ok: bool = True
+    error: str = ""
+
+
+#: Executes a tool call and returns the media to show the model. Raising is treated as a
+#: failed tool call; the run continues without the attachment.
+ToolExecutor = Callable[[str, dict[str, Any]], Awaitable[Sequence[MediaPart]]]
+
+
+@dataclass(frozen=True)
 class LlmCompletion:
-    """A structured LLM answer plus what it cost in tokens."""
+    """A structured LLM answer plus what it cost in tokens and what tools it called."""
 
     data: dict[str, Any]
     usage: LlmUsage = field(default_factory=LlmUsage)
+    tool_calls: tuple[ToolCall, ...] = ()
 
 
 @runtime_checkable
@@ -35,7 +79,32 @@ class LlmProvider(Protocol):
         system: str,
         user: str,
         schema: dict[str, Any],
+        # Optional inline media (frames / short clips). Empty means text-only.
+        media: Sequence[MediaPart] = (),
     ) -> LlmCompletion: ...
+
+    async def complete_json_with_tools(
+        self,
+        *,
+        model: str,
+        prompt_version: str,
+        system: str,
+        user: str,
+        schema: dict[str, Any],
+        tools: Sequence[ToolSpec],
+        execute: ToolExecutor,
+        media: Sequence[MediaPart] = (),
+        max_tool_rounds: int = 2,
+        max_tool_calls: int = 4,
+    ) -> LlmCompletion:
+        """Run a function-calling loop, then return the final structured answer.
+
+        The model may call the supplied tools zero or more times; each call is handed to
+        `execute`, and whatever media it returns is attached to the function response so
+        the model can see it. The loop stops when the model answers with the schema or
+        the round/call budget is spent, and the final answer is parsed as JSON.
+        """
+        ...
 
 
 @runtime_checkable

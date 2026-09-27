@@ -18,6 +18,9 @@ class Transcript(BaseModel):
     language: str
     durationMs: int = Field(ge=0)
     segments: list[TranscriptSegment] = Field(default_factory=list)
+    # Speaker index -> short role/name inferred during transcript cleanup (for example
+    # {"0": "Host", "1": "Guest"}). Empty when the voices could not be named.
+    speakerLabels: dict[str, str] = Field(default_factory=dict)
 
 
 class TranscriptRecord(BaseModel):

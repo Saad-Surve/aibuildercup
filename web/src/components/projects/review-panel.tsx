@@ -12,6 +12,7 @@ import {
 import { Icon } from "@/components/common/icon";
 import { FindingsPanel } from "@/components/projects/findings-panel";
 import { HeatmapTracks } from "@/components/projects/heatmap-tracks";
+import { ReviewerFootage } from "@/components/projects/reviewer-footage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -354,6 +355,15 @@ export function ReviewPanel({
               selectedBinId={selectedBin?.binId ?? null}
               onSelectBin={(bin) => setSelectedBinId(bin?.binId ?? null)}
               severityFilter={severityFilter}
+            />
+          )}
+
+          {activeRunId && (
+            <ReviewerFootage
+              projectId={projectId}
+              analysisRunId={activeRunId}
+              reviewers={reviewers}
+              onSeek={onSeek}
             />
           )}
         </CardContent>

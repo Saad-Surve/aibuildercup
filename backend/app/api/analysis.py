@@ -17,6 +17,7 @@ from app.dependencies import (
     get_analysis_scheduler,
     get_analysis_service,
 )
+from app.errors import NotFoundError
 from app.events import build_event, topic_for_event
 from app.schemas.analysis import (
     AnalysisDimension,
@@ -24,6 +25,7 @@ from app.schemas.analysis import (
     AnalysisRun,
     AnalysisRunList,
     AnalysisStartResponse,
+    ContextArtifactUrl,
     FindingList,
     HeatmapResponse,
     ReviewerRunList,
@@ -33,7 +35,9 @@ from app.services.analysis_service import (
     AnalysisService,
     ensure_within_budget,
 )
+from app.services.firestore_service import project_object_prefix
 from app.services.pubsub_service import PubSubClient
+from app.services.storage_service import StorageClient, get_storage_client
 
 router = APIRouter(tags=["analysis"])
 
@@ -41,6 +45,10 @@ UserDep = Annotated[AuthenticatedUser, Depends(current_user)]
 ServiceDep = Annotated[AnalysisService, Depends(get_analysis_service)]
 SchedulerDep = Annotated[AnalysisScheduler, Depends(get_analysis_scheduler)]
 PubSubDep = Annotated[PubSubClient | None, Depends(get_analysis_pubsub)]
+StorageDep = Annotated[StorageClient, Depends(get_storage_client)]
+
+#: How long a reviewer-context signed URL stays valid.
+_CONTEXT_URL_TTL_SECONDS = 900
 
 
 @router.get("/projects/{projectId}/analysis", response_model=AnalysisRunList)
@@ -179,4 +187,46 @@ async def get_analysis_heatmap(
         bins=service.list_bins(
             owner_uid=user.uid, project_id=projectId, analysis_run_id=analysisRunId
         )
+    )
+
+
+@router.get(
+    "/projects/{projectId}/analysis/{analysisRunId}/reviewers/{reviewerRunId}"
+    "/context/{index}",
+    response_model=ContextArtifactUrl,
+)
+async def get_reviewer_context_artifact(
+    projectId: str,
+    analysisRunId: str,
+    reviewerRunId: str,
+    index: int,
+    user: UserDep,
+    service: ServiceDep,
+    storage: StorageDep,
+) -> ContextArtifactUrl:
+    """A signed URL for one frame/clip a reviewer fetched (lazy; only when the UI asks).
+
+    The stored path is verified to sit under the caller's project prefix before signing,
+    so a reviewer run can only ever serve its own project's footage.
+    """
+    reviewer = service.get_reviewer(
+        owner_uid=user.uid,
+        project_id=projectId,
+        analysis_run_id=analysisRunId,
+        reviewer_run_id=reviewerRunId,
+    )
+    if index < 0 or index >= len(reviewer.toolCalls):
+        raise NotFoundError(
+            "Footage not found",
+            details={"reviewerRunId": reviewerRunId, "index": index},
+        )
+    call = reviewer.toolCalls[index]
+    prefix = f"{project_object_prefix(user.uid, projectId)}review-context/"
+    if not call.contentPath or not call.contentPath.startswith(prefix):
+        raise NotFoundError("Footage not found", details={"reviewerRunId": reviewerRunId})
+    url = storage.signed_download_url(
+        call.contentPath, expires_seconds=_CONTEXT_URL_TTL_SECONDS
+    )
+    return ContextArtifactUrl(
+        url=url, contentType=call.mimeType, expiresIn=_CONTEXT_URL_TTL_SECONDS
     )

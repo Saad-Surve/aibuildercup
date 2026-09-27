@@ -35,6 +35,7 @@ from app.schemas.analysis import (
     HeatmapBin,
     ReviewerRun,
     ReviewerRunStatus,
+    ReviewerToolCall,
     Severity,
     TokenUsage,
     resolve_dimensions,
@@ -106,6 +107,18 @@ def _to_reviewer_run(reviewer_run_id: str, data: dict[str, Any]) -> ReviewerRun:
         durationMs=int(data.get("durationMs", 0)),
         model=data.get("model"),
         inputSegmentCount=int(data.get("inputSegmentCount", 0)),
+        toolCalls=[
+            ReviewerToolCall(
+                tool=str(entry.get("tool") or ""),
+                timestampMs=int(entry.get("timestampMs") or 0),
+                label=str(entry.get("label") or ""),
+                mimeType=str(entry.get("mimeType") or ""),
+                contentPath=str(entry.get("contentPath") or ""),
+                ok=bool(entry.get("ok", True)),
+            )
+            for entry in (data.get("toolCalls") or [])
+            if isinstance(entry, dict)
+        ],
         tokenUsage=TokenUsage(
             input=int(usage.get("input", 0)),
             output=int(usage.get("output", 0)),
@@ -371,6 +384,25 @@ class AnalysisService:
             key=lambda reviewer: _dimension_order(reviewer.dimension.value),
         )
 
+    def get_reviewer(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        analysis_run_id: str,
+        reviewer_run_id: str,
+    ) -> ReviewerRun:
+        """One reviewer run, for the footage-artifact lookup."""
+        path = reviewer_run_path(
+            owner_uid, project_id, analysis_run_id, reviewer_run_id
+        )
+        data = self.client.get_document(path)
+        if data is None or not is_owner(data, owner_uid):
+            raise NotFoundError(
+                "Reviewer run not found", details={"reviewerRunId": reviewer_run_id}
+            )
+        return _to_reviewer_run(reviewer_run_id, data)
+
     def list_findings(
         self,
         *,
@@ -496,6 +528,17 @@ class AnalysisService:
                 "durationMs": outcome.duration_ms,
                 "model": outcome.model,
                 "inputSegmentCount": outcome.input_segment_count,
+                "toolCalls": [
+                    {
+                        "tool": call.tool,
+                        "timestampMs": call.timestamp_ms,
+                        "label": call.label,
+                        "mimeType": call.mime_type,
+                        "contentPath": call.content_path,
+                        "ok": call.ok,
+                    }
+                    for call in outcome.tool_calls
+                ],
                 "tokenUsage": {
                     "input": outcome.usage.input_tokens,
                     "output": outcome.usage.output_tokens,

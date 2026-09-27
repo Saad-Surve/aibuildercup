@@ -25,11 +25,12 @@ from app.agents.cultural_agent import CulturalLocalizationReviewer
 from app.agents.emotion_agent import EmotionalImpactReviewer
 from app.agents.pacing_agent import PacingRetentionReviewer
 from app.agents.platform_agent import PlatformFitReviewer
-from app.agents.reviewer_base import LlmReviewer, ReviewContext, SegmentRef
+from app.agents.reviewer_base import LlmReviewer, ReviewContext, SegmentRef, ToolCallRecord
 from app.agents.safety_agent import LegalSafetyReviewer
 from app.agents.truth_agent import TruthEvidenceReviewer
 from app.providers.base import LlmProvider, LlmUsage
 from app.schemas.analysis import AnalysisDimension, Finding, ReviewerRunStatus
+from app.services.video_tools import ContextArtifactStore, MediaToolkit
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,8 @@ class DimensionOutcome:
     model: str | None = None
     input_segment_count: int = 0
     duration_ms: int = 0
+    #: Frames/clips the reviewer pulled in through the footage tools.
+    tool_calls: list[ToolCallRecord] = field(default_factory=list)
     started_at: datetime | None = None
     finished_at: datetime | None = None
     error: dict[str, Any] | None = None
@@ -86,15 +89,28 @@ def build_reviewers(
     *,
     model: str,
     dimensions: Sequence[AnalysisDimension],
+    visual_tools: MediaToolkit | None = None,
+    context_store: ContextArtifactStore | None = None,
 ) -> list[LlmReviewer]:
-    """Instantiate one reviewer per dimension, in canonical order."""
+    """Instantiate one reviewer per dimension, in canonical order.
+
+    `visual_tools` and `context_store` (when supplied) are shared by every reviewer: the
+    toolkit is stateless apart from the source video, and the store writes under the run.
+    """
     reviewers: list[LlmReviewer] = []
     for dimension in dimensions:
         reviewer_class = REVIEWER_CLASSES.get(dimension)
         if reviewer_class is None:  # pragma: no cover - enum is exhaustive
             logger.warning("no reviewer registered for %s; skipping", dimension)
             continue
-        reviewers.append(reviewer_class(llm, model=model))
+        reviewers.append(
+            reviewer_class(
+                llm,
+                model=model,
+                visual_tools=visual_tools,
+                context_store=context_store,
+            )
+        )
     return reviewers
 
 
@@ -215,6 +231,7 @@ async def run_dimension(
     findings: list[Finding] = []
     usage = LlmUsage()
     segment_count = 0
+    tool_calls: list[ToolCallRecord] = []
     failures: list[str] = []
     successes = 0
 
@@ -230,6 +247,7 @@ async def run_dimension(
                 continue
         successes += 1
         segment_count += len(context.segments)
+        tool_calls.extend(result.tool_calls)
         usage = add_usage(usage, result.usage)
         window_start = context.segments[0].start_ms
         window_end = context.segments[-1].end_ms
@@ -251,6 +269,7 @@ async def run_dimension(
             model=getattr(reviewer, "model", None),
             input_segment_count=segment_count,
             duration_ms=duration_ms,
+            tool_calls=tool_calls,
             started_at=started_at,
             finished_at=finished_at,
             error={"code": "REVIEWER_FAILED", "message": "; ".join(failures)[:500]},
@@ -264,6 +283,7 @@ async def run_dimension(
         model=getattr(reviewer, "model", None),
         input_segment_count=segment_count,
         duration_ms=duration_ms,
+        tool_calls=tool_calls,
         started_at=started_at,
         finished_at=finished_at,
         error=(

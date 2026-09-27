@@ -202,6 +202,18 @@ class AnalysisRun(BaseModel):
     updatedAt: datetime
 
 
+class ReviewerToolCall(BaseModel):
+    """One footage tool a reviewer called (for the UI's evidence trail)."""
+
+    tool: str
+    timestampMs: int = 0
+    label: str = ""
+    mimeType: str = ""
+    #: Cloud Storage object holding the frame/clip; empty when the call failed.
+    contentPath: str = ""
+    ok: bool = True
+
+
 class ReviewerRun(BaseModel):
     reviewerRunId: str
     dimension: AnalysisDimension
@@ -211,6 +223,8 @@ class ReviewerRun(BaseModel):
     durationMs: int = 0
     model: str | None = None
     inputSegmentCount: int = 0
+    #: Frames/clips the reviewer pulled in through the footage tools.
+    toolCalls: list[ReviewerToolCall] = Field(default_factory=list)
     tokenUsage: TokenUsage = Field(default_factory=TokenUsage)
     error: dict[str, Any] | None = None
     startedAt: datetime | None = None
@@ -221,6 +235,14 @@ class AnalysisStartResponse(BaseModel):
     analysisRunId: str
     jobId: str
     status: str
+
+
+class ContextArtifactUrl(BaseModel):
+    """A short-lived signed URL for one reviewer-fetched frame/clip."""
+
+    url: str
+    contentType: str = ""
+    expiresIn: int = 900
 
 
 class AnalysisRunList(BaseModel):

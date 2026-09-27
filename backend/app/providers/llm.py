@@ -3,15 +3,30 @@
 Thin wrapper over Gemini on Agent Platform (Vertex AI), authenticated with Application Default
 Credentials against `settings.project_id` / `settings.vertex_location`. Feature code calls this
 provider, never `google.genai` directly.
+
+Two entry points:
+
+- `complete_json`: one structured call (optionally with inline media).
+- `complete_json_with_tools`: a function-calling loop. The model may call the supplied tools;
+  each call is executed and its returned media is attached to the function response so the model
+  can *see* it before it answers. Used by the reviewers to pull a frame or clip mid-review.
 """
 
 import asyncio
 import json
 import logging
+from collections.abc import Sequence
 from typing import Any
 
 from app.config import Settings
-from app.providers.base import LlmCompletion, LlmUsage
+from app.providers.base import (
+    LlmCompletion,
+    LlmUsage,
+    MediaPart,
+    ToolCall,
+    ToolExecutor,
+    ToolSpec,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +49,108 @@ class LlmProvider:
         system: str,
         user: str,
         schema: dict[str, Any],
+        media: Sequence[MediaPart] = (),
     ) -> LlmCompletion:
         del prompt_version  # Part of the provider interface; unused by the live call.
-        return await self._real(model=model, system=system, user=user, schema=schema)
+        from google.genai import types
+
+        contents = [_user_content(types, user, media)]
+        result = await self._generate(
+            model=model, contents=contents, system=system, schema=schema, tools=None
+        )
+        return _completion_from(result)
+
+    async def complete_json_with_tools(
+        self,
+        *,
+        model: str,
+        prompt_version: str,
+        system: str,
+        user: str,
+        schema: dict[str, Any],
+        tools: Sequence[ToolSpec],
+        execute: ToolExecutor,
+        media: Sequence[MediaPart] = (),
+        max_tool_rounds: int = 2,
+        max_tool_calls: int = 4,
+    ) -> LlmCompletion:
+        del prompt_version
+        from google.genai import types
+
+        contents: list[Any] = [_user_content(types, user, media)]
+        declarations = _function_declarations(types, tools)
+        calls: list[ToolCall] = []
+        usage = LlmUsage()
+        calls_made = 0
+        result = None
+
+        for round_index in range(max(0, max_tool_rounds) + 1):
+            tools_allowed = round_index < max_tool_rounds and calls_made < max_tool_calls
+            result = await self._generate(
+                model=model,
+                contents=contents,
+                system=system,
+                schema=schema,
+                tools=declarations if tools_allowed else None,
+            )
+            usage = _add_usage(usage, _usage_from(result))
+            function_calls = list(result.function_calls or [])
+            if not tools_allowed or not function_calls:
+                break
+            content = result.candidates[0].content if result.candidates else None
+            if content is None:  # pragma: no cover - safety/finish without content
+                break
+            contents.append(content)
+
+            response_parts: list[Any] = []
+            for function_call in function_calls:
+                name = function_call.name or ""
+                arguments = dict(function_call.args or {})
+                if calls_made >= max_tool_calls:
+                    response_parts.append(
+                        types.Part.from_function_response(
+                            name=name,
+                            response={"status": "error", "detail": "tool budget reached"},
+                        )
+                    )
+                    continue
+                calls_made += 1
+                try:
+                    returned = list(await execute(name, arguments))
+                except Exception as exc:  # noqa: BLE001 - a failed tool must not sink the review
+                    logger.warning("LLM tool %s failed: %s", name, exc)
+                    calls.append(
+                        ToolCall(name=name, arguments=arguments, ok=False, error=str(exc)[:300])
+                    )
+                    response_parts.append(
+                        types.Part.from_function_response(
+                            name=name, response={"status": "error", "detail": str(exc)[:200]}
+                        )
+                    )
+                    continue
+                calls.append(
+                    ToolCall(name=name, arguments=arguments, media=tuple(returned), ok=True)
+                )
+                response_parts.append(
+                    types.Part.from_function_response(
+                        name=name,
+                        response={"status": "ok", "attachments": len(returned)},
+                        parts=[
+                            types.FunctionResponsePart.from_bytes(
+                                data=item.data, mime_type=item.mime_type
+                            )
+                            for item in returned
+                        ],
+                    )
+                )
+            contents.append(types.Content(role="user", parts=response_parts))
+
+        if result is None:  # pragma: no cover - loop always runs at least once
+            raise RuntimeError("LLM tool loop produced no result")
+        completion = _completion_from(result)
+        return LlmCompletion(
+            data=completion.data, usage=usage, tool_calls=tuple(calls)
+        )
 
     def _client(self) -> Any:
         """Build (once) the Agent Platform client.
@@ -59,18 +173,32 @@ class LlmProvider:
             )
         return self._cached_client
 
-    async def _real(
+    async def _generate(
         self,
         *,
         model: str,
+        contents: Any,
         system: str,
-        user: str,
         schema: dict[str, Any],
-    ) -> LlmCompletion:
+        tools: list[Any] | None,
+    ) -> Any:
+        """One `generate_content` call, retrying transient failures."""
         from google.genai import errors as genai_errors
 
         client = self._client()
-        logger.info("LLM call model=%s", model)
+        logger.info(
+            "LLM call model=%s tools=%s", model, len(tools) if tools else 0
+        )
+        config: dict[str, Any] = {
+            "system_instruction": system,
+            "response_mime_type": "application/json",
+            "response_schema": schema,
+        }
+        if tools:
+            # Declarations only: we execute the calls ourselves (plain `generate_content`
+            # cannot run SDK automatic function calling), so it is disabled explicitly.
+            config["tools"] = [_tool(tools)]
+            config["automatic_function_calling"] = {"disable": True}
 
         attempts = max(1, self.settings.llm_max_attempts)
         result = None
@@ -83,12 +211,8 @@ class LlmProvider:
                 result = await asyncio.to_thread(
                     client.models.generate_content,
                     model=model,
-                    contents=user,
-                    config={
-                        "system_instruction": system,
-                        "response_mime_type": "application/json",
-                        "response_schema": schema,
-                    },
+                    contents=contents,
+                    config=config,
                 )
                 break
             except genai_errors.APIError as exc:
@@ -108,10 +232,47 @@ class LlmProvider:
 
         if result is None:  # pragma: no cover - loop always returns or raises
             raise RuntimeError("LLM call produced no result")
-        text = result.text
-        if text is None:
-            raise RuntimeError("LLM returned an empty response")
-        return LlmCompletion(data=json.loads(text), usage=_usage_from(result))
+        return result
+
+
+def _tool(declarations: list[Any]) -> Any:
+    from google.genai import types
+
+    return types.Tool(function_declarations=declarations)
+
+
+def _user_content(types: Any, user: str, media: Sequence[MediaPart]) -> Any:
+    parts: list[Any] = [types.Part.from_text(text=user)]
+    for item in media:
+        if item.label:
+            parts.append(types.Part.from_text(text=item.label))
+        parts.append(types.Part.from_bytes(data=item.data, mime_type=item.mime_type))
+    return types.Content(role="user", parts=parts)
+
+
+def _function_declarations(types: Any, specs: Sequence[ToolSpec]) -> list[Any]:
+    return [
+        types.FunctionDeclaration(
+            name=spec.name,
+            description=spec.description,
+            parameters_json_schema=spec.parameters,
+        )
+        for spec in specs
+    ]
+
+
+def _completion_from(result: Any) -> LlmCompletion:
+    text = result.text
+    if text is None:
+        raise RuntimeError("LLM returned an empty response")
+    return LlmCompletion(data=json.loads(text), usage=_usage_from(result))
+
+
+def _add_usage(left: LlmUsage, right: LlmUsage) -> LlmUsage:
+    return LlmUsage(
+        input_tokens=left.input_tokens + right.input_tokens,
+        output_tokens=left.output_tokens + right.output_tokens,
+    )
 
 
 def _usage_from(result: Any) -> LlmUsage:

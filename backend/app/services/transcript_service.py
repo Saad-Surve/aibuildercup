@@ -153,6 +153,12 @@ def _to_transcript(
     segments: list[dict[str, Any]],
 ) -> Transcript:
     ordered = sorted(segments, key=lambda s: s.get("index", 0))
+    raw_labels = data.get("speakerLabels") or {}
+    speaker_labels = {
+        str(key): str(value)
+        for key, value in raw_labels.items()
+        if isinstance(value, str) and value.strip()
+    }
     return Transcript(
         transcriptId=transcript_id,
         language=data.get("language", "en"),
@@ -168,6 +174,7 @@ def _to_transcript(
             )
             for i, s in enumerate(ordered)
         ],
+        speakerLabels=speaker_labels,
     )
 
 
@@ -285,17 +292,26 @@ class TranscriptService:
         source_asset_id: str,
         language: str,
         words: list[dict[str, Any]],
+        segments: list[dict[str, Any]] | None = None,
+        speaker_labels: dict[str, str] | None = None,
     ) -> str:
-        """Persist a normalised transcript. Returns the transcript id."""
+        """Persist a normalised transcript. Returns the transcript id.
+
+        `segments` lets the transcribe worker pass the cleaned segments from the
+        transcript-repair pass; when omitted they are built from `words`. `speaker_labels`
+        is the inferred speaker-index-to-name map, when cleanup produced one.
+        """
         project = self.client.get_document(project_path(owner_uid, project_id))
         if project is None or not is_owner(project, owner_uid):
             raise NotFoundError("Project not found", details={"projectId": project_id})
 
-        segments = build_segments(words)
+        if segments is None:
+            segments = build_segments(words)
         duration_ms = max((w["endMs"] for w in words), default=0)
         version = int(project.get("transcriptVersionCounter", 0) or 0) + 1
         transcript_id = uuid4().hex
         now = datetime.now(UTC)
+        speaker_labels = speaker_labels or {}
 
         storage_path = transcript_object_path(owner_uid, project_id, version)
         vtt_path = transcript_vtt_object_path(owner_uid, project_id, language)
@@ -304,6 +320,7 @@ class TranscriptService:
             "version": version,
             "language": language,
             "speakerCount": _speaker_count(segments),
+            "speakerLabels": speaker_labels,
             "segments": [
                 {
                     "id": s["segmentId"],
@@ -340,6 +357,7 @@ class TranscriptService:
                 "wordCount": len(words),
                 "segmentCount": len(segments),
                 "speakerCount": _speaker_count(segments),
+                "speakerLabels": speaker_labels,
                 "createdAt": now,
                 "updatedAt": now,
             },

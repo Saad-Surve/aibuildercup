@@ -159,6 +159,8 @@ export interface Transcript {
   language: string;
   durationMs: number;
   segments: TranscriptSegment[];
+  /** Speaker index -> inferred role/name, e.g. { "0": "Host" }. */
+  speakerLabels?: Record<string, string>;
 }
 
 export interface TranscriptVersion {
@@ -234,6 +236,16 @@ export interface AnalysisRun {
   updatedAt: string;
 }
 
+export interface ReviewerToolCall {
+  tool: "extract_frame" | "cut_clip" | string;
+  timestampMs: number;
+  label: string;
+  mimeType: string;
+  /** Cloud Storage object for the fetched frame/clip; empty when the call failed. */
+  contentPath: string;
+  ok: boolean;
+}
+
 export interface ReviewerRun {
   reviewerRunId: string;
   dimension: AnalysisDimension;
@@ -243,6 +255,8 @@ export interface ReviewerRun {
   durationMs: number;
   model: string | null;
   inputSegmentCount: number;
+  /** Footage the reviewer fetched through the function-calling tools. */
+  toolCalls: ReviewerToolCall[];
   tokenUsage: TokenUsage;
   error: { code: string; message: string } | null;
   startedAt: string | null;
