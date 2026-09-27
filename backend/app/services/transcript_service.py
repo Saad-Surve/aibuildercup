@@ -388,6 +388,10 @@ class TranscriptService:
             language=language or str(current.get("language", "en")),
             segments=self._normalise_edited_segments(segments),
             version=int(project.get("transcriptVersionCounter", 0) or 0) + 1,
+            # An edit changes the words, not who is speaking or how long the media is:
+            # carry both forward so saving never wipes speaker names or shrinks the timeline.
+            speaker_labels=dict(current.get("speakerLabels") or {}),
+            duration_ms=int(current.get("durationMs", 0) or 0),
         )
         return self.get_by_id(
             owner_uid=owner_uid, project_id=project_id, transcript_id=transcript_id
