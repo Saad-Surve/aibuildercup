@@ -195,10 +195,14 @@ function TimestampInput({
 export function TranscriptEditor({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<TranscriptSegment[] | null>(null);
+  const [labelsDraft, setLabelsDraft] = useState<Record<string, string> | null>(
+    null,
+  );
   const [find, setFind] = useState("");
   const [replace, setReplace] = useState("");
   const [renameFrom, setRenameFrom] = useState("1");
   const [renameTo, setRenameTo] = useState("1");
+  const [renameName, setRenameName] = useState("");
   const [renameOpen, setRenameOpen] = useState(false);
   const [videoDurationMs, setVideoDurationMs] = useState<number | null>(null);
 
@@ -214,7 +218,8 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
 
   const transcript = transcriptQuery.data;
   const segments = draft ?? transcript?.segments ?? [];
-  const dirty = draft !== null;
+  const speakerLabels = labelsDraft ?? transcript?.speakerLabels ?? {};
+  const dirty = draft !== null || labelsDraft !== null;
   const sourceAsset = assetsQuery.data?.items.find(
     (asset) => asset.type === "source_video",
   );
@@ -240,6 +245,14 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
     updater: (current: TranscriptSegment[]) => TranscriptSegment[],
   ) {
     setDraft((previous) => updater(previous ?? transcript?.segments ?? []));
+  }
+
+  function applyToLabels(
+    updater: (current: Record<string, string>) => Record<string, string>,
+  ) {
+    setLabelsDraft((previous) =>
+      updater(previous ?? transcript?.speakerLabels ?? {}),
+    );
   }
 
   function updateSegment(segmentId: string, patch: Partial<TranscriptSegment>) {
@@ -334,11 +347,28 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
     const from = Number(renameFrom);
     const to = Number(renameTo);
     if (!Number.isFinite(from) || !Number.isFinite(to)) return;
-    applyToDraft((current) =>
-      current.map((segment) =>
-        segment.speaker === from ? { ...segment, speaker: to } : segment,
-      ),
-    );
+    const name = renameName.trim();
+    if (from !== to) {
+      applyToDraft((current) =>
+        current.map((segment) =>
+          segment.speaker === from ? { ...segment, speaker: to } : segment,
+        ),
+      );
+      // Moving one speaker's lines onto another must move its name too, or the
+      // label would point at an index no segment uses any more.
+      applyToLabels((current) => {
+        const next = { ...current };
+        if (next[String(from)] && !next[String(to)]) {
+          next[String(to)] = next[String(from)]!;
+        }
+        delete next[String(from)];
+        if (name) next[String(to)] = name;
+        return next;
+      });
+    } else if (name) {
+      applyToLabels((current) => ({ ...current, [String(to)]: name }));
+    }
+    setRenameName("");
     setRenameOpen(false);
   }
 
@@ -349,6 +379,7 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
       }
       return updateTranscript(projectId, {
         language: transcript?.language,
+        speakerLabels,
         segments: segments.map((segment, index) => ({
           ...segment,
           index,
@@ -361,6 +392,7 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
         queryKey: ["transcript-versions", projectId],
       });
       setDraft(null);
+      setLabelsDraft(null);
       toast.success("Transcript saved as a new version");
     },
     onError: (error) => toast.error(describe(error)),
@@ -510,8 +542,9 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
                     <DialogHeader>
                       <DialogTitle>Rename speaker</DialogTitle>
                       <DialogDescription>
-                        Move every line by one speaker onto another. Useful when
-                        diarization splits one voice in two.
+                        Move every line by one speaker onto another — useful
+                        when diarization splits one voice in two — and
+                        optionally give the speaker a name.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="grid grid-cols-2 gap-3">
@@ -539,6 +572,16 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
                           }
                           inputMode="numeric"
                           placeholder="1"
+                        />
+                      </Field>
+                      <Field className="col-span-2">
+                        <FieldLabel>Name</FieldLabel>
+                        <Input
+                          value={renameName}
+                          onChange={(event) =>
+                            setRenameName(event.target.value)
+                          }
+                          placeholder="Host"
                         />
                       </Field>
                     </div>
@@ -571,7 +614,10 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => setDraft(null)}
+                    onClick={() => {
+                      setDraft(null);
+                      setLabelsDraft(null);
+                    }}
                     disabled={!dirty || save.isPending}
                   >
                     <Icon icon={Cancel01Icon} />
@@ -669,16 +715,20 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
                           })
                         }
                       >
-                        <SelectTrigger className="w-14 shrink-0">
+                        <SelectTrigger className="min-w-14 max-w-24 shrink-0">
                           <SelectValue>
-                            {(value) => (value === "none" ? "—" : `S${value}`)}
+                            {(value) =>
+                              value === "none"
+                                ? "—"
+                                : (speakerLabels[String(value)] ?? `S${value}`)
+                            }
                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent className="min-w-0">
                           <SelectItem value="none">—</SelectItem>
                           {detectedSpeakers.map((speaker) => (
                             <SelectItem key={speaker} value={String(speaker)}>
-                              S{speaker}
+                              {speakerLabels[String(speaker)] ?? `S${speaker}`}
                             </SelectItem>
                           ))}
                         </SelectContent>

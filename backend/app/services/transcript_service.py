@@ -366,11 +366,14 @@ class TranscriptService:
         project_id: str,
         segments: list[dict[str, Any]],
         language: str | None = None,
+        speaker_labels: dict[str, str] | None = None,
     ) -> Transcript:
         """Save edited segments as a new active transcript version.
 
         Editing never mutates history: a new version is written and made active,
         so the version picker can always fall back to the machine transcript.
+        `speaker_labels` replaces the speaker index-to-name map; when omitted the
+        active transcript's labels are carried forward unchanged.
         """
         project = self.client.get_document(project_path(owner_uid, project_id))
         if project is None or not is_owner(project, owner_uid):
@@ -389,8 +392,13 @@ class TranscriptService:
             segments=self._normalise_edited_segments(segments),
             version=int(project.get("transcriptVersionCounter", 0) or 0) + 1,
             # An edit changes the words, not who is speaking or how long the media is:
-            # carry both forward so saving never wipes speaker names or shrinks the timeline.
-            speaker_labels=dict(current.get("speakerLabels") or {}),
+            # an explicit name map wins, otherwise carry the active transcript's labels
+            # forward so saving never wipes speaker names or shrinks the timeline.
+            speaker_labels=(
+                speaker_labels
+                if speaker_labels is not None
+                else dict(current.get("speakerLabels") or {})
+            ),
             duration_ms=int(current.get("durationMs", 0) or 0),
         )
         return self.get_by_id(

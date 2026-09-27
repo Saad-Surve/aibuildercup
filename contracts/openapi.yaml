@@ -930,6 +930,13 @@ components:
         segments:
           type: array
           items: { $ref: "#/components/schemas/TranscriptSegmentUpdate" }
+        speakerLabels:
+          type: [object, "null"]
+          additionalProperties: { type: string }
+          description: |
+            Speaker index to display name, e.g. { "0": "Host" }. Sent by the editor
+            when a speaker is renamed. Omitted or null keeps the active
+            transcript's labels.
 
     TranscriptVersion:
       type: object

@@ -142,7 +142,11 @@ export function retranscribeTranscript(
  */
 export function updateTranscript(
   projectId: string,
-  input: { language?: string | null; segments: TranscriptSegment[] },
+  input: {
+    language?: string | null;
+    speakerLabels?: Record<string, string> | null;
+    segments: TranscriptSegment[];
+  },
 ): Promise<Transcript> {
   return apiFetch<Transcript>(`/projects/${projectId}/transcript`, {
     method: "PUT",

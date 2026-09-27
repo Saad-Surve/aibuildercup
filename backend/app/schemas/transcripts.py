@@ -39,6 +39,7 @@ class TranscriptUpdate(BaseModel):
 
     language: str | None = None
     segments: list[TranscriptSegmentUpdate] = Field(default_factory=list)
+    speakerLabels: dict[str, str] | None = None
 
 
 class TranscriptRecord(BaseModel):

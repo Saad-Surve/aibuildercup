@@ -99,6 +99,7 @@ async def update_transcript(
         project_id=projectId,
         language=payload.language,
         segments=[segment.model_dump() for segment in payload.segments],
+        speaker_labels=payload.speakerLabels,
     )
 
 
