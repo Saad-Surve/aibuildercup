@@ -146,6 +146,8 @@ export function TranscriptPanel({
         .filter((speaker): speaker is number => speaker != null),
     ).size;
     const showSpeakers = speakerCount > 1;
+    const speakerName = (speaker: number) =>
+      transcript.speakerLabels?.[String(speaker)] ?? `S${speaker}`;
     const activeVersion = version ?? latestVersion;
 
     function handleExport(format: TranscriptExportFormat) {
