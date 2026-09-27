@@ -30,6 +30,12 @@ MAX_SEGMENT_MS = 8000
 
 _SENTENCE_END = (".", "?", "!", "。", "؟")
 
+#: Tolerance when the real media duration is known (ffprobe): only shave rounding slack.
+_MEDIA_TOLERANCE_MS = 1_000
+#: Tolerance when the duration is estimated from the words themselves: be generous so a
+#: legitimately late word is never dropped, only the corrupt outliers are.
+_ESTIMATE_TOLERANCE_MS = 60_000
+
 
 def normalize_words(response: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract and sanitise word timings from an STT provider response."""
@@ -55,6 +61,52 @@ def normalize_words(response: dict[str, Any]) -> list[dict[str, Any]]:
         )
     words.sort(key=lambda w: (w["startMs"], w["endMs"]))
     return words
+
+
+def sanitize_word_timings(
+    words: list[dict[str, Any]], duration_ms: int | None
+) -> tuple[list[dict[str, Any]], int]:
+    """Drop and clamp STT words whose timings run past the media.
+
+    Speech-to-Text occasionally emits a corrupt offset: a word starting minutes after the
+    video ended, or an end far beyond it (sometimes even before its own start). Those
+    produced segments past the end of the video. Given the real media duration (from
+    `probe_duration_ms`) the outliers are removed; without one, the duration is estimated
+    from the word timings with a generous margin. Returns the cleaned words and the
+    duration to store.
+    """
+    if not words:
+        return [], max(0, int(duration_ms or 0))
+
+    ends = sorted(int(word.get("endMs", 0)) for word in words)
+    if duration_ms and duration_ms > 0:
+        effective = int(duration_ms)
+        tolerance = _MEDIA_TOLERANCE_MS
+    else:
+        # Estimate from the 99th percentile, but never above the third-from-last value so a
+        # handful of corrupt trailing timestamps cannot drag the estimate up with them.
+        index = min(
+            int(round(0.99 * (len(ends) - 1))),
+            max(0, len(ends) - 3),
+        )
+        effective = ends[index]
+        tolerance = _ESTIMATE_TOLERANCE_MS
+    cutoff = effective + tolerance
+
+    cleaned: list[dict[str, Any]] = []
+    for word in words:
+        start = int(word.get("startMs", 0))
+        if start > cutoff:
+            continue
+        end = int(word.get("endMs", 0))
+        if end > cutoff:
+            end = max(start, effective)
+        if end < start:
+            end = start
+        cleaned.append({**word, "startMs": start, "endMs": end})
+
+    resolved = max(effective, max((word["endMs"] for word in cleaned), default=0))
+    return cleaned, resolved
 
 
 def build_segments(words: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -294,12 +346,14 @@ class TranscriptService:
         words: list[dict[str, Any]],
         segments: list[dict[str, Any]] | None = None,
         speaker_labels: dict[str, str] | None = None,
+        duration_ms: int | None = None,
     ) -> str:
         """Persist a normalised transcript. Returns the transcript id.
 
         `segments` lets the transcribe worker pass the cleaned segments from the
         transcript-repair pass; when omitted they are built from `words`. `speaker_labels`
-        is the inferred speaker-index-to-name map, when cleanup produced one.
+        is the inferred speaker-index-to-name map, when cleanup produced one. `duration_ms`
+        is the real media duration when known (so the transcript never outruns the video).
         """
         project = self.client.get_document(project_path(owner_uid, project_id))
         if project is None or not is_owner(project, owner_uid):
@@ -307,7 +361,8 @@ class TranscriptService:
 
         if segments is None:
             segments = build_segments(words)
-        duration_ms = max((w["endMs"] for w in words), default=0)
+        if duration_ms is None or duration_ms <= 0:
+            duration_ms = max((w["endMs"] for w in words), default=0)
         version = int(project.get("transcriptVersionCounter", 0) or 0) + 1
         transcript_id = uuid4().hex
         now = datetime.now(UTC)

@@ -11,6 +11,7 @@ import {
 
 import { Icon } from "@/components/common/icon";
 import { FindingsPanel } from "@/components/projects/findings-panel";
+import { GroundingPanel } from "@/components/projects/grounding-panel";
 import { HeatmapTracks } from "@/components/projects/heatmap-tracks";
 import { ReviewerFootage } from "@/components/projects/reviewer-footage";
 import { Button } from "@/components/ui/button";
@@ -366,6 +367,8 @@ export function ReviewPanel({
               onSeek={onSeek}
             />
           )}
+
+          {activeRunId && <GroundingPanel reviewers={reviewers} />}
         </CardContent>
       </Card>
 

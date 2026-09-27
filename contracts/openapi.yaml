@@ -1010,6 +1010,13 @@ components:
         contentType: { type: string }
         expiresIn: { type: integer }
 
+    ReviewerGroundingSource:
+      type: object
+      required: [title, url]
+      properties:
+        title: { type: string }
+        url: { type: string }
+
     ReviewerToolCall:
       type: object
       required: [tool]
@@ -1048,6 +1055,21 @@ components:
             (extract_frame / cut_clip) before finalising. Empty when it graded from the
             transcript alone.
           items: { $ref: "#/components/schemas/ReviewerToolCall" }
+        groundingQueries:
+          type: array
+          description: |
+            Web search queries the reviewer ran through Google Search grounding. Empty
+            for every dimension except `truth_evidence`.
+          items: { type: string }
+        groundingSources:
+          type: array
+          description: Sources the grounded reviewer used to verify claims.
+          items: { $ref: "#/components/schemas/ReviewerGroundingSource" }
+        groundingSearchSuggestions:
+          type: string
+          description: |
+            Google-provided "Search Suggestions" HTML. When non-empty it must be
+            rendered as provided (Google's terms for Grounding with Google Search).
         tokenUsage: { $ref: "#/components/schemas/TokenUsage" }
         error: { type: [object, "null"], additionalProperties: true }
         startedAt: { type: [string, "null"], format: date-time }

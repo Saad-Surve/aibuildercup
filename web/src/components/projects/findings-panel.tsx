@@ -208,6 +208,33 @@ function FindingRow({
         )}
       </button>
 
+      {/* Grounded reviewers cite the web sources behind a claim. */}
+      {finding.citations.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/60 px-3 py-1.5">
+          <span className="text-[11px] text-muted-foreground">Sources</span>
+          {finding.citations.map((citation, index) =>
+            citation.url ? (
+              <a
+                key={citation.url}
+                href={citation.url}
+                target="_blank"
+                rel="noreferrer"
+                className="max-w-[18rem] truncate text-[11px] text-signal underline-offset-2 hover:underline"
+              >
+                {citation.title || citation.url}
+              </a>
+            ) : (
+              <span
+                key={`${citation.title}-${index}`}
+                className="text-[11px] text-muted-foreground"
+              >
+                {citation.title}
+              </span>
+            ),
+          )}
+        </div>
+      )}
+
       {/* The transcript evidence is kept, but tucked away so rows stay scannable. */}
       {hasEvidence && (
         <details className="group border-t border-border/60">

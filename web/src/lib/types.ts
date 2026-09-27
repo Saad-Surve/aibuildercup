@@ -246,6 +246,11 @@ export interface ReviewerToolCall {
   ok: boolean;
 }
 
+export interface ReviewerGroundingSource {
+  title: string;
+  url: string;
+}
+
 export interface ReviewerRun {
   reviewerRunId: string;
   dimension: AnalysisDimension;
@@ -257,6 +262,12 @@ export interface ReviewerRun {
   inputSegmentCount: number;
   /** Footage the reviewer fetched through the function-calling tools. */
   toolCalls: ReviewerToolCall[];
+  /** Web search queries the grounded reviewer ran (truth_evidence only). */
+  groundingQueries: string[];
+  /** Sources the grounded reviewer verified claims against. */
+  groundingSources: ReviewerGroundingSource[];
+  /** Google-provided Search Suggestions HTML; must be displayed when non-empty. */
+  groundingSearchSuggestions: string;
   tokenUsage: TokenUsage;
   error: { code: string; message: string } | null;
   startedAt: string | null;
@@ -266,6 +277,11 @@ export interface ReviewerRun {
 export interface FindingEvidence {
   quote: string;
   critique_and_reasoning: string;
+}
+
+export interface FindingCitation {
+  title?: string;
+  url?: string;
 }
 
 export interface Finding {
@@ -281,7 +297,7 @@ export interface Finding {
   findingType: string;
   evidence: FindingEvidence;
   suggestion: string;
-  citations: Record<string, unknown>[];
+  citations: FindingCitation[];
 }
 
 export interface HeatmapBin {

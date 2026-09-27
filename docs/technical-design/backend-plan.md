@@ -229,6 +229,14 @@ Long audio uses batch recognition (sync only handles clips under 60 seconds). ST
 `us` multi-region, where the multilingual Chirp 3 model is available; `us-east1` is not a valid
 choice for the speech models.
 
+Chirp occasionally emits a corrupt offset - a word that starts minutes after the video ended, or
+an end far beyond it (sometimes before its own start), which showed up as a transcript segment
+at 46 minutes on a 17-minute video. Before segmenting, the worker probes the real media duration
+with ffprobe on a signed URL (`probe_duration_ms`) and `sanitize_word_timings` drops words that
+start past the end and clamps any end past it. When ffprobe is unavailable it falls back to a
+timing estimate. The stored transcript duration is the real media duration, so the heatmap can
+never outrun the player.
+
 After Chirp returns, one cheap LLM pass (`app/services/transcript_repair.py`,
 `MODEL_TRANSCRIPT_REPAIR`) proofreads the segments and infers speaker turns. It is deliberately
 conservative: it fixes only clear recognition errors (homophones, mangled proper nouns, split or
@@ -338,6 +346,24 @@ The truth reviewer should:
 5. Mark uncertain claims as needs_verification.
 
 It must not produce a confident factual verdict solely from model memory.
+
+**Implemented** with Grounding with Google Search. `TruthEvidenceReviewer` is the one
+reviewer that sets `supports_grounding`, so the worker hands it the `google_search` tool
+(`tools=[Tool(google_search=GoogleSearch())]`) alongside its findings `response_schema`.
+Gemini 3 supports grounding together with the footage function declarations and structured
+output; the model is instructed to search before judging, attach the sources it used to each
+finding's `sources`, and fall back to `needs_verification` when the web does not settle a
+claim. Grounding metadata (`webSearchQueries`, `groundingChunks`, `searchEntryPoint`) is
+carried on the reviewer run as `groundingQueries` / `groundingSources` /
+`groundingSearchSuggestions`; the per-finding sources land in `Finding.citations`.
+
+Operational notes: Gemini 3 bills **per individual search query** after 5,000 free
+queries/month (~$14 / 1,000). `TRUTH_GROUNDING_ENABLED` gates it. Google's terms require the
+Search Suggestions (`searchEntryPoint.renderedContent`) to be rendered exactly as provided
+whenever a grounded response is shown, and sources to be shown both inline and in aggregate -
+hence the "Grounded with Google Search" panel and the per-finding source links in the UI.
+In JSON mode `groundingChunks` can come back empty even when the model searched, so the
+model-emitted `sources` are the primary citation path.
 
 ### Two-tier fan-out
 

@@ -202,6 +202,13 @@ class AnalysisRun(BaseModel):
     updatedAt: datetime
 
 
+class ReviewerGroundingSource(BaseModel):
+    """One web source the reviewer verified a claim against."""
+
+    title: str = ""
+    url: str = ""
+
+
 class ReviewerToolCall(BaseModel):
     """One footage tool a reviewer called (for the UI's evidence trail)."""
 
@@ -225,6 +232,11 @@ class ReviewerRun(BaseModel):
     inputSegmentCount: int = 0
     #: Frames/clips the reviewer pulled in through the footage tools.
     toolCalls: list[ReviewerToolCall] = Field(default_factory=list)
+    #: Web grounding: the search queries run and the sources used (empty when not grounded).
+    groundingQueries: list[str] = Field(default_factory=list)
+    groundingSources: list[ReviewerGroundingSource] = Field(default_factory=list)
+    #: Google-provided Search Suggestions HTML; must be rendered when present.
+    groundingSearchSuggestions: str = ""
     tokenUsage: TokenUsage = Field(default_factory=TokenUsage)
     error: dict[str, Any] | None = None
     startedAt: datetime | None = None

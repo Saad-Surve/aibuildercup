@@ -247,6 +247,7 @@ async def run_analysis(
         dimensions=dimensions,
         visual_tools=visual_tools,
         context_store=context_store,
+        grounding_enabled=settings.truth_grounding_enabled,
     )
     completed: list[DimensionOutcome] = []
     all_findings: list[Finding] = []

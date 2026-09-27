@@ -379,6 +379,9 @@ Keep word-level data in the canonical Cloud Storage JSON unless word-level editi
       "ok": true
     }
   ],
+  "groundingQueries": [],
+  "groundingSources": [],
+  "groundingSearchSuggestions": "",
   "findingCount": 4,
   "tokenUsage": {
     "input": 12000,

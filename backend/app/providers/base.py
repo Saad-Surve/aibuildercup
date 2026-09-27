@@ -61,12 +61,35 @@ ToolExecutor = Callable[[str, dict[str, Any]], Awaitable[Sequence[MediaPart]]]
 
 
 @dataclass(frozen=True)
+class GroundingSource:
+    """One web source returned by Search grounding."""
+
+    title: str = ""
+    uri: str = ""
+    domain: str = ""
+
+
+@dataclass(frozen=True)
+class GroundingInfo:
+    """What Search grounding produced for a call, for citations and the UI."""
+
+    queries: tuple[str, ...] = ()
+    sources: tuple[GroundingSource, ...] = ()
+    #: Google-provided "Search Suggestions" HTML. Must be displayed when present.
+    search_suggestions_html: str = ""
+
+    def is_empty(self) -> bool:
+        return not (self.queries or self.sources or self.search_suggestions_html)
+
+
+@dataclass(frozen=True)
 class LlmCompletion:
     """A structured LLM answer plus what it cost in tokens and what tools it called."""
 
     data: dict[str, Any]
     usage: LlmUsage = field(default_factory=LlmUsage)
     tool_calls: tuple[ToolCall, ...] = ()
+    grounding: GroundingInfo | None = None
 
 
 @runtime_checkable
@@ -81,6 +104,8 @@ class LlmProvider(Protocol):
         schema: dict[str, Any],
         # Optional inline media (frames / short clips). Empty means text-only.
         media: Sequence[MediaPart] = (),
+        # When set, give the model Google Search grounding.
+        grounding: bool = False,
     ) -> LlmCompletion: ...
 
     async def complete_json_with_tools(
@@ -96,6 +121,8 @@ class LlmProvider(Protocol):
         media: Sequence[MediaPart] = (),
         max_tool_rounds: int = 2,
         max_tool_calls: int = 4,
+        # When set, Google Search is offered alongside the custom tools (Gemini 3).
+        grounding: bool = False,
     ) -> LlmCompletion:
         """Run a function-calling loop, then return the final structured answer.
 

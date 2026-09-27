@@ -20,6 +20,8 @@ from typing import Any
 
 from app.config import Settings
 from app.providers.base import (
+    GroundingInfo,
+    GroundingSource,
     LlmCompletion,
     LlmUsage,
     MediaPart,
@@ -50,13 +52,19 @@ class LlmProvider:
         user: str,
         schema: dict[str, Any],
         media: Sequence[MediaPart] = (),
+        grounding: bool = False,
     ) -> LlmCompletion:
         del prompt_version  # Part of the provider interface; unused by the live call.
         from google.genai import types
 
         contents = [_user_content(types, user, media)]
         result = await self._generate(
-            model=model, contents=contents, system=system, schema=schema, tools=None
+            model=model,
+            contents=contents,
+            system=system,
+            schema=schema,
+            function_declarations=None,
+            grounding=grounding,
         )
         return _completion_from(result)
 
@@ -73,6 +81,7 @@ class LlmProvider:
         media: Sequence[MediaPart] = (),
         max_tool_rounds: int = 2,
         max_tool_calls: int = 4,
+        grounding: bool = False,
     ) -> LlmCompletion:
         del prompt_version
         from google.genai import types
@@ -81,6 +90,7 @@ class LlmProvider:
         declarations = _function_declarations(types, tools)
         calls: list[ToolCall] = []
         usage = LlmUsage()
+        searched = GroundingInfo()
         calls_made = 0
         result = None
 
@@ -91,9 +101,11 @@ class LlmProvider:
                 contents=contents,
                 system=system,
                 schema=schema,
-                tools=declarations if tools_allowed else None,
+                function_declarations=declarations if tools_allowed else None,
+                grounding=grounding,
             )
             usage = _add_usage(usage, _usage_from(result))
+            searched = _merge_grounding(searched, _grounding_from(result))
             function_calls = list(result.function_calls or [])
             if not tools_allowed or not function_calls:
                 break
@@ -148,8 +160,12 @@ class LlmProvider:
         if result is None:  # pragma: no cover - loop always runs at least once
             raise RuntimeError("LLM tool loop produced no result")
         completion = _completion_from(result)
+        grounded = _merge_grounding(searched, completion.grounding or GroundingInfo())
         return LlmCompletion(
-            data=completion.data, usage=usage, tool_calls=tuple(calls)
+            data=completion.data,
+            usage=usage,
+            tool_calls=tuple(calls),
+            grounding=None if grounded.is_empty() else grounded,
         )
 
     def _client(self) -> Any:
@@ -180,25 +196,36 @@ class LlmProvider:
         contents: Any,
         system: str,
         schema: dict[str, Any],
-        tools: list[Any] | None,
+        function_declarations: list[Any] | None,
+        grounding: bool = False,
     ) -> Any:
         """One `generate_content` call, retrying transient failures."""
         from google.genai import errors as genai_errors
+        from google.genai import types
 
         client = self._client()
         logger.info(
-            "LLM call model=%s tools=%s", model, len(tools) if tools else 0
+            "LLM call model=%s tools=%s grounding=%s",
+            model,
+            len(function_declarations) if function_declarations else 0,
+            grounding,
         )
         config: dict[str, Any] = {
             "system_instruction": system,
             "response_mime_type": "application/json",
             "response_schema": schema,
         }
-        if tools:
+        tool_entries: list[Any] = []
+        if function_declarations:
             # Declarations only: we execute the calls ourselves (plain `generate_content`
             # cannot run SDK automatic function calling), so it is disabled explicitly.
-            config["tools"] = [_tool(tools)]
+            tool_entries.append(_tool(function_declarations))
             config["automatic_function_calling"] = {"disable": True}
+        if grounding:
+            # Google Search grounding. Gemini 3 supports it alongside the declarations.
+            tool_entries.append(types.Tool(google_search=types.GoogleSearch()))
+        if tool_entries:
+            config["tools"] = tool_entries
 
         attempts = max(1, self.settings.llm_max_attempts)
         result = None
@@ -265,7 +292,63 @@ def _completion_from(result: Any) -> LlmCompletion:
     text = result.text
     if text is None:
         raise RuntimeError("LLM returned an empty response")
-    return LlmCompletion(data=json.loads(text), usage=_usage_from(result))
+    return LlmCompletion(
+        data=json.loads(text),
+        usage=_usage_from(result),
+        grounding=_grounding_from(result),
+    )
+
+
+def _grounding_from(result: Any) -> GroundingInfo:
+    """Read grounding metadata (queries, web sources, Search Suggestions) off a result."""
+    candidates = getattr(result, "candidates", None) or []
+    metadata = getattr(candidates[0], "grounding_metadata", None) if candidates else None
+    if metadata is None:
+        return GroundingInfo()
+    queries = tuple(getattr(metadata, "web_search_queries", None) or [])
+    sources: list[GroundingSource] = []
+    for chunk in getattr(metadata, "grounding_chunks", None) or []:
+        web = getattr(chunk, "web", None)
+        if web is None:
+            continue
+        sources.append(
+            GroundingSource(
+                title=getattr(web, "title", "") or "",
+                uri=getattr(web, "uri", "") or "",
+                domain=getattr(web, "domain", "") or "",
+            )
+        )
+    suggestions = ""
+    entry_point = getattr(metadata, "search_entry_point", None)
+    if entry_point is not None:
+        suggestions = getattr(entry_point, "rendered_content", "") or ""
+    return GroundingInfo(
+        queries=queries,
+        sources=tuple(sources),
+        search_suggestions_html=suggestions,
+    )
+
+
+def _merge_grounding(left: GroundingInfo, right: GroundingInfo) -> GroundingInfo:
+    """Union two grounding results (a tool loop makes several search calls)."""
+    queries = list(left.queries)
+    for query in right.queries:
+        if query not in queries:
+            queries.append(query)
+    sources = list(left.sources)
+    seen = {source.uri for source in sources}
+    for source in right.sources:
+        if source.uri and source.uri in seen:
+            continue
+        sources.append(source)
+        seen.add(source.uri)
+    return GroundingInfo(
+        queries=tuple(queries),
+        sources=tuple(sources),
+        search_suggestions_html=(
+            left.search_suggestions_html or right.search_suggestions_html
+        ),
+    )
 
 
 def _add_usage(left: LlmUsage, right: LlmUsage) -> LlmUsage:

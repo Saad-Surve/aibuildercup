@@ -162,6 +162,48 @@ def run_ffmpeg(args: list[str], *, timeout_seconds: int) -> bytes:
     return completed.stdout
 
 
+def probe_duration_ms(
+    source: str, *, ffprobe_path: str = "ffprobe", timeout_seconds: int = 30
+) -> int | None:
+    """Real media duration via `ffprobe`, or None when unavailable/unreadable.
+
+    `source` may be a local path or a signed URL. Returns None (never raises) so callers
+    can fall back to estimating from the transcript.
+    """
+    if not source or shutil.which(ffprobe_path) is None:
+        return None
+    try:
+        completed = subprocess.run(
+            [
+                ffprobe_path,
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=nw=1:nk=1",
+                source,
+            ],
+            capture_output=True,
+            timeout=timeout_seconds,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if completed.returncode != 0:
+        return None
+    lines = completed.stdout.decode("utf-8", "replace").strip().splitlines()
+    if not lines:
+        return None
+    try:
+        seconds = float(lines[-1])
+    except ValueError:
+        return None
+    if seconds <= 0:
+        return None
+    return int(seconds * 1000)
+
+
 class MediaToolkit:
     """Executes reviewer visual-context requests against one source video.
 
@@ -303,6 +345,7 @@ __all__ = [
     "VideoToolError",
     "ffmpeg_available",
     "format_timestamp",
+    "probe_duration_ms",
     "review_tool_specs",
     "run_ffmpeg",
 ]

@@ -79,6 +79,10 @@ class DimensionOutcome:
     duration_ms: int = 0
     #: Frames/clips the reviewer pulled in through the footage tools.
     tool_calls: list[ToolCallRecord] = field(default_factory=list)
+    #: Web grounding: search queries and sources (title/url), when the reviewer searched.
+    grounding_queries: list[str] = field(default_factory=list)
+    grounding_sources: list[dict[str, Any]] = field(default_factory=list)
+    grounding_html: str = ""
     started_at: datetime | None = None
     finished_at: datetime | None = None
     error: dict[str, Any] | None = None
@@ -91,11 +95,14 @@ def build_reviewers(
     dimensions: Sequence[AnalysisDimension],
     visual_tools: MediaToolkit | None = None,
     context_store: ContextArtifactStore | None = None,
+    grounding_enabled: bool = False,
 ) -> list[LlmReviewer]:
     """Instantiate one reviewer per dimension, in canonical order.
 
     `visual_tools` and `context_store` (when supplied) are shared by every reviewer: the
     toolkit is stateless apart from the source video, and the store writes under the run.
+    `grounding_enabled` is passed to every reviewer, but only the ones that declare
+    `supports_grounding` actually search.
     """
     reviewers: list[LlmReviewer] = []
     for dimension in dimensions:
@@ -109,6 +116,7 @@ def build_reviewers(
                 model=model,
                 visual_tools=visual_tools,
                 context_store=context_store,
+                grounding_enabled=grounding_enabled,
             )
         )
     return reviewers
@@ -232,6 +240,9 @@ async def run_dimension(
     usage = LlmUsage()
     segment_count = 0
     tool_calls: list[ToolCallRecord] = []
+    grounding_queries: list[str] = []
+    grounding_sources: list[dict[str, Any]] = []
+    grounding_html = ""
     failures: list[str] = []
     successes = 0
 
@@ -248,6 +259,26 @@ async def run_dimension(
         successes += 1
         segment_count += len(context.segments)
         tool_calls.extend(result.tool_calls)
+        if result.grounding is not None:
+            for query in result.grounding.queries:
+                if query not in grounding_queries:
+                    grounding_queries.append(query)
+            seen_urls = {source.get("url") for source in grounding_sources}
+            for source in result.grounding.sources:
+                url = source.uri or ""
+                if url and url in seen_urls:
+                    continue
+                grounding_sources.append(
+                    {
+                        "title": source.title or source.domain or url,
+                        "url": url,
+                        "domain": source.domain,
+                    }
+                )
+                seen_urls.add(url)
+            grounding_html = (
+                grounding_html or result.grounding.search_suggestions_html
+            )
         usage = add_usage(usage, result.usage)
         window_start = context.segments[0].start_ms
         window_end = context.segments[-1].end_ms
@@ -256,6 +287,21 @@ async def run_dimension(
                 result.findings, start_ms=window_start, end_ms=window_end
             )
         )
+
+    # Grounding metadata can come back empty in JSON mode, so fold the sources the model
+    # cited on its findings into the aggregate list the UI shows.
+    seen_urls = {source.get("url") for source in grounding_sources}
+    for finding in findings:
+        for citation in finding.citations:
+            if not isinstance(citation, dict):
+                continue
+            url = str(citation.get("url") or "").strip()
+            if not url or url in seen_urls:
+                continue
+            grounding_sources.append(
+                {"title": str(citation.get("title") or url), "url": url, "domain": ""}
+            )
+            seen_urls.add(url)
 
     finished_at = datetime.now(UTC)
     duration_ms = int((time.monotonic() - started) * 1000)
@@ -270,6 +316,9 @@ async def run_dimension(
             input_segment_count=segment_count,
             duration_ms=duration_ms,
             tool_calls=tool_calls,
+            grounding_queries=grounding_queries,
+            grounding_sources=grounding_sources,
+            grounding_html=grounding_html,
             started_at=started_at,
             finished_at=finished_at,
             error={"code": "REVIEWER_FAILED", "message": "; ".join(failures)[:500]},
@@ -284,6 +333,9 @@ async def run_dimension(
         input_segment_count=segment_count,
         duration_ms=duration_ms,
         tool_calls=tool_calls,
+        grounding_queries=grounding_queries,
+        grounding_sources=grounding_sources,
+        grounding_html=grounding_html,
         started_at=started_at,
         finished_at=finished_at,
         error=(

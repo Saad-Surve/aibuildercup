@@ -59,6 +59,14 @@ class Settings(BaseSettings):
     visual_tool_max_rounds: int = 2
     visual_clip_window_seconds: int = 5
     ffmpeg_path: str = "ffmpeg"
+    #: ffprobe is used to read the true media duration so corrupt STT timestamps can be
+    #: dropped (Chirp occasionally emits words past the end of the video).
+    ffprobe_path: str = "ffprobe"
+
+    # Truth reviewer: verify hard claims against Google Search instead of model memory.
+    # Gemini 3 only; billed per search query after 5k free/month, so only the truth
+    # reviewer opts in (see `TruthEvidenceReviewer.supports_grounding`).
+    truth_grounding_enabled: bool = True
 
     # Speech-to-Text location. Chirp 3 (multilingual, language-agnostic transcription) is GA on
     # the `us` multi-region but not in `us-central1`, so STT is the one service that does not use

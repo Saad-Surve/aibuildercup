@@ -33,6 +33,7 @@ from app.schemas.analysis import (
     Finding,
     FindingEvidence,
     HeatmapBin,
+    ReviewerGroundingSource,
     ReviewerRun,
     ReviewerRunStatus,
     ReviewerToolCall,
@@ -119,6 +120,18 @@ def _to_reviewer_run(reviewer_run_id: str, data: dict[str, Any]) -> ReviewerRun:
             for entry in (data.get("toolCalls") or [])
             if isinstance(entry, dict)
         ],
+        groundingQueries=[
+            str(query) for query in (data.get("groundingQueries") or []) if query
+        ],
+        groundingSources=[
+            ReviewerGroundingSource(
+                title=str(entry.get("title") or ""),
+                url=str(entry.get("url") or ""),
+            )
+            for entry in (data.get("groundingSources") or [])
+            if isinstance(entry, dict)
+        ],
+        groundingSearchSuggestions=str(data.get("groundingSearchSuggestions") or ""),
         tokenUsage=TokenUsage(
             input=int(usage.get("input", 0)),
             output=int(usage.get("output", 0)),
@@ -539,6 +552,9 @@ class AnalysisService:
                     }
                     for call in outcome.tool_calls
                 ],
+                "groundingQueries": outcome.grounding_queries,
+                "groundingSources": outcome.grounding_sources,
+                "groundingSearchSuggestions": outcome.grounding_html,
                 "tokenUsage": {
                     "input": outcome.usage.input_tokens,
                     "output": outcome.usage.output_tokens,

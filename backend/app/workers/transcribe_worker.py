@@ -11,6 +11,7 @@ Idempotent: a job that already reached a terminal state (`succeeded`/`failed`/`c
 is left untouched so retried Pub/Sub deliveries converge.
 """
 
+import asyncio
 import logging
 import os
 from typing import Any
@@ -36,9 +37,15 @@ from app.services.job_service import JobService
 from app.services.media import extract_aac_track, mux_m4a
 from app.services.project_service import ProjectService
 from app.services.pubsub_service import PubSubClient, get_pubsub_client
-from app.services.storage_service import get_storage_client
+from app.services.storage_service import StorageClient, get_storage_client
 from app.services.transcript_repair import repair_transcript
-from app.services.transcript_service import TranscriptService, build_segments, normalize_words
+from app.services.transcript_service import (
+    TranscriptService,
+    build_segments,
+    normalize_words,
+    sanitize_word_timings,
+)
+from app.services.video_tools import ffmpeg_available, probe_duration_ms
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +172,15 @@ async def run_transcribe(
         response = retry_response
         logger.info("transcribe job %s: normalized-audio retry accepted", job_id)
 
+    media_duration_ms = await _probe_media_duration(
+        storage=transcripts.storage,
+        storage_path=asset["storagePath"],
+        settings=settings,
+        job_id=job_id,
+    )
     words = normalize_words(response)
+    # Chirp sometimes emits offsets past the end of the video; drop those before segmenting.
+    words, duration_ms = sanitize_word_timings(words, media_duration_ms)
     language = response.get("language") or _project_language(firestore, owner_uid, project_id)
     jobs.update_progress(
         owner_uid=owner_uid,
@@ -199,8 +214,6 @@ async def run_transcribe(
         segments = repair.segments
         speaker_labels = repair.speaker_labels
 
-    duration_ms = max((w["endMs"] for w in words), default=0)
-
     transcript_id = transcripts.save(
         owner_uid=owner_uid,
         project_id=project_id,
@@ -209,6 +222,7 @@ async def run_transcribe(
         words=words,
         segments=segments,
         speaker_labels=speaker_labels,
+        duration_ms=duration_ms,
     )
     firestore.update_document(
         asset_path(owner_uid, project_id, asset_id), {"status": "ready", "durationMs": duration_ms}
@@ -258,6 +272,34 @@ def _failure_message(exc: BaseException) -> str:
     if not detail:
         return "Transcription failed. Retry from the workspace."
     return f"Transcription failed: {detail}"
+
+
+async def _probe_media_duration(
+    *, storage: StorageClient, storage_path: str, settings: Settings, job_id: str
+) -> int | None:
+    """Real media duration via ffprobe on a signed URL, or None to estimate from words."""
+    if not ffmpeg_available(settings.ffprobe_path):
+        logger.info(
+            "transcribe job %s: ffprobe (%s) unavailable; estimating duration",
+            job_id,
+            settings.ffprobe_path,
+        )
+        return None
+    try:
+        source = storage.signed_download_url(storage_path, expires_seconds=900)
+    except Exception:  # noqa: BLE001 - the length probe is best-effort
+        logger.warning(
+            "transcribe job %s: cannot sign the source for a length probe",
+            job_id,
+            exc_info=True,
+        )
+        return None
+    duration = await asyncio.to_thread(
+        probe_duration_ms, source, ffprobe_path=settings.ffprobe_path
+    )
+    if duration:
+        logger.info("transcribe job %s: media duration %.1fs", job_id, duration / 1000)
+    return duration
 
 
 async def _retry_with_normalized_audio(

@@ -33,6 +33,8 @@ findingType vocabulary (severity in brackets):
 class TruthEvidenceReviewer(LlmReviewer):
     dimension = AnalysisDimension.truth_evidence
     focus = FOCUS
+    #: The one reviewer that verifies claims against the web instead of memory.
+    supports_grounding = True
     finding_types = (
         "supported_claim",
         "needs_verification",

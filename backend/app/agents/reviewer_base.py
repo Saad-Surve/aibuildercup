@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 from uuid import uuid4
 
-from app.providers.base import LlmProvider, LlmUsage, MediaPart
+from app.providers.base import GroundingInfo, LlmProvider, LlmUsage, MediaPart
 from app.schemas.analysis import (
     AnalysisDimension,
     Finding,
@@ -87,7 +87,13 @@ alone. In particular, before you assign severity "high" or "critical" to a findi
 evidence could be visual, fetch the footage and confirm. Do not call the tools for purely
 spoken-language judgements. You may make at most {max_calls} call(s); one well-chosen clip
 often beats several stills. After the footage comes back you will see it and produce the
-final findings, so do not restate the transcript - judge what you actually saw.
+final findings; use it to sharpen severity, not to narrow your coverage.
+
+COVERAGE. Footage is an aid, not a gate. Report every genuine issue your dimension covers in
+this window: if the transcript alone already justifies a finding, report it whether or not
+you fetched footage; if the footage only changes how serious it is, adjust the severity and
+still report it. Do not stop at the first finding when the window has more, and do not
+withhold a finding just because you could not confirm it visually.
 """
 
 OUTPUT_RULES = """\
@@ -107,14 +113,87 @@ OUTPUT RULES:
    settled from the transcript alone, use findingType "needs_verification".
 8. Return JSON only, matching the schema you are given. No markdown, no commentary."""
 
+GROUNDING_PROMPT = """\
+GROUNDING WITH GOOGLE SEARCH. You have Google Search, and you must use it. For every hard
+factual claim (a statistic, a date, a scientific or causal mechanism, a universal or
+superlative assertion):
+- Search before you judge. Never decide a claim's truth from memory alone.
+- Put the sources you actually used on each finding in `sources` (title + url). Quote only
+  what the source supports; do not invent or guess a source.
+- If the sources do not settle the claim, use findingType "needs_verification" instead of
+  asserting a verdict.
+- A clear source that contradicts the spoken claim is a "false_claim"; a source that backs
+  an unusually well-evidenced claim is a "supported_claim" (severity none, score 5)."""
 
-def findings_schema(finding_types: Sequence[str]) -> dict[str, Any]:
+
+def findings_schema(
+    finding_types: Sequence[str], *, grounded: bool = False
+) -> dict[str, Any]:
     """JSON schema for one reviewer's output.
 
     Property order matters: autoregressive models generate keys in order, so `evidence`
     (reasoning) precedes `severity`/`score` to force reason-then-grade. `findingType` is
-    constrained to that reviewer's vocabulary so the model cannot invent types.
+    constrained to that reviewer's vocabulary so the model cannot invent types. When
+    `grounded` is set, each finding also carries the `sources` it was verified against.
     """
+    item_properties: dict[str, Any] = {
+        "segmentId": {"type": "string"},
+        "startMs": {"type": "integer"},
+        "endMs": {"type": "integer"},
+        "evidence": {
+            "type": "object",
+            "properties": {
+                "quote": {"type": "string", "maxLength": 300},
+                "critique_and_reasoning": {
+                    "type": "string",
+                    "description": (
+                        "Analyze why this specific line succeeds or fails "
+                        "before scoring."
+                    ),
+                },
+            },
+            "required": ["quote", "critique_and_reasoning"],
+        },
+        "findingType": {
+            "type": "string",
+            "enum": list(finding_types) or ["observation"],
+        },
+        "severity": {
+            "type": "string",
+            "enum": [severity.value for severity in Severity],
+        },
+        "score": {"type": "integer", "minimum": 1, "maximum": 5},
+        "suggestion": {
+            "type": "string",
+            "description": (
+                "Concrete rewrite or editorial action; empty only when severity is none."
+            ),
+        },
+    }
+    required = [
+        "segmentId",
+        "startMs",
+        "endMs",
+        "evidence",
+        "findingType",
+        "severity",
+        "score",
+        "suggestion",
+    ]
+    if grounded:
+        item_properties["sources"] = {
+            "type": "array",
+            "description": "Web sources you used to verify this claim (title + url).",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "url": {"type": "string"},
+                },
+                "required": ["title", "url"],
+            },
+        }
+        required.append("sources")
     return {
         "type": "object",
         "properties": {
@@ -122,55 +201,8 @@ def findings_schema(finding_types: Sequence[str]) -> dict[str, Any]:
                 "type": "array",
                 "items": {
                     "type": "object",
-                    "properties": {
-                        "segmentId": {"type": "string"},
-                        "startMs": {"type": "integer"},
-                        "endMs": {"type": "integer"},
-                        "evidence": {
-                            "type": "object",
-                            "properties": {
-                                "quote": {"type": "string", "maxLength": 300},
-                                "critique_and_reasoning": {
-                                    "type": "string",
-                                    "description": (
-                                        "Analyze why this specific line succeeds or fails "
-                                        "before scoring."
-                                    ),
-                                },
-                            },
-                            "required": ["quote", "critique_and_reasoning"],
-                        },
-                        "findingType": {
-                            "type": "string",
-                            "enum": list(finding_types) or ["observation"],
-                        },
-                        "severity": {
-                            "type": "string",
-                            "enum": [severity.value for severity in Severity],
-                        },
-                        "score": {"type": "integer", "minimum": 1, "maximum": 5},
-                        "suggestion": {
-                            "type": "string",
-                            "description": (
-                                "Concrete rewrite or editorial action; empty only when "
-                                "severity is none."
-                            ),
-                        },
-                        "citations": {
-                            "type": "array",
-                            "items": {"type": "object"},
-                        },
-                    },
-                    "required": [
-                        "segmentId",
-                        "startMs",
-                        "endMs",
-                        "evidence",
-                        "findingType",
-                        "severity",
-                        "score",
-                        "suggestion",
-                    ],
+                    "properties": item_properties,
+                    "required": required,
                 },
             }
         },
@@ -228,6 +260,7 @@ class ReviewResult:
     findings: tuple[Finding, ...] = ()
     usage: LlmUsage = field(default_factory=LlmUsage)
     tool_calls: tuple[ToolCallRecord, ...] = ()
+    grounding: GroundingInfo | None = None
 
     @property
     def visual_context_count(self) -> int:
@@ -269,11 +302,11 @@ def build_system_prompt(
     visual_tools: bool = False,
     max_tool_calls: int = 0,
     clip_window_seconds: int = 5,
+    grounding: bool = False,
 ) -> str:
     """Shared role + anchors + rules, with the dimension rubric spliced in.
 
-    When `visual_tools` is set the reviewer is also told it may call the footage tools
-    during the review.
+    `visual_tools` adds the footage tools; `grounding` adds the Google Search policy.
     """
     sections = [
         ROLE.format(
@@ -291,6 +324,8 @@ def build_system_prompt(
                 max_calls=max(1, max_tool_calls),
             )
         )
+    if grounding:
+        sections.append(GROUNDING_PROMPT)
     return "\n\n".join(sections)
 
 
@@ -405,6 +440,22 @@ def normalize_findings(
     return findings
 
 
+def _normalize_citations(entry: dict[str, Any]) -> list[dict[str, Any]]:
+    """Collect citations from either an explicit `citations` list or grounded `sources`."""
+    citations: list[dict[str, Any]] = []
+    for item in entry.get("citations") or []:
+        if isinstance(item, dict):
+            citations.append(item)
+    for source in entry.get("sources") or []:
+        if not isinstance(source, dict):
+            continue
+        url = str(source.get("url") or source.get("uri") or "").strip()
+        title = str(source.get("title") or source.get("domain") or "").strip()
+        if url or title:
+            citations.append({"title": title or url, "url": url})
+    return citations
+
+
 def _normalize_one(
     entry: Any,
     *,
@@ -454,10 +505,7 @@ def _normalize_one(
 
     raw_evidence = entry.get("evidence")
     evidence: dict[str, Any] = raw_evidence if isinstance(raw_evidence, dict) else {}
-    citations = entry.get("citations")
-    if not isinstance(citations, list):
-        citations = []
-    citations = [item for item in citations if isinstance(item, dict)]
+    citations = _normalize_citations(entry)
 
     return Finding(
         findingId=uuid4().hex,
@@ -508,6 +556,8 @@ class LlmReviewer:
     focus: str = ""
     #: Allowed `findingType` values. Constrains the schema so the model cannot invent types.
     finding_types: tuple[str, ...] = ()
+    #: Subclasses that benefit from web verification set this; the worker still gates it.
+    supports_grounding: bool = False
 
     def __init__(
         self,
@@ -516,11 +566,13 @@ class LlmReviewer:
         model: str,
         visual_tools: MediaToolkit | None = None,
         context_store: ContextArtifactStore | None = None,
+        grounding_enabled: bool = False,
     ) -> None:
         self.llm = llm
         self.model = model
         self.visual_tools = visual_tools
         self.context_store = context_store
+        self.grounding = bool(grounding_enabled and type(self).supports_grounding)
 
     async def review(
         self, context: ReviewContext, *, reviewer_run_id: str = ""
@@ -533,8 +585,10 @@ class LlmReviewer:
             clip_window_seconds=(
                 self.visual_tools.window_seconds if self.visual_tools else 5
             ),
+            grounding=self.grounding,
         )
         user = build_user_prompt(context, self.dimension)
+        schema = findings_schema(self.finding_types, grounded=self.grounding)
 
         if self.visual_tools is None:
             completion = await self.llm.complete_json(
@@ -542,11 +596,13 @@ class LlmReviewer:
                 prompt_version=REVIEWER_PROMPT_VERSION,
                 system=system,
                 user=user,
-                schema=findings_schema(self.finding_types),
+                schema=schema,
+                grounding=self.grounding,
             )
             return ReviewResult(
                 findings=tuple(self._normalize(completion.data, context, reviewer_run_id)),
                 usage=completion.usage,
+                grounding=completion.grounding,
             )
 
         toolkit = self.visual_tools
@@ -590,16 +646,18 @@ class LlmReviewer:
             prompt_version=REVIEWER_PROMPT_VERSION,
             system=system,
             user=user,
-            schema=findings_schema(self.finding_types),
+            schema=schema,
             tools=review_tool_specs(clip_window_seconds=toolkit.window_seconds),
             execute=execute,
             max_tool_rounds=toolkit.max_rounds,
             max_tool_calls=toolkit.max_requests,
+            grounding=self.grounding,
         )
         return ReviewResult(
             findings=tuple(self._normalize(completion.data, context, reviewer_run_id)),
             usage=completion.usage,
             tool_calls=tuple(records),
+            grounding=completion.grounding,
         )
 
     def _normalize(
@@ -616,6 +674,7 @@ class LlmReviewer:
 
 __all__ = [
     "DIMENSION_LABELS",
+    "GROUNDING_PROMPT",
     "LlmReviewer",
     "MODEL_CONFIG_VERSION",
     "OUTPUT_RULES",
