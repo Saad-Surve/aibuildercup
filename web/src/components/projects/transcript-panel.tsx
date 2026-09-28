@@ -229,7 +229,7 @@ export function TranscriptPanel({
                     className="text-muted-foreground"
                   />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-64">
                   {TRANSCRIPT_EXPORT_FORMATS.map((option) => (
                     <DropdownMenuItem
                       key={option.value}

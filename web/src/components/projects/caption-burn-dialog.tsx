@@ -372,7 +372,6 @@ export function CaptionBurnDialog({
   function update(patch: Partial<CaptionStyle>) {
     setSelected({ ...style, ...patch });
   }
-
   const isRendering =
     createMutation.isPending ||
     Boolean(activeRender) ||
