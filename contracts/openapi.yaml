@@ -410,6 +410,86 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/TranscriptSegment" }
 
+  /api/caption-presets:
+    get:
+      summary: List caption style presets
+      description: |
+        Presets the web customizer mirrors. The same definitions drive the server-side ASS
+        builder, so the on-screen preview and the rendered video cannot drift.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CaptionPresetList" }
+
+  /api/projects/{projectId}/captions/renders:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: List caption renders, newest first
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CaptionRenderList" }
+    post:
+      summary: Burn a styled transcript onto the source video
+      description: |
+        Queues a `caption_render` job. FFmpeg overlays the transcript (the active version, or
+        `transcriptVersion` when given) as a styled ASS track using the bundled fonts. The
+        burned MP4 and the generated ASS are stored under the project prefix, so project and
+        account deletion remove them with no extra wiring.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CaptionRenderRequest" }
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CaptionRenderAccepted" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/projects/{projectId}/captions/renders/{captionRenderId}:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { name: captionRenderId, in: path, required: true, schema: { type: string } }
+    get:
+      summary: Get one caption render
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CaptionRender" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      summary: Delete a caption render and its media
+      responses:
+        "204": { description: Deleted }
+
+  /api/projects/{projectId}/captions/renders/{captionRenderId}/download-url:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { name: captionRenderId, in: path, required: true, schema: { type: string } }
+    get:
+      summary: Signed download URL for a ready captioned video
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DownloadUrl" }
+        "400":
+          description: The render is not ready yet
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/projects/{projectId}/analysis:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
@@ -954,6 +1034,101 @@ components:
         items:
           type: array
           items: { $ref: "#/components/schemas/TranscriptVersion" }
+
+    CaptionStyle:
+      type: object
+      description: |
+        How burned captions look. Sizes are pixels at a 1080-tall reference frame and are
+        scaled to the real video, so one preset fits landscape and vertical footage.
+      properties:
+        preset: { type: string, default: clean }
+        fontFamily: { type: string, enum: [Montserrat, Poppins], default: Montserrat }
+        fontSize: { type: integer, minimum: 18, maximum: 140, default: 54 }
+        bold: { type: boolean, default: true }
+        italic: { type: boolean, default: false }
+        uppercase: { type: boolean, default: false }
+        textColor: { type: string, pattern: "^#[0-9A-Fa-f]{6}$", default: "#FFFFFF" }
+        outlineColor: { type: string, pattern: "^#[0-9A-Fa-f]{6}$", default: "#000000" }
+        outlineWidth: { type: integer, minimum: 0, maximum: 16, default: 3 }
+        shadow: { type: integer, minimum: 0, maximum: 16, default: 2 }
+        background: { type: string, enum: [outline, box, none], default: outline }
+        backgroundColor: { type: string, pattern: "^#[0-9A-Fa-f]{6}$", default: "#000000" }
+        backgroundOpacity: { type: integer, minimum: 0, maximum: 100, default: 60 }
+        position: { type: string, enum: [top, middle, bottom], default: bottom }
+        marginV: { type: integer, minimum: 0, maximum: 600, default: 72 }
+        maxCharsPerLine: { type: integer, minimum: 12, maximum: 64, default: 32 }
+        maxLines: { type: integer, minimum: 1, maximum: 4, default: 2 }
+        highlightEnabled:
+          type: boolean
+          default: false
+          description: Karaoke highlight — spoken words fill with `highlightColor`.
+        highlightColor: { type: string, pattern: "^#[0-9A-Fa-f]{6}$", default: "#FFD400" }
+        speakerLabels:
+          type: boolean
+          default: false
+          description: Prefix each cue with the speaker name when there is more than one voice.
+
+    CaptionRenderRequest:
+      type: object
+      properties:
+        style: { $ref: "#/components/schemas/CaptionStyle" }
+        transcriptVersion:
+          type: [integer, "null"]
+          description: Render a specific saved transcript version; defaults to the active one.
+        fileName: { type: [string, "null"], maxLength: 200 }
+
+    CaptionPreset:
+      type: object
+      properties:
+        id: { type: string }
+        label: { type: string }
+        description: { type: string }
+        style: { $ref: "#/components/schemas/CaptionStyle" }
+
+    CaptionPresetList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/CaptionPreset" }
+
+    CaptionRender:
+      type: object
+      properties:
+        captionRenderId: { type: string }
+        projectId: { type: string }
+        status: { type: string, enum: [queued, rendering, ready, failed] }
+        style: { $ref: "#/components/schemas/CaptionStyle" }
+        sourceAssetId: { type: [string, "null"] }
+        sourceTranscriptId: { type: [string, "null"] }
+        transcriptVersion: { type: [integer, "null"] }
+        fileName: { type: [string, "null"] }
+        storagePath: { type: [string, "null"] }
+        assStoragePath: { type: [string, "null"] }
+        mimeType: { type: string }
+        sizeBytes: { type: integer }
+        durationMs: { type: integer }
+        width: { type: integer }
+        height: { type: integer }
+        jobId: { type: [string, "null"] }
+        error: { type: [object, "null"], additionalProperties: true }
+        downloadUrl: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    CaptionRenderList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/CaptionRender" }
+
+    CaptionRenderAccepted:
+      type: object
+      properties:
+        captionRenderId: { type: string }
+        jobId: { type: string }
+        status: { type: string }
 
     AnalysisDimension:
       type: string

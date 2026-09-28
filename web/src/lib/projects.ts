@@ -2,6 +2,10 @@ import { apiFetch } from "@/lib/api-client";
 import type {
   AcceptedJob,
   AssetList,
+  CaptionPreset,
+  CaptionRender,
+  CaptionRenderAccepted,
+  CaptionStyle,
   CreateProjectInput,
   Job,
   DownloadUrl,
@@ -167,6 +171,46 @@ export function getDownloadUrl(
 ): Promise<DownloadUrl> {
   return apiFetch<DownloadUrl>(
     `/projects/${projectId}/assets/${assetId}/download-url`,
+  );
+}
+
+// --------------------------------------------------------------------- captions
+
+/** Style presets offered by the backend; the preview and the render share them. */
+export function listCaptionPresets(): Promise<{ items: CaptionPreset[] }> {
+  return apiFetch<{ items: CaptionPreset[] }>("/caption-presets");
+}
+
+/** Queue a burn-in of the transcript onto the project's source video. */
+export function createCaptionRender(
+  projectId: string,
+  input: {
+    style: CaptionStyle;
+    transcriptVersion?: number | null;
+    fileName?: string | null;
+  },
+): Promise<CaptionRenderAccepted> {
+  return apiFetch<CaptionRenderAccepted>(
+    `/projects/${projectId}/captions/renders`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+export function listCaptionRenders(
+  projectId: string,
+): Promise<{ items: CaptionRender[] }> {
+  return apiFetch<{ items: CaptionRender[] }>(
+    `/projects/${projectId}/captions/renders`,
+  );
+}
+
+export function deleteCaptionRender(
+  projectId: string,
+  captionRenderId: string,
+): Promise<void> {
+  return apiFetch<void>(
+    `/projects/${projectId}/captions/renders/${captionRenderId}`,
+    { method: "DELETE" },
   );
 }
 

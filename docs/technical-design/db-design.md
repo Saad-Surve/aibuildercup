@@ -47,6 +47,7 @@ users/{uid}
 │   │   └── events/{eventId}
 │   ├── transcripts/{transcriptId}
 │   │   └── segments/{segmentId}
+│   ├── captionRenders/{captionRenderId}
 │   ├── analysisRuns/{analysisRunId}
 │   │   ├── reviewers/{reviewerRunId}
 │   │   ├── findings/{findingId}
@@ -238,7 +239,7 @@ AI-inferred changes remain pending until the user explicitly approves them.
 {
   "ownerUid": "uid",
   "projectId": "project-id",
-  "type": "upload | transcribe | analyze | sync_social | sentiment | clip | thumbnail | localize | dub | text_content | veo | export",
+  "type": "upload | transcribe | analyze | sync_social | sentiment | clip | thumbnail | localize | dub | text_content | veo | export | caption_render",
   "status": "running",
   "idempotencyKey": "transcribe-project-id-asset-id-v1",
   "requestedBy": "user | system | chat",
@@ -324,6 +325,56 @@ AI-inferred changes remain pending until the user explicitly approves them.
 ~~~
 
 Keep word-level data in the canonical Cloud Storage JSON unless word-level editing is required.
+
+### users/{uid}/projects/{projectId}/captionRenders/{captionRenderId}
+
+One request to burn a transcript onto the source video with a chosen caption style. Media lives
+under the project prefix (`renders/captions/{captionRenderId}.mp4` and `.ass`), so recursive
+project/account deletion covers it.
+
+~~~json
+{
+  "ownerUid": "uid",
+  "projectId": "project-id",
+  "status": "queued | rendering | ready | failed",
+  "style": {
+    "preset": "karaoke",
+    "fontFamily": "Poppins",
+    "fontSize": 56,
+    "bold": true,
+    "uppercase": false,
+    "textColor": "#FFFFFF",
+    "outlineColor": "#000000",
+    "outlineWidth": 4,
+    "shadow": 2,
+    "background": "outline",
+    "backgroundColor": "#000000",
+    "backgroundOpacity": 60,
+    "position": "bottom",
+    "marginV": 72,
+    "maxCharsPerLine": 32,
+    "maxLines": 2,
+    "highlightEnabled": true,
+    "highlightColor": "#7CFF6B",
+    "speakerLabels": true
+  },
+  "sourceAssetId": "asset-id",
+  "sourceTranscriptId": "transcript-id",
+  "transcriptVersion": null,
+  "fileName": "avengers doomsday analysis",
+  "storagePath": "users/uid/projects/project-id/renders/captions/render-id.mp4",
+  "assStoragePath": "users/uid/projects/project-id/renders/captions/render-id.ass",
+  "mimeType": "video/mp4",
+  "sizeBytes": 106800000,
+  "durationMs": 784950,
+  "width": 1280,
+  "height": 720,
+  "jobId": "job-id",
+  "error": null,
+  "createdAt": "timestamp",
+  "updatedAt": "timestamp"
+}
+~~~
 
 ### users/{uid}/projects/{projectId}/analysisRuns/{analysisRunId}
 

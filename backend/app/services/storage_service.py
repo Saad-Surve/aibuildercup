@@ -46,6 +46,12 @@ class StorageClient(Protocol):
 
     def upload_bytes(self, path: str, data: bytes, *, content_type: str) -> None: ...
 
+    def upload_from_filename(self, path: str, local_path: str, *, content_type: str) -> None: ...
+
+    def download_to_filename(self, path: str, local_path: str) -> None: ...
+
+    def object_size(self, path: str) -> int | None: ...
+
     def download_bytes(self, path: str) -> bytes: ...
 
     def object_exists(self, path: str) -> bool: ...
@@ -134,9 +140,27 @@ class GoogleStorageClient:
         blob = self._bucket.blob(validate_object_path(path))
         blob.upload_from_string(data, content_type=content_type)
 
+    def upload_from_filename(
+        self, path: str, local_path: str, *, content_type: str
+    ) -> None:
+        """Stream a local file to Cloud Storage without loading it into memory."""
+        blob = self._bucket.blob(validate_object_path(path))
+        blob.upload_from_filename(local_path, content_type=content_type)
+
     def download_bytes(self, path: str) -> bytes:
         blob = self._bucket.blob(validate_object_path(path))
         return blob.download_as_bytes()
+
+    def download_to_filename(self, path: str, local_path: str) -> None:
+        """Stream an object to a local file without loading it into memory."""
+        blob = self._bucket.blob(validate_object_path(path))
+        blob.download_to_filename(local_path)
+
+    def object_size(self, path: str) -> int | None:
+        blob = self._bucket.get_blob(validate_object_path(path))
+        if blob is None:
+            return None
+        return int(blob.size or 0)
 
     def object_exists(self, path: str) -> bool:
         return bool(self._bucket.blob(validate_object_path(path)).exists())

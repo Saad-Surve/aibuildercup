@@ -63,6 +63,12 @@ class Settings(BaseSettings):
     #: dropped (Chirp occasionally emits words past the end of the video).
     ffprobe_path: str = "ffprobe"
 
+    # Caption burn-in: sources up to this size are downloaded to the worker's temp dir before
+    # encoding. Local files probe reliably (fragmented MP4s otherwise make a remote ffprobe
+    # scan the whole object) and seek faster; larger sources are streamed from a signed URL
+    # instead so the temp disk cannot fill up.
+    caption_max_source_download_bytes: int = 300_000_000
+
     # Truth reviewer: verify hard claims against Google Search instead of model memory.
     # Gemini 3 only; billed per search query after 5k free/month, so only the truth
     # reviewer opts in (see `TruthEvidenceReviewer.supports_grounding`).

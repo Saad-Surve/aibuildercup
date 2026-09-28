@@ -16,6 +16,7 @@ users/{uid}
     ├── assets/{assetId}
     ├── jobs/{jobId}/events/{eventId}
     ├── transcripts/{transcriptId}/segments/{segmentId}
+    ├── captionRenders/{captionRenderId}
     ├── analysisRuns/{analysisRunId}
     │   ├── reviewers/{reviewerRunId}
     │   ├── findings/{findingId}

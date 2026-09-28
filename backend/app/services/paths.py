@@ -131,6 +131,28 @@ def transcript_srt_object_path(uid: str, project_id: str, language: str) -> str:
     return f"{project_path(uid, project_id)}/captions/{safe_language}.srt"
 
 
+def caption_renders_collection_path(uid: str, project_id: str) -> str:
+    return f"{project_path(uid, project_id)}/captionRenders"
+
+
+def caption_render_path(uid: str, project_id: str, caption_render_id: str) -> str:
+    return (
+        f"{caption_renders_collection_path(uid, project_id)}/"
+        f"{safe_segment(caption_render_id, name='captionRenderId')}"
+    )
+
+
+def caption_render_object_path(
+    uid: str, project_id: str, caption_render_id: str, extension: str
+) -> str:
+    """Burned-video and generated ASS objects: `.../renders/captions/{id}.{ext}`."""
+    segment = safe_segment(caption_render_id, name="captionRenderId")
+    ext = extension.lower().lstrip(".")
+    if not ext.isalnum():
+        raise InvalidPathSegment(f"Invalid extension: {extension!r}")
+    return f"{project_path(uid, project_id)}/renders/captions/{segment}.{ext}"
+
+
 def analysis_runs_collection_path(uid: str, project_id: str) -> str:
     return f"{project_path(uid, project_id)}/analysisRuns"
 

@@ -11,6 +11,7 @@ from app.config import get_settings
 from app.providers import get_providers
 from app.services.analysis_service import AnalysisService
 from app.services.asset_service import AssetService
+from app.services.caption_service import CaptionRenderService
 from app.services.firestore_service import get_firestore_client
 from app.services.job_service import JobService
 from app.services.persona_service import PersonaService
@@ -20,6 +21,7 @@ from app.services.storage_service import get_storage_client
 from app.services.transcript_service import TranscriptService
 from app.services.user_service import UserService
 from app.workers.analysis_worker import analysis_after_response
+from app.workers.caption_worker import caption_render_after_response
 from app.workers.transcribe_worker import transcribe_after_response
 
 
@@ -61,6 +63,30 @@ def get_identity_deleter() -> Callable[[str], None]:
 
 def get_transcript_service() -> TranscriptService:
     return TranscriptService(get_firestore_client(), storage=get_storage_client())
+
+
+def get_caption_service() -> CaptionRenderService:
+    client = get_firestore_client()
+    storage = get_storage_client()
+    projects = ProjectService(client, storage=storage)
+    transcripts = TranscriptService(client, storage=storage)
+    return CaptionRenderService(
+        client,
+        projects=projects,
+        jobs=JobService(client),
+        transcripts=transcripts,
+        storage=storage,
+        url_ttl_seconds=get_settings().upload_url_ttl_seconds,
+    )
+
+
+# (background_tasks, *, owner_uid, project_id, job_id) -> None. Injected so tests can
+# record scheduling without running the worker.
+CaptionScheduler = Callable[..., None]
+
+
+def get_caption_scheduler() -> CaptionScheduler:
+    return caption_render_after_response
 
 
 # (background_tasks, *, owner_uid, project_id, job_id) -> None. Injected so tests can

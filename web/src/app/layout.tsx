@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import {
   Geist_Mono,
+  Montserrat,
   Playfair_Display,
+  Poppins,
   Schibsted_Grotesk,
 } from "next/font/google";
 import { ThemeProvider } from "next-themes";
@@ -27,6 +29,21 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
+// Caption preview fonts. These mirror the TTF families bundled for the FFmpeg burn-in
+// (`backend/app/assets/fonts`), so the dialog preview matches the rendered video.
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const poppins = Poppins({
+  variable: "--font-poppins",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Resonance — Creator Helper Studio",
   description: "AI review studio for creators.",
@@ -37,7 +54,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${schibsted.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
+      className={`${schibsted.variable} ${geistMono.variable} ${playfair.variable} ${montserrat.variable} ${poppins.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider

@@ -323,3 +323,75 @@ export interface StartAnalysisResponse {
   jobId: string;
   status: string;
 }
+
+// --------------------------------------------------------------------- captions
+
+export type CaptionFontFamily = "Montserrat" | "Poppins";
+export type CaptionBackground = "outline" | "box" | "none";
+export type CaptionPosition = "top" | "middle" | "bottom";
+export type CaptionRenderStatus = "queued" | "rendering" | "ready" | "failed";
+
+/**
+ * How burned captions look. Sized in pixels at a 1080-tall reference frame; the
+ * backend scales them to the real video, so one style fits landscape and vertical.
+ */
+export interface CaptionStyle {
+  preset: string;
+  fontFamily: CaptionFontFamily;
+  fontSize: number;
+  bold: boolean;
+  italic: boolean;
+  uppercase: boolean;
+  textColor: string;
+  outlineColor: string;
+  outlineWidth: number;
+  shadow: number;
+  background: CaptionBackground;
+  backgroundColor: string;
+  backgroundOpacity: number;
+  position: CaptionPosition;
+  marginV: number;
+  maxCharsPerLine: number;
+  maxLines: number;
+  /** Karaoke: spoken words fill with `highlightColor`. */
+  highlightEnabled: boolean;
+  highlightColor: string;
+  /** Prefix each cue with the speaker name when there is more than one voice. */
+  speakerLabels: boolean;
+}
+
+export interface CaptionPreset {
+  id: string;
+  label: string;
+  description: string;
+  style: CaptionStyle;
+}
+
+export interface CaptionRender {
+  captionRenderId: string;
+  projectId: string;
+  status: CaptionRenderStatus;
+  style: CaptionStyle;
+  sourceAssetId: string | null;
+  sourceTranscriptId: string | null;
+  transcriptVersion: number | null;
+  fileName: string | null;
+  storagePath: string | null;
+  assStoragePath: string | null;
+  mimeType: string;
+  sizeBytes: number;
+  durationMs: number;
+  width: number;
+  height: number;
+  jobId: string | null;
+  error: { code?: string; message?: string } | null;
+  downloadUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CaptionRenderAccepted {
+  captionRenderId: string;
+  jobId: string;
+  status: string;
+}

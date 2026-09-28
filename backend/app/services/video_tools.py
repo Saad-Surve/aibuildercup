@@ -204,6 +204,65 @@ def probe_duration_ms(
     return int(seconds * 1000)
 
 
+def run_ffmpeg_command(args: list[str], *, timeout_seconds: int) -> None:
+    """Run FFmpeg writing to a file/named output (no stdout capture of media)."""
+    try:
+        completed = subprocess.run(
+            args, capture_output=True, timeout=timeout_seconds, check=False
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise VideoToolError(f"ffmpeg timed out after {timeout_seconds}s") from exc
+    if completed.returncode != 0:
+        detail = completed.stderr.decode("utf-8", "replace").strip().splitlines()
+        tail = " | ".join(detail[-3:]) if detail else "ffmpeg failed"
+        raise VideoToolError(tail)
+
+
+def probe_video_size(
+    source: str, *, ffprobe_path: str = "ffprobe", timeout_seconds: int = 30
+) -> tuple[int, int] | None:
+    """First video stream width/height via `ffprobe`, or None when unreadable.
+
+    `source` may be a local path or a signed URL. Never raises; callers fall back to a
+    default frame so styling can still be computed.
+    """
+    if not source or shutil.which(ffprobe_path) is None:
+        return None
+    try:
+        completed = subprocess.run(
+            [
+                ffprobe_path,
+                "-v",
+                "error",
+                "-select_streams",
+                "v:0",
+                "-show_entries",
+                "stream=width,height",
+                "-of",
+                "csv=s=x:p=0",
+                source,
+            ],
+            capture_output=True,
+            timeout=timeout_seconds,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if completed.returncode != 0:
+        return None
+    text = completed.stdout.decode("utf-8", "replace").strip()
+    if "x" not in text:
+        return None
+    width_text, _, height_text = text.partition("x")
+    try:
+        width, height = int(width_text), int(height_text)
+    except ValueError:
+        return None
+    if width <= 0 or height <= 0:
+        return None
+    return width, height
+
+
 class MediaToolkit:
     """Executes reviewer visual-context requests against one source video.
 
@@ -346,6 +405,8 @@ __all__ = [
     "ffmpeg_available",
     "format_timestamp",
     "probe_duration_ms",
+    "probe_video_size",
     "review_tool_specs",
     "run_ffmpeg",
+    "run_ffmpeg_command",
 ]

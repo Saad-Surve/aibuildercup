@@ -18,6 +18,7 @@ class JobType(StrEnum):
     text_content = "text_content"
     veo = "veo"
     export = "export"
+    caption_render = "caption_render"
 
 
 class JobStatus(StrEnum):
