@@ -50,7 +50,6 @@ import {
 } from "@/lib/projects";
 import type { CaptionRender, CaptionStyle } from "@/lib/types";
 
-const PREVIEW_SCALE = 0.3;
 const SAMPLE_LINES = ["This is how your captions", "will look on the video"];
 
 function errorMessage(error: unknown, fallback: string): string {
@@ -78,9 +77,26 @@ function statusVariant(status: CaptionRender["status"]) {
 
 /** Static approximation of the burned caption, styled with the chosen options. */
 function StylePreview({ style }: { style: CaptionStyle }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  // The backend authors sizes against a 1080-tall reference frame, so the preview scales
+  // its own height over 1080 too. That keeps the px values in the controls faithful and
+  // the caption at the true distance from the edge.
+  const [scale, setScale] = useState(0.3);
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver((entries) => {
+      const height = entries[0]?.contentRect.height ?? 0;
+      if (height > 0) setScale(height / 1080);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
   const textStyle = previewTextStyle(style);
-  const fontSize = Math.max(10, Math.round(style.fontSize * PREVIEW_SCALE));
-  const margin = Math.round(style.marginV * PREVIEW_SCALE);
+  const fontSize = Math.max(6, Math.round(style.fontSize * scale));
+  const margin = Math.round(style.marginV * scale);
   const justify =
     style.position === "top"
       ? "justify-start"
@@ -89,9 +105,13 @@ function StylePreview({ style }: { style: CaptionStyle }) {
         : "justify-end";
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-xl border bg-gradient-to-br from-slate-800 via-slate-900 to-black">
+    <div
+      ref={containerRef}
+      className="relative aspect-video w-full overflow-hidden rounded-xl border bg-gradient-to-br from-slate-800 via-slate-900 to-black"
+    >
+      {/* Column direction so justify-* moves along the vertical axis (top/middle/bottom). */}
       <div
-        className={`absolute inset-0 flex ${justify} items-center px-4`}
+        className={`absolute inset-0 flex flex-col items-center ${justify} px-4`}
         style={{
           paddingTop: style.position === "top" ? margin : undefined,
           paddingBottom: style.position === "bottom" ? margin : undefined,
