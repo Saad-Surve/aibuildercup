@@ -5,7 +5,9 @@ import {
   LogoutSquare02Icon,
   Moon02Icon,
   Sun03Icon,
+  UserIcon,
 } from "@hugeicons/core-free-icons";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 
 import { useAuth } from "@/components/auth/auth-provider";
@@ -59,6 +61,13 @@ export function UserMenu() {
               {email}
             </span>
           </DropdownMenuLabel>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem render={<Link href="/profile" />}>
+            <Icon icon={UserIcon} />
+            Profile
+          </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

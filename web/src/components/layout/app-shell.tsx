@@ -12,7 +12,6 @@ import {
   Settings01Icon,
   SidebarLeft01Icon,
   SidebarRight01Icon,
-  UserIcon,
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
 
@@ -48,7 +47,6 @@ const NAV: NavItem[] = [
     icon: Plug01Icon,
     ready: false,
   },
-  { href: "/profile", label: "Profile", icon: UserIcon, ready: true },
   { href: "/settings", label: "Settings", icon: Settings01Icon, ready: false },
 ];
 
