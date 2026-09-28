@@ -132,8 +132,8 @@ function TimeRuler({ ticks }: { ticks: number[] }) {
   // Mirror the TrackRow layout (inset + label column + gap + score column) so
   // the ticks line up with the bars instead of floating over the labels.
   return (
-    <div className="flex items-center gap-2 border-b border-border/70 px-1">
-      <span className="w-[8.5rem] shrink-0" aria-hidden="true" />
+    <div className="flex items-center gap-1.5 border-b border-border/70 px-1 sm:gap-2">
+      <span className="w-20 shrink-0 sm:w-[8.5rem]" aria-hidden="true" />
       <div className="relative h-5 flex-1">
         {ticks.map((tick, index) => {
           const position =
@@ -148,6 +148,8 @@ function TimeRuler({ ticks }: { ticks: number[] }) {
                   : index === ticks.length - 1
                     ? "right-0"
                     : "-translate-x-1/2",
+                // Five labels collide on a phone-width track; keep 0/50/100%.
+                index % 2 === 1 && "hidden sm:inline",
               )}
               style={index === 0 || index === ticks.length - 1 ? undefined : { left: `${position}%` }}
             >
@@ -225,8 +227,8 @@ function TrackRow({
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-[8.5rem] shrink-0 truncate text-[11px] text-muted-foreground">
+    <div className="flex items-center gap-1.5 sm:gap-2">
+      <span className="w-20 shrink-0 truncate text-[11px] text-muted-foreground sm:w-[8.5rem]">
         {dimensionLabel(dimension)}
       </span>
 

@@ -151,11 +151,11 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
           <Skeleton className="h-8 w-64" />
           <Skeleton className="h-4 w-80" />
         </div>
-        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-          <Skeleton className={`${WORKSPACE_PANE_CARD} w-full`} />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
+          <Skeleton className="h-[min(60vh,40rem)] w-full" />
           <div className="space-y-10">
-            <Skeleton className={`${WORKSPACE_PANE_CARD} w-full`} />
-            <Skeleton className={`${WORKSPACE_PANE_CARD} w-full`} />
+            <Skeleton className="h-[min(60vh,40rem)] w-full" />
+            <Skeleton className="h-[min(60vh,40rem)] w-full" />
           </div>
         </div>
       </div>
@@ -253,10 +253,12 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
           {/*
            * Two panes: the source video stays pinned on the left while the right
            * column stacks the transcript, the reviewer heatmap, and the findings.
-           * Every card shares one fixed height and scrolls its own body, so the
-           * page never grows or reflows as transcript and findings arrive.
+           * At `lg` every card shares one fixed height and scrolls its own body,
+           * so the page never grows or reflows as transcript and findings
+           * arrive; on phones the cards grow with their content up to the same
+           * cap, which avoids four nested scrollers.
            */}
-          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
             <div className="lg:sticky lg:top-20">
               <Card className={WORKSPACE_PANE_CARD}>
                 <CardHeader className="shrink-0">

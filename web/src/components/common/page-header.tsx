@@ -20,18 +20,18 @@ export function PageHeader({
         className,
       )}
     >
-      <div className="space-y-1">
-        <h1 className="font-heading text-xl font-semibold tracking-tight">
+      <div className="min-w-0 space-y-1">
+        <h1 className="font-heading text-xl font-semibold tracking-tight break-words">
           {title}
         </h1>
         {description ? (
-          <p className="max-w-[65ch] text-sm text-muted-foreground">
+          <p className="max-w-[65ch] text-sm text-muted-foreground break-words">
             {description}
           </p>
         ) : null}
       </div>
       {actions ? (
-        <div className="flex items-center gap-2">{actions}</div>
+        <div className="flex flex-wrap items-center gap-2">{actions}</div>
       ) : null}
     </div>
   );

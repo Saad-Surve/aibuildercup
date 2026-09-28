@@ -22,8 +22,8 @@ export function GroundingPanel({ reviewers }: { reviewers: ReviewerRun[] }) {
   if (grounded.length === 0) return null;
 
   return (
-    <div className="rounded-lg border border-border">
-      <div className="px-3 py-2 text-sm">
+    <div className="overflow-hidden rounded-lg border border-border">
+      <div className="px-3 py-2 text-sm break-words">
         Grounded with Google Search
         <span className="ml-1.5 text-muted-foreground">
           — the truth reviewer checked claims against the web
@@ -65,6 +65,7 @@ export function GroundingPanel({ reviewers }: { reviewers: ReviewerRun[] }) {
             )}
             {reviewer.groundingSearchSuggestions && (
               <div
+                className="overflow-hidden break-words [&_*]:max-w-full"
                 dangerouslySetInnerHTML={{
                   __html: reviewer.groundingSearchSuggestions,
                 }}

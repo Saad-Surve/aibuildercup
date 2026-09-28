@@ -193,7 +193,7 @@ export function TranscriptPanel({
                 </SelectContent>
               </Select>
             )}
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex flex-wrap items-center gap-2">
               <Button
                 type="button"
                 size="sm"
@@ -265,7 +265,9 @@ export function TranscriptPanel({
                       {speakerName(segment.speaker)}
                     </span>
                   ) : null}
-                  <span className="text-sm">{segment.text}</span>
+                  <span className="min-w-0 break-words text-sm">
+                    {segment.text}
+                  </span>
                 </button>
               </li>
             ))}

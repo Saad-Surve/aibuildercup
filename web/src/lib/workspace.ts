@@ -1,14 +1,17 @@
 /**
- * Shared fixed height for the project workspace panes.
+ * Shared height for the project workspace panes.
  *
- * The source video card and every card in the right-hand pane use this exact
- * class so they line up regardless of their content, and each card scrolls
- * internally instead of stretching the page. `min()` keeps it usable on short
- * viewports without ever letting a card collapse.
+ * At `lg` the video card and every card in the right-hand pane use an exact
+ * fixed height so they line up, and each card scrolls internally instead of
+ * stretching the page. Below `lg` the same cap applies as a `max-height`
+ * instead: the pane grows with its content and only scrolls once it is tall,
+ * which stops a phone from showing four nested scroll views. `min()` keeps it
+ * usable on short viewports without ever letting a card collapse.
  */
-export const WORKSPACE_PANE_HEIGHT = "h-[min(72vh,40rem)]";
+export const WORKSPACE_PANE_HEIGHT =
+  "max-h-[min(72vh,40rem)] lg:h-[min(72vh,40rem)] lg:max-h-none";
 
-/** Fixed-height flex column whose body scrolls. */
+/** Flex column whose body scrolls once the pane is taller than its cap. */
 export const WORKSPACE_PANE_CARD = `${WORKSPACE_PANE_HEIGHT} flex min-h-0 flex-col`;
 
 /**

@@ -223,7 +223,7 @@ export function ReviewPanel({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {runs.length > 0 && (
                 <Select
                   value={activeRunId ?? ""}
@@ -307,7 +307,9 @@ export function ReviewPanel({
                 {formatCostUsd(run?.costEstimateUsd ?? 0)}
               </span>
             </span>
-            <span className="ml-auto">Click a segment to jump there</span>
+            <span className="ml-auto hidden sm:inline">
+              Click a segment to jump there
+            </span>
           </div>
 
           {/* Severity census doubles as the findings filter and the colour legend. */}

@@ -203,7 +203,7 @@ function FindingRow({
               icon={ArrowRight01Icon}
               className="mt-0.5 size-3.5 shrink-0 text-signal"
             />
-            <span>{finding.suggestion}</span>
+            <span className="min-w-0 break-words">{finding.suggestion}</span>
           </p>
         )}
       </button>
