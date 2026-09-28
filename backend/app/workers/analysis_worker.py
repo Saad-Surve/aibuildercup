@@ -43,6 +43,7 @@ from app.services.firestore_service import (
 )
 from app.services.heatmap import aggregate_bins, summarize_findings
 from app.services.job_service import JobService
+from app.services.markdown_repair import normalize_markdown
 from app.services.pubsub_service import PubSubClient, get_pubsub_client
 from app.services.storage_service import StorageClient, get_storage_client
 from app.services.transcript_service import TranscriptService
@@ -498,7 +499,7 @@ def _load_persona(
     if not storage_path:
         return "", version
     try:
-        markdown = storage.download_text(storage_path)
+        markdown = normalize_markdown(storage.download_text(storage_path))
     except Exception:  # noqa: BLE001
         logger.warning("could not read persona for %s", owner_uid)
         return "", version

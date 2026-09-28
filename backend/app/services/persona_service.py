@@ -17,6 +17,7 @@ from app.errors import ConflictError, NotFoundError
 from app.providers.base import LlmProvider
 from app.schemas.persona import Persona, PersonaRef
 from app.services.firestore_service import FirestoreClient
+from app.services.markdown_repair import normalize_markdown
 from app.services.paths import (
     persona_object_path,
     persona_revision_object_path,
@@ -133,7 +134,7 @@ class PersonaService:
 
     def get(self, owner_uid: str) -> Persona:
         persona = self._persona_metadata(owner_uid)
-        content = self.storage.download_text(persona["storagePath"])
+        content = normalize_markdown(self.storage.download_text(persona["storagePath"]))
         return Persona(
             version=persona["version"],
             content=content,
@@ -155,6 +156,7 @@ class PersonaService:
 
         new_version = current_version + 1
         now = datetime.now(UTC)
+        content = normalize_markdown(content)
         canonical_path, revision_path = self._persist(
             owner_uid, content, version=new_version
         )
@@ -230,7 +232,7 @@ class PersonaService:
             )
             markdown = completion.data.get("markdown")
             if isinstance(markdown, str) and markdown.strip():
-                return markdown.strip() + "\n"
+                return normalize_markdown(markdown).strip() + "\n"
             logger.warning("Persona provider returned no markdown; using template")
         except Exception:  # noqa: BLE001
             logger.exception("Persona generation failed; using deterministic template")
