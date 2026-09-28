@@ -324,7 +324,6 @@ Transcript regeneration options:
 | GET | /projects/{projectId}/analysis/{analysisRunId}/reviewers | Per-reviewer status and cost |
 | GET | /projects/{projectId}/analysis/{analysisRunId}/findings | List findings |
 | GET | /projects/{projectId}/analysis/{analysisRunId}/heatmap | Get UI-ready heatmap bins |
-| POST | /projects/{projectId}/analysis/{analysisRunId}/segment-review | Deep-review selected video segment |
 
 POST /analysis request:
 
@@ -348,6 +347,9 @@ POST /analysis request:
 ~~~
 
 The first six dimensions are core and always run. The rest are extended and configurable.
+
+`includeVisualReview` is reserved: reviewers pull frames or clips themselves through the FFmpeg
+footage tools during the run, so there is no separate deep-review request.
 
 GET reviewers response:
 
@@ -383,16 +385,6 @@ dimension=clarity
 severity=high
 startMs=0
 endMs=60000
-~~~
-
-Deep-review request:
-
-~~~json
-{
-  "startMs": 42000,
-  "endMs": 58000,
-  "dimensions": ["clarity", "pacing_retention", "truth_evidence"]
-}
 ~~~
 
 ## 10. Generated artifacts

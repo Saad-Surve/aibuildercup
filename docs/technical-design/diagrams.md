@@ -153,7 +153,8 @@ flowchart TD
 flowchart TD
     A[transcript.ready] --> B[Create analysis run]
     B --> C[Load persona, transcript and target platform]
-    C --> D{Run reviewers in parallel}
+    C --> C2[Reviewers may call FFmpeg extract_frame / cut_clip mid-review]
+    C2 --> D{Run reviewers in parallel}
     D --> T[Truth and Evidence]
     D --> CL[Clarity]
     D --> ST[Structure and Pacing]
@@ -179,36 +180,9 @@ flowchart TD
     H --> S[Store findings and bins]
     S --> R[analysis.ready]
     R --> UI[Timeline heatmap UI]
-    R --> Q{High or critical finding, or user clicks Deep Review}
-    Q --> M[FFmpeg extract clip and frames]
-    M --> V2[Gemini multimodal deep review]
-    V2 --> S
 ~~~
 
-## 7. Deep review of a selected segment
-
-~~~mermaid
-sequenceDiagram
-    actor User
-    participant UI as Timeline UI
-    participant API as FastAPI API
-    participant Media as FFmpeg Cloud Run Job
-    participant GCS as Cloud Storage
-    participant Agent as Visual and Transcript Reviewer
-
-    User->>UI: Click Deep Review on a finding
-    UI->>API: POST segment-review with startMs and endMs
-    API->>Media: Extract clip and representative frames
-    Media->>GCS: Write temporary segment assets
-    Media-->>API: Segment asset references
-    API->>Agent: Send transcript, frames and clip context
-    Agent-->>API: Detailed structured finding
-    API->>GCS: Store detailed result
-    API-->>UI: Return review job
-    UI->>API: Poll or receive completion event
-~~~
-
-## 8. Generate short-form clips
+## 7. Generate short-form clips
 
 ~~~mermaid
 flowchart LR
@@ -225,7 +199,7 @@ flowchart LR
     K --> L[Display preview and download]
 ~~~
 
-## 9. Caption localization and dubbing
+## 8. Caption localization and dubbing
 
 ~~~mermaid
 flowchart TD
@@ -244,7 +218,7 @@ flowchart TD
     K --> L[Candidate corpus entry for review]
 ~~~
 
-## 10. Thumbnail generation and critique
+## 9. Thumbnail generation and critique
 
 ~~~mermaid
 flowchart TD
@@ -258,7 +232,7 @@ flowchart TD
     I --> G
 ~~~
 
-## 11. Text-based promotion content
+## 10. Text-based promotion content
 
 ~~~mermaid
 flowchart LR
@@ -278,7 +252,7 @@ flowchart LR
     A1 --> UI[Artifact gallery]
 ~~~
 
-## 12. Veo intro and outro generation
+## 11. Veo intro and outro generation
 
 ~~~mermaid
 sequenceDiagram
@@ -299,7 +273,7 @@ sequenceDiagram
     API-->>UI: Artifact ready
 ~~~
 
-## 13. Project chat
+## 12. Project chat
 
 ~~~mermaid
 sequenceDiagram
@@ -323,7 +297,7 @@ sequenceDiagram
     API-->>UI: Stream response
 ~~~
 
-## 14. Persona update through usage
+## 13. Persona update through usage
 
 ~~~mermaid
 flowchart TD
@@ -338,7 +312,7 @@ flowchart TD
     H --> J[Create persona revision record]
 ~~~
 
-## 15. Account deletion
+## 14. Account deletion
 
 ~~~mermaid
 flowchart TD
@@ -352,7 +326,7 @@ flowchart TD
     H --> I[Write deletion audit result]
 ~~~
 
-## 16. Provider layer
+## 15. Provider layer
 
 ~~~mermaid
 flowchart TD
@@ -365,7 +339,7 @@ flowchart TD
 Feature code never imports a Google SDK directly; every external call goes through a provider in
 `app/providers/`. The earlier cassette/`MOCK_MODE` layer was removed (see backend-plan section 16).
 
-## 17. Seed and demo scenarios
+## 16. Seed and demo scenarios
 
 ~~~mermaid
 flowchart LR

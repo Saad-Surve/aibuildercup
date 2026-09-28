@@ -1,8 +1,9 @@
 """Reviewer base: shared rubric, output schema, and model-output normalisation.
 
 One reviewer per analysis dimension. A reviewer is a single structured Gemini call
-over a transcript window (tier 1 in `docs/technical-design/backend-plan.md` section 8);
-tier 2 (multimodal deep review of a clip) is the separate `segment-review` flow.
+over a transcript window (`docs/technical-design/backend-plan.md` section 8); it may
+pull frames or a short clip mid-review through the FFmpeg function-calling tools, so
+the multimodal pass lives inside the same analysis run, not a separate flow.
 
 Two things live here so they cannot drift between the thirteen reviewers:
 

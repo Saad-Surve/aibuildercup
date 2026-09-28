@@ -66,8 +66,8 @@ Gate: end-to-end on `fixtures/media/` with real STT.
 
 ### Phase 2 — Week 2: differentiators
 
-- A: SVG heatmap tracks, finding popover/drawer, deep-review trigger, streaming chat UI, suggested prompts.
-- B: reviewer base + 13 reviewers + coordinator + tiered fan-out + heatmap aggregation + calibration; ADK project agent + tools + context builder; shorts/thumbnail/text generation flows.
+- A: SVG heatmap tracks, finding popover/drawer, streaming chat UI, suggested prompts.
+- B: reviewer base + 13 reviewers + coordinator + reviewer fan-out + heatmap aggregation + calibration; ADK project agent + tools + context builder; shorts/thumbnail/text generation flows.
 - C: YouTube + Meta connectors + normalization, BigQuery load + comment sentiment + audience aggregates, FFmpeg media worker, start corpus ingestion.
 
 Gate: heatmap + chat + one rendered artifact end-to-end; connector + sentiment visible in BigQuery on fixture data.
@@ -75,7 +75,7 @@ Gate: heatmap + chat + one rendered artifact end-to-end; connector + sentiment v
 ### Phase 3 — Week 3: breadth + polish
 
 - A: artifact gallery, localization comparison UI, audience insights, responsive + accessibility pass, demo scenario picker.
-- B: deep multimodal segment review, Veo intros/outros, cost-cap meter, AI eval harness.
+- B: Veo intros/outros, cost-cap meter, AI eval harness.
 - C: localization pipeline (glossary + corpus + TTS + duration-normalized mux), audit + account deletion, observability/alerts, deploy hardening.
 
 Gate: full demo dry-run on the live services.

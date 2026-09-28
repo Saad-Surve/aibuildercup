@@ -633,32 +633,6 @@ paths:
                     type: array
                     items: { $ref: "#/components/schemas/HeatmapBin" }
 
-  /api/projects/{projectId}/analysis/{analysisRunId}/segment-review:
-    x-status: planned
-    description: |
-      Tier-2 deep review of one time range (multimodal clip + sampled frames). Needs
-      the FFmpeg media worker (`docs/technical-design/diagrams.md` section 7).
-    parameters:
-      - { $ref: "#/components/parameters/ProjectId" }
-      - { $ref: "#/components/parameters/AnalysisRunId" }
-    post:
-      summary: Deep-review selected video segment
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/SegmentReviewRequest" }
-      responses:
-        "202":
-          description: Accepted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  jobId: { type: string }
-                  status: { type: string }
-
   /api/projects/{projectId}/artifacts:
     x-status: planned
     parameters:
@@ -1166,10 +1140,9 @@ components:
           type: boolean
           default: false
           description: |
-            Reserved for the on-demand tier-2 multimodal deep review. Tier-1 reviewers
-            may already request a frame or a short clip through the FFmpeg visual-context
-            tools when they are enabled (`REVIEW_VISUAL_TOOLS_ENABLED`); this flag is for
-            the separate deep-review flow.
+            Reserved. Visual review happens inside the run: reviewers request a frame or a
+            short clip through the FFmpeg visual-context tools when they are enabled
+            (`REVIEW_VISUAL_TOOLS_ENABLED`), so there is no separate deep-review flow.
         transcriptVersion: { type: integer }
 
     AnalysisRunStatus:
@@ -1486,16 +1459,6 @@ components:
         - { $ref: "#/components/schemas/WsEventAnalysisReady" }
         - { $ref: "#/components/schemas/WsError" }
         - { $ref: "#/components/schemas/WsPong" }
-
-    SegmentReviewRequest:
-      type: object
-      required: [startMs, endMs]
-      properties:
-        startMs: { type: integer, minimum: 0 }
-        endMs: { type: integer, minimum: 0 }
-        dimensions:
-          type: array
-          items: { $ref: "#/components/schemas/AnalysisDimension" }
 
     ArtifactRequest:
       type: object

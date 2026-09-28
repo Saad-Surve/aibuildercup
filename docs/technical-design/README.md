@@ -50,7 +50,7 @@ This directory contains the implementation-ready design for the Creator Helper S
 - Region is **`us-central1`** for all services except Speech-to-Text, which uses the **`us` multi-region** (the multilingual Chirp 3 model is GA there but not in `us-central1`); Veo, Imagen, and Text-to-Speech use `us-central1`.
 - Backend is Python FastAPI + Google ADK. Genkit is intentionally not used, to keep one agent runtime.
 - All external dependencies sit behind providers; development runs against the real free-tier services with `fixtures/media/`.
-- Reviewer analysis uses a two-tier fan-out (broad pass per reviewer, then targeted deep review) to bound cost.
+- Reviewer analysis fans out one reviewer per dimension in a single bounded pass; a reviewer may pull frames or short clips mid-review (FFmpeg function-calling tools) to ground visual claims, so there is no separate deep-review flow.
 
 ## Suggested implementation order
 

@@ -365,16 +365,14 @@ hence the "Grounded with Google Search" panel and the per-finding source links i
 In JSON mode `groundingChunks` can come back empty even when the model searched, so the
 model-emitted `sources` are the primary citation path.
 
-### Two-tier fan-out
+### Reviewer fan-out
 
-Running every reviewer over every segment is unbounded cost. Use two tiers instead.
+Running every reviewer over every segment is unbounded cost. Instead, each reviewer runs as one
+structured Gemini call over the whole transcript, chunked into roughly 8k to 12k token windows
+with overlap when the transcript is long. The reviewer returns findings keyed by segment id with
+timestamps. Cost is bounded at one call per reviewer per chunk.
 
-Tier 1, broad and always on: one structured Gemini call per reviewer over the whole transcript,
-chunked into roughly 8k to 12k token windows with overlap when the transcript is long. The
-reviewer returns findings keyed by segment id with timestamps. Cost is bounded at one call per
-reviewer per chunk.
-
-Tier 1 may also pull *visual* context mid-review through two FFmpeg-backed tools
+A reviewer may also pull *visual* context mid-review through two FFmpeg-backed tools
 (`app/services/video_tools.py`): `extract_frame` (one still at a timestamp) and `cut_clip` (a
 short clip centred on a timestamp, default +/- 5s). These are real **function-calling** tools:
 the reviewer is given the two function declarations and may call them during its own review
@@ -386,12 +384,9 @@ prefix (`review-context/{analysisRunId}/{reviewerRunId}/...`, covered by project
 listed on the reviewer run as `toolCalls`; the UI shows it as an evidence trail via a lazy
 signed-URL endpoint. Every reviewer call is bounded by `MAX_VISUAL_CONTEXT_REQUESTS` (total
 calls) and `VISUAL_TOOL_MAX_ROUNDS` (round-trips); `REVIEW_VISUAL_TOOLS_ENABLED` turns it off.
-This is how a transcript-only reviewer gets ground truth about the part it is reviewing without
-a separate deep-review flow.
-
-Tier 2, deep and on demand: multimodal review of a specific time range. FFmpeg extracts the clip
-plus sampled frames, and Gemini reviews video input. Triggered by the Deep Review button or
-automatically for `high` and `critical` findings.
+The multimodal pass is part of the same analysis run, not a separate flow: there is no on-demand
+deep-review endpoint, and footage checks for `high`/`critical` findings happen inside the
+reviewer that raised them.
 
 ### Calibration
 

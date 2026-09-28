@@ -284,7 +284,6 @@ HeatmapBin
 FindingPopover
 FindingDrawer
 JumpToTimestampButton
-DeepReviewButton
 ~~~
 
 Interactions:
@@ -293,7 +292,6 @@ Interactions:
 - Hovering a heatmap bin shows its score.
 - Clicking a bin opens findings.
 - Clicking evidence highlights the transcript span.
-- Clicking Deep Review submits a segment review job.
 - Selecting a range creates a clip candidate.
 
 ## 10. Analysis controls

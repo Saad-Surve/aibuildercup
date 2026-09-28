@@ -106,7 +106,7 @@ Derived from `docs/technical-design/frontend-plan.md`. Status as of the onboardi
 - Dashboard: `RecentProjectList`, `ConnectionStatusCard`, `AudienceSummaryCard`
 - Upload: `VideoFilePicker`, `UploadValidationError`, `UploadCompleteState`
 - Workspace: `VideoPreviewPanel`, `TimelinePanel`, `VideoTimeline`, `TranscriptTrack`, `HeatmapTracks`, `FindingDetailsPanel`, `ProjectAssistantPanel`
-- Timeline: `VideoPlayer`, `TimelineRuler`, `TranscriptSegment`, `WordHighlight`, `HeatmapTrack`, `HeatmapBin`, `FindingPopover`, `FindingDrawer`, `JumpToTimestampButton`, `DeepReviewButton`
+- Timeline: `VideoPlayer`, `TimelineRuler`, `TranscriptSegment`, `WordHighlight`, `HeatmapTrack`, `HeatmapBin`, `FindingPopover`, `FindingDrawer`, `JumpToTimestampButton`
 - Analysis: `AnalysisToolbar`, `DimensionFilter`, `SeverityFilter`, `AnalysisRunSelector`, `ReviewerStatusList`, `OverallScoreCard`
 - Artifacts: `ArtifactGallery`, `ArtifactCard`, `ArtifactTypeFilter`, `ArtifactPreviewModal`, `DownloadButton`, `RegenerateDialog`, `DeleteArtifactDialog`
 - Localization: `LanguageSelector`, `LocalizationOptions`, `GlossaryEditor`, `CorpusVersionBadge`, `CaptionPreview`, `DubbedVideoPreview`, `LocalizationComparisonView`
