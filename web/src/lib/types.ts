@@ -108,7 +108,7 @@ export interface ProjectList {
 
 // ----------------------------------------------------------------------- draft
 
-export type DraftBlockType = "heading" | "paragraph" | "scene";
+export type DraftBlockType = "heading" | "paragraph";
 export type DraftStatus = "empty" | "generating" | "ready" | "failed";
 export type DraftAssistMode = "chat" | "rewrite" | "alternatives" | "continue";
 

@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     model_reviewer: str = "gemini-3.1-flash-lite"
     model_orchestrator: str = "gemini-3.1-flash-lite"
     model_transcript_repair: str = "gemini-3.1-flash-lite"
+    #: Draft studio writing partner (Gemini). Defaults to the flash-lite tier; the
+    #: deployed config can point it at a stronger Gemini for better prose.
+    model_writer: str = "gemini-3.1-flash-lite"
     model_image: str = "imagen-4.0-generate-001"
     model_video: str = "veo-3.1-fast"
     model_stt: str = "chirp_3"

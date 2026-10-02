@@ -7,6 +7,11 @@ import "./video-player-skin.css";
 import { Alert02Icon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
+import {
+  CaptionOverlay,
+  DEFAULT_CAPTION_LINES,
+  useCaptionPreview,
+} from "@/components/projects/studio/caption-preview";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ensurePoster, getCachedPoster, getVideoBlob } from "@/lib/local-media";
 import { getDownloadUrl } from "@/lib/projects";
@@ -24,11 +29,15 @@ export function SourceVideoPlayer({
   projectId,
   asset,
   onDuration,
+  captionLines,
 }: {
   projectId: string;
   asset: Asset;
   onDuration?: (durationMs: number) => void;
+  /** Transcript lines shown in the caption preview overlay, if a style is active. */
+  captionLines?: string[];
 }) {
+  const captionPreview = useCaptionPreview();
   const [media, setMedia] = useState<{ assetId: string; src: string } | null>(
     null,
   );
@@ -94,19 +103,31 @@ export function SourceVideoPlayer({
   }
 
   return (
-    <div className="studio-video overflow-hidden rounded-lg bg-black shadow-sm ring-1 ring-foreground/10">
-      {src ? (
-        <StudioPlayer
-          key={asset.assetId}
-          projectId={projectId}
-          src={src}
-          mimeType={asset.mimeType}
-          poster={poster}
-          onDuration={onDuration}
+    <div className="relative">
+      <div className="studio-video overflow-hidden rounded-lg bg-black shadow-sm ring-1 ring-foreground/10">
+        {src ? (
+          <StudioPlayer
+            key={asset.assetId}
+            projectId={projectId}
+            src={src}
+            mimeType={asset.mimeType}
+            poster={poster}
+            onDuration={onDuration}
+          />
+        ) : (
+          <Skeleton className="aspect-video w-full rounded-none" />
+        )}
+      </div>
+      {captionPreview?.style ? (
+        <CaptionOverlay
+          style={captionPreview.style}
+          lines={
+            captionLines && captionLines.length > 0
+              ? captionLines
+              : DEFAULT_CAPTION_LINES
+          }
         />
-      ) : (
-        <Skeleton className="aspect-video w-full rounded-none" />
-      )}
+      ) : null}
     </div>
   );
 }

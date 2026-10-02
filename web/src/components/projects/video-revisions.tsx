@@ -26,14 +26,26 @@ import { activateRevision, formatBytes, listRevisions } from "@/lib/projects";
 import type { Revision } from "@/lib/types";
 
 /*
- * A project keeps one video but several revisions of it. This control lives in
- * the source-video card: it shows which revision is active, lists the retained
- * history (with the transcript and review count each revision already has), and
- * opens the dropzone to upload a new revision. Uploading is the same flow as the
- * first upload — the new revision becomes active and is transcribed
- * automatically; older revisions and their transcripts are kept. An earlier
- * revision can be made active again at any time.
+ * A project keeps one video but several revisions of it. The header shows which
+ * revision is active and opens the retained history (with the transcript and
+ * review count each revision already has). Uploading a new revision and deleting
+ * the project live below the video card.
  */
+
+function useRevisionInvalidation(projectId: string) {
+  const queryClient = useQueryClient();
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: ["revisions", projectId] });
+    void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+    void queryClient.invalidateQueries({ queryKey: ["assets", projectId] });
+    void queryClient.invalidateQueries({ queryKey: ["transcript", projectId] });
+    void queryClient.invalidateQueries({
+      queryKey: ["analysis-runs", projectId],
+    });
+  };
+}
+
+/** Active-revision badge + the revision history dialog. Lives in the card header. */
 export function VideoRevisions({
   projectId,
   activeRevision,
@@ -45,8 +57,7 @@ export function VideoRevisions({
   revisionCount: number;
   onQueued?: (jobId: string) => void;
 }) {
-  const queryClient = useQueryClient();
-  const [uploadOpen, setUploadOpen] = useState(false);
+  const invalidate = useRevisionInvalidation(projectId);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,18 +72,6 @@ export function VideoRevisions({
   const total = Math.max(revisionCount, revisions.length);
   const active =
     activeRevision ?? revisions.find((item) => item.isActive)?.revision ?? null;
-
-  function invalidate() {
-    void queryClient.invalidateQueries({ queryKey: ["revisions", projectId] });
-    void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-    void queryClient.invalidateQueries({ queryKey: ["assets", projectId] });
-    void queryClient.invalidateQueries({
-      queryKey: ["transcript", projectId],
-    });
-    void queryClient.invalidateQueries({
-      queryKey: ["analysis-runs", projectId],
-    });
-  }
 
   const activateMutation = useMutation({
     mutationFn: (assetId: string) => activateRevision(projectId, assetId),
@@ -98,6 +97,65 @@ export function VideoRevisions({
     },
   });
 
+  if (total === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {active != null && <Badge variant="secondary">Revision {active}</Badge>}
+
+      <Dialog
+        open={historyOpen}
+        onOpenChange={(next) => {
+          setHistoryOpen(next);
+          if (!next) setError(null);
+        }}
+      >
+        <DialogTrigger
+          render={
+            <Button variant="ghost" size="sm">
+              <Icon icon={HistoryIcon} />
+              History
+            </Button>
+          }
+        />
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Video revisions</DialogTitle>
+            <DialogDescription>
+              Every upload is kept, so transcripts and reviews stay attributable
+              to the revision they were built from. Switch back to an earlier
+              revision any time — nothing is deleted.
+            </DialogDescription>
+          </DialogHeader>
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <ul className="max-h-80 space-y-1 overflow-y-auto">
+            {revisions.map((revision) => (
+              <RevisionRow
+                key={revision.assetId}
+                revision={revision}
+                activating={activatingId === revision.assetId}
+                busy={activateMutation.isPending}
+                onActivate={() => activateMutation.mutate(revision.assetId)}
+              />
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/** Upload a new cut. Lives below the video card, next to Delete. */
+export function NewRevisionButton({
+  projectId,
+  onQueued,
+}: {
+  projectId: string;
+  onQueued?: (jobId: string) => void;
+}) {
+  const invalidate = useRevisionInvalidation(projectId);
+  const [uploadOpen, setUploadOpen] = useState(false);
+
   function handleQueued(jobId: string) {
     setUploadOpen(false);
     invalidate();
@@ -105,72 +163,27 @@ export function VideoRevisions({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {active != null && <Badge variant="secondary">Revision {active}</Badge>}
-
-      {total > 0 && (
-        <Dialog
-          open={historyOpen}
-          onOpenChange={(next) => {
-            setHistoryOpen(next);
-            if (!next) setError(null);
-          }}
-        >
-          <DialogTrigger
-            render={
-              <Button variant="ghost" size="sm">
-                <Icon icon={HistoryIcon} />
-                History
-              </Button>
-            }
-          />
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Video revisions</DialogTitle>
-              <DialogDescription>
-                Every upload is kept, so transcripts and reviews stay
-                attributable to the revision they were built from. Switch back
-                to an earlier revision any time — nothing is deleted.
-              </DialogDescription>
-            </DialogHeader>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            <ul className="max-h-80 space-y-1 overflow-y-auto">
-              {revisions.map((revision) => (
-                <RevisionRow
-                  key={revision.assetId}
-                  revision={revision}
-                  activating={activatingId === revision.assetId}
-                  busy={activateMutation.isPending}
-                  onActivate={() => activateMutation.mutate(revision.assetId)}
-                />
-              ))}
-            </ul>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
-        <DialogTrigger
-          render={
-            <Button variant="outline" size="sm">
-              <Icon icon={CloudUploadIcon} />
-              New revision
-            </Button>
-          }
-        />
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Upload a new revision</DialogTitle>
-            <DialogDescription>
-              This becomes the project&apos;s active video and is transcribed
-              automatically. Earlier revisions and their transcripts are kept,
-              and you can re-run the review once the new transcript is ready.
-            </DialogDescription>
-          </DialogHeader>
-          <VideoDropzone projectId={projectId} onQueued={handleQueued} />
-        </DialogContent>
-      </Dialog>
-    </div>
+    <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+      <DialogTrigger
+        render={
+          <Button variant="outline" size="sm">
+            <Icon icon={CloudUploadIcon} />
+            New revision
+          </Button>
+        }
+      />
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Upload a new revision</DialogTitle>
+          <DialogDescription>
+            This becomes the project&apos;s active video and is transcribed
+            automatically. Earlier revisions and their transcripts are kept, and
+            you can re-run the review once the new transcript is ready.
+          </DialogDescription>
+        </DialogHeader>
+        <VideoDropzone projectId={projectId} onQueued={handleQueued} />
+      </DialogContent>
+    </Dialog>
   );
 }
 

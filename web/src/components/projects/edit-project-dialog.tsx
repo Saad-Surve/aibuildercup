@@ -39,11 +39,14 @@ export function EditProjectDialog({
   initialName,
   initialDescription,
   initialThumbnailConcept,
+  iconOnly = false,
 }: {
   projectId: string;
   initialName: string;
   initialDescription: string;
   initialThumbnailConcept: string;
+  /** Render a compact icon button instead of the labelled "Edit" button. */
+  iconOnly?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -94,10 +97,21 @@ export function EditProjectDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger
-        render={<Button type="button" variant="outline" size="sm" />}
+        render={
+          iconOnly ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Edit project"
+            />
+          ) : (
+            <Button type="button" variant="outline" size="sm" />
+          )
+        }
       >
         <Icon icon={Edit02Icon} />
-        Edit
+        {iconOnly ? null : "Edit"}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -109,7 +123,9 @@ export function EditProjectDialog({
         <form onSubmit={submit}>
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="edit-project-name">Name</FieldLabel>
+              <FieldLabel htmlFor="edit-project-name" required>
+                Name
+              </FieldLabel>
               <Input
                 id="edit-project-name"
                 value={name}

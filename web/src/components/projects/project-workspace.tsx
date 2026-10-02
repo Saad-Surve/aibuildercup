@@ -6,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
-import { PageHeader } from "@/components/common/page-header";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { DraftWorkspace } from "@/components/projects/draft/draft-workspace";
 import { EditProjectDialog } from "@/components/projects/edit-project-dialog";
@@ -22,7 +21,13 @@ import type { Job } from "@/lib/types";
  * to the video studio or the draft studio — the two have entirely different
  * shapes, so they live in their own components.
  */
-export function ProjectWorkspace({ projectId }: { projectId: string }) {
+export function ProjectWorkspace({
+  projectId,
+  moduleId,
+}: {
+  projectId: string;
+  moduleId: string;
+}) {
   const [jobId, setJobId] = useState<string | null>(null);
 
   // One realtime socket drives the whole workspace. `connected` gates the slow
@@ -74,7 +79,9 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   if (!projectQuery.data) {
     return (
       <div className="mx-auto max-w-4xl space-y-4">
-        <PageHeader title="Project not found" />
+        <h1 className="font-heading text-xl font-semibold tracking-tight">
+          Project not found
+        </h1>
         <p className="text-sm text-muted-foreground">
           This project does not exist or you do not have access to it.
         </p>
@@ -102,26 +109,38 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
           Projects
         </Link>
 
-        <PageHeader
-          title={project.name}
-          description={project.description || undefined}
-          actions={
-            <>
-              <ProjectStatusBadge status={project.status} />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 space-y-1">
+            <div className="flex items-center gap-1">
+              <h1 className="font-heading text-xl font-semibold tracking-tight break-words">
+                {project.name}
+              </h1>
               <EditProjectDialog
                 projectId={projectId}
                 initialName={project.name}
                 initialDescription={project.description}
                 initialThumbnailConcept={project.thumbnailConcept}
+                iconOnly
               />
+            </div>
+            {project.description ? (
+              <p className="max-w-[65ch] text-sm text-muted-foreground break-words">
+                {project.description}
+              </p>
+            ) : null}
+          </div>
+
+          {project.kind === "draft" ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <ProjectStatusBadge status={project.status} />
               <DeleteProjectDialog
                 projectId={projectId}
                 projectName={project.name}
                 assetIds={project.sourceAssetId ? [project.sourceAssetId] : []}
               />
-            </>
-          }
-        />
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {project.kind === "draft" ? (
@@ -129,6 +148,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       ) : (
         <VideoStudio
           project={project}
+          moduleId={moduleId}
           connected={connected}
           job={jobQuery.data ?? null}
           onJobId={setJobId}

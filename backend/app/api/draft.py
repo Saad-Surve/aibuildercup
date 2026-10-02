@@ -14,6 +14,8 @@ from app.schemas.draft import (
     Draft,
     GenerateDraftRequest,
     SaveDraftRequest,
+    SuggestDraftRequest,
+    SuggestDraftResponse,
 )
 from app.services.draft_service import DraftService
 
@@ -64,3 +66,18 @@ async def assist_draft(
     return await service.assist(
         owner_uid=user.uid, project_id=projectId, payload=payload
     )
+
+
+@router.post(
+    "/projects/{projectId}/draft/suggest", response_model=SuggestDraftResponse
+)
+async def suggest_draft(
+    projectId: str,
+    payload: SuggestDraftRequest,
+    user: UserDep,
+    service: ServiceDep,
+) -> SuggestDraftResponse:
+    suggestions = await service.suggest(
+        owner_uid=user.uid, project_id=projectId, payload=payload
+    )
+    return SuggestDraftResponse(suggestions=suggestions)

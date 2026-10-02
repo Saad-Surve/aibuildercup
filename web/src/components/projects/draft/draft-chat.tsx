@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AiChat01Icon,
+  Cancel01Icon,
   Loading03Icon,
   SendIcon,
   SparklesIcon,
@@ -16,30 +17,59 @@ import { Textarea } from "@/components/ui/textarea";
 import { WORKSPACE_PANE_HEIGHT } from "@/lib/workspace";
 import type { DraftMessage } from "@/lib/types";
 
-const SUGGESTIONS = [
-  "Sharpen the opening line",
-  "Make it more concrete",
-  "Cut the filler",
-  "Add a call to action",
-  "Tighten every paragraph",
-];
+/**
+ * Suggestions follow the state of the draft: an empty document needs an opening,
+ * a full one needs tightening, and a selection needs rewriting.
+ */
+function suggestionsFor(hasContent: boolean, contextText: string): string[] {
+  if (contextText.trim()) {
+    return [
+      "Rewrite the selection",
+      "Make the selection punchier",
+      "Give three alternatives for the selection",
+    ];
+  }
+  if (hasContent) {
+    return [
+      "Sharpen the opening line",
+      "Make it more concrete",
+      "Cut the filler",
+      "Add a call to action",
+    ];
+  }
+  return [
+    "Write an opening paragraph",
+    "Outline three sections",
+    "Draft a hook",
+  ];
+}
 
 export function DraftChat({
   messages,
   pending,
+  contextText,
+  onClearContext,
+  hasContent,
   onSend,
 }: {
   messages: DraftMessage[];
   pending: boolean;
+  contextText: string;
+  onClearContext: () => void;
+  hasContent: boolean;
   onSend: (message: string) => void;
 }) {
   const [value, setValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const suggestions = useMemo(
+    () => suggestionsFor(hasContent, contextText),
+    [hasContent, contextText],
+  );
 
   useEffect(() => {
     const element = scrollRef.current;
     if (element) element.scrollTop = element.scrollHeight;
-    // Re-run only when the conversation changes; the refs are read inside.
+    // Re-run only when the conversation changes; the ref is read inside.
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [messages.length, pending]);
 
@@ -87,7 +117,7 @@ export function DraftChat({
               </span>
             ) : null}
             <div
-              className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+              className={`max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
                 message.role === "user"
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-foreground"
@@ -109,14 +139,33 @@ export function DraftChat({
               icon={Loading03Icon}
               className="size-3.5 animate-spin text-signal"
             />
-            Rewriting…
+            Thinking…
           </div>
         ) : null}
       </CardContent>
 
       <div className="shrink-0 space-y-3 border-t p-(--card-spacing)">
+        {contextText.trim() ? (
+          <div className="flex items-start gap-2 rounded-lg border border-signal/40 bg-signal/5 px-2.5 py-1.5 text-xs">
+            <span className="min-w-0 flex-1 text-foreground/90">
+              <span className="text-muted-foreground">Context: </span>
+              {contextText.length > 140
+                ? `${contextText.slice(0, 140)}…`
+                : contextText}
+            </span>
+            <button
+              type="button"
+              aria-label="Clear context"
+              onClick={onClearContext}
+              className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground"
+            >
+              <Icon icon={Cancel01Icon} className="size-3.5" />
+            </button>
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap gap-1.5">
-          {SUGGESTIONS.map((suggestion) => (
+          {suggestions.map((suggestion) => (
             <Button
               key={suggestion}
               type="button"

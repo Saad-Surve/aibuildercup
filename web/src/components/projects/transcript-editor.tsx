@@ -410,7 +410,7 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
 
   const backLink = (
     <Link
-      href={`/projects/view?projectId=${projectId}`}
+      href={`/projects/view/project/${projectId}`}
       className="shrink-0 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
     >
       <Icon icon={ArrowLeft01Icon} />

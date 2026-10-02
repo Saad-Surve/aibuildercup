@@ -105,7 +105,7 @@ export function CreateProjectDialog() {
         project.kind === "draft" ? "Draft project created" : "Project created",
       );
       setOpen(false);
-      router.push(`/projects/view?projectId=${project.projectId}`);
+      router.push(`/projects/view/project/${project.projectId}`);
     },
     onError: (caught) => setError(describe(caught)),
   });
@@ -216,7 +216,9 @@ export function CreateProjectDialog() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="project-name">Name</FieldLabel>
+              <FieldLabel htmlFor="project-name" required>
+                Name
+              </FieldLabel>
               <Input
                 id="project-name"
                 value={name}
@@ -274,7 +276,7 @@ export function CreateProjectDialog() {
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="project-topic">
+                  <FieldLabel htmlFor="project-topic" required>
                     What is it about?
                   </FieldLabel>
                   <Input

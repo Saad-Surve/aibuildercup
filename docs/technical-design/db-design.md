@@ -268,7 +268,7 @@ project subtree, so the recursive project/account delete covers it with no extra
   "blocks": [
     {
       "blockId": "block-a1",
-      "type": "heading | paragraph | scene",
+      "type": "heading | paragraph",
       "versions": [
         {
           "versionId": "v1",

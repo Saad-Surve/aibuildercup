@@ -329,9 +329,9 @@ paths:
     put:
       summary: Save client-side draft edits
       description: |
-        Persists the title and block versions the creator edited in the studio.
-        Blocks are matched by `blockId`; unknown ids are rejected so an edit can
-        never silently drop content.
+        Persists the title and blocks the creator edited in the studio. The body
+        is the full block set (a replace, not a patch), so it may contain block
+        ids the server has not seen yet — the client owns block creation.
       requestBody:
         required: true
         content:
@@ -385,6 +385,27 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Draft" }
+
+  /api/projects/{projectId}/draft/suggest:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    post:
+      summary: Suggest replacements for a selected span
+      description: |
+        Returns drop-in replacements for a selected span so the client can wrap it
+        in an inline variant. Unlike `/draft/assist` this does not modify the
+        stored draft.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SuggestDraftRequest" }
+      responses:
+        "200":
+          description: Suggestions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuggestDraftResponse" }
 
   /api/jobs/{jobId}:
     parameters:
@@ -1707,7 +1728,7 @@ components:
 
     DraftBlockType:
       type: string
-      enum: [heading, paragraph, scene]
+      enum: [heading, paragraph]
 
     DraftBrief:
       type: object
@@ -1809,3 +1830,23 @@ components:
         message: { type: string }
         blockId: { type: [string, "null"] }
         mode: { $ref: "#/components/schemas/AssistMode" }
+
+    SuggestMode:
+      type: string
+      enum: [rewrite, alternatives]
+
+    SuggestDraftRequest:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string }
+        context: { type: string }
+        mode: { $ref: "#/components/schemas/SuggestMode" }
+        count: { type: integer, minimum: 1, maximum: 5 }
+
+    SuggestDraftResponse:
+      type: object
+      properties:
+        suggestions:
+          type: array
+          items: { type: string }

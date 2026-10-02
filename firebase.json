@@ -21,6 +21,10 @@
     ],
     "rewrites": [
       {
+        "source": "/projects/view/project/**",
+        "destination": "/projects/view.html"
+      },
+      {
         "source": "/api/**",
         "run": {
           "serviceId": "creator-studio-api",

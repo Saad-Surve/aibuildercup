@@ -96,7 +96,7 @@
  */
 @media (min-width: 1024px) {
   html {
-    scroll-snap-type: y mandatory;
+    scroll-snap-type: y proximity;
     scroll-behavior: smooth;
   }
 }
@@ -117,6 +117,48 @@
     #000 calc(100% - 0.6rem),
     transparent 100%
   );
+}
+
+/*
+ * Obsidian-style live preview: rendered Markdown inside the draft editor.
+ */
+.prose-draft p {
+  margin: 0 0 0.5rem;
+}
+.prose-draft h1,
+.prose-draft h2,
+.prose-draft h3 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0.85rem 0 0.35rem;
+}
+.prose-draft h1 { font-size: 1.3rem; }
+.prose-draft h2 { font-size: 1.1rem; }
+.prose-draft h3 { font-size: 1rem; }
+.prose-draft ul {
+  list-style: disc;
+  margin: 0.25rem 0 0.6rem;
+  padding-left: 1.3rem;
+}
+.prose-draft li { margin: 0.1rem 0; }
+.prose-draft blockquote {
+  border-left: 3px solid var(--border);
+  color: var(--muted-foreground);
+  margin: 0.5rem 0;
+  padding-left: 0.75rem;
+}
+.prose-draft code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--muted);
+  border-radius: 4px;
+  padding: 0.1em 0.3em;
+}
+.prose-draft .draft-variant {
+  cursor: pointer;
+  border-bottom: 1px dotted var(--signal);
+  padding-bottom: 1px;
 }
 
 :root {

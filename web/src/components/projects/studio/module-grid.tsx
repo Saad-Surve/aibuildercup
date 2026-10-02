@@ -1,11 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ArrowRight01Icon,
-  ClosedCaptionIcon,
-  SparklesIcon,
-} from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
 import { Badge } from "@/components/ui/badge";
@@ -43,13 +39,13 @@ function availability(
 }
 
 function href(projectId: string, moduleId: string) {
-  return `/projects/view?projectId=${projectId}&module=${moduleId}`;
+  return `/projects/view/project/${projectId}/${moduleId}`;
 }
 
 /**
- * The studio landing: what this project can do, in the order a creator cares
- * about. Clicking a module opens that focused workspace rather than dropping
- * everything on one page at once.
+ * The studio landing as a bento: the transcript is the wide hero (it powers the
+ * rest), and the other modules tile beneath it. One grid, one gap, so nothing
+ * drifts.
  */
 export function ModuleGrid({
   projectId,
@@ -66,33 +62,24 @@ export function ModuleGrid({
   const rest = STUDIO_MODULES.filter((module) => module.id !== "transcript");
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h2 className="font-heading text-base font-medium">Your studio</h2>
-        <p className="text-sm text-muted-foreground">
-          Pick a module to work on. The transcript powers most of them.
-        </p>
-      </div>
-
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {transcriptModule ? (
         <ModuleCard
           module={transcriptModule}
           availability={availability(transcriptModule, hasVideo, hasTranscript)}
           href={href(projectId, transcriptModule.id)}
           featured
+          className="sm:col-span-2"
         />
       ) : null}
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        {rest.map((module) => (
-          <ModuleCard
-            key={module.id}
-            module={module}
-            availability={availability(module, hasVideo, hasTranscript)}
-            href={href(projectId, module.id)}
-          />
-        ))}
-      </div>
+      {rest.map((module) => (
+        <ModuleCard
+          key={module.id}
+          module={module}
+          availability={availability(module, hasVideo, hasTranscript)}
+          href={href(projectId, module.id)}
+        />
+      ))}
     </div>
   );
 }
@@ -102,14 +89,16 @@ function ModuleCard({
   availability: state,
   href: target,
   featured = false,
+  className,
 }: {
   module: StudioModule;
   availability: Availability;
   href: string;
   featured?: boolean;
+  className?: string;
 }) {
   return (
-    <Link href={target} className="group block">
+    <Link href={target} className={cn("group block", className)}>
       <Card
         className={cn(
           "h-full gap-2 py-(--card-spacing) transition-shadow group-hover:shadow-md group-hover:ring-foreground/20",
@@ -117,12 +106,27 @@ function ModuleCard({
         )}
       >
         <div className="flex items-start gap-3 px-(--card-spacing)">
-          <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
-            <Icon icon={module.icon} className="size-5" />
+          <span
+            className={cn(
+              "mt-0.5 flex shrink-0 items-center justify-center rounded-lg bg-muted text-foreground",
+              featured ? "size-11" : "size-9",
+            )}
+          >
+            <Icon
+              icon={module.icon}
+              className={featured ? "size-6" : "size-5"}
+            />
           </span>
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-heading font-medium">{module.label}</span>
+              <span
+                className={cn(
+                  "font-heading font-medium",
+                  featured && "text-base",
+                )}
+              >
+                {module.label}
+              </span>
               <Badge
                 variant="outline"
                 className={cn("shrink-0", AVAILABILITY_STYLE[state])}
@@ -143,6 +147,3 @@ function ModuleCard({
     </Link>
   );
 }
-
-export const TRANSCRIPT_ICON = ClosedCaptionIcon;
-export const REVIEW_ICON = SparklesIcon;

@@ -17,15 +17,16 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { DraftBriefDialog } from "@/components/projects/draft/draft-brief-dialog";
 import { DraftChat } from "@/components/projects/draft/draft-chat";
-import { DraftDocument } from "@/components/projects/draft/draft-document";
+import { FreeFlowEditor } from "@/components/projects/draft/free-flow-editor";
 import { ApiError } from "@/lib/api-client";
-import { assistDraft, generateDraft, getDraft, saveDraft } from "@/lib/drafts";
-import type {
-  Draft,
-  DraftBlock,
-  DraftBlockType,
-  DraftBrief,
-} from "@/lib/types";
+import {
+  assistDraft,
+  generateDraft,
+  getDraft,
+  saveDraft,
+  suggestDraft,
+} from "@/lib/drafts";
+import type { Draft, DraftBlock, DraftBrief } from "@/lib/types";
 
 function newId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -40,12 +41,73 @@ function describe(error: unknown, fallback: string): string {
   return fallback;
 }
 
+function activeBlockText(block: DraftBlock): string {
+  return (
+    block.versions.find(
+      (version) => version.versionId === block.activeVersionId,
+    )?.text ??
+    block.versions[0]?.text ??
+    ""
+  );
+}
+
 /**
- * The draft studio: a versioned document on the left, a writing partner on the
- * right. The React Query cache is the single source of truth — edits write to
- * it optimistically and a debounced save persists them, while assistant replies
- * replace it wholesale. Every block keeps its own version history, so nothing
- * the creator or the model wrote is ever lost.
+ * Update a block's active version, forking an assistant version into a user
+ * version on first edit so the model's wording is kept as a sibling.
+ */
+function forkBlockHtml(block: DraftBlock, html: string): DraftBlock {
+  const active = block.versions.find(
+    (version) => version.versionId === block.activeVersionId,
+  );
+  if (active?.origin === "user") {
+    return {
+      ...block,
+      versions: block.versions.map((version) =>
+        version.versionId === active.versionId
+          ? { ...version, text: html }
+          : version,
+      ),
+    };
+  }
+  const version = {
+    versionId: newId(),
+    text: html,
+    label: "My edit",
+    origin: "user" as const,
+    createdAt: new Date().toISOString(),
+  };
+  return {
+    ...block,
+    versions: [...block.versions, version],
+    activeVersionId: version.versionId,
+  };
+}
+
+function makeBlock(
+  html: string,
+  type: DraftBlock["type"] = "paragraph",
+): DraftBlock {
+  const version = {
+    versionId: newId(),
+    text: html,
+    label: "My edit",
+    origin: "user" as const,
+    createdAt: new Date().toISOString(),
+  };
+  return {
+    blockId: newId(),
+    type,
+    versions: [version],
+    activeVersionId: version.versionId,
+  };
+}
+
+/**
+ * The draft studio: a free-flowing rich document on the left, a writing partner
+ * on the right. The React Query cache is the single source of truth — edits
+ * write to it optimistically and a debounced save persists them, while assistant
+ * replies replace it wholesale. Every block keeps its own version history and
+ * inline alternatives live inside the text, so nothing is ever lost.
  */
 export function DraftWorkspace({
   project,
@@ -56,6 +118,7 @@ export function DraftWorkspace({
   const queryClient = useQueryClient();
   const [briefOpen, setBriefOpen] = useState(false);
   const [busyBlockId, setBusyBlockId] = useState<string | null>(null);
+  const [contextText, setContextText] = useState("");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoRan = useRef(false);
 
@@ -155,40 +218,58 @@ export function DraftWorkspace({
     runGenerate(undefined);
   }, [draft, runGenerate]);
 
-  function editBlockText(blockId: string, text: string) {
+  function editBlockText(blockId: string, markdown: string) {
     mutateDraft((current) => ({
       ...current,
-      blocks: current.blocks.map((block) => {
-        if (block.blockId !== blockId) return block;
-        const active = block.versions.find(
-          (version) => version.versionId === block.activeVersionId,
-        );
-        if (active?.origin === "user") {
-          return {
-            ...block,
-            versions: block.versions.map((version) =>
-              version.versionId === active.versionId
-                ? { ...version, text }
-                : version,
-            ),
-          };
-        }
-        // The first keystroke on an assistant version forks it into a user
-        // version, so the model's wording is preserved as a sibling.
-        const version = {
-          versionId: newId(),
-          text,
-          label: "My edit",
-          origin: "user" as const,
-          createdAt: new Date().toISOString(),
-        };
-        return {
-          ...block,
-          versions: [...block.versions, version],
-          activeVersionId: version.versionId,
-        };
-      }),
+      blocks: current.blocks.map((block) =>
+        block.blockId === blockId ? forkBlockHtml(block, markdown) : block,
+      ),
     }));
+  }
+
+  function splitBlock(blockId: string, before: string, after: string): string {
+    const newBlock = makeBlock(after);
+    mutateDraft((current) => {
+      const index = current.blocks.findIndex(
+        (block) => block.blockId === blockId,
+      );
+      if (index < 0) return current;
+      const blocks = [...current.blocks];
+      blocks.splice(
+        index,
+        1,
+        forkBlockHtml(current.blocks[index], before),
+        newBlock,
+      );
+      return { ...current, blocks };
+    });
+    void flushSave();
+    return newBlock.blockId;
+  }
+
+  function mergeBlock(blockId: string): string | null {
+    const cached = queryClient.getQueryData<Draft>(["draft", projectId]);
+    const index =
+      cached?.blocks.findIndex((block) => block.blockId === blockId) ?? -1;
+    if (!cached || index <= 0) return null;
+    const previousId = cached.blocks[index - 1].blockId;
+    mutateDraft((current) => {
+      const at = current.blocks.findIndex((block) => block.blockId === blockId);
+      if (at <= 0) return current;
+      const previous = current.blocks[at - 1];
+      const blocks = [...current.blocks];
+      blocks.splice(
+        at - 1,
+        2,
+        forkBlockHtml(
+          previous,
+          activeBlockText(previous) + activeBlockText(current.blocks[at]),
+        ),
+      );
+      return { ...current, blocks };
+    });
+    void flushSave();
+    return previousId;
   }
 
   function setActiveVersion(blockId: string, versionId: string) {
@@ -203,33 +284,36 @@ export function DraftWorkspace({
     void flushSave();
   }
 
-  function addBlock(type: DraftBlockType) {
-    const version = {
-      versionId: newId(),
-      text: "",
-      label: "My edit",
-      origin: "user" as const,
-      createdAt: new Date().toISOString(),
-    };
-    const block: DraftBlock = {
-      blockId: newId(),
-      type,
-      versions: [version],
-      activeVersionId: version.versionId,
-    };
-    mutateDraft((current) => ({
-      ...current,
-      blocks: [...current.blocks, block],
-    }));
-    void flushSave();
-  }
-
   function removeBlock(blockId: string) {
     mutateDraft((current) => ({
       ...current,
       blocks: current.blocks.filter((block) => block.blockId !== blockId),
     }));
     void flushSave();
+  }
+
+  async function suggest(
+    blockId: string,
+    text: string,
+    mode: "rewrite" | "alternatives",
+  ): Promise<string[]> {
+    const block = draft?.blocks.find((item) => item.blockId === blockId);
+    const context = block ? activeBlockText(block) : "";
+    try {
+      const result = await suggestDraft(projectId, {
+        text,
+        context,
+        mode,
+        count: mode === "alternatives" ? 3 : 1,
+      });
+      if (result.suggestions.length === 0) {
+        toast.error("The writing partner had no suggestions. Try again.");
+      }
+      return result.suggestions;
+    } catch (error) {
+      toast.error(describe(error, "Could not reach the writing partner."));
+      return [];
+    }
   }
 
   async function runAssist(input: {
@@ -239,38 +323,29 @@ export function DraftWorkspace({
     busy?: string | null;
   }) {
     setBusyBlockId(input.busy ?? null);
+    // Show the creator's message immediately; the server echoes it back with the
+    // reply and replaces this optimistic copy.
+    queryClient.setQueryData<Draft>(["draft", projectId], (previous) =>
+      previous
+        ? {
+            ...previous,
+            messages: [
+              ...previous.messages,
+              {
+                messageId: `local-${newId()}`,
+                role: "user" as const,
+                content: input.message,
+                createdAt: new Date().toISOString(),
+              },
+            ],
+          }
+        : previous,
+    );
     await flushSave();
     assistMutation.mutate({
       message: input.message,
       blockId: input.blockId ?? null,
       mode: input.mode ?? "chat",
-    });
-  }
-
-  function rewriteBlock(blockId: string) {
-    void runAssist({
-      message: "Rewrite this block to be sharper and more specific.",
-      blockId,
-      mode: "rewrite",
-      busy: blockId,
-    });
-  }
-
-  function alternativesFor(blockId: string) {
-    void runAssist({
-      message: "Give me three distinct alternatives for this block.",
-      blockId,
-      mode: "alternatives",
-      busy: blockId,
-    });
-  }
-
-  function varyPhrase(blockId: string, phrase: string) {
-    void runAssist({
-      message: `Rewrite this block, keeping everything else identical, but replace the phrase "${phrase}" with a sharper, more specific alternative.`,
-      blockId,
-      mode: "rewrite",
-      busy: blockId,
     });
   }
 
@@ -330,62 +405,78 @@ export function DraftWorkspace({
         </Button>
       </div>
 
-      {generating ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Icon icon={SparklesIcon} className="animate-pulse text-signal" />
-              Writing your first draft…
-            </CardTitle>
-            <CardDescription>
-              Building the structure, hook, and body from your brief.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-            <Skeleton className="h-4 w-2/3" />
-          </CardContent>
-        </Card>
-      ) : empty ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Start your draft</CardTitle>
-            <CardDescription>
-              Give the writing partner a brief and it will write the first
-              version for you to edit.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button type="button" onClick={() => setBriefOpen(true)}>
-              <Icon icon={SparklesIcon} />
-              Write a brief
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
-          <DraftDocument
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
+        {generating ? (
+          <Card className="lg:snap-start lg:snap-always lg:scroll-mt-20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Icon
+                  icon={SparklesIcon}
+                  className="animate-pulse text-signal"
+                />
+                Writing your first draft…
+              </CardTitle>
+              <CardDescription>
+                Building the structure, hook, and body from your brief.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-4 w-2/3" />
+            </CardContent>
+          </Card>
+        ) : empty ? (
+          <Card className="lg:snap-start lg:snap-always lg:scroll-mt-20">
+            <CardHeader>
+              <CardTitle>Start your draft</CardTitle>
+              <CardDescription>
+                Give the writing partner a brief and it will write the first
+                version for you to edit.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button type="button" onClick={() => setBriefOpen(true)}>
+                <Icon icon={SparklesIcon} />
+                Write a brief
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <FreeFlowEditor
             draft={draft}
             busyBlockId={busyBlockId}
             onTitle={(title) =>
               mutateDraft((current) => ({ ...current, title }))
             }
             onEditText={editBlockText}
-            onSetVersion={setActiveVersion}
-            onAddBlock={addBlock}
+            onSplitBlock={splitBlock}
+            onMergeBlock={mergeBlock}
             onRemoveBlock={removeBlock}
-            onRewrite={rewriteBlock}
-            onAlternatives={alternativesFor}
-            onVaryPhrase={varyPhrase}
+            onSetVersion={setActiveVersion}
+            onSuggest={suggest}
+            onUseContext={(text) => {
+              setContextText(text);
+              toast.success("Added to the chat context");
+            }}
           />
-          <DraftChat
-            messages={draft.messages}
-            pending={assistMutation.isPending}
-            onSend={(message) => void runAssist({ message })}
-          />
-        </div>
-      )}
+        )}
+        <DraftChat
+          messages={draft.messages}
+          pending={assistMutation.isPending}
+          contextText={contextText}
+          onClearContext={() => setContextText("")}
+          hasContent={!empty}
+          onSend={(message) => {
+            const trimmed = contextText.trim();
+            const full = trimmed
+              ? `Context selected from the draft: "${trimmed}"\n\nRequest: ${message}`
+              : message;
+            setContextText("");
+            void runAssist({ message: full });
+          }}
+        />
+      </div>
 
       <DraftBriefDialog
         key={briefOpen ? "open" : "closed"}

@@ -75,7 +75,9 @@ export function DraftBriefDialog({
 
         <FieldGroup>
           <Field>
-            <FieldLabel htmlFor="brief-topic">What is it about?</FieldLabel>
+            <FieldLabel htmlFor="brief-topic" required>
+              What is it about?
+            </FieldLabel>
             <Input
               id="brief-topic"
               value={brief.topic}

@@ -9,9 +9,9 @@ import { STUDIO_MODULES, type StudioModuleId } from "@/lib/studio";
 
 export function moduleHref(projectId: string, moduleId: StudioModuleId) {
   if (moduleId === "overview") {
-    return `/projects/view?projectId=${projectId}`;
+    return `/projects/view/project/${projectId}`;
   }
-  return `/projects/view?projectId=${projectId}&module=${moduleId}`;
+  return `/projects/view/project/${projectId}/${moduleId}`;
 }
 
 /**
@@ -32,6 +32,7 @@ export function ModuleNav({
       <Button
         size="sm"
         variant={active === "overview" ? "secondary" : "ghost"}
+        nativeButton={false}
         render={<Link href={moduleHref(projectId, "overview")} />}
       >
         <Icon icon={DashboardSquare01Icon} />
@@ -42,6 +43,7 @@ export function ModuleNav({
           key={module.id}
           size="sm"
           variant={active === module.id ? "secondary" : "ghost"}
+          nativeButton={false}
           render={<Link href={moduleHref(projectId, module.id)} />}
         >
           <Icon icon={module.icon} />

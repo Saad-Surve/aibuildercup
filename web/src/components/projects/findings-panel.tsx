@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import {
   ArrowRight01Icon,
+  Cancel01Icon,
   Loading03Icon,
   Search01Icon,
   ViewIcon,
@@ -70,6 +72,8 @@ export function FindingsPanel({
   onClearSelection: () => void;
 }) {
   const selectedSet = selectedFindingIds ? new Set(selectedFindingIds) : null;
+  // Ignored findings stay visible but greyed and sorted to the bottom.
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const visible = findings
     .filter((finding) =>
       selectedSet ? selectedSet.has(finding.findingId) : true,
@@ -79,11 +83,25 @@ export function FindingsPanel({
         ? true
         : severityFilter.includes(finding.severity),
     )
-    .toSorted(
+    .toSorted((a, b) => {
+      const aDismissed = dismissed.has(a.findingId) ? 1 : 0;
+      const bDismissed = dismissed.has(b.findingId) ? 1 : 0;
+      if (aDismissed !== bDismissed) return aDismissed - bDismissed;
       // Problems first, then by how early they happen.
-      (a, b) =>
-        severityRank(a.severity) - severityRank(b.severity) || a.startMs - b.startMs,
-    );
+      return (
+        severityRank(a.severity) - severityRank(b.severity) ||
+        a.startMs - b.startMs
+      );
+    });
+
+  function toggleDismiss(findingId: string) {
+    setDismissed((current) => {
+      const next = new Set(current);
+      if (next.has(findingId)) next.delete(findingId);
+      else next.add(findingId);
+      return next;
+    });
+  }
 
   return (
     <Card className={WORKSPACE_PANE_SNAP}>
@@ -137,6 +155,8 @@ export function FindingsPanel({
                 key={finding.findingId}
                 finding={finding}
                 highlighted={selectedSet?.has(finding.findingId) ?? false}
+                dismissed={dismissed.has(finding.findingId)}
+                onDismiss={() => toggleDismiss(finding.findingId)}
                 onSeek={onSeek}
               />
             ))}
@@ -150,10 +170,14 @@ export function FindingsPanel({
 function FindingRow({
   finding,
   highlighted,
+  dismissed,
+  onDismiss,
   onSeek,
 }: {
   finding: Finding;
   highlighted: boolean;
+  dismissed: boolean;
+  onDismiss: () => void;
   onSeek: (startMs: number) => void;
 }) {
   const hasEvidence = Boolean(
@@ -162,14 +186,15 @@ function FindingRow({
   return (
     <li
       className={cn(
-        "overflow-hidden rounded-lg border border-border/70 transition-colors hover:bg-muted/40",
+        "group/finding relative overflow-hidden rounded-lg border border-border/70 transition-colors hover:bg-muted/40",
         highlighted && "border-signal bg-signal/10",
+        dismissed && "opacity-50 hover:opacity-80",
       )}
     >
       <button
         type="button"
         onClick={() => onSeek(finding.startMs)}
-        className="block w-full px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="block w-full px-3 py-2.5 pr-10 text-left focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <span className="tabular text-xs text-time">
@@ -197,6 +222,13 @@ function FindingRow({
           </span>
         </div>
 
+        {dismissed ? (
+          <span className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <Icon icon={Cancel01Icon} className="size-3" />
+            Ignored
+          </span>
+        ) : null}
+
         {finding.suggestion && (
           <p className="mt-1.5 flex items-start gap-1.5 text-sm text-foreground/90">
             <Icon
@@ -206,6 +238,17 @@ function FindingRow({
             <span className="min-w-0 break-words">{finding.suggestion}</span>
           </p>
         )}
+      </button>
+
+      <button
+        type="button"
+        aria-label={dismissed ? "Unignore finding" : "Ignore finding"}
+        title={dismissed ? "Unignore finding" : "Ignore finding"}
+        onClick={onDismiss}
+        aria-pressed={dismissed}
+        className="absolute top-2 right-2 flex size-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover/finding:opacity-100 hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:opacity-100"
+      >
+        <Icon icon={Cancel01Icon} className="size-3.5" />
       </button>
 
       {/* Grounded reviewers cite the web sources behind a claim. */}

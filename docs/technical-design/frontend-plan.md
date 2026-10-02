@@ -248,11 +248,16 @@ ProjectWorkspace (project query + realtime socket)
 ~~~
 
 The video studio keeps the source video pinned on the left while the right pane swaps
-between the overview grid and a focused module, so `?module=transcript` is a shareable
-deep link. Modules that need a transcript (review, captions, localization) render a
-`Marker`-based prerequisite rail with the inline **Generate transcript** action instead of
-being hidden. Burn Captions owns its own module (the export menu no longer offers it).
-Packaging and Localization are placeholder modules with their final layout.
+between the overview grid and a focused module, so
+`/projects/view/project/{projectId}/{module}` is a shareable deep link. Because the web app
+is a static export, that path is served by the `/projects/view` shell via a rewrite (Next
+`rewrites()` in dev, the Firebase Hosting rewrite in production) and the client reads the
+id/module from the path; the module tab strip is hidden on the overview. Modules that need
+a transcript (review, captions, localization) render a `Marker`-based prerequisite rail
+with the inline **Generate transcript** action instead of being hidden. Burn Captions owns
+its own module (the export menu no longer offers it) and drives a live caption overlay on
+the source video through a small preview context. Packaging and Localization are placeholder
+modules with realistic hardcoded previews.
 
 The draft studio treats the React Query cache as the document: edits write optimistically
 and a debounced save persists them. Each block keeps an immutable `versions[]` list, so an

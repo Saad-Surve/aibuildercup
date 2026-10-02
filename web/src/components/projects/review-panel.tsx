@@ -407,7 +407,14 @@ export function ReviewPanel({
       <FindingsPanel
         findings={findings}
         loading={Boolean(activeRunId) && findingsQuery.isLoading}
-        running={isRunning}
+        running={
+          isRunning ||
+          startMutation.isPending ||
+          // The just-started run is selected before the list refetch lands; treat
+          // that gap as "searching" instead of flashing an empty state.
+          (Boolean(selectedRunId) &&
+            !runs.some((item) => item.analysisRunId === selectedRunId))
+        }
         severityFilter={severityFilter}
         onToggleSeverity={toggleSeverity}
         selectedFindingIds={selectedBin?.findingIds ?? null}

@@ -1,3 +1,4 @@
+import { markdownToPlain, resolveVariants } from "@/lib/draft-content";
 import type { Draft, DraftBlock } from "@/lib/types";
 
 function slugify(value: string, fallback: string): string {
@@ -23,7 +24,6 @@ export function activeText(block: DraftBlock): string {
 
 function blockPrefix(block: DraftBlock): string {
   if (block.type === "heading") return "## ";
-  if (block.type === "scene") return "> ";
   return "";
 }
 
@@ -32,7 +32,10 @@ export function draftToMarkdown(draft: Draft): string {
   const lines: string[] = [];
   if (draft.title.trim()) lines.push(`# ${draft.title.trim()}`, "");
   for (const block of draft.blocks) {
-    lines.push(`${blockPrefix(block)}${activeText(block)}`, "");
+    lines.push(
+      `${blockPrefix(block)}${resolveVariants(activeText(block))}`,
+      "",
+    );
   }
   return lines.join("\n").trim() + "\n";
 }
@@ -42,7 +45,7 @@ export function draftToText(draft: Draft): string {
   const lines: string[] = [];
   if (draft.title.trim()) lines.push(draft.title.trim(), "");
   for (const block of draft.blocks) {
-    lines.push(activeText(block), "");
+    lines.push(markdownToPlain(activeText(block)), "");
   }
   return lines.join("\n").trim() + "\n";
 }
@@ -60,7 +63,7 @@ export function draftToMarkdownWithVersions(draft: Draft): string {
       lines.push(
         `- **v${block.versions.indexOf(version) + 1}**${label}${marker}`,
       );
-      lines.push(`  ${version.text.replace(/\n/g, "\n  ")}`);
+      lines.push(`  ${markdownToPlain(version.text).replace(/\n/g, "\n  ")}`);
     }
     lines.push("");
   }

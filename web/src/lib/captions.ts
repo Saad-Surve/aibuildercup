@@ -62,38 +62,27 @@ export function hexToRgba(hex: string, opacity: number): string {
 /**
  * Inline styles approximating the burned caption for the HTML preview. The FFmpeg
  * render uses libass, so this is a close visual approximation, not a pixel match:
- * outline is faked with layered text-shadows and the box with a background.
+ * the outline uses a real text stroke (layered text-shadows showed repeated
+ * glyph copies at larger widths) and the box uses a background.
  */
 export function previewTextStyle(style: CaptionStyle): React.CSSProperties {
-  const shadows: string[] = [];
-  if (style.background === "outline" && style.outlineWidth > 0) {
-    const w = style.outlineWidth;
-    // Eight directions read as a rounded outline at caption scale.
-    for (const [dx, dy] of [
-      [-w, -w],
-      [0, -w],
-      [w, -w],
-      [-w, 0],
-      [w, 0],
-      [-w, w],
-      [0, w],
-      [w, w],
-    ]) {
-      shadows.push(`${dx}px ${dy}px 0 ${style.outlineColor}`);
-    }
-  }
-  if (style.shadow > 0) {
-    shadows.push(
-      `${style.shadow}px ${style.shadow}px ${style.shadow * 2}px rgba(0,0,0,0.65)`,
-    );
-  }
+  const outline = style.background === "outline" && style.outlineWidth > 0;
   return {
     fontFamily: captionFontFamily(style.fontFamily),
     fontWeight: style.bold ? 700 : 400,
     fontStyle: style.italic ? "italic" : "normal",
     textTransform: style.uppercase ? "uppercase" : "none",
     color: style.textColor,
-    textShadow: shadows.length ? shadows.join(", ") : undefined,
+    // `paint-order: stroke fill` draws the stroke behind the fill, so only the
+    // outer half shows (libass outlines are also outside the glyph).
+    WebkitTextStroke: outline
+      ? `${style.outlineWidth * 2}px ${style.outlineColor}`
+      : undefined,
+    paintOrder: outline ? "stroke fill" : undefined,
+    textShadow:
+      style.shadow > 0
+        ? `${style.shadow}px ${style.shadow}px ${style.shadow * 2}px rgba(0,0,0,0.65)`
+        : undefined,
     backgroundColor:
       style.background === "box"
         ? hexToRgba(style.backgroundColor, style.backgroundOpacity)

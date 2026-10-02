@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
+import { useCaptionPreview } from "@/components/projects/studio/caption-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -38,7 +39,6 @@ import {
   CAPTION_FONT_OPTIONS,
   CAPTION_POSITION_OPTIONS,
   DEFAULT_CAPTION_STYLE,
-  previewTextStyle,
 } from "@/lib/captions";
 import {
   createCaptionRender,
@@ -49,8 +49,6 @@ import {
   listCaptionRenders,
 } from "@/lib/projects";
 import type { CaptionRender, CaptionStyle } from "@/lib/types";
-
-const SAMPLE_LINES = ["This is how your captions", "will look on the video"];
 
 function errorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError) return error.message;
@@ -75,78 +73,7 @@ function statusVariant(status: CaptionRender["status"]) {
   return "secondary" as const;
 }
 
-/** Static approximation of the burned caption, styled with the chosen options. */
-function StylePreview({ style }: { style: CaptionStyle }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  // The backend authors sizes against a 1080-tall reference frame, so the preview scales
-  // its own height over 1080 too. That keeps the px values in the controls faithful and
-  // the caption at the true distance from the edge.
-  const [scale, setScale] = useState(0.3);
-
-  useEffect(() => {
-    const element = containerRef.current;
-    if (!element) return;
-    const observer = new ResizeObserver((entries) => {
-      const height = entries[0]?.contentRect.height ?? 0;
-      if (height > 0) setScale(height / 1080);
-    });
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
-  const textStyle = previewTextStyle(style);
-  const fontSize = Math.max(6, Math.round(style.fontSize * scale));
-  const margin = Math.round(style.marginV * scale);
-  const justify =
-    style.position === "top"
-      ? "justify-start"
-      : style.position === "middle"
-        ? "justify-center"
-        : "justify-end";
-
-  return (
-    <div
-      ref={containerRef}
-      className="relative aspect-video w-full overflow-hidden rounded-xl border bg-gradient-to-br from-slate-800 via-slate-900 to-black"
-    >
-      {/* Column direction so justify-* moves along the vertical axis (top/middle/bottom). */}
-      <div
-        className={`absolute inset-0 flex flex-col items-center ${justify} px-4`}
-        style={{
-          paddingTop: style.position === "top" ? margin : undefined,
-          paddingBottom: style.position === "bottom" ? margin : undefined,
-        }}
-      >
-        <div className="space-y-1 text-center" style={{ fontSize }}>
-          {SAMPLE_LINES.map((line, lineIndex) => (
-            <div key={line} style={textStyle}>
-              {style.highlightEnabled
-                ? renderKaraoke(line, lineIndex === 0, style)
-                : line}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** First preview line mimics a half-sung karaoke cue. */
-function renderKaraoke(line: string, active: boolean, style: CaptionStyle) {
-  if (!active) return line;
-  const words = line.split(" ");
-  const sung = Math.ceil(words.length / 2);
-  return words.map((word, index) => (
-    <span
-      key={`${word}-${index}`}
-      style={{ color: index < sung ? style.highlightColor : style.textColor }}
-    >
-      {word}
-      {index < words.length - 1 ? " " : ""}
-    </span>
-  ));
-}
-
+/** Slider for values where the exact number matters less than the feel. */
 function RangeControl({
   label,
   value,
@@ -182,6 +109,89 @@ function RangeControl({
         onChange={(event) => onChange(Number(event.target.value))}
         className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
       />
+    </div>
+  );
+}
+
+/**
+ * Number input with validation. While focused the field holds a free-typed
+ * draft (so a half-typed value is never clamped mid-keystroke); on blur it
+ * commits when valid and otherwise reverts to the last good value.
+ */
+function NumberControl({
+  label,
+  value,
+  min,
+  max,
+  suffix,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  suffix?: string;
+  onChange: (value: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const display = editing ? draft : String(value);
+  const parsed = Number(display);
+  const invalid =
+    editing &&
+    (display.trim() === "" ||
+      Number.isNaN(parsed) ||
+      parsed < min ||
+      parsed > max);
+
+  function commit() {
+    if (!editing) return;
+    if (!invalid && parsed !== value) onChange(parsed);
+    setEditing(false);
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs text-muted-foreground">{label}</Label>
+        <span className="tabular text-xs text-muted-foreground/70">
+          {min}–{max}
+          {suffix}
+        </span>
+      </div>
+      <div className="relative">
+        <Input
+          type="number"
+          inputMode="numeric"
+          value={display}
+          min={min}
+          max={max}
+          aria-invalid={invalid}
+          onFocus={() => {
+            setEditing(true);
+            setDraft(String(value));
+          }}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.currentTarget.blur();
+            }
+          }}
+          className={suffix ? "pr-10" : undefined}
+        />
+        {suffix ? (
+          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+            {suffix}
+          </span>
+        ) : null}
+      </div>
+      {invalid ? (
+        <p className="text-xs text-destructive">
+          Enter a value between {min} and {max}
+          {suffix}.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -237,6 +247,23 @@ function ToggleControl({
   );
 }
 
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-3">
+      <h4 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        {title}
+      </h4>
+      {children}
+    </section>
+  );
+}
+
 export function CaptionBurnPanel({
   projectId,
   projectName,
@@ -253,6 +280,7 @@ export function CaptionBurnPanel({
   onClose?: () => void;
 }) {
   const queryClient = useQueryClient();
+  const preview = useCaptionPreview();
   const [selected, setSelected] = useState<CaptionStyle | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -306,11 +334,22 @@ export function CaptionBurnPanel({
     retry: false,
   });
 
-  // `selected === null` follows the first preset, so presets configure the preview
-  // without an effect; any edit or preset click pins the style.
-  const presets = presetsQuery.data?.items ?? [];
-  const style = selected ?? presets[0]?.style ?? DEFAULT_CAPTION_STYLE;
+  const presets = useMemo(
+    () => presetsQuery.data?.items ?? [],
+    [presetsQuery.data],
+  );
+  const fallback = presets[0]?.style ?? DEFAULT_CAPTION_STYLE;
+  const style = preview?.style ?? selected ?? fallback;
   const presetId = style.preset;
+
+  // Seed the shared preview with the first preset so the overlay on the video
+  // appears before the creator touches anything.
+  const setPreviewStyle = preview?.setStyle;
+  useEffect(() => {
+    if (setPreviewStyle && !preview?.style && presets.length > 0) {
+      setPreviewStyle(presets[0].style);
+    }
+  }, [setPreviewStyle, preview?.style, presets]);
 
   const jobStatus = jobQuery.data?.status;
   const jobTerminal =
@@ -318,8 +357,7 @@ export function CaptionBurnPanel({
     jobStatus === "failed" ||
     jobStatus === "cancelled";
 
-  // Announce the outcome once per job. No state here: the renders list refreshes on
-  // its own interval and a terminal status stops the job polling.
+  // Announce the outcome once per job.
   useEffect(() => {
     if (!jobId || !jobStatus || !jobTerminal) return;
     if (notifiedJob.current === jobId) return;
@@ -366,14 +404,20 @@ export function CaptionBurnPanel({
       toast.error(errorMessage(caught, "Could not delete the render.")),
   });
 
+  function applyStyle(next: CaptionStyle) {
+    if (preview) preview.setStyle(next);
+    else setSelected(next);
+  }
+
   function applyPreset(id: string) {
     const preset = presets.find((item) => item.id === id);
-    if (preset) setSelected(preset.style);
+    if (preset) applyStyle(preset.style);
   }
 
   function update(patch: Partial<CaptionStyle>) {
-    setSelected({ ...style, ...patch });
+    applyStyle({ ...style, ...patch });
   }
+
   const isRendering =
     createMutation.isPending ||
     Boolean(activeRender) ||
@@ -382,37 +426,32 @@ export function CaptionBurnPanel({
   const jobMessage = jobQuery.data?.progress.message ?? "Queued";
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <div className="space-y-4">
-          <StylePreview style={style} />
-
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Preset</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {presets.map((preset) => (
-                <Button
-                  key={preset.id}
-                  type="button"
-                  size="sm"
-                  variant={preset.id === presetId ? "default" : "outline"}
-                  onClick={() => applyPreset(preset.id)}
-                >
-                  {preset.label}
-                </Button>
-              ))}
-              {presetsQuery.isLoading ? (
-                <span className="text-xs text-muted-foreground">Loading…</span>
-              ) : null}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {presets.find((item) => item.id === presetId)?.description ??
-                "Pick a starting look, then fine-tune it."}
-            </p>
-          </div>
+    <div className="space-y-6">
+      <Section title="Preset">
+        <div className="flex flex-wrap gap-1.5">
+          {presets.map((preset) => (
+            <Button
+              key={preset.id}
+              type="button"
+              size="sm"
+              variant={preset.id === presetId ? "default" : "outline"}
+              onClick={() => applyPreset(preset.id)}
+            >
+              {preset.label}
+            </Button>
+          ))}
+          {presetsQuery.isLoading ? (
+            <span className="text-xs text-muted-foreground">Loading…</span>
+          ) : null}
         </div>
+        <p className="text-xs text-muted-foreground">
+          {presets.find((item) => item.id === presetId)?.description ??
+            "Pick a starting look, then fine-tune it. The preview on the video updates live."}
+        </p>
+      </Section>
 
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
+        <Section title="Typography">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Font</Label>
@@ -456,14 +495,15 @@ export function CaptionBurnPanel({
             </div>
           </div>
 
-          <RangeControl
+          <NumberControl
             label="Font size"
             value={style.fontSize}
             min={24}
             max={110}
+            suffix="px"
             onChange={(value) => update({ fontSize: value })}
           />
-          <RangeControl
+          <NumberControl
             label="Distance from edge"
             value={style.marginV}
             min={0}
@@ -471,42 +511,47 @@ export function CaptionBurnPanel({
             suffix="px"
             onChange={(value) => update({ marginV: value })}
           />
-          <RangeControl
-            label="Chars per line"
+          <NumberControl
+            label="Characters per line"
             value={style.maxCharsPerLine}
             min={16}
             max={56}
             onChange={(value) => update({ maxCharsPerLine: value })}
           />
 
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-            <ToggleControl
-              label="Bold"
-              checked={style.bold}
-              onChange={(value) => update({ bold: value })}
-            />
-            <ToggleControl
-              label="Italic"
-              checked={style.italic}
-              onChange={(value) => update({ italic: value })}
-            />
-            <ToggleControl
-              label="Uppercase"
-              checked={style.uppercase}
-              onChange={(value) => update({ uppercase: value })}
-            />
-            <ToggleControl
-              label="Speaker names"
-              checked={style.speakerLabels}
-              onChange={(value) => update({ speakerLabels: value })}
-            />
-            <ToggleControl
-              label="Karaoke highlight"
-              checked={style.highlightEnabled}
-              onChange={(value) => update({ highlightEnabled: value })}
-            />
+          <div className="space-y-2 rounded-lg border p-3">
+            <span className="text-xs text-muted-foreground">Options</span>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+              <ToggleControl
+                label="Bold"
+                checked={style.bold}
+                onChange={(value) => update({ bold: value })}
+              />
+              <ToggleControl
+                label="Italic"
+                checked={style.italic}
+                onChange={(value) => update({ italic: value })}
+              />
+              <ToggleControl
+                label="Uppercase"
+                checked={style.uppercase}
+                onChange={(value) => update({ uppercase: value })}
+              />
+              <ToggleControl
+                label="Speaker names"
+                checked={style.speakerLabels}
+                onChange={(value) => update({ speakerLabels: value })}
+              />
+              <ToggleControl
+                label="Karaoke highlight"
+                checked={style.highlightEnabled}
+                onChange={(value) => update({ highlightEnabled: value })}
+              />
+            </div>
           </div>
+        </Section>
 
+        <Section title="Colours">
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Background</Label>
             <Select
@@ -582,7 +627,7 @@ export function CaptionBurnPanel({
               onChange={(value) => update({ shadow: value })}
             />
           </div>
-        </div>
+        </Section>
       </div>
 
       {isRendering ? (
@@ -604,7 +649,7 @@ export function CaptionBurnPanel({
         </p>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
           {style.fontFamily} · {style.background} ·{" "}
           {style.highlightEnabled ? "karaoke" : "static"}
@@ -665,6 +710,7 @@ export function CaptionBurnPanel({
                   <Button
                     size="sm"
                     variant="outline"
+                    nativeButton={false}
                     render={
                       <a
                         href={render.downloadUrl}

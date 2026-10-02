@@ -22,5 +22,12 @@ export const WORKSPACE_PANE_CARD = `${WORKSPACE_PANE_HEIGHT} flex min-h-0 flex-c
  */
 export const WORKSPACE_PANE_SNAP = `${WORKSPACE_PANE_CARD} lg:snap-start lg:snap-always lg:scroll-mt-20`;
 
+/**
+ * Snap target for a card that scrolls with its own height (placeholder modules):
+ * its top snaps level with the video card without forcing a fixed pane height.
+ */
+export const WORKSPACE_SNAP_TARGET =
+  "lg:snap-start lg:snap-always lg:scroll-mt-20";
+
 /** Extra room after the last pane so it can snap level with the video card. */
-export const WORKSPACE_PANE_STACK_SPACER = "hidden h-[28vh] shrink-0 lg:block";
+export const WORKSPACE_PANE_STACK_SPACER = "hidden h-[55vh] shrink-0 lg:block";

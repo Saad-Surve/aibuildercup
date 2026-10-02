@@ -21,7 +21,6 @@ class DraftFormat(StrEnum):
 class DraftBlockType(StrEnum):
     heading = "heading"
     paragraph = "paragraph"
-    scene = "scene"
 
 
 class DraftStatus(StrEnum):
@@ -116,6 +115,24 @@ class AssistMode(StrEnum):
     rewrite = "rewrite"
     alternatives = "alternatives"
     continue_draft = "continue"
+
+
+class SuggestMode(StrEnum):
+    rewrite = "rewrite"
+    alternatives = "alternatives"
+
+
+class SuggestDraftRequest(BaseModel):
+    """Ask the writing partner for alternatives to a selected span."""
+
+    text: str = Field(min_length=1, max_length=4000)
+    context: str = ""
+    mode: SuggestMode = SuggestMode.alternatives
+    count: int = Field(default=3, ge=1, le=5)
+
+
+class SuggestDraftResponse(BaseModel):
+    suggestions: list[str] = Field(default_factory=list)
 
 
 class AssistDraftRequest(BaseModel):

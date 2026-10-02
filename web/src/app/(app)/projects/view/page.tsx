@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
@@ -10,9 +10,27 @@ import { PageHeader } from "@/components/common/page-header";
 import { ProjectWorkspace } from "@/components/projects/project-workspace";
 import { Skeleton } from "@/components/ui/skeleton";
 
+/**
+ * Path-based project routing.
+ *
+ * The web app is a static export, so arbitrary project ids cannot be prerendered
+ * as files and a dynamic route is impossible. Instead a rewrite (Next dev
+ * `rewrites()` and the Firebase Hosting rewrite) serves this shell for
+ * `/projects/view/project/**`, and the client reads the id and module from the
+ * path. Query-string links (`?projectId=…&module=…`) still work.
+ *
+ *   /projects/view/project/{projectId}
+ *   /projects/view/project/{projectId}/{module}
+ */
 function WorkspaceRoute() {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const projectId = searchParams.get("projectId");
+
+  const match = pathname?.match(
+    /^\/projects\/view\/project\/([^/]+)(?:\/([^/]+))?/,
+  );
+  const projectId = match?.[1] ?? searchParams.get("projectId");
+  const moduleId = match?.[2] ?? searchParams.get("module") ?? "overview";
 
   if (!projectId) {
     return (
@@ -32,7 +50,7 @@ function WorkspaceRoute() {
     );
   }
 
-  return <ProjectWorkspace projectId={projectId} />;
+  return <ProjectWorkspace projectId={projectId} moduleId={moduleId} />;
 }
 
 export default function ProjectViewPage() {

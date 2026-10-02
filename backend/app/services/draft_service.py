@@ -9,6 +9,7 @@ creator typed is ever overwritten.
 
 import json
 import logging
+import re
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
@@ -30,6 +31,8 @@ from app.schemas.draft import (
     DraftVersion,
     GenerateDraftRequest,
     SaveDraftRequest,
+    SuggestDraftRequest,
+    SuggestMode,
 )
 from app.schemas.projects import ProjectStatus
 from app.services.firestore_service import FirestoreClient, draft_path
@@ -39,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 DRAFT_GENERATE_PROMPT_VERSION = "draft-generate-v1"
 DRAFT_ASSIST_PROMPT_VERSION = "draft-assist-v1"
+DRAFT_SUGGEST_PROMPT_VERSION = "draft-suggest-v1"
 
 GENERATE_SYSTEM = (
     "You are a senior editor and scriptwriter inside a creator studio. Turn the creator's "
@@ -59,13 +63,21 @@ ASSIST_SYSTEM = (
     "You answer with JSON only.\n"
     "- `reply`: a short, direct note to the creator explaining what you changed. No preamble.\n"
     "- `title`: a better title when the instruction implies one, otherwise an empty string.\n"
-    "- `blocks`: the edits to apply. To revise an existing block, set `blockId` to its id and "
-    "put the full replacement text in `text` with a short `label` (e.g. `Punchier`). To add a "
-    "new block, leave `blockId` empty and set `type`. Never fabricate block ids.\n"
+    "- `clearDraft`: true only when the creator explicitly asks to clear, empty, delete, or "
+    "start over from a blank draft. It removes every block.\n"
+    "- `removeBlockIds`: ids of existing blocks to delete (e.g. 'drop the intro').\n"
+    "- `blocks`: the edits to apply. To revise an existing block, set `blockId` to its exact id "
+    "from the context and put the full replacement text in `text` with a short `label` (e.g. "
+    "`Punchier`). To add a new block, leave `blockId` empty and set `type` to `heading` or "
+    "`paragraph`. Never fabricate block ids.\n"
     "Every entry becomes a new version, so the previous wording is always kept — write the "
     "complete new text for the block, not a diff.\n"
     "When asked for alternatives, return several entries with the same `blockId`, one per "
-    "alternative. Never invent facts, numbers, or quotes."
+    "alternative. Never invent facts, numbers, or quotes.\n"
+    "CRITICAL: your `reply` must only describe changes you actually returned in `clearDraft`, "
+    "`removeBlockIds`, or `blocks`. If you say you cleared the draft, set `clearDraft` to true. "
+    "If the creator asked for a change and you have no edit to return, say so instead of "
+    "claiming you did it."
 )
 
 GENERATE_SCHEMA: dict[str, Any] = {
@@ -95,6 +107,8 @@ ASSIST_SCHEMA: dict[str, Any] = {
     "properties": {
         "reply": {"type": "string"},
         "title": {"type": "string"},
+        "clearDraft": {"type": "boolean"},
+        "removeBlockIds": {"type": "array", "items": {"type": "string"}},
         "blocks": {
             "type": "array",
             "items": {
@@ -115,13 +129,60 @@ ASSIST_SCHEMA: dict[str, Any] = {
     "required": ["reply"],
 }
 
+SUGGEST_SYSTEM = (
+    "You rewrite one short span of a draft at a time, at the creator's request. "
+    "You answer with JSON only: `suggestions`, an ordered list of replacement "
+    "strings for the selected span.\n"
+    "- Return exactly the requested number of suggestions, each a drop-in replacement "
+    "for the selection that keeps the surrounding sentence grammatical.\n"
+    "- Keep the creator's voice and meaning. Change only the selected words.\n"
+    "- Never invent facts, numbers, names, or quotes.\n"
+    "- Do not add quotes, labels, or commentary inside a suggestion."
+)
+
+SUGGEST_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "suggestions": {"type": "array", "items": {"type": "string"}}
+    },
+    "required": ["suggestions"],
+}
+
 
 def _new_id() -> str:
     return uuid4().hex[:12]
 
 
+_TAG = re.compile(r"<[^>]+>")
+_VARIANT = re.compile(r"\{\{([^{}]*)\}\}")
+
+
+def strip_html(text: str) -> str:
+    """Plain text for word counts, prompts, and summaries.
+
+    Block text is Markdown and may contain inline variants
+    (`{{a | b | c}}`); the first option is the active one. Anything that reasons
+    about the words resolves variants and strips any HTML first.
+    """
+    text = _VARIANT.sub(
+        lambda match: match.group(1).split("|")[0].strip(), text
+    )
+    if "<" not in text:
+        return text.strip()
+    plain = _TAG.sub(" ", text)
+    plain = (
+        plain.replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", '"')
+        .replace("&#39;", "'")
+    )
+    return re.sub(r"\s+", " ", plain).strip()
+
+
 def word_count(text: str) -> int:
-    return len(text.split())
+    return len(strip_html(text).split())
 
 
 def active_text(block: DraftBlock) -> str:
@@ -137,7 +198,9 @@ def build_summary(draft: Draft) -> DraftSummary:
     for block in draft.blocks:
         words += word_count(active_text(block))
         versions += len(block.versions)
-    preview = " ".join(active_text(block) for block in draft.blocks[:2]).strip()
+    preview = " ".join(
+        strip_html(active_text(block)) for block in draft.blocks[:2]
+    ).strip()
     return DraftSummary(
         title=draft.title,
         preview=preview[:200],
@@ -189,15 +252,19 @@ def _fallback_blocks(brief: DraftBrief) -> list[DraftBlock]:
                 label="Draft",
             )
         )
-    if brief.format == DraftFormat.script:
-        blocks.append(
-            _make_block(
-                type_=DraftBlockType.scene,
-                text="SCENE 1 — Open on the result, then rewind to how you got there.",
-                label="Draft",
-            )
-        )
     return blocks
+
+
+def _looks_like_clear(message: str) -> bool:
+    """True when the creator clearly asked to wipe the draft."""
+    text = message.lower()
+    verbs = ("clear", "empty", "erase", "wipe", "delete", "remove", "reset")
+    nouns = ("draft", "everything", "all", "content", "document", "text")
+    if "start over" in text or "from scratch" in text or "blank" in text:
+        return True
+    return any(verb in text for verb in verbs) and any(
+        noun in text for noun in nouns
+    )
 
 
 class DraftService:
@@ -248,9 +315,9 @@ class DraftService:
         if payload.title is not None:
             draft.title = payload.title.strip()[:200]
         if payload.blocks:
-            known = {block.blockId for block in draft.blocks}
-            if any(block.blockId not in known for block in payload.blocks):
-                raise BadRequestError("Unknown draft block.")
+            # The client owns block creation (splits, merges, new paragraphs), so
+            # the payload is the full set and may contain ids the server has not
+            # seen yet. It is a replace, not a patch.
             draft.blocks = payload.blocks
         status = (
             ProjectStatus.draft if not draft.blocks else ProjectStatus.ready
@@ -304,19 +371,40 @@ class DraftService:
         )
         try:
             result = await self.llm.complete_json(
-                model=self.settings.model_orchestrator,
+                model=self.settings.model_writer,
                 prompt_version=DRAFT_ASSIST_PROMPT_VERSION,
                 system=ASSIST_SYSTEM,
                 user=self._assist_context(draft, payload),
                 schema=ASSIST_SCHEMA,
             )
-            reply, title, edits = self._parse_assist(result.data)
+            reply, title, clear_draft, remove_ids, edits = self._parse_assist(
+                result.data
+            )
         except Exception as exc:  # noqa: BLE001 - keep the user's message on failure
             logger.exception("Draft assist failed")
             reply = "I could not reach the writing model just now. Your draft is safe — try again."
             title = ""
+            clear_draft = False
+            remove_ids = []
             edits = []
             draft.error = str(exc)[:300]
+        if clear_draft:
+            draft.blocks = []
+        elif remove_ids:
+            drop = set(remove_ids)
+            draft.blocks = [
+                block for block in draft.blocks if block.blockId not in drop
+            ]
+        # The model occasionally says it cleared the draft without returning the
+        # flag. Trust an explicit clear request so the reply and the document
+        # can never disagree.
+        if (
+            not clear_draft
+            and not remove_ids
+            and not edits
+            and _looks_like_clear(payload.message)
+        ):
+            draft.blocks = []
         self._apply_edits(draft, edits)
         if title:
             draft.title = title.strip()[:200]
@@ -334,6 +422,44 @@ class DraftService:
         return draft
 
     # ---------------------------------------------------------------- helpers
+
+    async def suggest(
+        self, *, owner_uid: str, project_id: str, payload: SuggestDraftRequest
+    ) -> list[str]:
+        """Return drop-in replacements for a selected span.
+
+        Unlike `assist`, this does not touch the stored draft: the client wraps the
+        selection in an inline variant and saves it, so word/sentence alternatives
+        stay inside the paragraph instead of becoming whole-block versions.
+        """
+        self.projects.get(owner_uid=owner_uid, project_id=project_id)
+        count = payload.count if payload.mode == SuggestMode.alternatives else 1
+        user = json.dumps(
+            {
+                "selection": payload.text,
+                "surrounding": payload.context[:2000],
+                "mode": payload.mode.value,
+                "count": count,
+            },
+            ensure_ascii=False,
+        )
+        try:
+            completion = await self.llm.complete_json(
+                model=self.settings.model_writer,
+                prompt_version=DRAFT_SUGGEST_PROMPT_VERSION,
+                system=SUGGEST_SYSTEM,
+                user=user,
+                schema=SUGGEST_SCHEMA,
+            )
+            suggestions = [
+                str(item).strip()
+                for item in (completion.data.get("suggestions") or [])
+                if str(item).strip()
+            ]
+        except Exception:  # noqa: BLE001 - the client falls back to the original
+            logger.exception("Draft suggest failed")
+            suggestions = []
+        return suggestions[:count]
 
     def _apply_overrides(
         self, brief: DraftBrief, overrides: GenerateDraftRequest
@@ -353,7 +479,7 @@ class DraftService:
         user = json.dumps(brief.model_dump(mode="json"), indent=2, ensure_ascii=False)
         try:
             completion = await self.llm.complete_json(
-                model=self.settings.model_orchestrator,
+                model=self.settings.model_writer,
                 prompt_version=DRAFT_GENERATE_PROMPT_VERSION,
                 system=GENERATE_SYSTEM,
                 user=user,
@@ -385,7 +511,7 @@ class DraftService:
             {
                 "blockId": block.blockId,
                 "type": block.type.value,
-                "text": active_text(block),
+                "text": strip_html(active_text(block)),
                 "versions": len(block.versions),
             }
             for block in draft.blocks
@@ -412,11 +538,21 @@ class DraftService:
 
     def _parse_assist(
         self, data: dict[str, Any]
-    ) -> tuple[str, str, list[dict[str, Any]]]:
+    ) -> tuple[str, str, bool, list[str], list[dict[str, Any]]]:
         reply = str(data.get("reply", "")).strip() or "Updated the draft."
         title = str(data.get("title", "")).strip()
-        edits = [item for item in data.get("blocks", []) if str(item.get("text", "")).strip()]
-        return reply, title, edits
+        clear_draft = bool(data.get("clearDraft"))
+        remove_ids = [
+            str(item)
+            for item in (data.get("removeBlockIds") or [])
+            if str(item).strip()
+        ]
+        edits = [
+            item
+            for item in data.get("blocks", [])
+            if str(item.get("text", "")).strip()
+        ]
+        return reply, title, clear_draft, remove_ids, edits
 
     def _apply_edits(self, draft: Draft, edits: list[dict[str, Any]]) -> None:
         index: dict[str, DraftBlock] = {block.blockId: block for block in draft.blocks}

@@ -35,6 +35,17 @@ export function assistDraft(
   });
 }
 
+/** Drop-in replacements for a selected span (inline variant alternatives). */
+export function suggestDraft(
+  projectId: string,
+  input: { text: string; context?: string; mode?: string; count?: number },
+): Promise<{ suggestions: string[] }> {
+  return apiFetch<{ suggestions: string[] }>(
+    `/projects/${projectId}/draft/suggest`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
 export function formatLabel(format: DraftFormat): string {
   return format === "script" ? "Video script" : "Written content";
 }
