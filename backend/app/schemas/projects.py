@@ -50,6 +50,10 @@ class Project(BaseModel):
     demoProfileId: str | None
     status: ProjectStatus
     progress: ProjectProgress | None = None
+    #: Active source-video pointer and revision summary (see `Revision`).
+    sourceAssetId: str | None = None
+    sourceRevision: int | None = None
+    revisionCount: int = 0
     createdAt: datetime
     updatedAt: datetime
 

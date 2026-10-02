@@ -16,6 +16,7 @@ import { ReviewPanel } from "@/components/projects/review-panel";
 import { SourceVideoPlayer } from "@/components/projects/source-video-player";
 import { TranscriptPanel } from "@/components/projects/transcript-panel";
 import { VideoDropzone } from "@/components/projects/video-dropzone";
+import { VideoRevisions } from "@/components/projects/video-revisions";
 import {
   Card,
   CardContent,
@@ -32,6 +33,7 @@ import {
   getJob,
   getProject,
   listAssets,
+  pickSourceAsset,
 } from "@/lib/projects";
 import { useProjectEvents } from "@/hooks/use-project-events";
 import type { Asset, Job } from "@/lib/types";
@@ -91,8 +93,9 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [localAsset, setLocalAsset] = useState<Asset | null>(null);
   const assetsLoading = assetsQuery.isLoading;
   const assetsData = assetsQuery.data;
-  const sourceAsset = assetsData?.items.find(
-    (asset) => asset.type === "source_video",
+  const sourceAsset = pickSourceAsset(
+    assetsData?.items,
+    projectQuery.data?.sourceAssetId,
   );
 
   // Retry a failed transcription. `POST /assets/{id}/complete` reuses the existing job
@@ -114,8 +117,9 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   });
 
   useEffect(() => {
-    const source = assetsData?.items.find(
-      (asset) => asset.type === "source_video",
+    const source = pickSourceAsset(
+      assetsData?.items,
+      projectQuery.data?.sourceAssetId,
     );
     if (assetsLoading || source) return;
     let alive = true;
@@ -133,6 +137,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
           mimeType: blob.type || "video/mp4",
           sizeBytes: blob.size,
           durationMs: null,
+          revision: null,
           createdAt: timestamp,
           updatedAt: timestamp,
         };
@@ -141,7 +146,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     return () => {
       alive = false;
     };
-  }, [assetsLoading, assetsData, projectId]);
+  }, [assetsLoading, assetsData, projectId, projectQuery.data?.sourceAssetId]);
 
   if (projectQuery.isLoading) {
     return (
@@ -186,6 +191,8 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const project = projectQuery.data;
 
   const effectiveSource = sourceAsset ?? localAsset;
+  const displayRevision =
+    project.sourceRevision ?? sourceAsset?.revision ?? null;
   const processing =
     project.status === "processing" ||
     jobQuery.data?.status === "queued" ||
@@ -262,14 +269,28 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
             <div className="lg:sticky lg:top-20">
               <Card className={WORKSPACE_PANE_CARD}>
                 <CardHeader className="shrink-0">
-                  <div className="flex items-center gap-2">
-                    <Icon
-                      icon={FileVideoIcon}
-                      className="text-muted-foreground"
-                    />
-                    <CardTitle>Source video</CardTitle>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Icon
+                        icon={FileVideoIcon}
+                        className="text-muted-foreground"
+                      />
+                      <CardTitle>Source video</CardTitle>
+                    </div>
+                    {sourceAsset && (
+                      <VideoRevisions
+                        projectId={projectId}
+                        activeRevision={project.sourceRevision}
+                        revisionCount={project.revisionCount}
+                        onQueued={setJobId}
+                      />
+                    )}
                   </div>
-                  <CardDescription>{effectiveSource.mimeType}</CardDescription>
+                  <CardDescription>
+                    {displayRevision != null
+                      ? `Revision ${displayRevision} · ${effectiveSource.mimeType}`
+                      : effectiveSource.mimeType}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="flex min-h-0 flex-1 flex-col">
                   <div className="flex min-h-0 flex-1 items-center [&>*]:w-full">

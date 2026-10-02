@@ -64,6 +64,9 @@ def _to_project(project_id: str, data: dict[str, Any]) -> Project:
         progress=ProjectProgress(**data["progress"])
         if data.get("progress")
         else None,
+        sourceAssetId=data.get("sourceAssetId"),
+        sourceRevision=data.get("sourceRevision"),
+        revisionCount=int(data.get("sourceRevisionCounter", 0) or 0),
         createdAt=data["createdAt"],
         updatedAt=data["updatedAt"],
     )
@@ -87,6 +90,8 @@ class ProjectService:
             "status": ProjectStatus.draft.value,
             "visibility": "private",
             "sourceAssetId": None,
+            "sourceRevision": None,
+            "sourceRevisionCounter": 0,
             "activeTranscriptId": None,
             "activeAnalysisRunId": None,
             "personaVersionUsed": None,
@@ -130,23 +135,38 @@ class ProjectService:
             data.update(changes)
         return _to_project(project_id, data)
 
-    def mark_processing(self, *, owner_uid: str, project_id: str, source_asset_id: str) -> None:
-        """Record that a source asset was uploaded and the pipeline is starting."""
-        self._require_owned(owner_uid=owner_uid, project_id=project_id)
+    def mark_processing(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        source_asset_id: str,
+        revision: int | None = None,
+    ) -> None:
+        """Record that a source asset was uploaded and the pipeline is starting.
+
+        `revision` is the revision number of the uploaded source, when known. The project
+        points at it as the active source; the revision counter only ever moves forward, so
+        re-completing an older upload cannot lower the project's revision count.
+        """
+        raw = self._require_owned(owner_uid=owner_uid, project_id=project_id)
         now = datetime.now(UTC)
-        self.client.update_document(
-            project_path(owner_uid, project_id),
-            {
-                "status": ProjectStatus.processing.value,
-                "sourceAssetId": source_asset_id,
-                "progress": {
-                    "stage": "transcription",
-                    "percent": 0,
-                    "message": "Queued for transcription",
-                },
-                "updatedAt": now,
+        changes: dict[str, Any] = {
+            "status": ProjectStatus.processing.value,
+            "sourceAssetId": source_asset_id,
+            "progress": {
+                "stage": "transcription",
+                "percent": 0,
+                "message": "Queued for transcription",
             },
-        )
+            "updatedAt": now,
+        }
+        if revision is not None:
+            counter = int(raw.get("sourceRevisionCounter", 0) or 0)
+            changes["sourceRevision"] = revision
+            if revision > counter:
+                changes["sourceRevisionCounter"] = revision
+        self.client.update_document(project_path(owner_uid, project_id), changes)
         emit_project(
             owner_uid,
             project_id,

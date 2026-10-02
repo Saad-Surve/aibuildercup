@@ -272,6 +272,45 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DownloadUrl" }
 
+  /api/projects/{projectId}/revisions:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: List source-video revisions, newest first
+      description: |
+        A project keeps one video but may hold several revisions of it. Each upload creates
+        a new source revision; the newest (or explicitly activated) one is the project's
+        active source. Revisions are never overwritten, so previous transcripts and
+        analyses stay attributable to the revision they were built from. Uploading is
+        unchanged (`POST /upload-session` then `POST /assets/{id}/complete`); the new
+        revision transcodes automatically and the caller may then re-run analysis.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RevisionList" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/projects/{projectId}/revisions/{assetId}/activate:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/AssetId" }
+    post:
+      summary: Make an earlier revision the project's active video
+      description: |
+        Points the project back at this revision. If the revision already has a saved
+        transcript, that transcript becomes the active one; otherwise a fresh
+        transcription run is queued and `jobId` is returned. Existing transcripts and
+        analysis runs are never deleted, so switching between revisions loses no work.
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RevisionActivation" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /api/jobs/{jobId}:
     parameters:
       - { $ref: "#/components/parameters/JobId" }
@@ -871,6 +910,15 @@ components:
                 message: { type: [string, "null"] }
             createdAt: { type: string, format: date-time }
             updatedAt: { type: string, format: date-time }
+            sourceAssetId:
+              type: [string, "null"]
+              description: The project's active source-video asset.
+            sourceRevision:
+              type: [integer, "null"]
+              description: Revision number of the active source video; null if none uploaded.
+            revisionCount:
+              type: integer
+              description: Number of source-video revisions uploaded for this project.
 
     UploadSessionRequest:
       type: object
@@ -906,6 +954,11 @@ components:
         mimeType: { type: string }
         sizeBytes: { type: integer, format: int64 }
         durationMs: { type: [integer, "null"] }
+        revision:
+          type: [integer, "null"]
+          description: |
+            Source-video revision number. Null for non-source assets and for legacy
+            source videos uploaded before revisions existed.
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -921,6 +974,49 @@ components:
       properties:
         url: { type: string, format: uri }
         expiresAt: { type: string, format: date-time }
+
+    Revision:
+      type: object
+      properties:
+        revision:
+          type: integer
+          description: Monotonic revision number (1 is the first upload).
+        assetId: { type: string }
+        status: { $ref: "#/components/schemas/AssetStatus" }
+        mimeType: { type: string }
+        sizeBytes: { type: integer, format: int64 }
+        durationMs: { type: [integer, "null"] }
+        storagePath: { type: string }
+        isActive:
+          type: boolean
+          description: Whether this revision is the project's active source video.
+        transcriptId:
+          type: [string, "null"]
+          description: The newest transcript built from this revision, if any.
+        transcriptVersion: { type: [integer, "null"] }
+        analysisRunCount:
+          type: integer
+          description: How many analysis runs were built from this revision.
+        createdAt: { type: string, format: date-time }
+
+    RevisionList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Revision" }
+
+    RevisionActivation:
+      type: object
+      properties:
+        assetId: { type: string }
+        revision: { type: integer }
+        transcriptId:
+          type: [string, "null"]
+          description: The transcript made active, or null when one had to be generated.
+        jobId:
+          type: [string, "null"]
+          description: The queued transcribe job when no transcript existed yet.
 
     Job:
       type: object

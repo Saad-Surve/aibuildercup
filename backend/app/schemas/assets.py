@@ -47,12 +47,43 @@ class Asset(BaseModel):
     mimeType: str
     sizeBytes: int
     durationMs: int | None = None
+    #: Source-video revision number; None for non-source assets and legacy sources.
+    revision: int | None = None
     createdAt: datetime
     updatedAt: datetime
 
 
 class AssetList(BaseModel):
     items: list[Asset]
+
+
+class Revision(BaseModel):
+    revision: int
+    assetId: str
+    status: AssetStatus
+    mimeType: str
+    sizeBytes: int
+    durationMs: int | None = None
+    storagePath: str
+    isActive: bool
+    #: The newest transcript built from this revision, and how many reviews it has.
+    transcriptId: str | None = None
+    transcriptVersion: int | None = None
+    analysisRunCount: int = 0
+    createdAt: datetime
+
+
+class RevisionList(BaseModel):
+    items: list[Revision]
+
+
+class RevisionActivation(BaseModel):
+    assetId: str
+    revision: int
+    #: The transcript made active, or None when a fresh one had to be generated.
+    transcriptId: str | None = None
+    #: The queued transcribe job when the revision had no transcript yet.
+    jobId: str | None = None
 
 
 class DownloadUrl(BaseModel):

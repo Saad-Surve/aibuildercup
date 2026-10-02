@@ -186,6 +186,7 @@ export function useProjectEvents(
       queryKey: ["analysis-runs", projectId],
     });
     void queryClient.invalidateQueries({ queryKey: ["assets", projectId] });
+    void queryClient.invalidateQueries({ queryKey: ["revisions", projectId] });
   }, [status, projectId, queryClient]);
 
   return { status, connected: status === "open" };

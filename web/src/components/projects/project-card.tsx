@@ -11,7 +11,12 @@ import { ProjectStatusBadge } from "@/components/projects/project-status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ensurePoster, ensureProjectPoster } from "@/lib/local-media";
-import { formatBytes, formatTimestamp, listAssets } from "@/lib/projects";
+import {
+  formatBytes,
+  formatTimestamp,
+  listAssets,
+  pickSourceAsset,
+} from "@/lib/projects";
 import type { Project } from "@/lib/types";
 
 /*
@@ -20,7 +25,13 @@ import type { Project } from "@/lib/types";
  * the project-level cache when the API does not list the asset, then to the
  * film placeholder.
  */
-function ProjectThumb({ projectId }: { projectId: string }) {
+function ProjectThumb({
+  projectId,
+  activeAssetId,
+}: {
+  projectId: string;
+  activeAssetId: string | null;
+}) {
   const assetsQuery = useQuery({
     queryKey: ["assets", projectId],
     queryFn: () => listAssets(projectId),
@@ -30,9 +41,7 @@ function ProjectThumb({ projectId }: { projectId: string }) {
 
   useEffect(() => {
     if (assetsQuery.isLoading || assetsQuery.isError || poster) return;
-    const source = assetsQuery.data?.items.find(
-      (asset) => asset.type === "source_video",
-    );
+    const source = pickSourceAsset(assetsQuery.data?.items, activeAssetId);
     let alive = true;
     void (async () => {
       const url = source
@@ -53,6 +62,7 @@ function ProjectThumb({ projectId }: { projectId: string }) {
     assetsQuery.data,
     poster,
     projectId,
+    activeAssetId,
   ]);
 
   if (poster) {
@@ -108,8 +118,9 @@ export function ProjectCard({ project }: { project: Project }) {
     queryFn: () => listAssets(project.projectId),
     staleTime: 60_000,
   });
-  const source = assetsQuery.data?.items.find(
-    (asset) => asset.type === "source_video",
+  const source = pickSourceAsset(
+    assetsQuery.data?.items,
+    project.sourceAssetId,
   );
 
   return (
@@ -119,7 +130,10 @@ export function ProjectCard({ project }: { project: Project }) {
     >
       <Card className="h-full transition-shadow group-hover:shadow-md group-hover:ring-foreground/20">
         <div className="-mt-(--card-spacing) overflow-hidden rounded-t-xl">
-          <ProjectThumb projectId={project.projectId} />
+          <ProjectThumb
+            projectId={project.projectId}
+            activeAssetId={project.sourceAssetId}
+          />
         </div>
         <CardHeader>
           <div className="flex items-start justify-between gap-3">

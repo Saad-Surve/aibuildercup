@@ -201,6 +201,8 @@ POST /projects request:
 | POST | /projects/{projectId}/upload-session | Create direct Cloud Storage upload |
 | POST | /projects/{projectId}/assets/{assetId}/complete | Confirm client upload |
 | GET | /projects/{projectId}/assets | List assets |
+| GET | /projects/{projectId}/revisions | List source-video revisions |
+| POST | /projects/{projectId}/revisions/{assetId}/activate | Make a revision the active video |
 | GET | /projects/{projectId}/assets/{assetId}/download-url | Create short-lived download URL |
 
 POST /upload-session request:
@@ -234,6 +236,29 @@ Trigger of record:
 - `POST /assets/{assetId}/complete` is authoritative for the user-visible upload state.
 - The Cloud Storage `object finalized` notification is what actually starts the transcription worker, so processing still happens if the client never confirms.
 - Both paths are idempotent and converge on the same asset/job records.
+
+### Revisions
+
+A project holds one video but keeps every revision of it. Each `POST /upload-session`
+mints the next revision number on the new `source_video` asset, and completing the upload
+makes it the project's active source (`sourceAssetId` / `sourceRevision` on the project)
+and transcribes it automatically. Revisions are never overwritten, so transcripts and
+analysis runs remain attributable to the cut they were built from. Once the new transcript
+is ready the client can `POST /projects/{projectId}/analysis` to review the new revision;
+the UI nudges this when the newest run's `transcriptId` differs from the active transcript.
+
+`GET /projects/{projectId}/revisions` returns them newest first, with `isActive` on the
+current one. Each revision also carries the newest transcript built from it
+(`transcriptId` / `transcriptVersion`) and its `analysisRunCount`, so the history shows
+what work already exists per cut. Source assets uploaded before revisions existed carry no
+`revision`; they are numbered by upload order.
+
+`POST /projects/{projectId}/revisions/{assetId}/activate` points the project back at an
+earlier revision. If that revision already has a transcript, the newest one becomes active
+and the project is `ready`; otherwise a fresh transcribe job is queued and its `jobId` is
+returned. Existing transcripts and analysis runs are never deleted, so switching between
+revisions is lossless. All revisions live under the project prefix, so project deletion
+still removes them with no extra wiring.
 
 ## 7. Jobs and progress
 

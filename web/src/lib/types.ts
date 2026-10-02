@@ -62,6 +62,12 @@ export interface Project {
     percent: number;
     message: string | null;
   } | null;
+  /** The project's active source-video asset. */
+  sourceAssetId: string | null;
+  /** Revision number of the active source video; null if none uploaded. */
+  sourceRevision: number | null;
+  /** Number of source-video revisions uploaded for this project. */
+  revisionCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -98,12 +104,44 @@ export interface Asset {
   mimeType: string;
   sizeBytes: number;
   durationMs: number | null;
+  /** Source-video revision number; null for non-source and legacy assets. */
+  revision: number | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface AssetList {
   items: Asset[];
+}
+
+export interface Revision {
+  revision: number;
+  assetId: string;
+  status: AssetStatus;
+  mimeType: string;
+  sizeBytes: number;
+  durationMs: number | null;
+  storagePath: string;
+  isActive: boolean;
+  /** The newest transcript built from this revision, if any. */
+  transcriptId: string | null;
+  transcriptVersion: number | null;
+  /** How many analysis runs were built from this revision. */
+  analysisRunCount: number;
+  createdAt: string;
+}
+
+export interface RevisionList {
+  items: Revision[];
+}
+
+export interface RevisionActivation {
+  assetId: string;
+  revision: number;
+  /** The transcript made active, or null when one had to be generated. */
+  transcriptId: string | null;
+  /** The queued transcribe job when the revision had no transcript yet. */
+  jobId: string | null;
 }
 
 export interface UploadSession {

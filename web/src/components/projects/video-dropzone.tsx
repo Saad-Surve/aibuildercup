@@ -66,6 +66,9 @@ export function VideoDropzone({
       saveVideoBlob(session.assetId, file, projectId).catch(() => {});
       const job = await completeUpload(projectId, session.assetId);
       await queryClient.invalidateQueries({ queryKey: ["assets", projectId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["revisions", projectId],
+      });
       await queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       onQueued?.(job.jobId);
     } catch (caught) {

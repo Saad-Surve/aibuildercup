@@ -183,6 +183,8 @@ AI-inferred changes remain pending until the user explicitly approves them.
   "status": "processing",
   "visibility": "private",
   "sourceAssetId": "asset-id",
+  "sourceRevision": 2,
+  "sourceRevisionCounter": 2,
   "activeTranscriptId": "transcript-id",
   "activeAnalysisRunId": "analysis-run-id",
   "personaVersionUsed": 3,
@@ -227,11 +229,17 @@ AI-inferred changes remain pending until the user explicitly approves them.
   "frameRate": 30,
   "language": "en",
   "derivedFromAssetId": null,
+  "revision": 2,
   "createdAt": "timestamp",
   "updatedAt": "timestamp",
   "deletedAt": null
 }
 ~~~
+
+`revision` is set only on `source_video` assets: each upload to a project is a new
+revision of the project's single video. Assets uploaded before revisions existed have no
+`revision` and are numbered by upload order for display. Revisions are retained, never
+overwritten, so a transcript or analysis run stays attributable to the cut it graded.
 
 ### users/{uid}/projects/{projectId}/jobs/{jobId}
 

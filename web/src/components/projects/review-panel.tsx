@@ -113,6 +113,16 @@ export function ReviewPanel({
   const runStatus = run?.status ?? null;
   const isRunning = isInFlight(run);
 
+  // A new video revision brings a new transcript. When the newest review was
+  // built from an older transcript, nudge the user to re-run it — otherwise the
+  // heatmap silently describes the previous cut of the video.
+  const activeTranscriptId = transcriptQuery.data?.transcriptId ?? null;
+  const transcriptIsNewer =
+    Boolean(activeTranscriptId) &&
+    runs.length > 0 &&
+    runs[0].transcriptId !== activeTranscriptId &&
+    !isRunning;
+
   const reviewersQuery = useQuery({
     queryKey: ["analysis-reviewers", projectId, activeRunId],
     queryFn: () => listReviewers(projectId, activeRunId as string),
@@ -283,6 +293,26 @@ export function ReviewPanel({
             <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               <Icon icon={Alert02Icon} className="mt-0.5 size-4 shrink-0" />
               <span>{startError}</span>
+            </div>
+          )}
+
+          {transcriptIsNewer && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-signal/40 bg-signal/5 px-3 py-2 text-sm">
+              <Icon
+                icon={SparklesIcon}
+                className="size-4 shrink-0 text-signal"
+              />
+              <span className="flex-1">
+                A newer transcript is ready. Run the review again to grade this
+                revision.
+              </span>
+              <Button
+                size="sm"
+                onClick={() => startMutation.mutate()}
+                disabled={startMutation.isPending}
+              >
+                {startMutation.isPending ? "Starting…" : "Run analysis again"}
+              </Button>
             </div>
           )}
 

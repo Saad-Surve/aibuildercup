@@ -1,6 +1,7 @@
 import { apiFetch } from "@/lib/api-client";
 import type {
   AcceptedJob,
+  Asset,
   AssetList,
   CaptionPreset,
   CaptionRender,
@@ -11,6 +12,8 @@ import type {
   DownloadUrl,
   Project,
   ProjectList,
+  RevisionActivation,
+  RevisionList,
   Transcript,
   TranscriptSegment,
   TranscriptVersion,
@@ -83,6 +86,40 @@ export function deleteProject(projectId: string): Promise<void> {
 
 export function listAssets(projectId: string): Promise<AssetList> {
   return apiFetch<AssetList>(`/projects/${projectId}/assets`);
+}
+
+/**
+ * The project's active source video.
+ *
+ * A project may hold several revisions, so "newest" is not the same as "active":
+ * always prefer the asset the project points at and only fall back to the first
+ * source video for legacy projects that predate the pointer.
+ */
+export function pickSourceAsset(
+  assets: Asset[] | undefined,
+  activeAssetId: string | null | undefined,
+): Asset | undefined {
+  if (!assets) return undefined;
+  return (
+    assets.find((asset) => asset.assetId === activeAssetId) ??
+    assets.find((asset) => asset.type === "source_video")
+  );
+}
+
+/** Source-video revisions, newest first; the active one is flagged. */
+export function listRevisions(projectId: string): Promise<RevisionList> {
+  return apiFetch<RevisionList>(`/projects/${projectId}/revisions`);
+}
+
+/** Make an earlier revision the project's active source video. */
+export function activateRevision(
+  projectId: string,
+  assetId: string,
+): Promise<RevisionActivation> {
+  return apiFetch<RevisionActivation>(
+    `/projects/${projectId}/revisions/${assetId}/activate`,
+    { method: "POST" },
+  );
 }
 
 export function createUploadSession(

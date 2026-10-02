@@ -49,6 +49,7 @@ import {
   formatTimestamp,
   getProject,
   listAssets,
+  pickSourceAsset,
   updateTranscript,
 } from "@/lib/projects";
 import type { TranscriptSegment } from "@/lib/types";
@@ -220,8 +221,9 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
   const segments = draft ?? transcript?.segments ?? [];
   const speakerLabels = labelsDraft ?? transcript?.speakerLabels ?? {};
   const dirty = draft !== null || labelsDraft !== null;
-  const sourceAsset = assetsQuery.data?.items.find(
-    (asset) => asset.type === "source_video",
+  const sourceAsset = pickSourceAsset(
+    assetsQuery.data?.items,
+    projectQuery.data?.sourceAssetId,
   );
   // Prefer the real player duration; fall back to the transcript's own length.
   const maxDurationMs = videoDurationMs ?? transcript?.durationMs ?? null;

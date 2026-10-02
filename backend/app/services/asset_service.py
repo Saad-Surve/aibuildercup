@@ -11,21 +11,27 @@ from uuid import uuid4
 
 from app.config import Settings
 from app.errors import BadRequestError, NotFoundError
+from app.realtime.events import emit_project
 from app.schemas.assets import (
     Asset,
     AssetStatus,
     AssetType,
     CreateUploadSession,
     DownloadUrl,
+    Revision,
+    RevisionActivation,
     UploadSession,
 )
 from app.schemas.jobs import Job, JobStatus, JobType
+from app.schemas.projects import ProjectStatus
 from app.services.firestore_service import (
     FirestoreClient,
+    analysis_runs_collection_path,
     asset_path,
     assets_collection_path,
     project_path,
     source_object_path,
+    transcripts_collection_path,
 )
 from app.services.job_service import JobService
 from app.services.project_service import ProjectService
@@ -54,6 +60,7 @@ def _to_asset(asset_id: str, data: dict[str, Any]) -> Asset:
         mimeType=data.get("mimeType", ""),
         sizeBytes=data.get("sizeBytes", 0),
         durationMs=data.get("durationMs"),
+        revision=data.get("revision"),
         createdAt=data["createdAt"],
         updatedAt=data["updatedAt"],
     )
@@ -78,7 +85,7 @@ class AssetService:
     def create_upload_session(
         self, *, owner_uid: str, project_id: str, payload: CreateUploadSession
     ) -> UploadSession:
-        self.projects.get(owner_uid=owner_uid, project_id=project_id)
+        project = self.projects.get(owner_uid=owner_uid, project_id=project_id)
 
         content_type = payload.contentType.strip().lower()
         extension = ALLOWED_SOURCE_TYPES.get(content_type)
@@ -112,6 +119,15 @@ class AssetService:
         )
 
         now = datetime.now(UTC)
+        # Each upload is a new revision of the project's single video. Number it above both
+        # the project counter and any existing source asset, so legacy projects whose sources
+        # predate revisions (and have no counter) still get a fresh, non-colliding number.
+        existing_sources = [
+            asset
+            for asset in self.list_assets(owner_uid=owner_uid, project_id=project_id)
+            if asset.type == AssetType.source_video.value
+        ]
+        revision = max(project.revisionCount, len(existing_sources)) + 1
         document: dict[str, Any] = {
             "ownerUid": owner_uid,
             "projectId": project_id,
@@ -122,6 +138,7 @@ class AssetService:
             "sizeBytes": payload.sizeBytes,
             "checksum": None,
             "durationMs": None,
+            "revision": revision,
             "width": None,
             "height": None,
             "frameRate": None,
@@ -171,7 +188,7 @@ class AssetService:
         to retry a failed job (`retry_failed=True`); the Pub/Sub path stays a pure no-op when
         the job already exists, so a redelivered event can never restart a finished run.
         """
-        self._require_owned_asset(
+        asset = self._require_owned_asset(
             owner_uid=owner_uid, project_id=project_id, asset_id=asset_id
         )
         job = self.jobs.create(
@@ -198,7 +215,10 @@ class AssetService:
             {"status": AssetStatus.uploaded.value, "updatedAt": now},
         )
         self.projects.mark_processing(
-            owner_uid=owner_uid, project_id=project_id, source_asset_id=asset_id
+            owner_uid=owner_uid,
+            project_id=project_id,
+            source_asset_id=asset_id,
+            revision=asset.get("revision"),
         )
         return job
 
@@ -211,13 +231,17 @@ class AssetService:
         before the new transcript lands maps to the same key and stays idempotent.
         """
         self.projects.get(owner_uid=owner_uid, project_id=project_id)
+        raw = self.client.get_document(project_path(owner_uid, project_id)) or {}
+        active_id = raw.get("sourceAssetId")
+        sources = [
+            asset
+            for asset in self.list_assets(owner_uid=owner_uid, project_id=project_id)
+            if asset.type == AssetType.source_video.value
+        ]
+        # The active revision is the one the project points at; fall back to the newest.
         source = next(
-            (
-                asset
-                for asset in self.list(owner_uid=owner_uid, project_id=project_id)
-                if asset.type == AssetType.source_video.value
-            ),
-            None,
+            (asset for asset in sources if asset.assetId == active_id),
+            sources[0] if sources else None,
         )
         if source is None:
             raise NotFoundError(
@@ -229,7 +253,6 @@ class AssetService:
                 code="SOURCE_NOT_FOUND",
                 details={"assetId": source.assetId},
             )
-        raw = self.client.get_document(project_path(owner_uid, project_id)) or {}
         run = int(raw.get("transcriptVersionCounter", 0) or 0) + 1
         job = self.jobs.create(
             owner_uid=owner_uid,
@@ -241,7 +264,10 @@ class AssetService:
         if job.status in (JobStatus.succeeded, JobStatus.running):
             return job
         self.projects.mark_processing(
-            owner_uid=owner_uid, project_id=project_id, source_asset_id=source.assetId
+            owner_uid=owner_uid,
+            project_id=project_id,
+            source_asset_id=source.assetId,
+            revision=source.revision,
         )
         return job
 
@@ -259,7 +285,7 @@ class AssetService:
             expiresAt=now + timedelta(seconds=ttl),
         )
 
-    def list(self, *, owner_uid: str, project_id: str) -> list[Asset]:
+    def list_assets(self, *, owner_uid: str, project_id: str) -> list[Asset]:
         self.projects.get(owner_uid=owner_uid, project_id=project_id)
         rows = self.client.query_collection(
             assets_collection_path(owner_uid, project_id),
@@ -275,6 +301,174 @@ class AssetService:
         ]
         assets.sort(key=lambda asset: asset.createdAt, reverse=True)
         return assets
+
+    def list_revisions(self, *, owner_uid: str, project_id: str) -> list[Revision]:
+        """Source-video revisions, newest first, with the active one flagged.
+
+        Each revision is joined to the newest transcript built from it and its analysis-run
+        count, so the history shows what work already exists per cut. Legacy source assets
+        uploaded before revisions existed have no `revision` field; they are numbered by
+        upload order (oldest = 1) so the history reads coherently.
+        """
+        project = self.projects.get(owner_uid=owner_uid, project_id=project_id)
+        sources = [
+            asset
+            for asset in self.list_assets(owner_uid=owner_uid, project_id=project_id)
+            if asset.type == AssetType.source_video.value
+        ]
+        ascending = sorted(sources, key=lambda asset: asset.createdAt)
+        legacy_number = {asset.assetId: index + 1 for index, asset in enumerate(ascending)}
+        active_id = project.sourceAssetId or (sources[0].assetId if sources else None)
+
+        # Newest transcript per source asset.
+        latest_transcript: dict[str, tuple[str, int]] = {}
+        for transcript_id, data in self.client.query_collection(
+            transcripts_collection_path(owner_uid, project_id),
+            filters=[],
+            order_by=[],
+            limit=100,
+            offset=0,
+        ):
+            if not is_owner(data, owner_uid):
+                continue
+            source_id = data.get("sourceAssetId")
+            if not source_id:
+                continue
+            version = int(data.get("version", 0) or 0)
+            current = latest_transcript.get(str(source_id))
+            if current is None or version > current[1]:
+                latest_transcript[str(source_id)] = (transcript_id, version)
+
+        # Analysis runs per source asset.
+        analysis_counts: dict[str, int] = {}
+        for _run_id, data in self.client.query_collection(
+            analysis_runs_collection_path(owner_uid, project_id),
+            filters=[],
+            order_by=[],
+            limit=200,
+            offset=0,
+        ):
+            if not is_owner(data, owner_uid):
+                continue
+            source_id = data.get("sourceAssetId")
+            if source_id:
+                analysis_counts[str(source_id)] = analysis_counts.get(str(source_id), 0) + 1
+
+        revisions: list[Revision] = []
+        for asset in sources:
+            transcript = latest_transcript.get(asset.assetId)
+            revisions.append(
+                Revision(
+                    revision=asset.revision or legacy_number[asset.assetId],
+                    assetId=asset.assetId,
+                    status=asset.status,
+                    mimeType=asset.mimeType,
+                    sizeBytes=asset.sizeBytes,
+                    durationMs=asset.durationMs,
+                    storagePath=asset.storagePath,
+                    isActive=asset.assetId == active_id,
+                    transcriptId=transcript[0] if transcript else None,
+                    transcriptVersion=transcript[1] if transcript else None,
+                    analysisRunCount=analysis_counts.get(asset.assetId, 0),
+                    createdAt=asset.createdAt,
+                )
+            )
+        return revisions
+
+    def activate_revision(
+        self, *, owner_uid: str, project_id: str, asset_id: str
+    ) -> tuple[RevisionActivation, Job | None]:
+        """Make an earlier revision the project's active source video.
+
+        If the revision already has a transcript, that transcript becomes active and the
+        project is `ready`; otherwise a fresh transcription run is queued and returned so
+        the caller can schedule it. Nothing is deleted, so switching revisions is lossless.
+        """
+        self.projects.get(owner_uid=owner_uid, project_id=project_id)
+        data = self._require_owned_asset(
+            owner_uid=owner_uid, project_id=project_id, asset_id=asset_id
+        )
+        if data.get("type") != AssetType.source_video.value:
+            raise NotFoundError("Revision not found", details={"assetId": asset_id})
+        match = next(
+            (
+                revision
+                for revision in self.list_revisions(
+                    owner_uid=owner_uid, project_id=project_id
+                )
+                if revision.assetId == asset_id
+            ),
+            None,
+        )
+        if match is None:
+            raise NotFoundError("Revision not found", details={"assetId": asset_id})
+
+        raw = self.client.get_document(project_path(owner_uid, project_id)) or {}
+        now = datetime.now(UTC)
+        changes: dict[str, Any] = {
+            "sourceAssetId": asset_id,
+            "sourceRevision": match.revision,
+            "updatedAt": now,
+        }
+        counter = int(raw.get("sourceRevisionCounter", 0) or 0)
+        if match.revision > counter:
+            changes["sourceRevisionCounter"] = match.revision
+
+        job: Job | None = None
+        if match.transcriptId:
+            changes["activeTranscriptId"] = match.transcriptId
+            changes["status"] = ProjectStatus.ready.value
+            changes["progress"] = {
+                "stage": "ready",
+                "percent": 100,
+                "message": "Transcript ready",
+            }
+            self.client.update_document(project_path(owner_uid, project_id), changes)
+            emit_project(
+                owner_uid,
+                project_id,
+                status=ProjectStatus.ready,
+                stage="ready",
+                percent=100,
+                message="Transcript ready",
+            )
+        else:
+            run = int(raw.get("transcriptVersionCounter", 0) or 0) + 1
+            job = self.jobs.create(
+                owner_uid=owner_uid,
+                project_id=project_id,
+                job_type=JobType.transcribe,
+                idempotency_key=f"transcribe-{project_id}-{asset_id}-r{run}",
+                input={"assetId": asset_id},
+            )
+            if job.status not in (JobStatus.succeeded, JobStatus.running):
+                changes["status"] = ProjectStatus.processing.value
+                changes["progress"] = {
+                    "stage": "transcription",
+                    "percent": 0,
+                    "message": "Queued for transcription",
+                }
+                self.client.update_document(project_path(owner_uid, project_id), changes)
+                emit_project(
+                    owner_uid,
+                    project_id,
+                    status=ProjectStatus.processing,
+                    stage="transcription",
+                    percent=0,
+                    message="Queued for transcription",
+                )
+            else:
+                self.client.update_document(project_path(owner_uid, project_id), changes)
+
+        return (
+            RevisionActivation(
+                assetId=asset_id,
+                revision=match.revision,
+                transcriptId=match.transcriptId,
+                jobId=job.jobId if job else None,
+            ),
+            job,
+        )
 
     def _require_owned_asset(
         self, *, owner_uid: str, project_id: str, asset_id: str

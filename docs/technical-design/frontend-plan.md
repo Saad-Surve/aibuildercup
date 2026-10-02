@@ -250,6 +250,7 @@ Create:
 
 ~~~text
 VideoDropzone
+VideoRevisions
 VideoFilePicker
 UploadProgress
 UploadValidationError
@@ -266,6 +267,14 @@ Flow:
 5. Confirm upload.
 6. Subscribe to job progress.
 7. Enable transcript/timeline when ready.
+
+A project keeps one video but may hold several revisions of it. After the first
+upload, `VideoRevisions` in the source-video card shows the active revision, lists the
+retained history, and opens the same dropzone to upload a new revision. A new revision
+becomes active and is transcribed automatically; once its transcript lands the review
+panel nudges the user to re-run the analysis, because the newest run was built from the
+previous revision's transcript. The history shows each revision's transcript version and
+review count, and can make an earlier revision active again (switching back is lossless).
 
 The browser must not upload the file through the API server.
 
