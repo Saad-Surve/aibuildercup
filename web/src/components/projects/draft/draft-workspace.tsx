@@ -27,6 +27,7 @@ import {
   suggestDraft,
 } from "@/lib/drafts";
 import type { Draft, DraftBlock, DraftBrief } from "@/lib/types";
+import { WORKSPACE_PANE_STACK_SPACER } from "@/lib/workspace";
 
 function newId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -477,6 +478,7 @@ export function DraftWorkspace({
           }}
         />
       </div>
+      <div aria-hidden className={WORKSPACE_PANE_STACK_SPACER} />
 
       <DraftBriefDialog
         key={briefOpen ? "open" : "closed"}

@@ -35,7 +35,7 @@ import type { Draft, DraftBlock } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const EDITOR_HEIGHT =
-  "max-h-[min(78vh,44rem)] lg:h-[min(78vh,44rem)] lg:max-h-none";
+  "max-h-[min(78vh,44rem)] lg:h-[min(78vh,44rem)] lg:max-h-none lg:snap-start lg:snap-always lg:scroll-mt-20";
 
 interface VariantState {
   x: number;
