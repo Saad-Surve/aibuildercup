@@ -13,9 +13,11 @@ from uuid import uuid4
 
 from app.errors import BadRequestError, NotFoundError
 from app.realtime.events import emit_project
+from app.schemas.draft import DraftSummary
 from app.schemas.projects import (
     CreateProject,
     Project,
+    ProjectKind,
     ProjectProgress,
     ProjectStatus,
     UpdateProject,
@@ -60,6 +62,11 @@ def _to_project(project_id: str, data: dict[str, Any]) -> Project:
         targetPlatforms=data.get("targetPlatforms", []),
         isDemo=data.get("isDemo", False),
         demoProfileId=data.get("demoProfileId"),
+        kind=ProjectKind(data.get("kind", ProjectKind.video.value)),
+        draftFormat=data.get("draftFormat", "written"),
+        draftSummary=DraftSummary(**data["draftSummary"])
+        if data.get("draftSummary")
+        else None,
         status=ProjectStatus(data.get("status", ProjectStatus.draft.value)),
         progress=ProjectProgress(**data["progress"])
         if data.get("progress")
@@ -87,6 +94,9 @@ class ProjectService:
             "name": payload.name,
             "description": payload.description,
             "thumbnailConcept": payload.thumbnailConcept,
+            "kind": payload.kind.value,
+            "draftFormat": payload.draftFormat.value,
+            "draftSummary": None,
             "status": ProjectStatus.draft.value,
             "visibility": "private",
             "sourceAssetId": None,
@@ -212,6 +222,38 @@ class ProjectService:
             stage="ready",
             percent=100,
             message="Transcript ready",
+        )
+
+    def update_draft_summary(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        summary: DraftSummary,
+        status: ProjectStatus | None = None,
+    ) -> None:
+        """Keep the project's denormalised draft summary (and status) in sync."""
+        self._require_owned(owner_uid=owner_uid, project_id=project_id)
+        now = datetime.now(UTC)
+        changes: dict[str, Any] = {
+            "draftSummary": summary.model_dump(),
+            "updatedAt": now,
+        }
+        if status is not None:
+            changes["status"] = status.value
+            changes["progress"] = {
+                "stage": "draft",
+                "percent": 100 if status == ProjectStatus.ready else 0,
+                "message": "Draft ready" if status == ProjectStatus.ready else "Writing",
+            }
+        self.client.update_document(project_path(owner_uid, project_id), changes)
+        emit_project(
+            owner_uid,
+            project_id,
+            status=status or ProjectStatus.draft,
+            stage="draft",
+            percent=100 if status == ProjectStatus.ready else 0,
+            message="Draft updated",
         )
 
     def mark_failed(self, *, owner_uid: str, project_id: str, message: str) -> None:

@@ -46,6 +46,18 @@ export type ProjectStatus =
   | "failed"
   | "archived";
 
+export type ProjectKind = "video" | "draft";
+
+export type DraftFormat = "written" | "script";
+
+export interface DraftSummary {
+  title: string;
+  preview: string;
+  wordCount: number;
+  blockCount: number;
+  versionCount: number;
+}
+
 export interface Project {
   projectId: string;
   name: string;
@@ -68,6 +80,11 @@ export interface Project {
   sourceRevision: number | null;
   /** Number of source-video revisions uploaded for this project. */
   revisionCount: number;
+  /** `video` runs the upload pipeline; `draft` opens the writing studio. */
+  kind: ProjectKind;
+  draftFormat: DraftFormat;
+  /** Denormalised draft stats for cards; null for video projects. */
+  draftSummary: DraftSummary | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -79,11 +96,66 @@ export interface CreateProjectInput {
   primaryLanguage?: string;
   targetLanguages?: string[];
   targetPlatforms?: string[];
+  kind?: ProjectKind;
+  draftFormat?: DraftFormat;
+  draftBrief?: DraftBrief;
 }
 
 export interface ProjectList {
   items: Project[];
   nextPageToken: string | null;
+}
+
+// ----------------------------------------------------------------------- draft
+
+export type DraftBlockType = "heading" | "paragraph" | "scene";
+export type DraftStatus = "empty" | "generating" | "ready" | "failed";
+export type DraftAssistMode = "chat" | "rewrite" | "alternatives" | "continue";
+
+export interface DraftBrief {
+  topic: string;
+  format: DraftFormat;
+  audience: string;
+  tone: string;
+  platform: string;
+  language: string;
+  instructions: string;
+  targetWords: number;
+}
+
+export interface DraftVersion {
+  versionId: string;
+  text: string;
+  label: string;
+  origin: "assistant" | "user";
+  createdAt: string;
+}
+
+export interface DraftBlock {
+  blockId: string;
+  type: DraftBlockType;
+  versions: DraftVersion[];
+  activeVersionId: string;
+}
+
+export interface DraftMessage {
+  messageId: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+}
+
+export interface Draft {
+  projectId: string;
+  title: string;
+  status: DraftStatus;
+  brief: DraftBrief;
+  blocks: DraftBlock[];
+  messages: DraftMessage[];
+  error: string | null;
+  summary: DraftSummary;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 export type AssetStatus =

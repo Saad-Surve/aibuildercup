@@ -94,6 +94,11 @@ def persona_revision_object_path(uid: str, version: int) -> str:
     return f"{user_path(uid)}/profile/revisions/persona-v{version}.md"
 
 
+def draft_path(uid: str, project_id: str) -> str:
+    """The single versioned draft document that belongs to a draft project."""
+    return f"{project_path(uid, project_id)}/draft/main"
+
+
 def transcripts_collection_path(uid: str, project_id: str) -> str:
     return f"{project_path(uid, project_id)}/transcripts"
 

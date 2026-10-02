@@ -213,36 +213,58 @@ AudienceSummaryCard
 
 Create project fields:
 
-- Project name.
-- Description.
-- Primary language.
-- Target platforms.
-- Target output languages.
-- Demo project toggle (binds the project to a pinned demo scenario; hidden in the live configuration).
+- Project type: **video** (upload + pipeline) or **draft** (versioned writing studio).
+- Project name, description, primary language, target platforms.
+- Video only: thumbnail concept.
+- Draft only: format (written content or video script), topic, audience, tone, extra notes.
+
+A draft project seeds `draft/main` with the brief and, when it opens, generates the first
+draft. A video project keeps the current upload flow. Project cards branch on `kind`: video
+cards show the poster/duration/size, draft cards show a paper preview plus word and block
+counts from `draftSummary`. Demo project toggle binds the project to a pinned demo scenario
+(hidden in the live configuration).
 
 After creation, route to /projects/{projectId}.
 
 ## 7. Project workspace
 
-Desktop layout:
+The project page is a router, not a single wall of cards. It fetches the project and hands
+off by `kind`:
 
 ~~~text
-ProjectWorkspace
-├── ProjectHeader
-├── VideoPreviewPanel
-├── TimelinePanel
-│   ├── VideoTimeline
-│   ├── TranscriptTrack
-│   └── HeatmapTracks
-├── FindingDetailsPanel
-└── ProjectAssistantPanel
+ProjectWorkspace (project query + realtime socket)
+├── kind == "video"  -> VideoStudio
+│   ├── SourceVideoPanel (sticky, with VideoRevisions)
+│   └── right pane
+│       ├── ModuleNav (Overview / Transcript / Review + Findings /
+│       │              Burn Captions / Packaging / Localization)
+│       ├── ModuleGrid (overview landing: module cards + status)
+│       └── TranscriptGate (shadcn Marker step rail when a module needs
+│                            a transcript that does not exist yet)
+└── kind == "draft"  -> DraftWorkspace
+    ├── DraftDocument (versioned blocks, per-block version picker, export)
+    ├── DraftChat (writing partner; proposals become new versions)
+    └── DraftBriefDialog (edit the brief and regenerate)
 ~~~
+
+The video studio keeps the source video pinned on the left while the right pane swaps
+between the overview grid and a focused module, so `?module=transcript` is a shareable
+deep link. Modules that need a transcript (review, captions, localization) render a
+`Marker`-based prerequisite rail with the inline **Generate transcript** action instead of
+being hidden. Burn Captions owns its own module (the export menu no longer offers it).
+Packaging and Localization are placeholder modules with their final layout.
+
+The draft studio treats the React Query cache as the document: edits write optimistically
+and a debounced save persists them. Each block keeps an immutable `versions[]` list, so an
+assistant rewrite, a set of alternatives, or the creator's first edit on an assistant
+version all become switchable versions rather than overwrites. Export offers Markdown,
+plain text, and a full all-versions Markdown dump.
 
 Mobile behavior:
 
 - Video first.
-- Heatmap and transcript as tabs.
-- Assistant as a bottom sheet.
+- Modules as tabs.
+- The draft chat sits below the document.
 
 ## 8. Upload experience
 

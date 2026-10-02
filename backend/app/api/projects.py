@@ -2,8 +2,21 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Response, status
 
-from app.dependencies import AuthenticatedUser, current_user, get_project_service
-from app.schemas.projects import CreateProject, Project, ProjectList, UpdateProject
+from app.dependencies import (
+    AuthenticatedUser,
+    current_user,
+    get_draft_service,
+    get_project_service,
+)
+from app.schemas.draft import DraftBrief
+from app.schemas.projects import (
+    CreateProject,
+    Project,
+    ProjectKind,
+    ProjectList,
+    UpdateProject,
+)
+from app.services.draft_service import DraftService
 from app.services.project_service import (
     ProjectService,
     decode_page_token,
@@ -14,6 +27,7 @@ router = APIRouter(tags=["projects"])
 
 UserDep = Annotated[AuthenticatedUser, Depends(current_user)]
 ServiceDep = Annotated[ProjectService, Depends(get_project_service)]
+DraftDep = Annotated[DraftService, Depends(get_draft_service)]
 
 
 @router.get("/projects", response_model=ProjectList)
@@ -34,8 +48,19 @@ async def create_project(
     payload: CreateProject,
     user: UserDep,
     service: ServiceDep,
+    drafts: DraftDep,
 ) -> Project:
-    return service.create(owner_uid=user.uid, payload=payload)
+    project = service.create(owner_uid=user.uid, payload=payload)
+    if payload.kind == ProjectKind.draft:
+        # Seed the versioned draft document (with the brief captured in the
+        # creation dialog) under the project subtree.
+        drafts.ensure(
+            owner_uid=user.uid,
+            project_id=project.projectId,
+            brief=payload.draftBrief or DraftBrief(),
+            format_=payload.draftFormat,
+        )
+    return project
 
 
 @router.get("/projects/{projectId}", response_model=Project)

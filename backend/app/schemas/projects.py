@@ -3,6 +3,13 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
+from app.schemas.draft import DraftBrief, DraftFormat, DraftSummary
+
+
+class ProjectKind(StrEnum):
+    video = "video"
+    draft = "draft"
+
 
 class ProjectStatus(StrEnum):
     draft = "draft"
@@ -22,6 +29,12 @@ class CreateProject(BaseModel):
     primaryLanguage: str = "en"
     targetLanguages: list[str] = Field(default_factory=list)
     targetPlatforms: list[str] = Field(default_factory=list)
+    #: `video` runs the upload -> transcript -> review pipeline; `draft` opens
+    #: the versioned writing studio instead.
+    kind: ProjectKind = ProjectKind.video
+    draftFormat: DraftFormat = DraftFormat.written
+    #: Seed brief for a draft project, captured in the creation dialog.
+    draftBrief: DraftBrief | None = None
     isDemo: bool = False
     demoProfileId: str | None = None
 
@@ -46,6 +59,9 @@ class Project(BaseModel):
     primaryLanguage: str
     targetLanguages: list[str]
     targetPlatforms: list[str]
+    kind: ProjectKind = ProjectKind.video
+    draftFormat: DraftFormat = DraftFormat.written
+    draftSummary: DraftSummary | None = None
     isDemo: bool
     demoProfileId: str | None
     status: ProjectStatus

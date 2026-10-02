@@ -260,6 +260,52 @@ returned. Existing transcripts and analysis runs are never deleted, so switching
 revisions is lossless. All revisions live under the project prefix, so project deletion
 still removes them with no extra wiring.
 
+### Drafts
+
+A project created with `kind: "draft"` opens the versioned writing studio instead of the
+video pipeline. `CreateProject.draftBrief` carries the seed brief captured in the creation
+dialog. All draft routes operate on the project's single `draft/main` document.
+
+| Method | Route | Purpose |
+|---|---|---|
+| GET | /projects/{projectId}/draft | Get the versioned draft (brief, blocks, versions, chat) |
+| PUT | /projects/{projectId}/draft | Save client-side title/block edits |
+| POST | /projects/{projectId}/draft/generate | Generate the first draft from the brief |
+| POST | /projects/{projectId}/draft/assist | Chat; proposals become new block versions |
+
+`GET /projects/{projectId}/draft` returns the single draft document for the project:
+
+~~~json
+{
+  "projectId": "project-id",
+  "title": "Why side projects stall",
+  "status": "ready",
+  "brief": { "topic": "...", "format": "written", "audience": "...", "tone": "...",
+             "platform": "...", "language": "en", "instructions": "", "targetWords": 0 },
+  "blocks": [
+    { "blockId": "b1", "type": "paragraph",
+      "versions": [ { "versionId": "v1", "text": "...", "label": "Draft",
+                      "origin": "assistant", "createdAt": "timestamp" } ],
+      "activeVersionId": "v1" }
+  ],
+  "messages": [ { "messageId": "m1", "role": "user", "content": "...",
+                  "createdAt": "timestamp" } ],
+  "error": null,
+  "summary": { "title": "...", "preview": "...", "wordCount": 612,
+               "blockCount": 8, "versionCount": 14 },
+  "createdAt": "timestamp", "updatedAt": "timestamp"
+}
+~~~
+
+`POST .../generate` calls the writing model with the stored brief (optionally overridden in
+the body) and replaces the blocks with a fresh first draft, one version each. If the model
+is unavailable a deterministic template keeps the demo working. `POST .../assist` appends
+the user's message, asks the model for a reply plus block edits, and applies each edit as a
+new `versions[]` entry on its block (or a new block). The full draft is returned, and the
+project document's `draftSummary` is refreshed so list cards stay current. `PUT` rejects
+unknown `blockId`s so an edit can never silently drop content. Draft data lives under
+`users/{uid}/projects/{projectId}/draft/main`, so project deletion removes it automatically.
+
 ## 7. Jobs and progress
 
 | Method | Route | Purpose |

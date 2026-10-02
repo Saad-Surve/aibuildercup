@@ -237,18 +237,20 @@ function ToggleControl({
   );
 }
 
-export function CaptionBurnDialog({
+export function CaptionBurnPanel({
   projectId,
   projectName,
   transcriptVersion,
-  open,
-  onOpenChange,
+  enabled = true,
+  onClose,
 }: {
   projectId: string;
   projectName?: string;
   transcriptVersion?: number | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  /** Whether the panel's queries should run (false while a dialog is closed). */
+  enabled?: boolean;
+  /** Renders a Close button when provided (dialog mode). */
+  onClose?: () => void;
 }) {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<CaptionStyle | null>(null);
@@ -259,7 +261,7 @@ export function CaptionBurnDialog({
   const presetsQuery = useQuery({
     queryKey: ["caption-presets"],
     queryFn: listCaptionPresets,
-    enabled: open,
+    enabled,
     staleTime: Infinity,
     retry: false,
   });
@@ -267,7 +269,7 @@ export function CaptionBurnDialog({
   const rendersQuery = useQuery({
     queryKey: ["caption-renders", projectId],
     queryFn: () => listCaptionRenders(projectId),
-    enabled: open,
+    enabled,
     // Keep refreshing while a render is in flight; stop once none are.
     refetchInterval: (query) => {
       const items = query.state.data?.items ?? [];
@@ -292,7 +294,7 @@ export function CaptionBurnDialog({
   const jobQuery = useQuery({
     queryKey: ["job", jobId],
     queryFn: () => getJob(jobId as string),
-    enabled: open && Boolean(jobId),
+    enabled: enabled && Boolean(jobId),
     refetchInterval: (query) => {
       const status = query.state.data?.status;
       return status === "succeeded" ||
@@ -380,6 +382,342 @@ export function CaptionBurnDialog({
   const jobMessage = jobQuery.data?.progress.message ?? "Queued";
 
   return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <div className="space-y-4">
+          <StylePreview style={style} />
+
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Preset</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {presets.map((preset) => (
+                <Button
+                  key={preset.id}
+                  type="button"
+                  size="sm"
+                  variant={preset.id === presetId ? "default" : "outline"}
+                  onClick={() => applyPreset(preset.id)}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+              {presetsQuery.isLoading ? (
+                <span className="text-xs text-muted-foreground">Loading…</span>
+              ) : null}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {presets.find((item) => item.id === presetId)?.description ??
+                "Pick a starting look, then fine-tune it."}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Font</Label>
+              <Select
+                value={style.fontFamily}
+                onValueChange={(value) =>
+                  update({ fontFamily: value as CaptionStyle["fontFamily"] })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CAPTION_FONT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Position</Label>
+              <Select
+                value={style.position}
+                onValueChange={(value) =>
+                  update({ position: value as CaptionStyle["position"] })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CAPTION_POSITION_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <RangeControl
+            label="Font size"
+            value={style.fontSize}
+            min={24}
+            max={110}
+            onChange={(value) => update({ fontSize: value })}
+          />
+          <RangeControl
+            label="Distance from edge"
+            value={style.marginV}
+            min={0}
+            max={400}
+            suffix="px"
+            onChange={(value) => update({ marginV: value })}
+          />
+          <RangeControl
+            label="Chars per line"
+            value={style.maxCharsPerLine}
+            min={16}
+            max={56}
+            onChange={(value) => update({ maxCharsPerLine: value })}
+          />
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            <ToggleControl
+              label="Bold"
+              checked={style.bold}
+              onChange={(value) => update({ bold: value })}
+            />
+            <ToggleControl
+              label="Italic"
+              checked={style.italic}
+              onChange={(value) => update({ italic: value })}
+            />
+            <ToggleControl
+              label="Uppercase"
+              checked={style.uppercase}
+              onChange={(value) => update({ uppercase: value })}
+            />
+            <ToggleControl
+              label="Speaker names"
+              checked={style.speakerLabels}
+              onChange={(value) => update({ speakerLabels: value })}
+            />
+            <ToggleControl
+              label="Karaoke highlight"
+              checked={style.highlightEnabled}
+              onChange={(value) => update({ highlightEnabled: value })}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Background</Label>
+            <Select
+              value={style.background}
+              onValueChange={(value) =>
+                update({ background: value as CaptionStyle["background"] })
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CAPTION_BACKGROUND_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-3 rounded-lg border p-3">
+            <ColorControl
+              label="Text"
+              value={style.textColor}
+              onChange={(value) => update({ textColor: value })}
+            />
+            {style.highlightEnabled ? (
+              <ColorControl
+                label="Highlight"
+                value={style.highlightColor}
+                onChange={(value) => update({ highlightColor: value })}
+              />
+            ) : null}
+            {style.background === "outline" ? (
+              <>
+                <ColorControl
+                  label="Outline"
+                  value={style.outlineColor}
+                  onChange={(value) => update({ outlineColor: value })}
+                />
+                <RangeControl
+                  label="Outline width"
+                  value={style.outlineWidth}
+                  min={0}
+                  max={10}
+                  onChange={(value) => update({ outlineWidth: value })}
+                />
+              </>
+            ) : null}
+            {style.background === "box" ? (
+              <>
+                <ColorControl
+                  label="Box colour"
+                  value={style.backgroundColor}
+                  onChange={(value) => update({ backgroundColor: value })}
+                />
+                <RangeControl
+                  label="Box opacity"
+                  value={style.backgroundOpacity}
+                  min={0}
+                  max={100}
+                  suffix="%"
+                  onChange={(value) => update({ backgroundOpacity: value })}
+                />
+              </>
+            ) : null}
+            <RangeControl
+              label="Shadow"
+              value={style.shadow}
+              min={0}
+              max={10}
+              onChange={(value) => update({ shadow: value })}
+            />
+          </div>
+        </div>
+      </div>
+
+      {isRendering ? (
+        <div className="space-y-2 rounded-lg border bg-muted/40 p-3">
+          <div className="flex items-center gap-2 text-sm">
+            <Icon icon={Loading03Icon} className="animate-spin text-signal" />
+            <span>{jobMessage}</span>
+            <span className="ml-auto tabular text-muted-foreground">
+              {percent}%
+            </span>
+          </div>
+          <Progress value={percent} />
+        </div>
+      ) : null}
+
+      {error ? (
+        <p className="text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-muted-foreground">
+          {style.fontFamily} · {style.background} ·{" "}
+          {style.highlightEnabled ? "karaoke" : "static"}
+        </p>
+        <div className="flex items-center gap-2">
+          {onClose ? (
+            <Button type="button" variant="outline" onClick={onClose}>
+              Close
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            onClick={() => createMutation.mutate()}
+            disabled={isRendering || createMutation.isPending}
+          >
+            <Icon
+              icon={isRendering ? Loading03Icon : SparklesIcon}
+              className={isRendering ? "animate-spin" : undefined}
+            />
+            {isRendering ? "Rendering…" : "Render captions"}
+          </Button>
+        </div>
+      </div>
+
+      {renders.length > 0 ? (
+        <div className="space-y-2 border-t pt-4">
+          <Label className="text-xs text-muted-foreground">
+            Rendered videos
+          </Label>
+          <ul className="space-y-2">
+            {renders.map((render) => (
+              <li
+                key={render.captionRenderId}
+                className="flex items-center gap-3 rounded-lg border p-2.5"
+              >
+                <Icon
+                  icon={FileVideoIcon}
+                  className="shrink-0 text-muted-foreground"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-sm">
+                      {render.fileName ?? "Captioned video"}
+                    </span>
+                    <Badge variant={statusVariant(render.status)}>
+                      {render.status}
+                    </Badge>
+                  </div>
+                  <p className="tabular text-xs text-muted-foreground">
+                    {render.status === "ready"
+                      ? `${render.width}×${render.height} · ${formatBytes(
+                          render.sizeBytes,
+                        )} · ${Math.round(render.durationMs / 1000)}s`
+                      : (render.error?.message ?? "Working…")}
+                  </p>
+                </div>
+                {render.status === "ready" && render.downloadUrl ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    render={
+                      <a
+                        href={render.downloadUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Download captioned video"
+                        download={`${slugify(
+                          render.fileName ?? projectName,
+                          "captions",
+                        )}-${render.captionRenderId.slice(0, 6)}.mp4`}
+                      />
+                    }
+                  >
+                    <Icon icon={FileVideoIcon} />
+                    Download
+                  </Button>
+                ) : null}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Delete render"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => deleteMutation.mutate(render.captionRenderId)}
+                >
+                  <Icon icon={Delete02Icon} />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Dialog wrapper around {@link CaptionBurnPanel}, for opening the caption
+ * studio modally. The Burn Captions module renders the panel inline instead.
+ */
+export function CaptionBurnDialog({
+  projectId,
+  projectName,
+  transcriptVersion,
+  open,
+  onOpenChange,
+}: {
+  projectId: string;
+  projectName?: string;
+  transcriptVersion?: number | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
@@ -392,330 +730,13 @@ export function CaptionBurnDialog({
             original file is never changed.
           </DialogDescription>
         </DialogHeader>
-
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-          <div className="space-y-4">
-            <StylePreview style={style} />
-
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Preset</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {presets.map((preset) => (
-                  <Button
-                    key={preset.id}
-                    type="button"
-                    size="sm"
-                    variant={preset.id === presetId ? "default" : "outline"}
-                    onClick={() => applyPreset(preset.id)}
-                  >
-                    {preset.label}
-                  </Button>
-                ))}
-                {presetsQuery.isLoading ? (
-                  <span className="text-xs text-muted-foreground">
-                    Loading…
-                  </span>
-                ) : null}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {presets.find((item) => item.id === presetId)?.description ??
-                  "Pick a starting look, then fine-tune it."}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Font</Label>
-                <Select
-                  value={style.fontFamily}
-                  onValueChange={(value) =>
-                    update({ fontFamily: value as CaptionStyle["fontFamily"] })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CAPTION_FONT_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
-                  Position
-                </Label>
-                <Select
-                  value={style.position}
-                  onValueChange={(value) =>
-                    update({ position: value as CaptionStyle["position"] })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CAPTION_POSITION_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <RangeControl
-              label="Font size"
-              value={style.fontSize}
-              min={24}
-              max={110}
-              onChange={(value) => update({ fontSize: value })}
-            />
-            <RangeControl
-              label="Distance from edge"
-              value={style.marginV}
-              min={0}
-              max={400}
-              suffix="px"
-              onChange={(value) => update({ marginV: value })}
-            />
-            <RangeControl
-              label="Chars per line"
-              value={style.maxCharsPerLine}
-              min={16}
-              max={56}
-              onChange={(value) => update({ maxCharsPerLine: value })}
-            />
-
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-              <ToggleControl
-                label="Bold"
-                checked={style.bold}
-                onChange={(value) => update({ bold: value })}
-              />
-              <ToggleControl
-                label="Italic"
-                checked={style.italic}
-                onChange={(value) => update({ italic: value })}
-              />
-              <ToggleControl
-                label="Uppercase"
-                checked={style.uppercase}
-                onChange={(value) => update({ uppercase: value })}
-              />
-              <ToggleControl
-                label="Speaker names"
-                checked={style.speakerLabels}
-                onChange={(value) => update({ speakerLabels: value })}
-              />
-              <ToggleControl
-                label="Karaoke highlight"
-                checked={style.highlightEnabled}
-                onChange={(value) => update({ highlightEnabled: value })}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">
-                Background
-              </Label>
-              <Select
-                value={style.background}
-                onValueChange={(value) =>
-                  update({ background: value as CaptionStyle["background"] })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CAPTION_BACKGROUND_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3 rounded-lg border p-3">
-              <ColorControl
-                label="Text"
-                value={style.textColor}
-                onChange={(value) => update({ textColor: value })}
-              />
-              {style.highlightEnabled ? (
-                <ColorControl
-                  label="Highlight"
-                  value={style.highlightColor}
-                  onChange={(value) => update({ highlightColor: value })}
-                />
-              ) : null}
-              {style.background === "outline" ? (
-                <>
-                  <ColorControl
-                    label="Outline"
-                    value={style.outlineColor}
-                    onChange={(value) => update({ outlineColor: value })}
-                  />
-                  <RangeControl
-                    label="Outline width"
-                    value={style.outlineWidth}
-                    min={0}
-                    max={10}
-                    onChange={(value) => update({ outlineWidth: value })}
-                  />
-                </>
-              ) : null}
-              {style.background === "box" ? (
-                <>
-                  <ColorControl
-                    label="Box colour"
-                    value={style.backgroundColor}
-                    onChange={(value) => update({ backgroundColor: value })}
-                  />
-                  <RangeControl
-                    label="Box opacity"
-                    value={style.backgroundOpacity}
-                    min={0}
-                    max={100}
-                    suffix="%"
-                    onChange={(value) => update({ backgroundOpacity: value })}
-                  />
-                </>
-              ) : null}
-              <RangeControl
-                label="Shadow"
-                value={style.shadow}
-                min={0}
-                max={10}
-                onChange={(value) => update({ shadow: value })}
-              />
-            </div>
-          </div>
-        </div>
-
-        {isRendering ? (
-          <div className="space-y-2 rounded-lg border bg-muted/40 p-3">
-            <div className="flex items-center gap-2 text-sm">
-              <Icon icon={Loading03Icon} className="animate-spin text-signal" />
-              <span>{jobMessage}</span>
-              <span className="ml-auto tabular text-muted-foreground">
-                {percent}%
-              </span>
-            </div>
-            <Progress value={percent} />
-          </div>
-        ) : null}
-
-        {error ? (
-          <p className="text-sm text-destructive" role="alert">
-            {error}
-          </p>
-        ) : null}
-
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground">
-            {style.fontFamily} · {style.background} ·{" "}
-            {style.highlightEnabled ? "karaoke" : "static"}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Close
-            </Button>
-            <Button
-              type="button"
-              onClick={() => createMutation.mutate()}
-              disabled={isRendering || createMutation.isPending}
-            >
-              <Icon
-                icon={isRendering ? Loading03Icon : SparklesIcon}
-                className={isRendering ? "animate-spin" : undefined}
-              />
-              {isRendering ? "Rendering…" : "Render captions"}
-            </Button>
-          </div>
-        </div>
-
-        {renders.length > 0 ? (
-          <div className="space-y-2 border-t pt-4">
-            <Label className="text-xs text-muted-foreground">
-              Rendered videos
-            </Label>
-            <ul className="space-y-2">
-              {renders.map((render) => (
-                <li
-                  key={render.captionRenderId}
-                  className="flex items-center gap-3 rounded-lg border p-2.5"
-                >
-                  <Icon
-                    icon={FileVideoIcon}
-                    className="shrink-0 text-muted-foreground"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-sm">
-                        {render.fileName ?? "Captioned video"}
-                      </span>
-                      <Badge variant={statusVariant(render.status)}>
-                        {render.status}
-                      </Badge>
-                    </div>
-                    <p className="tabular text-xs text-muted-foreground">
-                      {render.status === "ready"
-                        ? `${render.width}×${render.height} · ${formatBytes(
-                            render.sizeBytes,
-                          )} · ${Math.round(render.durationMs / 1000)}s`
-                        : (render.error?.message ?? "Working…")}
-                    </p>
-                  </div>
-                  {render.status === "ready" && render.downloadUrl ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      render={
-                        <a
-                          href={render.downloadUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label="Download captioned video"
-                          download={`${slugify(
-                            render.fileName ?? projectName,
-                            "captions",
-                          )}-${render.captionRenderId.slice(0, 6)}.mp4`}
-                        />
-                      }
-                    >
-                      <Icon icon={FileVideoIcon} />
-                      Download
-                    </Button>
-                  ) : null}
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    aria-label="Delete render"
-                    disabled={deleteMutation.isPending}
-                    onClick={() =>
-                      deleteMutation.mutate(render.captionRenderId)
-                    }
-                  >
-                    <Icon icon={Delete02Icon} />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+        <CaptionBurnPanel
+          projectId={projectId}
+          projectName={projectName}
+          transcriptVersion={transcriptVersion}
+          enabled={open}
+          onClose={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   );

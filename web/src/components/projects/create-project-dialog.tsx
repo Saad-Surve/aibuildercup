@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { PlusSignIcon } from "@hugeicons/core-free-icons";
+import {
+  FileVideoIcon,
+  PencilEdit02Icon,
+  PlusSignIcon,
+} from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
@@ -35,12 +39,14 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api-client";
+import { DRAFT_FORMAT_OPTIONS } from "@/lib/drafts";
 import { createProject } from "@/lib/projects";
 import {
   LANGUAGE_OPTIONS,
   PLATFORM_OPTIONS,
   languageLabel,
 } from "@/lib/onboarding";
+import type { DraftFormat, ProjectKind } from "@/lib/types";
 
 function describe(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -48,23 +54,56 @@ function describe(error: unknown): string {
   return "Could not create the project.";
 }
 
+const KIND_OPTIONS: {
+  value: ProjectKind;
+  label: string;
+  description: string;
+  icon: typeof FileVideoIcon;
+}[] = [
+  {
+    value: "video",
+    label: "Upload a video",
+    description: "Transcript, reviewer heatmap, captions, and more.",
+    icon: FileVideoIcon,
+  },
+  {
+    value: "draft",
+    label: "Start a draft",
+    description: "Write with a versioned assistant for content or a script.",
+    icon: PencilEdit02Icon,
+  },
+];
+
+const FORMAT_CHIPS = DRAFT_FORMAT_OPTIONS.map((option) => ({
+  value: option.value,
+  label: option.label,
+}));
+
 export function CreateProjectDialog() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
   const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<ProjectKind>("video");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [thumbnailConcept, setThumbnailConcept] = useState("");
   const [primaryLanguage, setPrimaryLanguage] = useState("en");
   const [platforms, setPlatforms] = useState<string[]>([]);
+  const [draftFormat, setDraftFormat] = useState<DraftFormat>("written");
+  const [topic, setTopic] = useState("");
+  const [audience, setAudience] = useState("");
+  const [tone, setTone] = useState("");
+  const [instructions, setInstructions] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: createProject,
     onSuccess: (project) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("Project created");
+      toast.success(
+        project.kind === "draft" ? "Draft project created" : "Project created",
+      );
       setOpen(false);
       router.push(`/projects/view?projectId=${project.projectId}`);
     },
@@ -72,10 +111,17 @@ export function CreateProjectDialog() {
   });
 
   function reset() {
+    setKind("video");
     setName("");
     setDescription("");
+    setThumbnailConcept("");
     setPrimaryLanguage("en");
     setPlatforms([]);
+    setDraftFormat("written");
+    setTopic("");
+    setAudience("");
+    setTone("");
+    setInstructions("");
     setError(null);
   }
 
@@ -92,13 +138,32 @@ export function CreateProjectDialog() {
       setError("Give the project a name.");
       return;
     }
+    if (kind === "draft" && !topic.trim()) {
+      setError("What should the draft be about?");
+      return;
+    }
     setError(null);
     mutation.mutate({
       name: name.trim(),
       description: description.trim(),
-      thumbnailConcept: thumbnailConcept.trim(),
       primaryLanguage,
       targetPlatforms: platforms,
+      kind,
+      draftFormat,
+      ...(kind === "video"
+        ? { thumbnailConcept: thumbnailConcept.trim() }
+        : {
+            draftBrief: {
+              topic: topic.trim(),
+              format: draftFormat,
+              audience: audience.trim(),
+              tone: tone.trim(),
+              platform: platforms.join(", "),
+              language: primaryLanguage,
+              instructions: instructions.trim(),
+              targetWords: 0,
+            },
+          }),
     });
   }
 
@@ -108,23 +173,59 @@ export function CreateProjectDialog() {
         <Icon icon={PlusSignIcon} />
         New project
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>New project</DialogTitle>
           <DialogDescription>
-            One video per project. You can change these details later.
+            Pick the studio you want. You can change the details later.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={submit}>
           <FieldGroup>
             <Field>
+              <FieldLabel>Project type</FieldLabel>
+              <div className="grid grid-cols-2 gap-2">
+                {KIND_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={kind === option.value}
+                    onClick={() => setKind(option.value)}
+                    className={`flex flex-col gap-1.5 rounded-lg border p-3 text-left transition-colors ${
+                      kind === option.value
+                        ? "border-signal/50 bg-signal/5 ring-1 ring-signal/30"
+                        : "border-border hover:bg-muted"
+                    }`}
+                  >
+                    <Icon
+                      icon={option.icon}
+                      className={
+                        kind === option.value
+                          ? "text-signal"
+                          : "text-muted-foreground"
+                      }
+                    />
+                    <span className="text-sm font-medium">{option.label}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {option.description}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </Field>
+
+            <Field>
               <FieldLabel htmlFor="project-name">Name</FieldLabel>
               <Input
                 id="project-name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Career advice video"
+                placeholder={
+                  kind === "draft"
+                    ? "Week three side projects"
+                    : "Career advice video"
+                }
                 maxLength={200}
               />
             </Field>
@@ -135,23 +236,95 @@ export function CreateProjectDialog() {
                 id="project-description"
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                placeholder="What is this video about?"
+                placeholder={
+                  kind === "draft"
+                    ? "What is this draft for?"
+                    : "What is this video about?"
+                }
                 rows={2}
               />
             </Field>
 
-            <Field>
-              <FieldLabel htmlFor="project-thumbnail">
-                Thumbnail concept
-              </FieldLabel>
-              <Input
-                id="project-thumbnail"
-                value={thumbnailConcept}
-                onChange={(event) => setThumbnailConcept(event.target.value)}
-                placeholder="Optional — what the thumbnail promises"
-                maxLength={500}
-              />
-            </Field>
+            {kind === "video" ? (
+              <Field>
+                <FieldLabel htmlFor="project-thumbnail">
+                  Thumbnail concept
+                </FieldLabel>
+                <Input
+                  id="project-thumbnail"
+                  value={thumbnailConcept}
+                  onChange={(event) => setThumbnailConcept(event.target.value)}
+                  placeholder="Optional — what the thumbnail promises"
+                  maxLength={500}
+                />
+              </Field>
+            ) : (
+              <>
+                <Field>
+                  <FieldLabel>Format</FieldLabel>
+                  <ChipSelect
+                    options={FORMAT_CHIPS}
+                    value={[draftFormat]}
+                    multiple={false}
+                    onChange={(values) => {
+                      const next = values[0] as DraftFormat | undefined;
+                      if (next) setDraftFormat(next);
+                    }}
+                  />
+                </Field>
+
+                <Field>
+                  <FieldLabel htmlFor="project-topic">
+                    What is it about?
+                  </FieldLabel>
+                  <Input
+                    id="project-topic"
+                    value={topic}
+                    onChange={(event) => setTopic(event.target.value)}
+                    placeholder="e.g. Why most side projects stall in week three"
+                    maxLength={300}
+                  />
+                </Field>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field>
+                    <FieldLabel htmlFor="project-audience">
+                      Who is it for?
+                    </FieldLabel>
+                    <Input
+                      id="project-audience"
+                      value={audience}
+                      onChange={(event) => setAudience(event.target.value)}
+                      placeholder="e.g. first-time founders"
+                      maxLength={300}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="project-tone">Tone</FieldLabel>
+                    <Input
+                      id="project-tone"
+                      value={tone}
+                      onChange={(event) => setTone(event.target.value)}
+                      placeholder="e.g. direct, warm"
+                      maxLength={200}
+                    />
+                  </Field>
+                </div>
+
+                <Field>
+                  <FieldLabel htmlFor="project-instructions">
+                    Extra notes
+                  </FieldLabel>
+                  <Textarea
+                    id="project-instructions"
+                    value={instructions}
+                    onChange={(event) => setInstructions(event.target.value)}
+                    placeholder="Anything the draft must include or avoid."
+                    rows={2}
+                  />
+                </Field>
+              </>
+            )}
 
             <Field>
               <FieldLabel htmlFor="project-language">Language</FieldLabel>
@@ -179,7 +352,11 @@ export function CreateProjectDialog() {
             </Field>
 
             <Field>
-              <FieldLabel>Target platforms</FieldLabel>
+              <FieldLabel>
+                {kind === "draft"
+                  ? "Where will it publish?"
+                  : "Target platforms"}
+              </FieldLabel>
               <ChipSelect
                 options={PLATFORM_OPTIONS}
                 value={platforms}
@@ -203,7 +380,11 @@ export function CreateProjectDialog() {
               Cancel
             </DialogClose>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? "Creating…" : "Create project"}
+              {mutation.isPending
+                ? "Creating…"
+                : kind === "draft"
+                  ? "Create & write"
+                  : "Create project"}
             </Button>
           </DialogFooter>
         </form>

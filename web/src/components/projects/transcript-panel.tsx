@@ -14,7 +14,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
-import { CaptionBurnDialog } from "@/components/projects/caption-burn-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,7 +26,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -76,7 +74,6 @@ export function TranscriptPanel({
   failureMessage?: string | null;
 }) {
   const [version, setVersion] = useState<number | null>(null);
-  const [captionOpen, setCaptionOpen] = useState(false);
   const router = useRouter();
   // `processing` gates the missing-transcript messaging; polling only happens
   // when push is unavailable (`live` false). See the hook for the full rules.
@@ -238,11 +235,6 @@ export function TranscriptPanel({
                       {option.label}
                     </DropdownMenuItem>
                   ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setCaptionOpen(true)}>
-                    <Icon icon={ClosedCaptionIcon} />
-                    Burn captions onto video
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -273,13 +265,6 @@ export function TranscriptPanel({
             ))}
           </ol>
         </CardContent>
-        <CaptionBurnDialog
-          projectId={projectId}
-          projectName={projectName}
-          transcriptVersion={activeVersion}
-          open={captionOpen}
-          onOpenChange={setCaptionOpen}
-        />
       </Card>
     );
   }

@@ -12,6 +12,7 @@ from app.providers import get_providers
 from app.services.analysis_service import AnalysisService
 from app.services.asset_service import AssetService
 from app.services.caption_service import CaptionRenderService
+from app.services.draft_service import DraftService
 from app.services.firestore_service import get_firestore_client
 from app.services.job_service import JobService
 from app.services.persona_service import PersonaService
@@ -63,6 +64,16 @@ def get_identity_deleter() -> Callable[[str], None]:
 
 def get_transcript_service() -> TranscriptService:
     return TranscriptService(get_firestore_client(), storage=get_storage_client())
+
+
+def get_draft_service() -> DraftService:
+    client = get_firestore_client()
+    return DraftService(
+        client,
+        projects=ProjectService(client),
+        llm=get_providers().llm,
+        settings=get_settings(),
+    )
 
 
 def get_caption_service() -> CaptionRenderService:

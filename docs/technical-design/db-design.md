@@ -48,6 +48,7 @@ users/{uid}
 │   ├── transcripts/{transcriptId}
 │   │   └── segments/{segmentId}
 │   ├── captionRenders/{captionRenderId}
+│   ├── draft/main
 │   ├── analysisRuns/{analysisRunId}
 │   │   ├── reviewers/{reviewerRunId}
 │   │   ├── findings/{findingId}
@@ -185,6 +186,9 @@ AI-inferred changes remain pending until the user explicitly approves them.
   "sourceAssetId": "asset-id",
   "sourceRevision": 2,
   "sourceRevisionCounter": 2,
+  "kind": "video",
+  "draftFormat": "written",
+  "draftSummary": null,
   "activeTranscriptId": "transcript-id",
   "activeAnalysisRunId": "analysis-run-id",
   "personaVersionUsed": 3,
@@ -240,6 +244,68 @@ AI-inferred changes remain pending until the user explicitly approves them.
 revision of the project's single video. Assets uploaded before revisions existed have no
 `revision` and are numbered by upload order for display. Revisions are retained, never
 overwritten, so a transcript or analysis run stays attributable to the cut it graded.
+
+### users/{uid}/projects/{projectId}/draft/main
+
+One versioned draft document per draft project (`kind: "draft"`). It lives under the
+project subtree, so the recursive project/account delete covers it with no extra wiring.
+
+~~~json
+{
+  "projectId": "project-id",
+  "title": "Why side projects stall",
+  "status": "ready",
+  "brief": {
+    "topic": "Why most side projects stall in week three",
+    "format": "written",
+    "audience": "first-time founders",
+    "tone": "direct",
+    "platform": "newsletter",
+    "language": "en",
+    "instructions": "",
+    "targetWords": 0
+  },
+  "blocks": [
+    {
+      "blockId": "block-a1",
+      "type": "heading | paragraph | scene",
+      "versions": [
+        {
+          "versionId": "v1",
+          "text": "Why side projects stall",
+          "label": "Draft",
+          "origin": "assistant | user",
+          "createdAt": "timestamp"
+        }
+      ],
+      "activeVersionId": "v1"
+    }
+  ],
+  "messages": [
+    {
+      "messageId": "m1",
+      "role": "user | assistant",
+      "content": "Sharpen the opening line",
+      "createdAt": "timestamp"
+    }
+  ],
+  "error": null,
+  "summary": {
+    "title": "Why side projects stall",
+    "preview": "Here is the shortest version…",
+    "wordCount": 612,
+    "blockCount": 8,
+    "versionCount": 14
+  },
+  "createdAt": "timestamp",
+  "updatedAt": "timestamp"
+}
+~~~
+
+Blocks are the unit of versioning: every assistant rewrite (or a creator's first edit on an
+assistant version) appends an immutable `versions[]` entry and points `activeVersionId` at
+it, so a word, phrase, or paragraph can always be compared and swapped back. The project
+document keeps a denormalised `draftSummary` so list cards render without loading the draft.
 
 ### users/{uid}/projects/{projectId}/jobs/{jobId}
 

@@ -311,6 +311,81 @@ paths:
               schema: { $ref: "#/components/schemas/RevisionActivation" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /api/projects/{projectId}/draft:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: Get the project's versioned draft
+      description: |
+        Returns the single draft document for a draft project: the brief, the
+        ordered blocks, each block's version history, and the chat messages.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Draft" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Save client-side draft edits
+      description: |
+        Persists the title and block versions the creator edited in the studio.
+        Blocks are matched by `blockId`; unknown ids are rejected so an edit can
+        never silently drop content.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SaveDraftRequest" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Draft" }
+
+  /api/projects/{projectId}/draft/generate:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    post:
+      summary: Generate the first draft from the brief
+      description: |
+        Calls the writing model with the stored brief (optionally overridden in
+        the body) and replaces the blocks with a fresh first draft. Every block
+        starts with one version.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GenerateDraftRequest" }
+      responses:
+        "200":
+          description: Generated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Draft" }
+
+  /api/projects/{projectId}/draft/assist:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    post:
+      summary: Chat with the draft, applying versioned edits
+      description: |
+        Sends an instruction to the writing partner. The reply is appended to the
+        chat and any proposed rewrites become new versions on their blocks, so
+        the previous wording is always recovered from the version history.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssistDraftRequest" }
+      responses:
+        "200":
+          description: Updated draft
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Draft" }
+
   /api/jobs/{jobId}:
     parameters:
       - { $ref: "#/components/parameters/JobId" }
@@ -890,6 +965,17 @@ components:
         primaryLanguage: { type: string, default: en }
         targetLanguages: { type: array, items: { type: string } }
         targetPlatforms: { type: array, items: { type: string } }
+        kind:
+          type: string
+          enum: [video, draft]
+          default: video
+          description: |
+            `video` runs the upload -> transcript -> review pipeline; `draft`
+            opens the versioned writing studio instead.
+        draftFormat:
+          $ref: "#/components/schemas/DraftFormat"
+        draftBrief:
+          $ref: "#/components/schemas/DraftBrief"
         isDemo: { type: boolean, default: false }
         demoProfileId: { type: [string, "null"] }
 
@@ -919,6 +1005,17 @@ components:
             revisionCount:
               type: integer
               description: Number of source-video revisions uploaded for this project.
+            kind:
+              type: string
+              enum: [video, draft]
+              description: Which studio the project opens into.
+            draftFormat:
+              $ref: "#/components/schemas/DraftFormat"
+            draftSummary:
+              oneOf:
+                - $ref: "#/components/schemas/DraftSummary"
+                - type: "null"
+              description: Draft stats for list cards; null for video projects.
 
     UploadSessionRequest:
       type: object
@@ -1599,3 +1696,116 @@ components:
         status: { type: string, enum: [complete, streaming, failed] }
         artifactIds: { type: array, items: { type: string } }
         createdAt: { type: string, format: date-time }
+
+    DraftFormat:
+      type: string
+      enum: [written, script]
+
+    DraftStatus:
+      type: string
+      enum: [empty, generating, ready, failed]
+
+    DraftBlockType:
+      type: string
+      enum: [heading, paragraph, scene]
+
+    DraftBrief:
+      type: object
+      properties:
+        topic: { type: string }
+        format: { $ref: "#/components/schemas/DraftFormat" }
+        audience: { type: string }
+        tone: { type: string }
+        platform: { type: string }
+        language: { type: string, default: en }
+        instructions: { type: string }
+        targetWords:
+          type: integer
+          description: Target length hint in words; 0 lets the model decide.
+
+    DraftVersion:
+      type: object
+      properties:
+        versionId: { type: string }
+        text: { type: string }
+        label: { type: string }
+        origin: { type: string, enum: [assistant, user] }
+        createdAt: { type: string, format: date-time }
+
+    DraftBlock:
+      type: object
+      required: [blockId, activeVersionId]
+      properties:
+        blockId: { type: string }
+        type: { $ref: "#/components/schemas/DraftBlockType" }
+        versions:
+          type: array
+          items: { $ref: "#/components/schemas/DraftVersion" }
+        activeVersionId: { type: string }
+
+    DraftMessage:
+      type: object
+      properties:
+        messageId: { type: string }
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    DraftSummary:
+      type: object
+      properties:
+        title: { type: string }
+        preview: { type: string }
+        wordCount: { type: integer }
+        blockCount: { type: integer }
+        versionCount: { type: integer }
+
+    Draft:
+      type: object
+      properties:
+        projectId: { type: string }
+        title: { type: string }
+        status: { $ref: "#/components/schemas/DraftStatus" }
+        brief: { $ref: "#/components/schemas/DraftBrief" }
+        blocks:
+          type: array
+          items: { $ref: "#/components/schemas/DraftBlock" }
+        messages:
+          type: array
+          items: { $ref: "#/components/schemas/DraftMessage" }
+        error: { type: [string, "null"] }
+        summary: { $ref: "#/components/schemas/DraftSummary" }
+        createdAt: { type: [string, "null"], format: date-time }
+        updatedAt: { type: [string, "null"], format: date-time }
+
+    GenerateDraftRequest:
+      type: object
+      properties:
+        topic: { type: [string, "null"] }
+        format: { $ref: "#/components/schemas/DraftFormat" }
+        audience: { type: [string, "null"] }
+        tone: { type: [string, "null"] }
+        platform: { type: [string, "null"] }
+        language: { type: [string, "null"] }
+        instructions: { type: [string, "null"] }
+        targetWords: { type: [integer, "null"] }
+
+    SaveDraftRequest:
+      type: object
+      properties:
+        title: { type: [string, "null"] }
+        blocks:
+          type: array
+          items: { $ref: "#/components/schemas/DraftBlock" }
+
+    AssistMode:
+      type: string
+      enum: [chat, rewrite, alternatives, continue]
+
+    AssistDraftRequest:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+        blockId: { type: [string, "null"] }
+        mode: { $ref: "#/components/schemas/AssistMode" }
