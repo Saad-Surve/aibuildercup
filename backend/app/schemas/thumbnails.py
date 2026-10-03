@@ -122,3 +122,9 @@ class ThumbnailRevisionAccepted(BaseModel):
     thumbnailId: str
     jobId: str
     status: str
+
+
+class ThumbnailSelectionRequest(BaseModel):
+    """A set of concepts to act on in bulk (regenerate or download)."""
+
+    thumbnailIds: list[str] = Field(min_length=1, max_length=24)

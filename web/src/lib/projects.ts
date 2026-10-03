@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, apiFetchBlob } from "@/lib/api-client";
 import type {
   AcceptedJob,
   Asset,
@@ -305,6 +305,28 @@ export function deleteThumbnail(
 ): Promise<void> {
   return apiFetch<void>(`/projects/${projectId}/thumbnails/${thumbnailId}`, {
     method: "DELETE",
+  });
+}
+
+/** Re-render selected concepts as fresh versions, keeping each idea. */
+export function regenerateThumbnails(
+  projectId: string,
+  thumbnailIds: string[],
+): Promise<ThumbnailBatchAccepted> {
+  return apiFetch<ThumbnailBatchAccepted>(
+    `/projects/${projectId}/thumbnails/regenerate`,
+    { method: "POST", body: JSON.stringify({ thumbnailIds }) },
+  );
+}
+
+/** Zip of the selected concepts' active images, for a bulk download. */
+export function downloadThumbnailsZip(
+  projectId: string,
+  thumbnailIds: string[],
+): Promise<Blob> {
+  return apiFetchBlob(`/projects/${projectId}/thumbnails/download`, {
+    method: "POST",
+    body: JSON.stringify({ thumbnailIds }),
   });
 }
 

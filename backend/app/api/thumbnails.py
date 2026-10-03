@@ -26,6 +26,7 @@ from app.schemas.thumbnails import (
     ThumbnailConcept,
     ThumbnailConceptList,
     ThumbnailRevisionAccepted,
+    ThumbnailSelectionRequest,
 )
 from app.services.thumbnail_service import ThumbnailService
 
@@ -77,6 +78,59 @@ async def generate_thumbnails(
         thumbnailIds=[concept.thumbnailId for concept in concepts],
         jobId=job.jobId,
         status=job.status.value,
+    )
+
+
+@router.post(
+    "/projects/{projectId}/thumbnails/regenerate",
+    response_model=ThumbnailBatchAccepted,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def regenerate_thumbnails(
+    projectId: str,
+    payload: ThumbnailSelectionRequest,
+    user: UserDep,
+    service: ServiceDep,
+    background_tasks: BackgroundTasks,
+    scheduler: SchedulerDep,
+) -> ThumbnailBatchAccepted:
+    """Re-render each selected concept as a fresh version, keeping its idea."""
+    concepts, job = service.regenerate(
+        owner_uid=user.uid,
+        project_id=projectId,
+        thumbnail_ids=payload.thumbnailIds,
+    )
+    if job.status not in (JobStatus.succeeded, JobStatus.running):
+        scheduler(
+            background_tasks,
+            owner_uid=user.uid,
+            project_id=projectId,
+            job_id=job.jobId,
+        )
+    return ThumbnailBatchAccepted(
+        thumbnailIds=[concept.thumbnailId for concept in concepts],
+        jobId=job.jobId,
+        status=job.status.value,
+    )
+
+
+@router.post("/projects/{projectId}/thumbnails/download")
+async def download_thumbnails(
+    projectId: str,
+    payload: ThumbnailSelectionRequest,
+    user: UserDep,
+    service: ServiceDep,
+) -> Response:
+    """Zip the active image of each selected concept for a bulk download."""
+    data = service.download_bundle(
+        owner_uid=user.uid,
+        project_id=projectId,
+        thumbnail_ids=payload.thumbnailIds,
+    )
+    return Response(
+        content=data,
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="thumbnails.zip"'},
     )
 
 

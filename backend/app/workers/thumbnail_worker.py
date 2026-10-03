@@ -256,26 +256,60 @@ async def _generate_batch(
         firestore=firestore, storage=storage, owner_uid=owner_uid
     )
 
-    jobs.mark_running(
-        owner_uid=owner_uid,
-        project_id=project_id,
-        job_id=job_id,
-        step="planning",
-        message="Planning thumbnail concepts",
-    )
-    plan = await _plan(
-        llm=llm,
-        settings=settings,
-        count=len(thumbnail_ids),
-        project=project,
-        persona=persona,
-        brief=str(payload.get("brief") or ""),
-        duration_ms=duration_ms,
-        transcript_view=transcript_view,
-        findings=findings,
-    )
+    regenerate = payload.get("mode") == "regenerate"
+    if regenerate:
+        jobs.mark_running(
+            owner_uid=owner_uid,
+            project_id=project_id,
+            job_id=job_id,
+            step="regenerating",
+            message="Re-rendering selected concepts",
+        )
+        # Reuse each concept's existing idea; "redo" is a fresh take, not a new plan.
+        plan = []
+        version_numbers = []
+        concept_aspects = []
+        for thumbnail_id in thumbnail_ids:
+            stored = thumbnails.load(
+                owner_uid=owner_uid, project_id=project_id, thumbnail_id=thumbnail_id
+            ) or {}
+            plan.append(
+                {
+                    "headline": stored.get("headline", ""),
+                    "rationale": stored.get("rationale", ""),
+                    "visualDirection": "",
+                    "emotion": "",
+                    "timestampMs": stored.get("sourceTimestampMs"),
+                }
+            )
+            version_numbers.append(len(stored.get("versions") or []) + 1)
+            concept_aspects.append(
+                str(stored.get("aspect") or settings.imagegen_default_aspect)
+            )
+    else:
+        jobs.mark_running(
+            owner_uid=owner_uid,
+            project_id=project_id,
+            job_id=job_id,
+            step="planning",
+            message="Planning thumbnail concepts",
+        )
+        plan = await _plan(
+            llm=llm,
+            settings=settings,
+            count=len(thumbnail_ids),
+            project=project,
+            persona=persona,
+            brief=str(payload.get("brief") or ""),
+            duration_ms=duration_ms,
+            transcript_view=transcript_view,
+            findings=findings,
+        )
+        version_numbers = [1] * len(thumbnail_ids)
+        concept_aspects = [
+            str(payload.get("aspect") or settings.imagegen_default_aspect)
+        ] * len(thumbnail_ids)
 
-    aspect = str(payload.get("aspect") or settings.imagegen_default_aspect)
     image_size = str(payload.get("imageSize") or settings.imagegen_default_size)
     use_real_frames = bool(payload.get("useRealFrames", True))
     model = settings.model_image_pro if payload.get("useProModel") else settings.model_image
@@ -306,6 +340,14 @@ async def _generate_batch(
         direction = str(concept.get("visualDirection") or "").strip()
         emotion = str(concept.get("emotion") or "").strip()
         timestamp_ms = _clamp_ms(concept.get("timestampMs"), duration_ms)
+        concept_aspect = (
+            concept_aspects[index]
+            if index < len(concept_aspects)
+            else settings.imagegen_default_aspect
+        )
+        version_number = (
+            version_numbers[index] if index < len(version_numbers) else 1
+        )
 
         thumbnails.mark_generating(
             owner_uid=owner_uid,
@@ -346,14 +388,14 @@ async def _generate_batch(
                 direction=direction,
                 emotion=emotion,
                 platform=_platform(project.targetPlatforms),
-                aspect=aspect,
+                aspect=concept_aspect,
                 has_references=bool(references),
             )
             generated = await images.generate(
                 model=model,
                 prompt=prompt,
                 count=1,
-                aspect_ratio=aspect,
+                aspect_ratio=concept_aspect,
                 image_size=image_size,
                 reference_images=references,
             )
@@ -374,7 +416,7 @@ async def _generate_batch(
                 owner_uid=owner_uid,
                 project_id=project_id,
                 thumbnail_id=thumbnail_id,
-                version_number=1,
+                version_number=version_number,
                 data=image.data,
                 mime_type=image.mime_type,
                 instruction=prompt,

@@ -10,6 +10,20 @@
   font-family: var(--font-schibsted);
 }
 
+/*
+ * Letterbox any source into the pinned 16:9 box: a portrait (9:16) upload shows
+ * fully, with bars, instead of being cropped or stretched.
+ */
+.studio-video .video-js .vjs-tech {
+  object-fit: contain;
+}
+
+.studio-video .video-js .vjs-poster {
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
 .studio-video .vjs-current-time,
 .studio-video .vjs-duration,
 .studio-video .vjs-time-divider,

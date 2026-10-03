@@ -47,3 +47,27 @@ export async function apiFetch<T>(
   }
   return (await response.json()) as T;
 }
+
+/** Same auth + error handling as `apiFetch`, but for a binary response (e.g. a zip). */
+export async function apiFetchBlob(
+  path: string,
+  init: RequestInit = {},
+): Promise<Blob> {
+  const headers = await authHeaders();
+  new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    headers,
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(
+      response.status,
+      body?.error?.code ?? "UNKNOWN",
+      body?.error?.message ?? response.statusText,
+    );
+  }
+  return await response.blob();
+}

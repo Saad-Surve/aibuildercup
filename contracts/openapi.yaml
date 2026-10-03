@@ -752,6 +752,54 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/projects/{projectId}/thumbnails/regenerate:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    post:
+      summary: Re-render selected concepts as fresh versions
+      description: |
+        Queues one `thumbnail` job in `regenerate` mode. Each selected concept keeps its
+        headline, rationale and source moment, but is re-rendered as a new version — a fresh
+        take on the same idea, for a bulk "redo".
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ThumbnailSelectionRequest" }
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ThumbnailBatchAccepted" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: The project has reached its image-generation budget
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/projects/{projectId}/thumbnails/download:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    post:
+      summary: Download selected concepts as a zip
+      description: |
+        Zips the active image of each selected concept and returns it as
+        `application/zip`. Used by the studio's bulk download; the browser fetches it with
+        auth headers and saves the blob.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ThumbnailSelectionRequest" }
+      responses:
+        "200":
+          description: A zip of the selected thumbnails
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+
   /api/projects/{projectId}/analysis:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
@@ -1574,6 +1622,16 @@ components:
         thumbnailId: { type: string }
         jobId: { type: string }
         status: { type: string }
+
+    ThumbnailSelectionRequest:
+      type: object
+      required: [thumbnailIds]
+      properties:
+        thumbnailIds:
+          type: array
+          minItems: 1
+          maxItems: 24
+          items: { type: string }
 
     AnalysisDimension:
       type: string

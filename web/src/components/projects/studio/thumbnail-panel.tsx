@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Icon } from "@/components/common/icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import {
   Select,
@@ -31,9 +32,11 @@ import { ApiError } from "@/lib/api-client";
 import {
   applyThumbnail,
   deleteThumbnail,
+  downloadThumbnailsZip,
   generateThumbnails,
   getJob,
   listThumbnails,
+  regenerateThumbnails,
   reviseThumbnail,
 } from "@/lib/projects";
 import type { ThumbnailAspect, ThumbnailConcept } from "@/lib/types";
@@ -86,6 +89,8 @@ function ConceptCard({
   concept,
   projectId,
   busy,
+  selected,
+  onToggleSelect,
   onRevise,
   onApply,
   onDelete,
@@ -93,6 +98,8 @@ function ConceptCard({
   concept: ThumbnailConcept;
   projectId: string;
   busy: boolean;
+  selected: boolean;
+  onToggleSelect: (thumbnailId: string) => void;
   onRevise: (thumbnailId: string, instruction: string) => void;
   onApply: (thumbnailId: string) => void;
   onDelete: (thumbnailId: string) => void;
@@ -126,7 +133,11 @@ function ConceptCard({
           <img
             src={concept.previewUrl}
             alt={concept.headline || "Thumbnail concept"}
-            className="h-full w-full object-cover"
+            className={
+              concept.aspect === "16:9"
+                ? "h-full w-full object-cover"
+                : "h-full w-full object-contain"
+            }
           />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
@@ -144,7 +155,15 @@ function ConceptCard({
             </span>
           </div>
         )}
-        <div className="absolute top-2 left-2 flex flex-wrap gap-1">
+        <div className="absolute top-2 left-2">
+          <Checkbox
+            checked={selected}
+            onCheckedChange={() => onToggleSelect(concept.thumbnailId)}
+            aria-label="Select concept"
+            className="border-white/70 bg-background/80 shadow-sm backdrop-blur-sm"
+          />
+        </div>
+        <div className="absolute top-2 right-2 flex flex-wrap justify-end gap-1">
           {concept.isApplied ? (
             <Badge className="gap-1">
               <Icon icon={CheckmarkCircle02Icon} className="size-3" />
@@ -313,6 +332,8 @@ export function ThumbnailPanel({
   const [aspect, setAspect] = useState<ThumbnailAspect>("16:9");
   const [count, setCount] = useState("4");
   const [brief, setBrief] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [downloading, setDownloading] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const notifiedJob = useRef<string | null>(null);
 
@@ -437,6 +458,85 @@ export function ThumbnailPanel({
       toast.error(errorMessage(caught, "Could not delete the concept.")),
   });
 
+  const regenerateMutation = useMutation({
+    mutationFn: (thumbnailIds: string[]) =>
+      regenerateThumbnails(projectId, thumbnailIds),
+    onSuccess: (result) => {
+      setActiveJobId(result.jobId);
+      setSelected(new Set());
+      void queryClient.invalidateQueries({
+        queryKey: ["thumbnails", projectId],
+      });
+      toast.success("Re-rendering selected concepts…");
+    },
+    onError: (caught) =>
+      toast.error(errorMessage(caught, "Could not redo the concepts.")),
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (thumbnailIds: string[]) =>
+      Promise.all(
+        thumbnailIds.map((thumbnailId) =>
+          deleteThumbnail(projectId, thumbnailId),
+        ),
+      ),
+    onSuccess: () => {
+      setSelected(new Set());
+      void queryClient.invalidateQueries({
+        queryKey: ["thumbnails", projectId],
+      });
+      toast.success("Deleted selected concepts");
+    },
+    onError: (caught) =>
+      toast.error(errorMessage(caught, "Could not delete the concepts.")),
+  });
+
+  const selectedIds = concepts
+    .filter((concept) => selected.has(concept.thumbnailId))
+    .map((concept) => concept.thumbnailId);
+  const allSelected =
+    concepts.length > 0 && selectedIds.length === concepts.length;
+  const bulkBusy =
+    regenerateMutation.isPending || bulkDeleteMutation.isPending || downloading;
+
+  function toggleSelect(thumbnailId: string) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(thumbnailId)) next.delete(thumbnailId);
+      else next.add(thumbnailId);
+      return next;
+    });
+  }
+
+  function toggleAll(checked: boolean) {
+    setSelected(
+      checked
+        ? new Set(concepts.map((concept) => concept.thumbnailId))
+        : new Set(),
+    );
+  }
+
+  async function downloadSelected() {
+    if (selectedIds.length === 0) return;
+    setDownloading(true);
+    try {
+      const blob = await downloadThumbnailsZip(projectId, selectedIds);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "thumbnails.zip";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Download started");
+    } catch (caught) {
+      toast.error(errorMessage(caught, "Could not download the thumbnails."));
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   const generating =
     generateMutation.isPending ||
     Boolean(inFlight) ||
@@ -533,20 +633,75 @@ export function ThumbnailPanel({
       ) : null}
 
       {concepts.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {concepts.map((concept) => (
-            <ConceptCard
-              key={concept.thumbnailId}
-              concept={concept}
-              projectId={projectId}
-              busy={deleteMutation.isPending}
-              onRevise={(thumbnailId, instruction) =>
-                reviseMutation.mutate({ thumbnailId, instruction })
-              }
-              onApply={(thumbnailId) => applyMutation.mutate(thumbnailId)}
-              onDelete={(thumbnailId) => deleteMutation.mutate(thumbnailId)}
-            />
-          ))}
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={(value) => toggleAll(Boolean(value))}
+                aria-label="Select all concepts"
+              />
+              Select all
+            </label>
+            {selectedIds.length > 0 ? (
+              <div className="ml-auto flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-xs text-muted-foreground">
+                  {selectedIds.length} selected
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={bulkBusy}
+                  onClick={() => regenerateMutation.mutate(selectedIds)}
+                >
+                  <Icon icon={Refresh01Icon} />
+                  Redo
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={bulkBusy}
+                  onClick={() => void downloadSelected()}
+                >
+                  <Icon icon={Download01Icon} />
+                  Download
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled={bulkBusy}
+                  onClick={() => bulkDeleteMutation.mutate(selectedIds)}
+                >
+                  <Icon icon={Delete02Icon} />
+                  Delete
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelected(new Set())}
+                >
+                  Clear
+                </Button>
+              </div>
+            ) : null}
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {concepts.map((concept) => (
+              <ConceptCard
+                key={concept.thumbnailId}
+                concept={concept}
+                projectId={projectId}
+                busy={bulkBusy || deleteMutation.isPending}
+                selected={selected.has(concept.thumbnailId)}
+                onToggleSelect={toggleSelect}
+                onRevise={(thumbnailId, instruction) =>
+                  reviseMutation.mutate({ thumbnailId, instruction })
+                }
+                onApply={(thumbnailId) => applyMutation.mutate(thumbnailId)}
+                onDelete={(thumbnailId) => deleteMutation.mutate(thumbnailId)}
+              />
+            ))}
+          </div>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center">

@@ -185,6 +185,11 @@ function StudioPlayer({
         autoplay: false,
         preload: "metadata",
         fluid: true,
+        // Pin a landscape box regardless of the source: a portrait (9:16) upload would
+        // otherwise resize the fluid player taller than the fixed-height card and get
+        // clipped, which reads as a zoomed/cropped preview. The video itself is
+        // letterboxed inside (see `object-fit: contain` in video-player-skin.css).
+        aspectRatio: "16:9",
         playsinline: true,
         responsive: true,
         poster: initialPosterRef.current ?? undefined,

@@ -10,7 +10,10 @@ The only writing the API does synchronously is creating queued placeholders and 
 concept's headline to `project.thumbnailConcept`; everything expensive is a job.
 """
 
+import io
 import logging
+import re
+import zipfile
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -44,6 +47,11 @@ logger = logging.getLogger(__name__)
 
 def is_owner(document: dict[str, Any], owner_uid: str) -> bool:
     return document.get("ownerUid") == owner_uid
+
+
+def _slug(value: str) -> str:
+    cleaned = re.sub(r"[^a-z0-9]+", "-", (value or "").strip().lower()).strip("-")
+    return cleaned[:48] or "thumbnail"
 
 
 def _critique_from(data: Any) -> ThumbnailCritique | None:
@@ -240,6 +248,78 @@ class ThumbnailService:
             {"status": ThumbnailStatus.generating.value, "jobId": job.jobId, "updatedAt": now}
         )
         return _to_concept(thumbnail_id, data), job
+
+    def regenerate(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        thumbnail_ids: list[str],
+    ) -> tuple[list[ThumbnailConcept], Job]:
+        """Queue one job that re-renders each selected concept as a fresh version.
+
+        Keeps the concept's existing headline, rationale and source moment, so "redo"
+        means a new take rather than a new idea.
+        """
+        self.projects.get(owner_uid=owner_uid, project_id=project_id)
+        concepts: list[ThumbnailConcept] = []
+        for thumbnail_id in thumbnail_ids:
+            data = self._require_owned(
+                owner_uid=owner_uid,
+                project_id=project_id,
+                thumbnail_id=thumbnail_id,
+            )
+            concepts.append(_to_concept(thumbnail_id, data))
+        self._guard_budget(
+            owner_uid=owner_uid, project_id=project_id, new_count=len(thumbnail_ids)
+        )
+        now = datetime.now(UTC)
+        job = self.jobs.create(
+            owner_uid=owner_uid,
+            project_id=project_id,
+            job_type=JobType.thumbnail,
+            idempotency_key=f"thumbnail-redo-{project_id}-{uuid4().hex[:8]}",
+            input={"thumbnailIds": list(thumbnail_ids), "mode": "regenerate"},
+        )
+        for concept in concepts:
+            self.client.update_document(
+                thumbnail_concept_path(owner_uid, project_id, concept.thumbnailId),
+                {
+                    "status": ThumbnailStatus.generating.value,
+                    "jobId": job.jobId,
+                    "updatedAt": now,
+                },
+            )
+            concept.status = ThumbnailStatus.generating
+            concept.jobId = job.jobId
+        return concepts, job
+
+    def download_bundle(
+        self, *, owner_uid: str, project_id: str, thumbnail_ids: list[str]
+    ) -> bytes:
+        """Zip the active image of each selected concept for a bulk download."""
+        self.projects.get(owner_uid=owner_uid, project_id=project_id)
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+            for thumbnail_id in thumbnail_ids:
+                data = self.client.get_document(
+                    thumbnail_concept_path(owner_uid, project_id, thumbnail_id)
+                )
+                if data is None or not is_owner(data, owner_uid):
+                    continue
+                version = self._active_version(data)
+                path = version.get("storagePath") if version else None
+                if not path:
+                    continue
+                try:
+                    content = self.storage.download_bytes(str(path))
+                except Exception:  # noqa: BLE001 - skip an unreadable image
+                    logger.warning("thumbnail: could not read %s for download", path)
+                    continue
+                extension = "jpg" if str(path).endswith(".jpg") else "png"
+                name = f"{_slug(str(data.get('headline') or ''))}-{thumbnail_id[:6]}.{extension}"
+                archive.writestr(name, content)
+        return buffer.getvalue()
 
     def list(self, *, owner_uid: str, project_id: str) -> list[ThumbnailConcept]:
         self.projects.get(owner_uid=owner_uid, project_id=project_id)
