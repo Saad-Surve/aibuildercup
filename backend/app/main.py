@@ -10,6 +10,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api import (
     analysis,
     captions,
+    connections,
     draft,
     glossaries,
     health,
@@ -18,6 +19,7 @@ from app.api import (
     localizations,
     onboarding,
     projects,
+    publishes,
     thumbnails,
     transcripts,
     uploads,
@@ -127,6 +129,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix="/api")
     app.include_router(users.router, prefix="/api")
     app.include_router(onboarding.router, prefix="/api")
+    app.include_router(connections.router, prefix="/api")
     app.include_router(projects.router, prefix="/api")
     app.include_router(uploads.router, prefix="/api")
     app.include_router(jobs.router, prefix="/api")
@@ -138,6 +141,7 @@ def create_app() -> FastAPI:
     app.include_router(localizations.router, prefix="/api")
     app.include_router(glossaries.router, prefix="/api")
     app.include_router(analysis.router, prefix="/api")
+    app.include_router(publishes.router, prefix="/api")
     app.include_router(internal.router, prefix="/api")
     return app
 

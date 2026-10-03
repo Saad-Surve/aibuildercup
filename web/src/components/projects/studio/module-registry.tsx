@@ -24,6 +24,7 @@ const loaders = {
   captions: () => import("@/components/projects/studio/captions-module"),
   packaging: () => import("@/components/projects/studio/packaging-module"),
   localization: () => import("@/components/projects/studio/localization-module"),
+  publishing: () => import("@/components/projects/studio/publishing-module"),
 } as const;
 
 type LazyModuleId = keyof typeof loaders;
@@ -48,6 +49,10 @@ const LocalizationModule = dynamic(
   () => loaders.localization().then((module) => module.LocalizationModule),
   { loading: ModuleLoading },
 );
+const PublishingModule = dynamic(
+  () => loaders.publishing().then((module) => module.PublishingModule),
+  { loading: ModuleLoading },
+);
 
 export const STUDIO_MODULE_COMPONENTS = {
   transcript: TranscriptPanel,
@@ -55,6 +60,7 @@ export const STUDIO_MODULE_COMPONENTS = {
   captions: CaptionsModule,
   packaging: PackagingModule,
   localization: LocalizationModule,
+  publishing: PublishingModule,
 } satisfies Record<LazyModuleId, unknown>;
 
 /** Start downloading a module's chunk before the user opens it. Idempotent. */

@@ -678,3 +678,129 @@ export interface GlobalCorpus {
   version: number;
   pairs: CorpusLanguagePair[];
 }
+
+/* ------------------------------------------------------------------ connections */
+
+export type ConnectionPlatform = "youtube";
+
+export type ConnectionStatus =
+  | "pending"
+  | "connected"
+  | "needs_reauth"
+  | "revoked"
+  | "error";
+
+export interface Connection {
+  connectionId: string;
+  platform: ConnectionPlatform;
+  accountType: string;
+  displayName: string;
+  externalAccountId: string;
+  externalHandle: string | null;
+  googleAccountEmail: string | null;
+  avatarUrl: string | null;
+  subscriberCount: number | null;
+  videoCount: number | null;
+  status: ConnectionStatus;
+  scopes: string[];
+  lastSyncAt: string | null;
+  lastSyncStatus: string | null;
+  lastErrorCode: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConnectionList {
+  items: Connection[];
+}
+
+export interface OAuthStartRequest {
+  loginHint?: string | null;
+  redirectPath?: string | null;
+}
+
+export interface OAuthStartResponse {
+  authorizationUrl: string;
+  state: string;
+}
+
+/* ------------------------------------------------------------------ publishing */
+
+export type PublishSourceKind = "source" | "captionRender" | "localization";
+
+export interface PublishVideoSource {
+  kind: PublishSourceKind;
+  id: string | null;
+}
+
+export type PublishCaptionFormat = "srt" | "vtt" | "none";
+export type PublishVisibility = "private" | "unlisted" | "public";
+
+export type PublishStatus =
+  | "queued"
+  | "uploading"
+  | "processing"
+  | "published"
+  | "failed";
+
+export interface PublishThumbnailRef {
+  thumbnailId: string;
+  version?: number | null;
+}
+
+export interface PublishRequest {
+  connectionId: string;
+  video?: PublishVideoSource;
+  title: string;
+  description?: string;
+  tags?: string[];
+  categoryId?: string;
+  privacyStatus?: PublishVisibility;
+  madeForKids?: boolean;
+  notifySubscribers?: boolean;
+  captionFormat?: PublishCaptionFormat;
+  captionLanguage?: string;
+  captionName?: string;
+  thumbnail?: PublishThumbnailRef | null;
+  publishAt?: string | null;
+}
+
+export interface Publish {
+  publishId: string;
+  projectId: string;
+  connectionId: string;
+  connectionDisplayName: string | null;
+  platform: string;
+  status: PublishStatus;
+  video: PublishVideoSource;
+  title: string;
+  description: string;
+  tags: string[];
+  categoryId: string;
+  privacyStatus: PublishVisibility;
+  madeForKids: boolean;
+  notifySubscribers: boolean;
+  captionFormat: PublishCaptionFormat;
+  captionLanguage: string;
+  captionName: string;
+  thumbnailId: string | null;
+  thumbnailVersion: number | null;
+  youtubeVideoId: string | null;
+  youtubeUrl: string | null;
+  uploadProgress: number;
+  steps: string[];
+  jobId: string | null;
+  error: { code?: string; message?: string } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PublishList {
+  items: Publish[];
+}
+
+export interface PublishAccepted {
+  publishId: string;
+  jobId: string;
+  status: string;
+}

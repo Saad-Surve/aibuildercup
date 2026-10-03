@@ -149,9 +149,11 @@ export function VideoRevisions({
 export function NewRevisionButton({
   projectId,
   onQueued,
+  variant = "outline",
 }: {
   projectId: string;
   onQueued?: (jobId: string) => void;
+  variant?: "outline" | "default";
 }) {
   const invalidate = useRevisionInvalidation(projectId);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -166,7 +168,7 @@ export function NewRevisionButton({
     <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
       <DialogTrigger
         render={
-          <Button variant="outline" size="sm">
+          <Button variant={variant} size="sm">
             <Icon icon={CloudUploadIcon} />
             New revision
           </Button>

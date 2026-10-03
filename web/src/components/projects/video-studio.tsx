@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileVideoIcon } from "@hugeicons/core-free-icons";
 import { format } from "date-fns";
@@ -28,6 +28,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useProjectTranscript } from "@/hooks/use-project-transcript";
+import { useFeatureFlag } from "@/lib/feature-flags";
+import { useSetHeaderNav } from "@/lib/header-nav";
 import { getVideoBlobForProject } from "@/lib/local-media";
 import {
   completeUpload,
@@ -73,9 +75,13 @@ export function VideoStudio({
     captions: CaptionsModule,
     packaging: PackagingModule,
     localization: LocalizationModule,
+    publishing: PublishingModule,
   } = STUDIO_MODULE_COMPONENTS;
 
   const queryClient = useQueryClient();
+  const headerTabs = useFeatureFlag("headerTabs");
+  const setHeaderNav = useSetHeaderNav();
+  const modulePaneRef = useRef<HTMLDivElement>(null);
   const [durationMs, setDurationMs] = useState<number | null>(null);
   const [captionStyle, setCaptionStyle] = useState<CaptionStyle | null>(null);
 
@@ -163,6 +169,45 @@ export function VideoStudio({
     project.status === "uploading" ||
     generateTranscript.isPending;
   const hasTranscript = Boolean(transcriptQuery.data);
+
+  // With the `headerTabs` flag on, the module tabs move into the app's sticky header and the
+  // in-page strip (and its divider) disappear. The slot is owned by the shell; this page fills it.
+  // The project overview already shows the module grid, so no header tabs there.
+  useEffect(() => {
+    if (!headerTabs || !effectiveSource || activeModule === "overview") {
+      setHeaderNav(null);
+      return;
+    }
+    setHeaderNav(
+      <ModuleNav
+        projectId={projectId}
+        active={activeModule}
+        onSelect={onModuleSelect}
+        variant="header"
+        showOverview={false}
+      />,
+    );
+    return () => setHeaderNav(null);
+  }, [
+    headerTabs,
+    effectiveSource,
+    projectId,
+    activeModule,
+    onModuleSelect,
+    setHeaderNav,
+  ]);
+
+  // With header tabs, opening a module should bring the right pane up to the page's existing
+  // snap stop (`lg:snap-start lg:scroll-mt-20`) instead of moving the whole page. `scrollIntoView`
+  // honours the pane's scroll margin, so it lands just under the sticky header.
+  useEffect(() => {
+    if (!headerTabs || activeModule === "overview") return;
+    modulePaneRef.current?.scrollIntoView({
+      block: "start",
+      inline: "nearest",
+      behavior: "auto",
+    });
+  }, [activeModule, headerTabs]);
 
   const captionLines = useMemo(
     () => transcriptQuery.data?.segments.slice(0, 2).map((item) => item.text),
@@ -285,6 +330,16 @@ export function VideoStudio({
             targetLanguages={project.targetLanguages}
           />
         );
+      case "publishing":
+        return (
+          <PublishingModule
+            projectId={projectId}
+            projectName={project.name}
+            primaryLanguage={project.primaryLanguage}
+            activeSourceId={project.sourceAssetId}
+            onJobId={onJobId}
+          />
+        );
       default:
         return null;
     }
@@ -377,27 +432,35 @@ export function VideoStudio({
               </CardContent>
             </Card>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              {sourceAsset && (
-                <NewRevisionButton projectId={projectId} onQueued={onJobId} />
-              )}
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
               <DeleteProjectDialog
                 projectId={projectId}
                 projectName={project.name}
                 assetIds={[effectiveSource.assetId]}
+                destructive
               />
+              {sourceAsset && (
+                <NewRevisionButton
+                  projectId={projectId}
+                  onQueued={onJobId}
+                  variant="default"
+                />
+              )}
             </div>
           </div>
 
           <div className="space-y-6">
-            {activeModule !== "overview" ? (
+            {activeModule !== "overview" && !headerTabs ? (
               <ModuleNav
                 projectId={projectId}
                 active={activeModule}
                 onSelect={onModuleSelect}
               />
             ) : null}
-            <div className="space-y-6 lg:snap-start lg:snap-always lg:scroll-mt-20">
+            <div
+              ref={modulePaneRef}
+              className="space-y-6 lg:snap-start lg:snap-always lg:scroll-mt-20"
+            >
               {renderModule()}
             </div>
             <div aria-hidden className={WORKSPACE_PANE_STACK_SPACER} />

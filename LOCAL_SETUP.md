@@ -416,6 +416,70 @@ Useful log lines to watch for in the backend terminal: `LLM via Agent Platform p
 - [ ] *(Track B only)* Create the project + state bucket + Terraform SA, enable Firebase, accept
       ToS in console, enable Google sign-in, register a web app, run `terraform apply`, apply the
       Firestore index/rules, and update both env files.
+- [ ] *(YouTube publishing)* Create the Web OAuth client, register the redirect URI, set the
+      client id/secret (and `OAUTH_TOKEN_ENCRYPTION_KEY` locally), and add yourself as a test
+      user. See Part 7b.
+
+---
+
+## Part 7b — YouTube connector & publishing
+
+The studio can publish a finished project (video + thumbnail + captions) to a YouTube channel.
+This needs a **Google OAuth client**; everything else is already wired.
+
+### 7b.1 Create the OAuth client (console-only)
+
+1. Google Cloud Console → **APIs & Services → OAuth consent screen**. Choose **External**, fill in
+   the app name/support email, and add the scopes the app requests (YouTube: upload, readonly,
+   force-ssl; plus `yt-analytics.readonly` and email). While the app is in **Testing**, add every
+   Google account you will connect as a **test user**.
+2. **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application**.
+3. Add **Authorized redirect URIs**:
+   - Local: `http://localhost:8080/api/connections/youtube/oauth/callback`
+   - Deployed: `https://<your-cloud-run-url>/api/connections/youtube/oauth/callback`
+4. Copy the **client id** and **client secret**.
+
+### 7b.2 Wire the credentials
+
+Local (`backend/.env`):
+
+```bash
+GOOGLE_OAUTH_CLIENT_ID=...apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=...
+WEB_BASE_URL=http://localhost:3000
+API_PUBLIC_BASE_URL=http://localhost:8080
+# Encrypts OAuth tokens without needing Cloud KMS (local only).
+OAUTH_TOKEN_ENCRYPTION_KEY=local-dev-token-key
+```
+
+Deployed: put the id/secret in Secret Manager (`youtube-oauth-client-id`,
+`youtube-oauth-client-secret`) — the deploy workflow reads them into Cloud Run. Production uses
+**Cloud KMS** (`user-token-key`) and must **not** set `OAUTH_TOKEN_ENCRYPTION_KEY`.
+
+```bash
+printf '%s' '<client-id>'     | gcloud secrets versions add youtube-oauth-client-id     --data-file=-
+printf '%s' '<client-secret>' | gcloud secrets versions add youtube-oauth-client-secret --data-file=-
+```
+
+Apply the new Firestore collection-group index used by the OAuth callback:
+
+```bash
+cd infra && terraform apply   # or: gcloud firestore fields ... see firestore_indexes.tf
+```
+
+### 7b.3 How to test
+
+1. Run the backend (`:8080`) and web (`:3000`).
+2. **Profile → Connected channels → Connect a Google account**. Google shows its account chooser;
+   pick the Gmail account that owns the channel. Every channel under it becomes a connection.
+3. Open a video project → **Publish to YouTube** module → choose the channel, video, thumbnail
+   (optional), captions, title/description/tags, visibility. Click **Publish**.
+4. Watch the publish history card: queued → uploading (progress) → YouTube processing → published,
+   with an “Open on YouTube” link.
+
+> **Unverified API client:** until the OAuth app passes YouTube's API audit, every upload is
+> locked to **private** regardless of the requested visibility. That is expected; use a test
+> channel.
 
 ---
 

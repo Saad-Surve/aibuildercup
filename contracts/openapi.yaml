@@ -1149,6 +1149,151 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ChatMessage" }
 
+  /api/connections:
+    get:
+      summary: List connected platform accounts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConnectionList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/connections/{platform}/oauth/start:
+    post:
+      summary: Start OAuth for a platform
+      description: |
+        Returns the provider authorization URL and the opaque `state` the callback will check.
+        For YouTube the URL sets `prompt=select_account`, so Google shows the account chooser
+        and the creator picks which Gmail account to connect from.
+      parameters:
+        - { name: platform, in: path, required: true, schema: { type: string, enum: [youtube] } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OAuthStartRequest" }
+      responses:
+        "201":
+          description: Authorization URL created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OAuthStartResponse" }
+        "400": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/connections/{platform}/oauth/callback:
+    get:
+      security: []
+      summary: Provider OAuth callback (browser redirect)
+      description: |
+        Google redirects the browser here after consent. Unauthenticated by design: the
+        single-use server-side `state` is the proof of identity. Always responds with a 302
+        back into the web app, carrying `youtube=connected|error`.
+      parameters:
+        - { name: platform, in: path, required: true, schema: { type: string, enum: [youtube] } }
+        - { name: state, in: query, required: true, schema: { type: string } }
+        - { name: code, in: query, required: false, schema: { type: [string, "null"] } }
+        - { name: error, in: query, required: false, schema: { type: [string, "null"] } }
+      responses:
+        "302":
+          description: Redirect back to the web app
+
+  /api/connections/{connectionId}/sync:
+    post:
+      summary: Refresh a connected channel's stats
+      parameters:
+        - { $ref: "#/components/parameters/ConnectionId" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Connection" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/connections/{connectionId}:
+    delete:
+      summary: Revoke and delete a connection
+      parameters:
+        - { $ref: "#/components/parameters/ConnectionId" }
+      responses:
+        "204": { description: Connection removed }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/projects/{projectId}/publishes:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: List publish attempts for a project, newest first
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublishList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      summary: Publish a project to a connected channel
+      description: |
+        Uploads the chosen video (source, burned-caption render, or dub), sets the chosen
+        thumbnail version, and uploads an SRT/VTT caption track built from the transcript.
+        Runs asynchronously; poll `GET /jobs/{jobId}` or the project's publish list.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PublishRequest" }
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublishAccepted" }
+        "400": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/projects/{projectId}/publishes/{publishId}:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/PublishId" }
+    get:
+      summary: Get one publish attempt
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Publish" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      summary: Delete a publish record (does not delete the YouTube video)
+      responses:
+        "204": { description: Publish record removed }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/projects/{projectId}/publishes/{publishId}/retry:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/PublishId" }
+    post:
+      summary: Re-queue a failed publish
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublishAccepted" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
 components:
   securitySchemes:
     FirebaseBearer:
@@ -1182,6 +1327,16 @@ components:
       schema: { type: string }
     AnalysisRunId:
       name: analysisRunId
+      in: path
+      required: true
+      schema: { type: string }
+    ConnectionId:
+      name: connectionId
+      in: path
+      required: true
+      schema: { type: string }
+    PublishId:
+      name: publishId
       in: path
       required: true
       schema: { type: string }
@@ -2446,3 +2601,156 @@ components:
         suggestions:
           type: array
           items: { type: string }
+
+    ConnectionPlatform:
+      type: string
+      enum: [youtube]
+
+    ConnectionStatus:
+      type: string
+      enum: [pending, connected, needs_reauth, revoked, error]
+
+    Connection:
+      type: object
+      required: [connectionId, platform, displayName, externalAccountId, status]
+      properties:
+        connectionId: { type: string }
+        platform: { $ref: "#/components/schemas/ConnectionPlatform" }
+        accountType: { type: string, default: channel }
+        displayName: { type: string }
+        externalAccountId: { type: string }
+        externalHandle: { type: [string, "null"] }
+        googleAccountEmail: { type: [string, "null"] }
+        avatarUrl: { type: [string, "null"] }
+        subscriberCount: { type: [integer, "null"] }
+        videoCount: { type: [integer, "null"] }
+        status: { $ref: "#/components/schemas/ConnectionStatus" }
+        scopes:
+          type: array
+          items: { type: string }
+        lastSyncAt: { type: [string, "null"], format: date-time }
+        lastSyncStatus: { type: [string, "null"] }
+        lastErrorCode: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ConnectionList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Connection" }
+
+    OAuthStartRequest:
+      type: object
+      properties:
+        loginHint: { type: [string, "null"], description: Email to prefill in Google's account chooser }
+        redirectPath: { type: [string, "null"], description: Same-origin web path to land on after the callback }
+
+    OAuthStartResponse:
+      type: object
+      required: [authorizationUrl, state]
+      properties:
+        authorizationUrl: { type: string }
+        state: { type: string }
+
+    PublishSourceKind:
+      type: string
+      enum: [source, captionRender, localization]
+
+    PublishVideoSource:
+      type: object
+      properties:
+        kind: { $ref: "#/components/schemas/PublishSourceKind" }
+        id: { type: [string, "null"] }
+
+    PublishCaptionFormat:
+      type: string
+      enum: [srt, vtt, none]
+
+    PublishVisibility:
+      type: string
+      enum: [private, unlisted, public]
+
+    PublishThumbnail:
+      type: object
+      required: [thumbnailId]
+      properties:
+        thumbnailId: { type: string }
+        version: { type: [integer, "null"], minimum: 1 }
+
+    PublishRequest:
+      type: object
+      required: [connectionId, title]
+      properties:
+        connectionId: { type: string }
+        video: { $ref: "#/components/schemas/PublishVideoSource" }
+        title: { type: string, minLength: 1, maxLength: 100 }
+        description: { type: string, maxLength: 5000 }
+        tags:
+          type: array
+          items: { type: string }
+        categoryId: { type: string, default: "22" }
+        privacyStatus: { $ref: "#/components/schemas/PublishVisibility" }
+        madeForKids: { type: boolean, default: false }
+        notifySubscribers: { type: boolean, default: true }
+        captionFormat: { $ref: "#/components/schemas/PublishCaptionFormat" }
+        captionLanguage: { type: string, default: en }
+        captionName: { type: string, default: English }
+        thumbnail: { $ref: "#/components/schemas/PublishThumbnail" }
+        publishAt: { type: [string, "null"], format: date-time }
+
+    PublishStatus:
+      type: string
+      enum: [queued, uploading, processing, published, failed]
+
+    Publish:
+      type: object
+      required: [publishId, projectId, connectionId, status, title, createdAt, updatedAt]
+      properties:
+        publishId: { type: string }
+        projectId: { type: string }
+        connectionId: { type: string }
+        connectionDisplayName: { type: [string, "null"] }
+        platform: { type: string, default: youtube }
+        status: { $ref: "#/components/schemas/PublishStatus" }
+        video: { $ref: "#/components/schemas/PublishVideoSource" }
+        title: { type: string }
+        description: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+        categoryId: { type: string }
+        privacyStatus: { $ref: "#/components/schemas/PublishVisibility" }
+        madeForKids: { type: boolean }
+        notifySubscribers: { type: boolean }
+        captionFormat: { $ref: "#/components/schemas/PublishCaptionFormat" }
+        captionLanguage: { type: string }
+        captionName: { type: string }
+        thumbnailId: { type: [string, "null"] }
+        thumbnailVersion: { type: [integer, "null"] }
+        youtubeVideoId: { type: [string, "null"] }
+        youtubeUrl: { type: [string, "null"] }
+        uploadProgress: { type: integer, minimum: 0, maximum: 100 }
+        steps:
+          type: array
+          items: { type: string }
+        jobId: { type: [string, "null"] }
+        error: { type: [object, "null"], additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    PublishList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Publish" }
+
+    PublishAccepted:
+      type: object
+      required: [publishId, jobId, status]
+      properties:
+        publishId: { type: string }
+        jobId: { type: string }
+        status: { type: string }

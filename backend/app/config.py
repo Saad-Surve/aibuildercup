@@ -153,6 +153,39 @@ class Settings(BaseSettings):
     # roles/iam.serviceAccountTokenCreator on it). Defaults to the Cloud Run runtime SA.
     storage_signing_service_account: str | None = None
 
+    # --- Google / YouTube connector -------------------------------------------------
+    # Where the browser lives, so the OAuth callback can bounce a user back into the app.
+    web_base_url: str = "http://localhost:3000"
+    # Public base URL of this API. Google redirects the OAuth callback here, and the value
+    # must exactly match the redirect URI registered on the OAuth client.
+    api_public_base_url: str = "http://localhost:8080"
+    # Google OAuth client (Web application type). Created in the GCP console; the secret is
+    # read from Secret Manager in production. Both may be blank locally until you create one.
+    google_oauth_client_id: str | None = None
+    google_oauth_client_secret: str | None = None
+    # Explicit override for the callback URL. Derived from `api_public_base_url` when blank.
+    google_oauth_redirect_uri: str | None = None
+    # How long an authorization state stays valid before the callback is rejected.
+    oauth_state_ttl_seconds: int = 900
+    # Scopes requested for a YouTube channel connection. `prompt=select_account` makes Google
+    # show the account chooser, so the creator can pick which Gmail to connect.
+    google_oauth_scopes: list[str] = [
+        "openid",
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtube.upload",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/yt-analytics.readonly",
+    ]
+    # Token encryption. In production the refresh/access tokens are envelope-encrypted with
+    # Cloud KMS (`user-token-key`). For local development set this to any passphrase and the
+    # tokens are encrypted with a key derived from it instead, so no KMS permission is needed.
+    oauth_token_encryption_key: str | None = None
+    kms_token_key_name: str | None = None
+    # Refuse to stage a source larger than this to the publish worker's temp dir. YouTube's
+    # own limit is 256GB, but the hackathon demo stays far below it.
+    publish_max_source_bytes: int = 8_000_000_000
+
     # Upload limits. `max_upload_size_bytes` mirrors users/{uid}.limits.maxVideoSizeBytes.
     max_upload_size_bytes: int = 524_288_000
     upload_url_ttl_seconds: int = 900

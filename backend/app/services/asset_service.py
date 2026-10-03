@@ -285,6 +285,13 @@ class AssetService:
             expiresAt=now + timedelta(seconds=ttl),
         )
 
+    def get_asset(self, *, owner_uid: str, project_id: str, asset_id: str) -> Asset:
+        """Load one owned, non-deleted asset."""
+        data = self._require_owned_asset(
+            owner_uid=owner_uid, project_id=project_id, asset_id=asset_id
+        )
+        return _to_asset(asset_id, data)
+
     def list_assets(self, *, owner_uid: str, project_id: str) -> list[Asset]:
         self.projects.get(owner_uid=owner_uid, project_id=project_id)
         rows = self.client.query_collection(

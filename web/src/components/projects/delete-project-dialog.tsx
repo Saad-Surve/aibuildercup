@@ -33,10 +33,13 @@ export function DeleteProjectDialog({
   projectId,
   projectName,
   assetIds = [],
+  destructive = false,
 }: {
   projectId: string;
   projectName: string;
   assetIds?: string[];
+  //: Render the trigger with destructive colours instead of a neutral outline.
+  destructive?: boolean;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -72,7 +75,7 @@ export function DeleteProjectDialog({
     >
       <AlertDialogTrigger
         render={
-          <Button variant="outline" size="sm">
+          <Button variant={destructive ? "destructive" : "outline"} size="sm">
             <Icon icon={Delete02Icon} />
             Delete
           </Button>

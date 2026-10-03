@@ -129,3 +129,53 @@ project. It sits under the project subtree, so the recursive project delete remo
 A term with an empty `targetLanguage` applies to every target. `PUT /projects/{id}/glossary`
 replaces the terms and bumps `version`; the global corpus (glossary + trap list) is the
 bundled `backend/app/assets/corpus/global.json`, versioned separately.
+
+## Connections and OAuth tokens
+
+`users/{uid}/connections/{connectionId}` holds one authorized external account (one YouTube
+channel under one Google account). It is backend-only: the browser never reads it directly, and
+the API never returns tokens. The document keeps display metadata, channel stats, granted
+scopes, and `tokenSecretRef` pointing at the encrypted-token document. A creator may have
+several (several Gmail accounts, or several brand channels under one account); `prompt=select_account`
+on the Google consent URL is what lets them pick which Gmail to connect from.
+
+```json
+{
+  "ownerUid": "uid",
+  "platform": "youtube",
+  "accountType": "channel",
+  "displayName": "Priya Creates",
+  "externalAccountId": "UC...",
+  "externalHandle": "@priyacreates",
+  "googleAccountEmail": "creator@gmail.com",
+  "avatarUrl": "https://...",
+  "subscriberCount": 12000,
+  "videoCount": 84,
+  "status": "connected",
+  "scopes": [".../youtube.upload"],
+  "tokenSecretRef": "users/uid/connectionSecrets/connection-id",
+  "tokenKeyVersion": "...",
+  "lastSyncAt": "timestamp",
+  "lastSyncStatus": "succeeded",
+  "lastErrorCode": null,
+  "createdAt": "timestamp",
+  "updatedAt": "timestamp"
+}
+```
+
+The encrypted token payload lives in `users/{uid}/connectionSecrets/{connectionId}` as
+`{ownerUid, connectionId, platform, ciphertext, keyVersion, updatedAt}`. Both collections sit
+under the user subtree, so account deletion removes them.
+
+`users/{uid}/oauthStates/{state}` is a single-use OAuth state record (PKCE verifier, platform,
+post-login redirect path, expiry). The callback runs without Firebase auth and finds the record
+by state via a collection-group query, then deletes it. Expired states are deleted on lookup.
+
+## Publishes
+
+`users/{uid}/projects/{projectId}/publishes/{publishId}` is one attempt to push a project to a
+connected channel. It freezes the chosen source (source video / caption render / dub), the
+resolved thumbnail version, and the caption text at create time, so a later edit cannot change
+an in-flight upload. It stores the resulting `youtubeVideoId` / `youtubeUrl` on success. The
+document lives under the project subtree, so the recursive project delete covers it; the YouTube
+video it created is **not** deleted (that is external state) and is called out here deliberately.

@@ -1,5 +1,6 @@
 import {
   ClosedCaptionIcon,
+  CloudUploadIcon,
   DashboardSquare01Icon,
   FileVideoIcon,
   ImageAdd01Icon,
@@ -13,7 +14,8 @@ export type StudioModuleId =
   | "review"
   | "captions"
   | "packaging"
-  | "localization";
+  | "localization"
+  | "publishing";
 
 export interface StudioModule {
   id: StudioModuleId;
@@ -71,6 +73,15 @@ export const STUDIO_MODULES: StudioModule[] = [
     description:
       "Translate and dub the video into your target languages with a glossary.",
     icon: Megaphone01Icon,
+    needsTranscript: true,
+    ready: true,
+  },
+  {
+    id: "publishing",
+    label: "Publish to YouTube",
+    description:
+      "Push the finished video, thumbnail, and captions to a connected channel.",
+    icon: CloudUploadIcon,
     needsTranscript: true,
     ready: true,
   },

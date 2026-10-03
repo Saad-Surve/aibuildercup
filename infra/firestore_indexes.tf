@@ -35,6 +35,33 @@ resource "google_firestore_field" "jobs_job_id" {
   depends_on = [google_firestore_database.default]
 }
 
+# The OAuth callback runs without Firebase auth and finds the single-use state record with a
+# collection-group query on `state` across every user's `oauthStates` subcollection. Like the
+# `jobs` case above, that needs a COLLECTION_GROUP exemption on `state`.
+resource "google_firestore_field" "oauth_states_state" {
+  project    = var.project_id
+  database   = "(default)"
+  collection = "oauthStates"
+  field      = "state"
+
+  index_config {
+    indexes {
+      order       = "ASCENDING"
+      query_scope = "COLLECTION"
+    }
+    indexes {
+      order       = "DESCENDING"
+      query_scope = "COLLECTION"
+    }
+    indexes {
+      order       = "ASCENDING"
+      query_scope = "COLLECTION_GROUP"
+    }
+  }
+
+  depends_on = [google_firestore_database.default]
+}
+
 resource "google_firestore_index" "projects_by_owner_updated_at" {
   project     = var.project_id
   database    = "(default)"

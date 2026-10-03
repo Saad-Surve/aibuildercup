@@ -44,9 +44,8 @@ function availability(
 }
 
 /**
- * The studio landing as a bento: the transcript is the wide hero (it powers the
- * rest), and the other modules tile beneath it. One grid, one gap, so nothing
- * drifts.
+ * The studio landing as a 2-column bento: six equal tiles, six modules, three
+ * rows. One grid, one gap, so nothing drifts.
  *
  * Cards are real `<a href>`s but left clicks are intercepted and swapped in
  * place with `history.pushState` (see `ModuleNav`), so opening a module never
@@ -63,24 +62,9 @@ export function ModuleGrid({
   hasTranscript: boolean;
   onSelect: (moduleId: StudioModuleId) => void;
 }) {
-  const transcriptModule = STUDIO_MODULES.find(
-    (module) => module.id === "transcript",
-  );
-  const rest = STUDIO_MODULES.filter((module) => module.id !== "transcript");
-
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      {transcriptModule ? (
-        <ModuleCard
-          module={transcriptModule}
-          projectId={projectId}
-          availability={availability(transcriptModule, hasVideo, hasTranscript)}
-          onSelect={onSelect}
-          featured
-          className="sm:col-span-2"
-        />
-      ) : null}
-      {rest.map((module) => (
+      {STUDIO_MODULES.map((module) => (
         <ModuleCard
           key={module.id}
           module={module}
@@ -98,21 +82,17 @@ function ModuleCard({
   projectId,
   availability: state,
   onSelect,
-  featured = false,
-  className,
 }: {
   module: StudioModule;
   projectId: string;
   availability: Availability;
   onSelect: (moduleId: StudioModuleId) => void;
-  featured?: boolean;
-  className?: string;
 }) {
   return (
     <a
       href={studioModuleHref(projectId, module.id)}
       aria-label={`Open ${module.label}`}
-      className={cn("group block", className)}
+      className="group block"
       onMouseEnter={() => prefetchStudioModule(module.id)}
       onFocus={() => prefetchStudioModule(module.id)}
       onClick={(event) => {
@@ -130,34 +110,14 @@ function ModuleCard({
         onSelect(module.id);
       }}
     >
-      <Card
-        className={cn(
-          "h-full gap-2 py-(--card-spacing) transition-shadow group-hover:shadow-md group-hover:ring-foreground/20",
-          featured && "bg-muted/30",
-        )}
-      >
-        <div className="flex items-start gap-3 px-(--card-spacing)">
-          <span
-            className={cn(
-              "mt-0.5 flex shrink-0 items-center justify-center rounded-lg bg-muted text-foreground",
-              featured ? "size-11" : "size-9",
-            )}
-          >
-            <Icon
-              icon={module.icon}
-              className={featured ? "size-6" : "size-5"}
-            />
-          </span>
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex items-center justify-between gap-2">
-              <span
-                className={cn(
-                  "font-heading font-medium",
-                  featured && "text-base",
-                )}
-              >
-                {module.label}
-              </span>
+      <Card className="h-full gap-2 py-(--card-spacing) transition-shadow group-hover:shadow-md group-hover:ring-foreground/20">
+        <div className="flex flex-col gap-2 px-(--card-spacing)">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
+              <Icon icon={module.icon} className="size-5" />
+            </span>
+            <div className="flex min-w-0 flex-1 items-start justify-between gap-2 pt-0.5">
+              <span className="font-heading font-medium">{module.label}</span>
               <Badge
                 variant="outline"
                 className={cn("shrink-0", AVAILABILITY_STYLE[state])}
@@ -165,14 +125,12 @@ function ModuleCard({
                 {AVAILABILITY_LABEL[state]}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {module.description}
-            </p>
-            <span className="inline-flex items-center gap-1 pt-1 text-xs text-signal opacity-0 transition-opacity group-hover:opacity-100">
-              Open
-              <Icon icon={ArrowRight01Icon} className="size-3.5" />
-            </span>
           </div>
+          <p className="text-sm text-muted-foreground">{module.description}</p>
+          <span className="inline-flex items-center gap-1 pt-1 text-xs text-signal opacity-0 transition-opacity group-hover:opacity-100">
+            Open
+            <Icon icon={ArrowRight01Icon} className="size-3.5" />
+          </span>
         </div>
       </Card>
     </a>

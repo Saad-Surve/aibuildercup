@@ -99,6 +99,49 @@ def draft_path(uid: str, project_id: str) -> str:
     return f"{project_path(uid, project_id)}/draft/main"
 
 
+def connections_collection_path(uid: str) -> str:
+    """One connected external account (a YouTube channel) per document."""
+    return f"{user_path(uid)}/connections"
+
+
+def connection_path(uid: str, connection_id: str) -> str:
+    return (
+        f"{connections_collection_path(uid)}/"
+        f"{safe_segment(connection_id, name='connectionId')}"
+    )
+
+
+def connection_secret_path(uid: str, connection_id: str) -> str:
+    """Encrypted OAuth tokens. Backend-only; referenced by the connection document."""
+    return (
+        f"{user_path(uid)}/connectionSecrets/"
+        f"{safe_segment(connection_id, name='connectionId')}"
+    )
+
+
+def oauth_states_collection_path(uid: str) -> str:
+    return f"{user_path(uid)}/oauthStates"
+
+
+def oauth_state_path(uid: str, state: str) -> str:
+    return (
+        f"{oauth_states_collection_path(uid)}/"
+        f"{safe_segment(state, name='state')}"
+    )
+
+
+def publishes_collection_path(uid: str, project_id: str) -> str:
+    """One document per attempt to publish a project to a connected platform."""
+    return f"{project_path(uid, project_id)}/publishes"
+
+
+def publish_path(uid: str, project_id: str, publish_id: str) -> str:
+    return (
+        f"{publishes_collection_path(uid, project_id)}/"
+        f"{safe_segment(publish_id, name='publishId')}"
+    )
+
+
 def transcripts_collection_path(uid: str, project_id: str) -> str:
     return f"{project_path(uid, project_id)}/transcripts"
 

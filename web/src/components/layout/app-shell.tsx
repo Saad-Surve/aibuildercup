@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -8,7 +8,6 @@ import {
   Analytics01Icon,
   DashboardSquare01Icon,
   FolderOpenIcon,
-  Plug01Icon,
   Settings01Icon,
   SidebarLeft01Icon,
   SidebarRight01Icon,
@@ -18,6 +17,7 @@ import type { IconSvgElement } from "@hugeicons/react";
 import { Icon } from "@/components/common/icon";
 import { Logo, LogoMark } from "@/components/common/logo";
 import { UserMenu } from "@/components/layout/user-menu";
+import { HeaderNavProvider } from "@/lib/header-nav";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -41,13 +41,7 @@ const NAV: NavItem[] = [
     icon: Analytics01Icon,
     ready: false,
   },
-  {
-    href: "/connections",
-    label: "Connections",
-    icon: Plug01Icon,
-    ready: false,
-  },
-  { href: "/settings", label: "Settings", icon: Settings01Icon, ready: false },
+  { href: "/settings", label: "Settings", icon: Settings01Icon, ready: true },
 ];
 
 const COLLAPSE_KEY = "hc-sidebar-collapsed";
@@ -177,6 +171,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const readyItems = NAV.filter((item) => item.ready);
   const [collapsed, setCollapsed] = useSidebarCollapsed();
+  // A page can put its own navigation in the sticky header (see `useSetHeaderNav`).
+  const [headerNav, setHeaderNavState] = useState<ReactNode>(null);
+  const setHeaderNav = useCallback((node: ReactNode) => {
+    setHeaderNavState(node);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.add("no-scrollbar");
@@ -188,112 +187,118 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-[100dvh]">
-      <motion.aside
-        initial={false}
-        animate={{ width: collapsed ? 64 : 240 }}
-        transition={{ type: "tween", ...RAIL_TWEEN }}
-        className="app-sidebar-rail sticky top-0 hidden h-[100dvh] shrink-0 flex-col overflow-hidden border-r border-transparent shadow-[inset_-1px_0_0_0_var(--color-border)] md:flex"
-      >
-        <div className="relative flex h-14 shrink-0 items-center px-6">
-          <motion.div
-            initial={false}
-            animate={{
-              opacity: collapsed ? 0 : 1,
-              x: collapsed ? LOGO_GLIDE_X : 0,
-            }}
-            transition={RAIL_TWEEN}
-            aria-hidden={collapsed}
-            inert={collapsed}
-            className={cn(
-              "flex items-center",
-              collapsed && "pointer-events-none",
-            )}
-          >
-            <Logo href="/dashboard" showSubtitle={false} />
-          </motion.div>
-          <motion.div
-            initial={false}
-            animate={{ opacity: collapsed ? 1 : 0 }}
-            transition={RAIL_TWEEN}
-            aria-hidden={!collapsed}
-            inert={!collapsed}
-            className={cn(
-              "absolute inset-y-0 left-0 flex w-16 items-center justify-center",
-              !collapsed && "pointer-events-none",
-            )}
-          >
-            <Link
-              href="/dashboard"
-              aria-label="Go to dashboard"
-              tabIndex={collapsed ? 0 : -1}
-              className="inline-flex items-center rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+    <HeaderNavProvider setNav={setHeaderNav}>
+      <div className="flex min-h-[100dvh]">
+        <motion.aside
+          initial={false}
+          animate={{ width: collapsed ? 64 : 240 }}
+          transition={{ type: "tween", ...RAIL_TWEEN }}
+          className="app-sidebar-rail sticky top-0 hidden h-[100dvh] shrink-0 flex-col overflow-hidden border-r border-transparent shadow-[inset_-1px_0_0_0_var(--color-border)] md:flex"
+        >
+          <div className="relative flex h-14 shrink-0 items-center px-6">
+            <motion.div
+              initial={false}
+              animate={{
+                opacity: collapsed ? 0 : 1,
+                x: collapsed ? LOGO_GLIDE_X : 0,
+              }}
+              transition={RAIL_TWEEN}
+              aria-hidden={collapsed}
+              inert={collapsed}
+              className={cn(
+                "flex items-center",
+                collapsed && "pointer-events-none",
+              )}
             >
-              <LogoMark />
-            </Link>
-          </motion.div>
-        </div>
-        <nav className="flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto px-3 py-2">
-          {NAV.map((item) => (
-            <NavLink
-              key={item.href}
-              item={item}
-              active={isActive(pathname, item.href)}
-              collapsed={collapsed}
-            />
-          ))}
-        </nav>
-        <div className="p-3">
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            aria-expanded={!collapsed}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="flex h-9 w-full items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-          >
-            <Icon icon={collapsed ? SidebarRight01Icon : SidebarLeft01Icon} />
-            <NavLabel collapsed={collapsed}>Collapse</NavLabel>
-          </button>
-        </div>
-      </motion.aside>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-transparent bg-background/80 px-4 shadow-[inset_0_-1px_0_0_var(--color-border)] backdrop-blur md:px-6">
-          <div className="md:hidden">
-            <Logo compact href="/dashboard" />
-          </div>
-          <div className="hidden md:block" />
-          <UserMenu />
-        </header>
-
-        <nav className="flex gap-1 overflow-x-auto border-b border-transparent px-3 py-2 shadow-[inset_0_-1px_0_0_var(--color-border)] md:hidden">
-          {readyItems.map((item) => {
-            const active = isActive(pathname, item.href);
-            return (
+              <Logo href="/dashboard" showSubtitle={false} />
+            </motion.div>
+            <motion.div
+              initial={false}
+              animate={{ opacity: collapsed ? 1 : 0 }}
+              transition={RAIL_TWEEN}
+              aria-hidden={!collapsed}
+              inert={!collapsed}
+              className={cn(
+                "absolute inset-y-0 left-0 flex w-16 items-center justify-center",
+                !collapsed && "pointer-events-none",
+              )}
+            >
               <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-sm",
-                  active
-                    ? "bg-signal/10 font-medium text-foreground"
-                    : "text-muted-foreground",
-                )}
+                href="/dashboard"
+                aria-label="Go to dashboard"
+                tabIndex={collapsed ? 0 : -1}
+                className="inline-flex items-center rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               >
-                <Icon
-                  icon={item.icon}
-                  className={cn(active && "text-signal")}
-                />
-                {item.label}
+                <LogoMark />
               </Link>
-            );
-          })}
-        </nav>
+            </motion.div>
+          </div>
+          <nav className="flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto px-3 py-2">
+            {NAV.map((item) => (
+              <NavLink
+                key={item.href}
+                item={item}
+                active={isActive(pathname, item.href)}
+                collapsed={collapsed}
+              />
+            ))}
+          </nav>
+          <div className="p-3">
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              aria-expanded={!collapsed}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="flex h-9 w-full items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              <Icon icon={collapsed ? SidebarRight01Icon : SidebarLeft01Icon} />
+              <NavLabel collapsed={collapsed}>Collapse</NavLabel>
+            </button>
+          </div>
+        </motion.aside>
 
-        <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-transparent bg-background/80 px-4 shadow-[inset_0_-1px_0_0_var(--color-border)] backdrop-blur md:px-6">
+            <div className="md:hidden">
+              <Logo compact href="/dashboard" />
+            </div>
+            <div className="no-scrollbar flex min-w-0 flex-1 items-center justify-center overflow-x-auto py-1">
+              {headerNav}
+            </div>
+            <UserMenu />
+          </header>
+
+          <nav className="flex gap-1 overflow-x-auto border-b border-transparent px-3 py-2 shadow-[inset_0_-1px_0_0_var(--color-border)] md:hidden">
+            {readyItems.map((item) => {
+              const active = isActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-sm",
+                    active
+                      ? "bg-signal/10 font-medium text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  <Icon
+                    icon={item.icon}
+                    className={cn(active && "text-signal")}
+                  />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </HeaderNavProvider>
   );
 }
