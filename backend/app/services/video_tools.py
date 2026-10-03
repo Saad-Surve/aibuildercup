@@ -20,6 +20,8 @@ import asyncio
 import logging
 import shutil
 import subprocess
+import threading
+from collections.abc import Callable
 from typing import Any, Final, Protocol, runtime_checkable
 
 from app.providers.base import MediaPart, ToolSpec
@@ -218,6 +220,83 @@ def run_ffmpeg_command(args: list[str], *, timeout_seconds: int) -> None:
         raise VideoToolError(tail)
 
 
+def run_ffmpeg_with_progress(
+    args: list[str],
+    *,
+    timeout_seconds: int,
+    duration_seconds: float,
+    on_progress: Callable[[float], None],
+) -> None:
+    """Run FFmpeg and report encode progress as a fraction in `[0, 1]`.
+
+    FFmpeg is asked for machine-readable progress on stdout (`-progress pipe:1`,
+    `-nostats`), one `key=value` line per update. `on_progress` is invoked with
+    `out_time / duration_seconds`, clamped, and once more with `1.0` when the
+    encode finishes. `on_progress` runs on the calling (worker) thread.
+
+    stderr is drained on a daemon thread so a chatty encoder cannot fill the pipe
+    and stall, and a watchdog kills the process if it exceeds `timeout_seconds`
+    (`subprocess.run`'s timeout is not available on the streaming path).
+    """
+    process = subprocess.Popen(
+        [args[0], "-progress", "pipe:1", "-nostats", *args[1:]],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1,
+    )
+    timed_out = threading.Event()
+
+    def _kill_on_timeout() -> None:
+        timed_out.set()
+        process.kill()
+
+    watchdog = threading.Timer(max(1, int(timeout_seconds)), _kill_on_timeout)
+    watchdog.daemon = True
+    watchdog.start()
+
+    stderr_tail: list[str] = []
+
+    def _drain_stderr() -> None:
+        if process.stderr is None:
+            return
+        for line in process.stderr:
+            text = line.rstrip()
+            if text:
+                stderr_tail.append(text)
+                del stderr_tail[:-3]
+
+    reader = threading.Thread(target=_drain_stderr, daemon=True)
+    reader.start()
+
+    try:
+        if process.stdout is not None:
+            for line in process.stdout:
+                key, separator, value = line.strip().partition("=")
+                if not separator:
+                    continue
+                if key in {"out_time_us", "out_time_ms"} and duration_seconds > 0:
+                    # FFmpeg reports both keys in microseconds (`out_time_ms` is a
+                    # historical misnomer); divide to get seconds of encoded output.
+                    try:
+                        encoded_seconds = int(value) / 1_000_000
+                    except ValueError:
+                        continue
+                    on_progress(min(1.0, max(0.0, encoded_seconds / duration_seconds)))
+                elif key == "progress" and value == "end":
+                    on_progress(1.0)
+        process.wait()
+    finally:
+        watchdog.cancel()
+        reader.join(timeout=1)
+
+    if timed_out.is_set():
+        raise VideoToolError(f"ffmpeg timed out after {timeout_seconds}s")
+    if process.returncode != 0:
+        tail = " | ".join(stderr_tail) if stderr_tail else "ffmpeg failed"
+        raise VideoToolError(tail)
+
+
 def probe_video_size(
     source: str, *, ffprobe_path: str = "ffprobe", timeout_seconds: int = 30
 ) -> tuple[int, int] | None:
@@ -409,4 +488,5 @@ __all__ = [
     "review_tool_specs",
     "run_ffmpeg",
     "run_ffmpeg_command",
+    "run_ffmpeg_with_progress",
 ]

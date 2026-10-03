@@ -331,6 +331,8 @@ export function CaptionBurnPanel({
         ? false
         : 2000;
     },
+    // Keep the render progress moving even if the tab loses focus mid-encode.
+    refetchIntervalInBackground: true,
     retry: false,
   });
 

@@ -15,6 +15,8 @@ import logging
 import os
 import shutil
 import tempfile
+import time
+from collections.abc import Callable
 from typing import Any
 
 from app.config import Settings, get_settings
@@ -37,7 +39,7 @@ from app.services.video_tools import (
     ffmpeg_available,
     probe_duration_ms,
     probe_video_size,
-    run_ffmpeg_command,
+    run_ffmpeg_with_progress,
 )
 
 logger = logging.getLogger(__name__)
@@ -50,6 +52,14 @@ TERMINAL_STATUSES = frozenset(
 _ENCODE_TIMEOUT_MIN_SECONDS = 300
 _ENCODE_TIMEOUT_MAX_SECONDS = 3600
 _SOURCE_URL_TTL_SECONDS = 3600
+
+#: Encode progress is mapped into this slice of the job's percent, so the UI moves
+#: through the FFmpeg pass instead of sitting on one value for the whole encode.
+_ENCODE_PERCENT_START = 35
+_ENCODE_PERCENT_END = 85
+#: Minimum gap between persisted progress writes; FFmpeg reports far more often than
+#: the UI or Firestore needs.
+_PROGRESS_MIN_INTERVAL_SECONDS = 1.5
 
 
 def _filter_value(value: str) -> str:
@@ -66,6 +76,45 @@ def _encode_timeout(duration_ms: int) -> int:
             min(_ENCODE_TIMEOUT_MAX_SECONDS, seconds * 4),
         )
     )
+
+
+def _encode_progress_reporter(
+    jobs: JobService,
+    *,
+    owner_uid: str,
+    project_id: str,
+    job_id: str,
+) -> Callable[[float], None]:
+    """Build an FFmpeg `on_progress` hook that advances the job through the encode.
+
+    The callback runs on the FFmpeg reader thread, so it must never raise into the
+    encoder; a failed progress write is logged and ignored. Writes are throttled by
+    percent step and a minimum interval to keep Firestore traffic sane.
+    """
+    span = max(1, _ENCODE_PERCENT_END - _ENCODE_PERCENT_START)
+    state = {"percent": _ENCODE_PERCENT_START, "at": 0.0}
+
+    def report(fraction: float) -> None:
+        clamped = min(1.0, max(0.0, fraction))
+        percent = _ENCODE_PERCENT_START + int(round(clamped * span))
+        now = time.monotonic()
+        if percent <= state["percent"] or now - state["at"] < _PROGRESS_MIN_INTERVAL_SECONDS:
+            return
+        state["percent"] = percent
+        state["at"] = now
+        try:
+            jobs.update_progress(
+                owner_uid=owner_uid,
+                project_id=project_id,
+                job_id=job_id,
+                percent=percent,
+                step="rendering",
+                message="Burning captions onto the video",
+            )
+        except Exception:  # noqa: BLE001 - progress must never fail the render
+            logger.warning("caption render: progress update failed", exc_info=True)
+
+    return report
 
 
 def _ffmpeg_command(
@@ -311,7 +360,7 @@ async def _render(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            percent=35,
+            percent=_ENCODE_PERCENT_START,
             step="rendering",
             message="Burning captions onto the video",
         )
@@ -322,7 +371,16 @@ async def _render(
             out_path=out_path,
         )
         await asyncio.to_thread(
-            run_ffmpeg_command, args, timeout_seconds=_encode_timeout(duration_ms)
+            run_ffmpeg_with_progress,
+            args,
+            timeout_seconds=_encode_timeout(duration_ms),
+            duration_seconds=max(0.0, duration_ms / 1000),
+            on_progress=_encode_progress_reporter(
+                jobs,
+                owner_uid=owner_uid,
+                project_id=project_id,
+                job_id=job_id,
+            ),
         )
         if not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
             raise VideoToolError("ffmpeg produced an empty video.")
@@ -331,7 +389,7 @@ async def _render(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            percent=85,
+            percent=_ENCODE_PERCENT_END,
             step="uploading",
             message="Saving the captioned video",
         )
