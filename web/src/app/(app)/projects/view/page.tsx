@@ -9,6 +9,7 @@ import { Icon } from "@/components/common/icon";
 import { PageHeader } from "@/components/common/page-header";
 import { ProjectWorkspace } from "@/components/projects/project-workspace";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isStudioModuleId, studioModuleFromPath } from "@/lib/studio";
 
 /**
  * Path-based project routing.
@@ -30,7 +31,10 @@ function WorkspaceRoute() {
     /^\/projects\/view\/project\/([^/]+)(?:\/([^/]+))?/,
   );
   const projectId = match?.[1] ?? searchParams.get("projectId");
-  const moduleId = match?.[2] ?? searchParams.get("module") ?? "overview";
+  const rawModule = searchParams.get("module");
+  const moduleId =
+    studioModuleFromPath(pathname) ??
+    (isStudioModuleId(rawModule) ? rawModule : "overview");
 
   if (!projectId) {
     return (

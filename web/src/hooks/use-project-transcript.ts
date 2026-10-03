@@ -34,9 +34,11 @@ export const TRANSCRIPT_POLL_MS = 10_000;
  *    entirely when the window is unfocused unless `refetchIntervalInBackground`
  *    is set. Transcription outlasts a tab switch, so the fallback must survive
  *    one.
- *  - **`staleTime: 0`.** The app-wide default is 30s, which would let focus and
- *    remount refetches decide a missing transcript is still "fresh". It is not:
- *    until there is data there is nothing to be stale.
+ *  - **Fresh once it exists.** A query with no data is always stale, so the
+ *    first fetch and any refetch while the transcript is missing are unaffected.
+ *    Once the transcript exists it is stable for a minute, which stops each pane
+ *    remount (tab switch) from re-downloading it for no reason. Edits, version
+ *    changes and realtime events still invalidate it explicitly.
  *
  * Both the transcript panel and the review panel consume this hook. They used to
  * declare the query separately with different options, and the two observers
@@ -53,8 +55,8 @@ export function useProjectTranscript(
     queryKey: ["transcript", projectId, version ?? "active"],
     queryFn: () => getTranscript(projectId, version),
     retry: false,
-    staleTime: 0,
-    refetchOnMount: "always",
+    staleTime: (query) => (query.state.data ? 60_000 : 0),
+    refetchOnMount: true,
     refetchOnWindowFocus: true,
     refetchIntervalInBackground: true,
     // Only the active transcript polls; a pinned older version is static.

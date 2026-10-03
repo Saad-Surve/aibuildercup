@@ -52,6 +52,7 @@ import {
   pickSourceAsset,
   updateTranscript,
 } from "@/lib/projects";
+import { workspaceHref } from "@/lib/studio";
 import type { TranscriptSegment } from "@/lib/types";
 
 function describe(error: unknown): string {
@@ -410,7 +411,7 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
 
   const backLink = (
     <Link
-      href={`/projects/view/project/${projectId}`}
+      href={workspaceHref(projectId)}
       className="shrink-0 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
     >
       <Icon icon={ArrowLeft01Icon} />

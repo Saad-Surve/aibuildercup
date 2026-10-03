@@ -9,20 +9,16 @@ import { Icon } from "@/components/common/icon";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { ProcessingStatusCard } from "@/components/projects/processing-status-card";
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge";
-import { ReviewPanel } from "@/components/projects/review-panel";
 import { SourceVideoPlayer } from "@/components/projects/source-video-player";
-import { TranscriptPanel } from "@/components/projects/transcript-panel";
 import { VideoDropzone } from "@/components/projects/video-dropzone";
 import {
   NewRevisionButton,
   VideoRevisions,
 } from "@/components/projects/video-revisions";
 import { CaptionPreviewProvider } from "@/components/projects/studio/caption-preview";
-import { CaptionsModule } from "@/components/projects/studio/captions-module";
-import { LocalizationModule } from "@/components/projects/studio/localization-module";
 import { ModuleGrid } from "@/components/projects/studio/module-grid";
 import { ModuleNav } from "@/components/projects/studio/module-nav";
-import { PackagingModule } from "@/components/projects/studio/packaging-module";
+import { STUDIO_MODULE_COMPONENTS } from "@/components/projects/studio/module-registry";
 import { TranscriptGate } from "@/components/projects/studio/transcript-gate";
 import {
   Card,
@@ -48,15 +44,6 @@ import {
   WORKSPACE_PANE_STACK_SPACER,
 } from "@/lib/workspace";
 
-const MODULE_IDS = new Set<StudioModuleId>([
-  "overview",
-  "transcript",
-  "review",
-  "captions",
-  "packaging",
-  "localization",
-]);
-
 /**
  * The video studio: the source video stays pinned on the left while the right
  * pane swaps between the overview grid and a focused module. Reachable modules
@@ -66,23 +53,27 @@ const MODULE_IDS = new Set<StudioModuleId>([
  */
 export function VideoStudio({
   project,
-  moduleId,
+  activeModule,
+  onModuleSelect,
   connected,
   job,
   onJobId,
 }: {
   project: Project;
-  moduleId: string;
+  activeModule: StudioModuleId;
+  onModuleSelect: (moduleId: StudioModuleId) => void;
   connected: boolean;
   job: Job | null;
   onJobId: (jobId: string) => void;
 }) {
   const projectId = project.projectId;
-  const activeModule: StudioModuleId = MODULE_IDS.has(
-    moduleId as StudioModuleId,
-  )
-    ? (moduleId as StudioModuleId)
-    : "overview";
+  const {
+    transcript: TranscriptPanel,
+    review: ReviewPanel,
+    captions: CaptionsModule,
+    packaging: PackagingModule,
+    localization: LocalizationModule,
+  } = STUDIO_MODULE_COMPONENTS;
 
   const queryClient = useQueryClient();
   const [durationMs, setDurationMs] = useState<number | null>(null);
@@ -228,6 +219,7 @@ export function VideoStudio({
           projectId={projectId}
           hasVideo={Boolean(effectiveSource)}
           hasTranscript={hasTranscript}
+          onSelect={onModuleSelect}
         />
       );
     }
@@ -399,7 +391,11 @@ export function VideoStudio({
 
           <div className="space-y-6">
             {activeModule !== "overview" ? (
-              <ModuleNav projectId={projectId} active={activeModule} />
+              <ModuleNav
+                projectId={projectId}
+                active={activeModule}
+                onSelect={onModuleSelect}
+              />
             ) : null}
             <div className="space-y-6 lg:snap-start lg:snap-always lg:scroll-mt-20">
               {renderModule()}

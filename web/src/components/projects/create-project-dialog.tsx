@@ -41,6 +41,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api-client";
 import { DRAFT_FORMAT_OPTIONS } from "@/lib/drafts";
 import { createProject } from "@/lib/projects";
+import { workspaceHref } from "@/lib/studio";
 import {
   LANGUAGE_OPTIONS,
   PLATFORM_OPTIONS,
@@ -105,7 +106,7 @@ export function CreateProjectDialog() {
         project.kind === "draft" ? "Draft project created" : "Project created",
       );
       setOpen(false);
-      router.push(`/projects/view/project/${project.projectId}`);
+      router.push(workspaceHref(project.projectId));
     },
     onError: (caught) => setError(describe(caught)),
   });

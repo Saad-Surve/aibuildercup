@@ -17,6 +17,7 @@ import {
   listAssets,
   pickSourceAsset,
 } from "@/lib/projects";
+import { workspaceHref } from "@/lib/studio";
 import type { Project } from "@/lib/types";
 
 /*
@@ -156,7 +157,7 @@ export function ProjectCard({ project }: { project: Project }) {
 
   return (
     <Link
-      href={`/projects/view/project/${project.projectId}`}
+      href={workspaceHref(project.projectId)}
       className="group block rounded-lg focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <Card className="h-full transition-shadow group-hover:shadow-md group-hover:ring-foreground/20">

@@ -13,6 +13,7 @@ import { ProjectStatusBadge } from "@/components/projects/project-status-badge";
 import { VideoStudio } from "@/components/projects/video-studio";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProjectEvents } from "@/hooks/use-project-events";
+import { useStudioModule } from "@/hooks/use-studio-module";
 import { getJob, getProject } from "@/lib/projects";
 import type { Job } from "@/lib/types";
 
@@ -29,6 +30,14 @@ export function ProjectWorkspace({
   moduleId: string;
 }) {
   const [jobId, setJobId] = useState<string | null>(null);
+
+  // The active module lives in state and is mirrored into the URL with
+  // `history.pushState`, so switching tabs never reloads or refetches the
+  // workspace. `moduleId` is only the initial/back-forward value.
+  const { activeModule, navigate: navigateModule } = useStudioModule(
+    projectId,
+    moduleId,
+  );
 
   // One realtime socket drives the whole workspace. `connected` gates the slow
   // polling fallback used only if the socket cannot be established.
@@ -148,7 +157,8 @@ export function ProjectWorkspace({
       ) : (
         <VideoStudio
           project={project}
-          moduleId={moduleId}
+          activeModule={activeModule}
+          onModuleSelect={navigateModule}
           connected={connected}
           job={jobQuery.data ?? null}
           onJobId={setJobId}

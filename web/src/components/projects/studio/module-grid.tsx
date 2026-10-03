@@ -1,12 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
+import { prefetchStudioModule } from "@/components/projects/studio/module-registry";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { STUDIO_MODULES, type StudioModule } from "@/lib/studio";
+import {
+  STUDIO_MODULES,
+  type StudioModule,
+  type StudioModuleId,
+  studioModuleHref,
+} from "@/lib/studio";
 import { cn } from "@/lib/utils";
 
 type Availability = "ready" | "needs-video" | "needs-transcript" | "soon";
@@ -38,23 +43,25 @@ function availability(
   return "ready";
 }
 
-function href(projectId: string, moduleId: string) {
-  return `/projects/view/project/${projectId}/${moduleId}`;
-}
-
 /**
  * The studio landing as a bento: the transcript is the wide hero (it powers the
  * rest), and the other modules tile beneath it. One grid, one gap, so nothing
  * drifts.
+ *
+ * Cards are real `<a href>`s but left clicks are intercepted and swapped in
+ * place with `history.pushState` (see `ModuleNav`), so opening a module never
+ * reloads the workspace.
  */
 export function ModuleGrid({
   projectId,
   hasVideo,
   hasTranscript,
+  onSelect,
 }: {
   projectId: string;
   hasVideo: boolean;
   hasTranscript: boolean;
+  onSelect: (moduleId: StudioModuleId) => void;
 }) {
   const transcriptModule = STUDIO_MODULES.find(
     (module) => module.id === "transcript",
@@ -66,8 +73,9 @@ export function ModuleGrid({
       {transcriptModule ? (
         <ModuleCard
           module={transcriptModule}
+          projectId={projectId}
           availability={availability(transcriptModule, hasVideo, hasTranscript)}
-          href={href(projectId, transcriptModule.id)}
+          onSelect={onSelect}
           featured
           className="sm:col-span-2"
         />
@@ -76,8 +84,9 @@ export function ModuleGrid({
         <ModuleCard
           key={module.id}
           module={module}
+          projectId={projectId}
           availability={availability(module, hasVideo, hasTranscript)}
-          href={href(projectId, module.id)}
+          onSelect={onSelect}
         />
       ))}
     </div>
@@ -86,19 +95,41 @@ export function ModuleGrid({
 
 function ModuleCard({
   module,
+  projectId,
   availability: state,
-  href: target,
+  onSelect,
   featured = false,
   className,
 }: {
   module: StudioModule;
+  projectId: string;
   availability: Availability;
-  href: string;
+  onSelect: (moduleId: StudioModuleId) => void;
   featured?: boolean;
   className?: string;
 }) {
   return (
-    <Link href={target} className={cn("group block", className)}>
+    <a
+      href={studioModuleHref(projectId, module.id)}
+      aria-label={`Open ${module.label}`}
+      className={cn("group block", className)}
+      onMouseEnter={() => prefetchStudioModule(module.id)}
+      onFocus={() => prefetchStudioModule(module.id)}
+      onClick={(event) => {
+        if (event.defaultPrevented) return;
+        if (
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        ) {
+          return;
+        }
+        event.preventDefault();
+        onSelect(module.id);
+      }}
+    >
       <Card
         className={cn(
           "h-full gap-2 py-(--card-spacing) transition-shadow group-hover:shadow-md group-hover:ring-foreground/20",
@@ -144,6 +175,6 @@ function ModuleCard({
           </div>
         </div>
       </Card>
-    </Link>
+    </a>
   );
 }
