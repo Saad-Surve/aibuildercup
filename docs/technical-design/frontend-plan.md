@@ -256,8 +256,10 @@ id/module from the path; the module tab strip is hidden on the overview. Modules
 a transcript (review, captions, localization) render a `Marker`-based prerequisite rail
 with the inline **Generate transcript** action instead of being hidden. Burn Captions owns
 its own module (the export menu no longer offers it) and drives a live caption overlay on
-the source video through a small preview context. Packaging and Localization are placeholder
-modules with realistic hardcoded previews.
+the source video through a small preview context. Packaging is a placeholder module with
+realistic hardcoded previews; Localization is implemented — a project glossary editor, the
+dubbing pipeline (translation → Gemini adaptation → Text-to-Speech → mux), localized SRT
+download, and the corpus/glossary versions each dub was built with.
 
 The draft studio treats the React Query cache as the document: edits write optimistically
 and a debounced save persists them. Each block keeps an immutable `versions[]` list, so an

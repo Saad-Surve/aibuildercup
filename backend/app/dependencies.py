@@ -14,7 +14,9 @@ from app.services.asset_service import AssetService
 from app.services.caption_service import CaptionRenderService
 from app.services.draft_service import DraftService
 from app.services.firestore_service import get_firestore_client
+from app.services.glossary_service import GlossaryService
 from app.services.job_service import JobService
+from app.services.localization_service import LocalizationService
 from app.services.persona_service import PersonaService
 from app.services.project_service import ProjectService
 from app.services.pubsub_service import PubSubClient, get_pubsub_client
@@ -24,6 +26,7 @@ from app.services.transcript_service import TranscriptService
 from app.services.user_service import UserService
 from app.workers.analysis_worker import analysis_after_response
 from app.workers.caption_worker import caption_render_after_response
+from app.workers.dub_worker import dub_after_response
 from app.workers.thumbnail_worker import thumbnail_after_response
 from app.workers.transcribe_worker import transcribe_after_response
 
@@ -125,6 +128,38 @@ CaptionScheduler = Callable[..., None]
 
 def get_caption_scheduler() -> CaptionScheduler:
     return caption_render_after_response
+
+
+def get_localization_service() -> LocalizationService:
+    client = get_firestore_client()
+    storage = get_storage_client()
+    projects = ProjectService(client, storage=storage)
+    transcripts = TranscriptService(client, storage=storage)
+    return LocalizationService(
+        client,
+        projects=projects,
+        jobs=JobService(client),
+        transcripts=transcripts,
+        glossaries=get_glossary_service(),
+        storage=storage,
+        url_ttl_seconds=get_settings().upload_url_ttl_seconds,
+    )
+
+
+def get_glossary_service() -> GlossaryService:
+    client = get_firestore_client()
+    return GlossaryService(
+        client, projects=ProjectService(client, storage=get_storage_client())
+    )
+
+
+# (background_tasks, *, owner_uid, project_id, job_id) -> None. Injected so tests can
+# record scheduling without running the worker.
+DubScheduler = Callable[..., None]
+
+
+def get_dub_scheduler() -> DubScheduler:
+    return dub_after_response
 
 
 # (background_tasks, *, owner_uid, project_id, job_id) -> None. Injected so tests can

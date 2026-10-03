@@ -4,6 +4,8 @@ from app.config import Settings, get_settings
 from app.providers.imagegen import ImageGenProvider
 from app.providers.llm import LlmProvider
 from app.providers.stt import SttProvider
+from app.providers.translate import TranslateProvider
+from app.providers.tts import TtsProvider
 
 
 class Providers:
@@ -12,6 +14,8 @@ class Providers:
         self.llm = LlmProvider(settings)
         self.images = ImageGenProvider(settings)
         self.stt = SttProvider(settings)
+        self.tts = TtsProvider(settings)
+        self.translate = TranslateProvider(settings)
 
 
 def build_providers(settings: Settings) -> Providers:

@@ -202,6 +202,33 @@ def thumbnail_reference_object_path(
     )
 
 
+def localizations_collection_path(uid: str, project_id: str) -> str:
+    return f"{project_path(uid, project_id)}/localizations"
+
+
+def localization_path(uid: str, project_id: str, localization_id: str) -> str:
+    return (
+        f"{localizations_collection_path(uid, project_id)}/"
+        f"{safe_segment(localization_id, name='localizationId')}"
+    )
+
+
+def glossary_path(uid: str, project_id: str) -> str:
+    """The single versioned project glossary: `.../glossary/main`."""
+    return f"{project_path(uid, project_id)}/glossary/main"
+
+
+def localization_object_path(
+    uid: str, project_id: str, localization_id: str, extension: str
+) -> str:
+    """Dubbed-video and dubbed-audio objects: `.../renders/dubs/{id}.{ext}`."""
+    segment = safe_segment(localization_id, name="localizationId")
+    ext = extension.lower().lstrip(".")
+    if not ext.isalnum():
+        raise InvalidPathSegment(f"Invalid extension: {extension!r}")
+    return f"{project_path(uid, project_id)}/renders/dubs/{segment}.{ext}"
+
+
 def analysis_runs_collection_path(uid: str, project_id: str) -> str:
     return f"{project_path(uid, project_id)}/analysisRuns"
 

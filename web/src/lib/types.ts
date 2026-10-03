@@ -580,3 +580,101 @@ export interface ThumbnailRevisionAccepted {
   jobId: string;
   status: string;
 }
+
+export type LocalizationStatus =
+  | "queued"
+  | "translating"
+  | "synthesizing"
+  | "muxing"
+  | "ready"
+  | "failed";
+
+export interface LocalizationVoice {
+  id: string;
+  name: string;
+  label: string;
+  gender: "male" | "female" | "neutral";
+}
+
+export interface LocalizationLanguage {
+  language: string;
+  label: string;
+  voices: LocalizationVoice[];
+}
+
+export interface LocalizationVoiceList {
+  items: LocalizationLanguage[];
+}
+
+export interface Localization {
+  localizationId: string;
+  projectId: string;
+  status: LocalizationStatus;
+  sourceAssetId: string | null;
+  sourceTranscriptId: string | null;
+  transcriptVersion: number | null;
+  sourceLanguage: string | null;
+  targetLanguage: string;
+  voice: string | null;
+  speakerVoices: Record<string, string>;
+  keepOriginalAudio: boolean;
+  fileName: string | null;
+  videoStoragePath: string | null;
+  audioStoragePath: string | null;
+  captionsStoragePath: string | null;
+  mimeType: string;
+  sizeBytes: number;
+  durationMs: number;
+  width: number;
+  height: number;
+  jobId: string | null;
+  error: { code?: string; message?: string } | null;
+  downloadUrl: string | null;
+  captionsUrl: string | null;
+  corpusVersion: number;
+  glossaryVersion: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LocalizationList {
+  items: Localization[];
+}
+
+export interface LocalizationAccepted {
+  localizationId: string;
+  jobId: string;
+  status: string;
+}
+
+export interface GlossaryTerm {
+  source: string;
+  target: string;
+  /** Short target-language code (`hi`). Empty means the term applies to any target. */
+  targetLanguage: string;
+}
+
+export interface Glossary {
+  projectId: string;
+  sourceLanguage: string;
+  terms: GlossaryTerm[];
+  version: number;
+  updatedAt: string | null;
+}
+
+export interface GlossaryUpdate {
+  sourceLanguage?: string;
+  terms: GlossaryTerm[];
+  expectedVersion?: number | null;
+}
+
+export interface CorpusLanguagePair {
+  sourceLanguage: string;
+  targetLanguage: string;
+}
+
+/** The bundled global corpus: its version and the pairs it covers. */
+export interface GlobalCorpus {
+  version: number;
+  pairs: CorpusLanguagePair[];
+}

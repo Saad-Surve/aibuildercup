@@ -625,6 +625,140 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/localization-voices:
+    get:
+      summary: List dubbing languages and voices
+      description: |
+        The languages the dubbing pipeline can synthesize and the voices available for each.
+        The web client hydrates its language/voice pickers from this, so the UI and the worker
+        cannot drift. English is the first fully supported target; other languages share the
+        same catalog shape.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocalizationVoiceList" }
+
+  /api/glossaries:
+    get:
+      summary: The bundled global localization corpus
+      description: |
+        The version of the global corpus and the source→target language pairs it covers:
+        glossary terms plus the hand-curated trap list. The localization worker applies
+        these during the Gemini adaptation pass.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GlobalCorpus" }
+
+  /api/projects/{projectId}/glossary:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: Read the project glossary
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Glossary" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Replace the project glossary
+      description: |
+        Replaces the terms and bumps the version. Send `expectedVersion` for optimistic
+        concurrency; a stale version returns 409. A localization snapshots the applicable
+        terms (and the version) when it is created, so a later edit cannot change a dub that
+        is already running or finished.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GlossaryUpdate" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Glossary" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: The glossary changed since it was loaded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/projects/{projectId}/localizations:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: List localizations (dubs), newest first
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocalizationList" }
+    post:
+      summary: Dub the source video into a target language
+      description: |
+        Queues a `dub` job. The worker translates the transcript when the source language
+        differs from `targetLanguage`, synthesizes one Text-to-Speech take per segment, duration-
+        normalizes each take to its timestamp window, and muxes the resulting track onto the
+        source video with FFmpeg. The dubbed MP4 and the dubbed audio are stored under the
+        project prefix (`renders/dubs/`), so project and account deletion remove them with no
+        extra wiring.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LocalizationRequest" }
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocalizationAccepted" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/projects/{projectId}/localizations/{localizationId}:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { name: localizationId, in: path, required: true, schema: { type: string } }
+    get:
+      summary: Get one localization (dub)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Localization" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      summary: Delete a localization and its media
+      responses:
+        "204": { description: Deleted }
+
+  /api/projects/{projectId}/localizations/{localizationId}/download-url:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { name: localizationId, in: path, required: true, schema: { type: string } }
+    get:
+      summary: Signed download URL for a ready dubbed video
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DownloadUrl" }
+        "400":
+          description: The dub is not ready yet
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
   /api/projects/{projectId}/thumbnails:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
@@ -1632,6 +1766,153 @@ components:
           minItems: 1
           maxItems: 24
           items: { type: string }
+
+    LocalizationVoice:
+      type: object
+      properties:
+        id: { type: string, description: Stable id stored on a localization. }
+        name:
+          type: string
+          description: Provider voice name (for example `en-US-Neural2-D`). Server-side only.
+        label: { type: string }
+        gender: { type: string, enum: [male, female, neutral] }
+      required: [id, name, label, gender]
+
+    LocalizationLanguage:
+      type: object
+      properties:
+        language: { type: string, description: BCP-47 short code, for example `en`. }
+        label: { type: string }
+        voices:
+          type: array
+          items: { $ref: "#/components/schemas/LocalizationVoice" }
+      required: [language, label, voices]
+
+    LocalizationVoiceList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/LocalizationLanguage" }
+
+    LocalizationRequest:
+      type: object
+      required: [targetLanguage]
+      properties:
+        targetLanguage:
+          type: string
+          description: Short target language code, for example `en`.
+        voice:
+          type: [string, "null"]
+          description: Preferred voice id for speaker 0; other speakers borrow the next voices.
+        transcriptVersion: { type: [integer, "null"] }
+        keepOriginalAudio:
+          type: boolean
+          default: false
+          description: Mix the source audio quietly under the dub instead of replacing it.
+        fileName: { type: [string, "null"], maxLength: 200 }
+
+    LocalizationStatus:
+      type: string
+      enum: [queued, translating, synthesizing, muxing, ready, failed]
+
+    Localization:
+      type: object
+      properties:
+        localizationId: { type: string }
+        projectId: { type: string }
+        status: { $ref: "#/components/schemas/LocalizationStatus" }
+        sourceAssetId: { type: [string, "null"] }
+        sourceTranscriptId: { type: [string, "null"] }
+        transcriptVersion: { type: [integer, "null"] }
+        sourceLanguage: { type: [string, "null"] }
+        targetLanguage: { type: string }
+        voice: { type: [string, "null"] }
+        speakerVoices: { type: object, additionalProperties: { type: string } }
+        keepOriginalAudio: { type: boolean }
+        fileName: { type: [string, "null"] }
+        videoStoragePath: { type: [string, "null"] }
+        audioStoragePath: { type: [string, "null"] }
+        captionsStoragePath: { type: [string, "null"] }
+        mimeType: { type: string }
+        sizeBytes: { type: integer }
+        durationMs: { type: integer }
+        width: { type: integer }
+        height: { type: integer }
+        jobId: { type: [string, "null"] }
+        error: { type: [object, "null"], additionalProperties: true }
+        downloadUrl: { type: [string, "null"] }
+        captionsUrl:
+          type: [string, "null"]
+          description: Short-lived signed URL for the localized SRT, when one was generated.
+        corpusVersion: { type: integer }
+        glossaryVersion: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    LocalizationList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Localization" }
+
+    LocalizationAccepted:
+      type: object
+      properties:
+        localizationId: { type: string }
+        jobId: { type: string }
+        status: { type: string }
+
+    GlossaryTerm:
+      type: object
+      properties:
+        source: { type: string }
+        target: { type: string }
+        targetLanguage:
+          type: string
+          description: Short target-language code (`hi`). Empty means the term applies to any target.
+      required: [source, target]
+
+    Glossary:
+      type: object
+      properties:
+        projectId: { type: string }
+        sourceLanguage: { type: string }
+        terms:
+          type: array
+          items: { $ref: "#/components/schemas/GlossaryTerm" }
+        version: { type: integer }
+        updatedAt: { type: [string, "null"], format: date-time }
+      required: [projectId, sourceLanguage, terms, version]
+
+    GlossaryUpdate:
+      type: object
+      properties:
+        sourceLanguage: { type: string, default: en }
+        terms:
+          type: array
+          items: { $ref: "#/components/schemas/GlossaryTerm" }
+        expectedVersion:
+          type: [integer, "null"]
+          description: Optimistic concurrency; a mismatch returns 409.
+      required: [terms]
+
+    CorpusLanguagePair:
+      type: object
+      properties:
+        sourceLanguage: { type: string }
+        targetLanguage: { type: string }
+      required: [sourceLanguage, targetLanguage]
+
+    GlobalCorpus:
+      type: object
+      properties:
+        version: { type: integer }
+        pairs:
+          type: array
+          items: { $ref: "#/components/schemas/CorpusLanguagePair" }
+      required: [version, pairs]
 
     AnalysisDimension:
       type: string

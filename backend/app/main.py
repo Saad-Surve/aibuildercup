@@ -11,9 +11,11 @@ from app.api import (
     analysis,
     captions,
     draft,
+    glossaries,
     health,
     internal,
     jobs,
+    localizations,
     onboarding,
     projects,
     thumbnails,
@@ -133,6 +135,8 @@ def create_app() -> FastAPI:
     app.include_router(captions.router, prefix="/api")
     app.include_router(thumbnails.router, prefix="/api")
     app.include_router(draft.router, prefix="/api")
+    app.include_router(localizations.router, prefix="/api")
+    app.include_router(glossaries.router, prefix="/api")
     app.include_router(analysis.router, prefix="/api")
     app.include_router(internal.router, prefix="/api")
     return app

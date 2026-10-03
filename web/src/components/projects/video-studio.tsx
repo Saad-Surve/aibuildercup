@@ -288,6 +288,7 @@ export function VideoStudio({
       case "localization":
         return (
           <LocalizationModule
+            projectId={projectId}
             primaryLanguage={project.primaryLanguage}
             targetLanguages={project.targetLanguages}
           />

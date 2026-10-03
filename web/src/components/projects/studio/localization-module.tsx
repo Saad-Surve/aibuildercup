@@ -3,12 +3,11 @@
 import {
   ClosedCaptionIcon,
   LanguageSquareIcon,
-  Mic02Icon,
-  PlayIcon,
-  VolumeHighIcon,
 } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
+import { DubbingPanel } from "@/components/projects/dubbing-panel";
+import { GlossaryEditor } from "@/components/projects/studio/glossary-editor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,31 +54,18 @@ function Sample() {
   );
 }
 
-/** Static waveform mock for the dubbing preview. */
-function Waveform() {
-  const bars = [30, 55, 40, 72, 48, 85, 60, 38, 66, 52, 78, 44, 58, 34, 70];
-  return (
-    <div className="flex h-12 items-center gap-0.5" aria-hidden="true">
-      {bars.map((height, index) => (
-        <span
-          key={index}
-          className="w-1 rounded-full bg-signal/60"
-          style={{ height: `${height}%` }}
-        />
-      ))}
-    </div>
-  );
-}
-
 /**
- * Localization placeholder: transcript translation and video dubbing, shaped
- * around the project's target languages and the shared glossary corpus. The
- * sample lines show exactly what a translated/dubbed row will look like.
+ * Localization: transcript translation (still a preview) and the real dubbing
+ * pipeline. {@link DubbingPanel} translates the transcript, re-voices it with
+ * Text-to-Speech, and muxes the dubbed track back onto the source video — the
+ * languages and voices come from the backend catalog, not this file.
  */
 export function LocalizationModule({
+  projectId,
   primaryLanguage,
   targetLanguages,
 }: {
+  projectId: string;
   primaryLanguage: string;
   targetLanguages: string[];
 }) {
@@ -136,53 +122,12 @@ export function LocalizationModule({
         </CardContent>
       </Card>
 
-      <Card className={WORKSPACE_SNAP_TARGET}>
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle className="flex items-center gap-2">
-              <Icon icon={Mic02Icon} className="text-muted-foreground" />
-              Video dubbing
-            </CardTitle>
-            <Sample />
-          </div>
-          <CardDescription>
-            Synthesize each translation in a matching voice and mux it onto the
-            source video.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4 rounded-lg border p-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-signal text-signal-foreground">
-              <Icon icon={PlayIcon} className="size-5" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">
-                  {languageLabel(languages[0] ?? "hi")} dub
-                </span>
-                <Badge variant="outline">Voice: Aarav</Badge>
-              </div>
-              <Waveform />
-            </div>
-            <span className="shrink-0 tabular text-xs text-muted-foreground">
-              0:04 / 4:28
-            </span>
-          </div>
+      <GlossaryEditor projectId={projectId} />
 
-          <div className="flex flex-wrap gap-1.5">
-            {languages.map((language) => (
-              <Badge key={language} variant="secondary">
-                {languageLabel(language)}
-              </Badge>
-            ))}
-          </div>
-
-          <Button type="button" disabled>
-            <Icon icon={VolumeHighIcon} />
-            Dub video
-          </Button>
-        </CardContent>
-      </Card>
+      <DubbingPanel
+        projectId={projectId}
+        targetLanguages={targetLanguages}
+      />
     </div>
   );
 }

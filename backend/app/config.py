@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     #: Higher-fidelity image model for hero shots; more expensive. Used only when a
     #: request explicitly opts into it.
     model_image_pro: str = "gemini-3-pro-image"
+    #: Localization cultural-adaptation pass (the second translation stage). Flash-lite
+    #: keeps a long transcript cheap; point it at a stronger Gemini for better prose.
+    model_localization: str = "gemini-3.1-flash-lite"
     model_video: str = "veo-3.1-fast"
     model_stt: str = "chirp_3"
 
@@ -103,6 +106,25 @@ class Settings(BaseSettings):
     # social video (44.1 kHz stereo).
     stt_sample_rate_hz: int = 44100
     stt_audio_channel_count: int = 2
+
+    # Dubbing / localization. Text-to-Speech renders each transcript segment and the worker
+    # duration-normalizes it into the segment's window before muxing. The sample rate is the
+    # rate the whole dubbed track is assembled at, so it must be one Cloud TTS accepts. The
+    # voice catalog lives in `app/services/dubbing.py`; `dub_default_voice` is only a fallback
+    # when a request omits `voice`.
+    tts_sample_rate_hz: int = 24000
+    dub_default_voice: str = "en-US-Neural2-D"
+    #: Mix the source audio quietly under the dub instead of replacing it. Overridable per
+    #: request with `keepOriginalAudio`.
+    dub_keep_original_audio: bool = False
+    #: `atempo` bends pitch-preserving tempo within [0.5, 2.0]; values past the clamp mean the
+    #: take cannot fit the window and is truncated (compressed takes) or padded (expanded ones).
+    dub_min_tempo: float = 0.75
+    dub_max_tempo: float = 1.5
+    dub_original_audio_volume: float = 0.12
+    #: How many Text-to-Speech calls run at once. Bounded so a long transcript does not
+    #: trip the Text-to-Speech per-minute quota or hold a huge number of connections.
+    dub_max_concurrency: int = 4
     # Speaker diarization. When enabled, the worker asks STT to label each word with a speaker
     # index (Chirp 3 assigns `speaker_label`), segments split on speaker changes, and the UI
     # shows the turns. Behind a flag so a model/region that rejects the feature can be switched

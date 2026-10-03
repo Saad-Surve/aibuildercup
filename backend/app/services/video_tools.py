@@ -342,6 +342,35 @@ def probe_video_size(
     return width, height
 
 
+def probe_has_audio(
+    source: str, *, ffprobe_path: str = "ffprobe", timeout_seconds: int = 30
+) -> bool:
+    """True when the media has at least one audio stream. Never raises."""
+    if not source or shutil.which(ffprobe_path) is None:
+        return False
+    try:
+        completed = subprocess.run(
+            [
+                ffprobe_path,
+                "-v",
+                "error",
+                "-select_streams",
+                "a:0",
+                "-show_entries",
+                "stream=index",
+                "-of",
+                "csv=p=0",
+                source,
+            ],
+            capture_output=True,
+            timeout=timeout_seconds,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return completed.returncode == 0 and bool(completed.stdout.strip())
+
+
 class MediaToolkit:
     """Executes reviewer visual-context requests against one source video.
 

@@ -32,13 +32,12 @@ from app.services.firestore_service import (
 )
 from app.services.job_service import JobService
 from app.services.project_service import ProjectService
+from app.services.source_media import stage_source
 from app.services.storage_service import StorageClient, get_storage_client
 from app.services.transcript_service import TranscriptService
 from app.services.video_tools import (
     VideoToolError,
     ffmpeg_available,
-    probe_duration_ms,
-    probe_video_size,
     run_ffmpeg_with_progress,
 )
 
@@ -51,7 +50,6 @@ TERMINAL_STATUSES = frozenset(
 #: Bounded encode settings: fast enough for a demo, good enough for a feed.
 _ENCODE_TIMEOUT_MIN_SECONDS = 300
 _ENCODE_TIMEOUT_MAX_SECONDS = 3600
-_SOURCE_URL_TTL_SECONDS = 3600
 
 #: Encode progress is mapped into this slice of the job's percent, so the UI moves
 #: through the FFmpeg pass instead of sitting on one value for the whole encode.
@@ -337,7 +335,7 @@ async def _render(
 
     tmpdir = tempfile.mkdtemp(prefix="caption-render-")
     try:
-        source_ref, width, height, duration_ms = await _stage_source(
+        source_ref, width, height, duration_ms = await stage_source(
             storage=storage,
             source_path=source_path,
             tmpdir=tmpdir,
@@ -433,60 +431,6 @@ async def _render(
         duration_ms / 1000,
         size_bytes / 1e6,
     )
-
-
-async def _stage_source(
-    *,
-    storage: StorageClient,
-    source_path: str,
-    tmpdir: str,
-    settings: Settings,
-    fallback_duration_ms: int,
-) -> tuple[str, int, int, int]:
-    """Return `(ffmpeg source, width, height, durationMs)`.
-
-    A source that fits the download budget is staged locally first: probing is then reliable
-    (a *fragmented* MP4 makes a remote `ffprobe` scan the whole object and time out) and the
-    encoder can seek instead of re-reading fragments over the network. Larger sources stream
-    from a signed URL so the temp disk cannot fill up.
-    """
-    size: int | None
-    try:
-        size = storage.object_size(source_path)
-    except Exception:  # noqa: BLE001 - unknown size means "do not download"
-        logger.warning("caption render: could not read the source size", exc_info=True)
-        size = None
-
-    local_path: str | None = None
-    if size is not None and 0 < size <= settings.caption_max_source_download_bytes:
-        extension = os.path.splitext(source_path)[1] or ".mp4"
-        local_path = os.path.join(tmpdir, f"source{extension}")
-        try:
-            await asyncio.to_thread(
-                storage.download_to_filename, source_path, local_path
-            )
-        except Exception:  # noqa: BLE001 - fall back to streaming the signed URL
-            logger.warning("caption render: staging the source locally failed", exc_info=True)
-            local_path = None
-
-    source = local_path
-    if source is None:
-        try:
-            source = storage.signed_download_url(
-                source_path, expires_seconds=_SOURCE_URL_TTL_SECONDS
-            )
-        except Exception as exc:  # noqa: BLE001 - surface a clear reason to the user
-            raise VideoToolError(f"Could not access the source video: {exc}") from exc
-
-    probed_size = await asyncio.to_thread(
-        probe_video_size, source, ffprobe_path=settings.ffprobe_path
-    )
-    width, height = probed_size if probed_size else (1920, 1080)
-    probed_duration = await asyncio.to_thread(
-        probe_duration_ms, source, ffprobe_path=settings.ffprobe_path
-    )
-    duration_ms = probed_duration or fallback_duration_ms
-    return source, width, height, duration_ms
 
 
 def _style_from(render: dict[str, Any]) -> CaptionStyle:

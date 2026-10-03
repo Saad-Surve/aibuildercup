@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "updatedAt": "2026-10-03",
+  "note": "Hand-curated MVP corpus. The runtime copy lives here (inside the backend image) so the container does not need the corpus GCS bucket. The design's GCS path corpus/global/{src}-{tgt}/v{n}.tsv and the BigQuery tables remain workstream C follow-ups; see corpus/README.md.",
+  "glossaries": {
+    "en-hi": [
+      { "source": "credit score", "target": "क्रेडिट स्कोर" },
+      { "source": "credit report", "target": "क्रेडिट रिपोर्ट" },
+      { "source": "subscribe", "target": "सब्सक्राइब" },
+      { "source": "algorithm", "target": "एल्गोरिदम" },
+      { "source": "thumbnail", "target": "थंबनेल" },
+      { "source": "engagement", "target": "एंगेजमेंट" },
+      { "source": "content creator", "target": "कंटेंट क्रिएटर" },
+      { "source": "financial freedom", "target": "आर्थिक आज़ादी" }
+    ],
+    "en-es": [
+      { "source": "credit score", "target": "puntuación de crédito" },
+      { "source": "subscribe", "target": "suscríbete" },
+      { "source": "thumbnail", "target": "miniatura" },
+      { "source": "engagement", "target": "interacción" }
+    ],
+    "en-fr": [
+      { "source": "credit score", "target": "score de crédit" },
+      { "source": "subscribe", "target": "abonnez-vous" },
+      { "source": "thumbnail", "target": "vignette" },
+      { "source": "engagement", "target": "engagement" }
+    ]
+  },
+  "traps": {
+    "*": [
+      {
+        "category": "brand",
+        "source": "YouTube, Instagram, WhatsApp, TikTok, iPhone, Google",
+        "recommended": "keep brand names in Latin script",
+        "notes": "Never transliterate or translate a product or platform name."
+      },
+      {
+        "category": "code_mix",
+        "source": "code-mixed phrases (Hinglish, Spanglish)",
+        "recommended": "preserve the mix and the speaker's intent",
+        "notes": "Do not force a phrase fully into one language if the creator mixed them."
+      }
+    ],
+    "en-hi": [
+      {
+        "category": "idiom",
+        "source": "break a leg",
+        "recommended": "शुभकामनाएं",
+        "notes": "Idiom, not a literal wish for injury."
+      },
+      {
+        "category": "idiom",
+        "source": "piece of cake",
+        "recommended": "बहुत आसान काम",
+        "notes": "Do not translate literally."
+      },
+      {
+        "category": "false_friend",
+        "source": "gift",
+        "recommended": "उपहार / तोहफ़ा",
+        "notes": "Context check: `gift` is a present here, never poison (German `Gift`)."
+      },
+      {
+        "category": "unit_currency",
+        "source": "$1,299",
+        "recommended": "₹1,299 (Indian digit grouping)",
+        "notes": "Localize currency and use lakh/crore grouping when natural."
+      },
+      {
+        "category": "date_format",
+        "source": "10/12/2026",
+        "recommended": "12/10/2026 (DD/MM/YYYY)",
+        "notes": "Indian English and Hindi use day-first dates."
+      },
+      {
+        "category": "name_honorific",
+        "source": "sir / ma'am",
+        "recommended": "सर / मैम, or जी after a name",
+        "notes": "Honorifics are expected; keep them natural, do not drop them."
+      }
+    ]
+  }
+}

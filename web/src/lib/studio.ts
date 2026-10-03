@@ -72,7 +72,7 @@ export const STUDIO_MODULES: StudioModule[] = [
       "Translate and dub the video into your target languages with a glossary.",
     icon: Megaphone01Icon,
     needsTranscript: true,
-    ready: false,
+    ready: true,
   },
 ];
 
