@@ -16,7 +16,9 @@ import type { IconSvgElement } from "@hugeicons/react";
 
 import { Icon } from "@/components/common/icon";
 import { Logo, LogoMark } from "@/components/common/logo";
+import { CopyTokenButton } from "@/components/layout/copy-token-button";
 import { UserMenu } from "@/components/layout/user-menu";
+import { useFeatureFlag } from "@/lib/feature-flags";
 import { HeaderNavProvider } from "@/lib/header-nav";
 import { cn } from "@/lib/utils";
 
@@ -171,6 +173,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const readyItems = NAV.filter((item) => item.ready);
   const [collapsed, setCollapsed] = useSidebarCollapsed();
+  const copyAuthToken = useFeatureFlag("copyAuthToken");
   // A page can put its own navigation in the sticky header (see `useSetHeaderNav`).
   const [headerNav, setHeaderNavState] = useState<ReactNode>(null);
   const setHeaderNav = useCallback((node: ReactNode) => {
@@ -266,7 +269,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="no-scrollbar flex min-w-0 flex-1 items-center justify-center overflow-x-auto py-1">
               {headerNav}
             </div>
-            <UserMenu />
+            <div className="flex shrink-0 items-center gap-1">
+              {copyAuthToken ? <CopyTokenButton /> : null}
+              <UserMenu />
+            </div>
           </header>
 
           <nav className="flex gap-1 overflow-x-auto border-b border-transparent px-3 py-2 shadow-[inset_0_-1px_0_0_var(--color-border)] md:hidden">

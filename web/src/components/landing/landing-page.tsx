@@ -254,7 +254,12 @@ function PillNav({ onSignIn }: { onSignIn: () => void }) {
             </a>
           </nav>
           <div className="flex justify-end">
-            <Button variant="outline" size="sm" onClick={onSignIn}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onSignIn}
+              className={condensed ? "rounded-full" : undefined}
+            >
               Sign in
             </Button>
           </div>
