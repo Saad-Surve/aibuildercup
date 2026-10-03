@@ -74,6 +74,7 @@ def _to_project(project_id: str, data: dict[str, Any]) -> Project:
         sourceAssetId=data.get("sourceAssetId"),
         sourceRevision=data.get("sourceRevision"),
         revisionCount=int(data.get("sourceRevisionCounter", 0) or 0),
+        posterStoragePath=data.get("posterStoragePath"),
         createdAt=data["createdAt"],
         updatedAt=data["updatedAt"],
     )
@@ -81,10 +82,31 @@ def _to_project(project_id: str, data: dict[str, Any]) -> Project:
 
 class ProjectService:
     def __init__(
-        self, client: FirestoreClient, *, storage: StorageClient | None = None
+        self,
+        client: FirestoreClient,
+        *,
+        storage: StorageClient | None = None,
+        url_ttl_seconds: int = 900,
     ) -> None:
         self.client = client
         self.storage = storage
+        self.url_ttl_seconds = url_ttl_seconds
+
+    def poster_url(self, project: Project) -> str | None:
+        """Signed URL for the applied thumbnail cover, or None.
+
+        Minted at the API boundary rather than inside `get`/`list`, because those are also
+        called for ownership checks on hot paths (thumbnail polling, uploads) and signing
+        is a network round-trip.
+        """
+        if not project.posterStoragePath or self.storage is None:
+            return None
+        try:
+            return self.storage.signed_download_url(
+                project.posterStoragePath, expires_seconds=self.url_ttl_seconds
+            )
+        except Exception:  # noqa: BLE001 - a signing hiccup must not hide the project
+            return None
 
     def create(self, *, owner_uid: str, payload: CreateProject) -> Project:
         project_id = uuid4().hex

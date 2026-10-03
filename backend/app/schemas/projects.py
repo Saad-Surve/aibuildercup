@@ -70,6 +70,12 @@ class Project(BaseModel):
     sourceAssetId: str | None = None
     sourceRevision: int | None = None
     revisionCount: int = 0
+    #: Cloud Storage object of the applied thumbnail concept, if any. The API mints
+    #: `posterUrl` from it on read so the card and player can show the real cover.
+    posterStoragePath: str | None = None
+    #: Short-lived signed URL for `posterStoragePath`, minted on read. Null when no
+    #: thumbnail has been applied.
+    posterUrl: str | None = None
     createdAt: datetime
     updatedAt: datetime
 

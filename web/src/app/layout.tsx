@@ -67,7 +67,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Providers>
             <AuthProvider>
               {children}
-              <Toaster position="top-center" />
+              <Toaster position="bottom-right" />
             </AuthProvider>
           </Providers>
         </ThemeProvider>

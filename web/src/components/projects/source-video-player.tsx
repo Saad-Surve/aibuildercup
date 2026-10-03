@@ -30,12 +30,15 @@ export function SourceVideoPlayer({
   asset,
   onDuration,
   captionLines,
+  coverUrl,
 }: {
   projectId: string;
   asset: Asset;
   onDuration?: (durationMs: number) => void;
   /** Transcript lines shown in the caption preview overlay, if a style is active. */
   captionLines?: string[];
+  /** Applied thumbnail cover; preferred over the captured frame poster. */
+  coverUrl?: string | null;
 }) {
   const captionPreview = useCaptionPreview();
   const [media, setMedia] = useState<{ assetId: string; src: string } | null>(
@@ -68,7 +71,7 @@ export function SourceVideoPlayer({
           if (alive) setFailure({ assetId: asset.assetId });
         }
       }
-      if (!getCachedPoster(asset.assetId, projectId)) {
+      if (!coverUrl && !getCachedPoster(asset.assetId, projectId)) {
         const url = await ensurePoster({
           projectId,
           assetId: asset.assetId,
@@ -82,11 +85,12 @@ export function SourceVideoPlayer({
       alive = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [projectId, asset.assetId, asset.sizeBytes]);
+  }, [projectId, asset.assetId, asset.sizeBytes, coverUrl]);
 
   const src = media?.assetId === asset.assetId ? media.src : null;
   const failed = failure?.assetId === asset.assetId;
   const poster =
+    coverUrl ??
     cachedPoster ??
     (framePoster?.assetId === asset.assetId ? framePoster.url : null);
 

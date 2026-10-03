@@ -80,6 +80,10 @@ export interface Project {
   sourceRevision: number | null;
   /** Number of source-video revisions uploaded for this project. */
   revisionCount: number;
+  /** Applied thumbnail object path, if any. */
+  posterStoragePath: string | null;
+  /** Signed cover URL minted on read; use it as the project card/player poster. */
+  posterUrl: string | null;
   /** `video` runs the upload pipeline; `draft` opens the writing studio. */
   kind: ProjectKind;
   draftFormat: DraftFormat;

@@ -298,6 +298,17 @@ class ThumbnailService:
             project_id=project_id,
             patch=UpdateProject(thumbnailConcept=concept_text),
         )
+        # Make this image the project's cover everywhere (cards, player poster).
+        active = self._active_version(data)
+        poster_path = active.get("storagePath") if active else None
+        self.client.update_document(
+            project_path(owner_uid, project_id),
+            {
+                "posterStoragePath": poster_path,
+                "posterThumbnailId": thumbnail_id,
+                "updatedAt": datetime.now(UTC),
+            },
+        )
         updated = self.client.get_document(
             thumbnail_concept_path(owner_uid, project_id, thumbnail_id)
         ) or data
@@ -323,6 +334,17 @@ class ThumbnailService:
         self.client.delete_document(
             thumbnail_concept_path(owner_uid, project_id, thumbnail_id)
         )
+        # If this was the project's cover, drop the poster so nothing points at a
+        # deleted object.
+        if data.get("isApplied"):
+            self.client.update_document(
+                project_path(owner_uid, project_id),
+                {
+                    "posterStoragePath": None,
+                    "posterThumbnailId": None,
+                    "updatedAt": datetime.now(UTC),
+                },
+            )
 
     def download_url(
         self, *, owner_uid: str, project_id: str, thumbnail_id: str
@@ -411,6 +433,17 @@ class ThumbnailService:
                 "updatedAt": datetime.now(UTC),
             },
         )
+        # If this concept is the project's applied cover, keep the cover in step with the
+        # new active version (a revision after applying should update the card/player).
+        if data.get("isApplied") and version.storagePath:
+            self.client.update_document(
+                project_path(owner_uid, project_id),
+                {
+                    "posterStoragePath": version.storagePath,
+                    "posterThumbnailId": thumbnail_id,
+                    "updatedAt": datetime.now(UTC),
+                },
+            )
 
     def mark_failed(
         self,

@@ -351,6 +351,7 @@ export function VideoStudio({
                     asset={effectiveSource}
                     onDuration={setDurationMs}
                     captionLines={captionLines}
+                    coverUrl={project.posterUrl}
                   />
                 </div>
                 <dl className="mt-3 grid shrink-0 grid-cols-3 gap-2 text-xs">

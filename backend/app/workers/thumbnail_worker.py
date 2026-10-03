@@ -734,6 +734,20 @@ def _platform(platforms: list[str]) -> str:
     return (platforms or ["youtube"])[0]
 
 
+#: Appended to every image prompt. The model defaults to a glossy, obviously-AI look;
+#: these instructions push it toward a real photograph and away from the usual tells.
+ANTI_SLOP = (
+    "Make it look like a real photograph taken on a real camera, not an AI image. "
+    "Natural, believable lighting and skin texture; keep the person's real face and features "
+    "exactly as in the reference, with no beautification or face-swap look. Avoid: waxy or "
+    "airbrushed skin, plastic sheen, over-saturated HDR, heavy vignettes, generic stock-photo "
+    "smiles, floating or duplicated objects, extra fingers or warped hands, warped or mirrored "
+    "faces, garbled or repeated letters, random symbols, fake UI elements, watermarks, "
+    "signatures, and lens flares. Keep the composition intentional and slightly imperfect, like "
+    "a creator's real thumbnail rather than a rendered illustration."
+)
+
+
 def _build_generate_prompt(
     *,
     headline: str,
@@ -760,6 +774,7 @@ def _build_generate_prompt(
         [
             "Keep the headline fully readable at phone size, with clear margins and strong "
             "contrast. Do not add emoji, watermarks, logos, UI chrome, or extra words.",
+            ANTI_SLOP,
         ]
     )
     return " ".join(lines)
@@ -769,7 +784,7 @@ def _build_edit_prompt(*, instruction: str) -> str:
     return (
         "Edit the supplied thumbnail. Apply exactly this change: "
         f"{instruction}. Keep the same person, the same overall concept, and the on-image "
-        "text legible and correctly spelled. Return the full edited image."
+        f"text legible and correctly spelled. Return the full edited image. {ANTI_SLOP}"
     )
 
 

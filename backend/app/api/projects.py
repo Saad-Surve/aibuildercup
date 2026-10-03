@@ -30,6 +30,12 @@ ServiceDep = Annotated[ProjectService, Depends(get_project_service)]
 DraftDep = Annotated[DraftService, Depends(get_draft_service)]
 
 
+def _with_poster(service: ProjectService, project: Project) -> Project:
+    """Attach a signed cover URL when the project has an applied thumbnail."""
+    project.posterUrl = service.poster_url(project)
+    return project
+
+
 @router.get("/projects", response_model=ProjectList)
 async def list_projects(
     user: UserDep,
@@ -40,7 +46,10 @@ async def list_projects(
     offset = decode_page_token(pageToken)
     items, has_more = service.list(owner_uid=user.uid, limit=limit, offset=offset)
     next_token = encode_page_token(offset + len(items)) if has_more else None
-    return ProjectList(items=items, nextPageToken=next_token)
+    return ProjectList(
+        items=[_with_poster(service, item) for item in items],
+        nextPageToken=next_token,
+    )
 
 
 @router.post("/projects", response_model=Project, status_code=status.HTTP_201_CREATED)
@@ -69,7 +78,9 @@ async def get_project(
     user: UserDep,
     service: ServiceDep,
 ) -> Project:
-    return service.get(owner_uid=user.uid, project_id=projectId)
+    return _with_poster(
+        service, service.get(owner_uid=user.uid, project_id=projectId)
+    )
 
 
 @router.patch("/projects/{projectId}", response_model=Project)
@@ -79,7 +90,10 @@ async def update_project(
     user: UserDep,
     service: ServiceDep,
 ) -> Project:
-    return service.update(owner_uid=user.uid, project_id=projectId, patch=payload)
+    return _with_poster(
+        service,
+        service.update(owner_uid=user.uid, project_id=projectId, patch=payload),
+    )
 
 
 @router.delete("/projects/{projectId}", status_code=status.HTTP_204_NO_CONTENT)

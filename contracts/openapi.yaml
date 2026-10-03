@@ -1153,6 +1153,15 @@ components:
             revisionCount:
               type: integer
               description: Number of source-video revisions uploaded for this project.
+            posterStoragePath:
+              type: [string, "null"]
+              description: |
+                Cloud Storage object of the applied thumbnail concept, if any.
+            posterUrl:
+              type: [string, "null"]
+              description: |
+                Short-lived signed URL for `posterStoragePath`, minted on read. Use it as the
+                project's cover in cards and as the player poster.
             kind:
               type: string
               enum: [video, draft]

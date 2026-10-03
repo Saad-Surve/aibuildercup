@@ -28,18 +28,24 @@ import type { Project } from "@/lib/types";
 function ProjectThumb({
   projectId,
   activeAssetId,
+  posterUrl,
 }: {
   projectId: string;
   activeAssetId: string | null;
+  /** Applied thumbnail cover; takes precedence over the captured frame poster. */
+  posterUrl: string | null;
 }) {
   const assetsQuery = useQuery({
     queryKey: ["assets", projectId],
     queryFn: () => listAssets(projectId),
+    // The cover is server-provided, so skip the asset/frame work entirely.
+    enabled: !posterUrl,
     staleTime: 60_000,
   });
   const [poster, setPoster] = useState<string | null>(null);
 
   useEffect(() => {
+    if (posterUrl) return;
     if (assetsQuery.isLoading || assetsQuery.isError || poster) return;
     const source = pickSourceAsset(assetsQuery.data?.items, activeAssetId);
     let alive = true;
@@ -57,6 +63,7 @@ function ProjectThumb({
       alive = false;
     };
   }, [
+    posterUrl,
     assetsQuery.isLoading,
     assetsQuery.isError,
     assetsQuery.data,
@@ -65,11 +72,12 @@ function ProjectThumb({
     activeAssetId,
   ]);
 
-  if (poster) {
-    // Plain <img> on purpose: posters are generated data URLs, nothing to optimize.
+  const cover = posterUrl ?? poster;
+  if (cover) {
+    // Plain <img> on purpose: posters are generated data URLs or signed URLs.
     return (
       <img
-        src={poster}
+        src={cover}
         alt=""
         aria-hidden="true"
         className="aspect-video w-full object-cover"
@@ -159,6 +167,7 @@ export function ProjectCard({ project }: { project: Project }) {
             <ProjectThumb
               projectId={project.projectId}
               activeAssetId={project.sourceAssetId}
+              posterUrl={project.posterUrl}
             />
           )}
         </div>

@@ -227,7 +227,7 @@ function ConceptCard({
             </div>
           </div>
         ) : (
-          <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
+          <div className="mt-auto flex items-center gap-1.5 pt-1">
             <Button
               size="sm"
               variant="outline"
@@ -239,20 +239,6 @@ function ConceptCard({
             </Button>
             <Button
               size="sm"
-              variant="outline"
-              disabled={working}
-              onClick={() =>
-                onRevise(
-                  concept.thumbnailId,
-                  "Create a fresh alternative in the same direction and tone, but with a different composition.",
-                )
-              }
-            >
-              <Icon icon={Refresh01Icon} />
-              More like this
-            </Button>
-            <Button
-              size="sm"
               variant={concept.isApplied ? "secondary" : "default"}
               disabled={working || concept.isApplied || !concept.headline}
               onClick={() => onApply(concept.thumbnailId)}
@@ -260,34 +246,51 @@ function ConceptCard({
               <Icon icon={CheckmarkCircle02Icon} />
               {concept.isApplied ? "Applied" : "Use"}
             </Button>
-            {concept.previewUrl ? (
+            <div className="ml-auto flex items-center gap-0.5">
               <Button
                 size="icon"
                 variant="ghost"
-                nativeButton={false}
-                aria-label="Download thumbnail"
-                render={
-                  <a
-                    href={concept.previewUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Download thumbnail"
-                    download={`${projectId}-${concept.thumbnailId.slice(0, 6)}.png`}
-                  />
+                aria-label="More like this"
+                title="More like this"
+                disabled={working}
+                onClick={() =>
+                  onRevise(
+                    concept.thumbnailId,
+                    "Create a fresh alternative in the same direction and tone, but with a different composition.",
+                  )
                 }
               >
-                <Icon icon={Download01Icon} />
+                <Icon icon={Refresh01Icon} />
               </Button>
-            ) : null}
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label="Delete concept"
-              disabled={busy}
-              onClick={() => onDelete(concept.thumbnailId)}
-            >
-              <Icon icon={Delete02Icon} />
-            </Button>
+              {concept.previewUrl ? (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  nativeButton={false}
+                  aria-label="Download thumbnail"
+                  render={
+                    <a
+                      href={concept.previewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Download thumbnail"
+                      download={`${projectId}-${concept.thumbnailId.slice(0, 6)}.png`}
+                    />
+                  }
+                >
+                  <Icon icon={Download01Icon} />
+                </Button>
+              ) : null}
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Delete concept"
+                disabled={busy}
+                onClick={() => onDelete(concept.thumbnailId)}
+              >
+                <Icon icon={Delete02Icon} />
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -310,7 +313,6 @@ export function ThumbnailPanel({
   const [aspect, setAspect] = useState<ThumbnailAspect>("16:9");
   const [count, setCount] = useState("4");
   const [brief, setBrief] = useState("");
-  const [useProModel, setUseProModel] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const notifiedJob = useRef<string | null>(null);
 
@@ -382,7 +384,6 @@ export function ThumbnailPanel({
         count: Number(count),
         brief: brief.trim(),
         useRealFrames: true,
-        useProModel,
       }),
     onSuccess: (result) => {
       setActiveJobId(result.jobId);
@@ -416,6 +417,7 @@ export function ThumbnailPanel({
         queryKey: ["thumbnails", projectId],
       });
       void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      void queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success("Applied to the project's thumbnail concept");
     },
     onError: (caught) =>
@@ -445,46 +447,59 @@ export function ThumbnailPanel({
   return (
     <div className="space-y-5">
       <div className="space-y-4 rounded-xl border bg-muted/30 p-4">
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="space-y-1.5">
-            <span className="text-xs font-medium text-muted-foreground">
-              Aspect
-            </span>
-            <div className="flex gap-1.5">
-              {ASPECTS.map((option) => (
-                <Button
-                  key={option.value}
-                  type="button"
-                  size="sm"
-                  variant={aspect === option.value ? "default" : "outline"}
-                  title={option.hint}
-                  onClick={() => setAspect(option.value)}
-                >
-                  {option.label}
-                </Button>
-              ))}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                Aspect
+              </span>
+              <div className="flex gap-1">
+                {ASPECTS.map((option) => (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    size="sm"
+                    variant={aspect === option.value ? "default" : "outline"}
+                    title={option.hint}
+                    onClick={() => setAspect(option.value)}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                Concepts
+              </span>
+              <Select
+                value={count}
+                onValueChange={(value) => setCount(value ?? "4")}
+              >
+                <SelectTrigger size="sm" className="w-[4.5rem]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {["2", "3", "4"].map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <div className="space-y-1.5">
-            <span className="text-xs font-medium text-muted-foreground">
-              Concepts
-            </span>
-            <Select
-              value={count}
-              onValueChange={(value) => setCount(value ?? "4")}
-            >
-              <SelectTrigger className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {["2", "3", "4"].map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {value}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <Button
+            type="button"
+            onClick={() => generateMutation.mutate()}
+            disabled={generating}
+          >
+            <Icon
+              icon={generating ? Loading03Icon : MagicWand01Icon}
+              className={generating ? "animate-spin" : undefined}
+            />
+            {generating ? "Generating…" : "Generate concepts"}
+          </Button>
         </div>
 
         <div className="space-y-1.5">
@@ -497,29 +512,6 @@ export function ThumbnailPanel({
             placeholder="Tone, must-include, must-avoid. e.g. warm and personal, no shock faces."
             onChange={(event) => setBrief(event.target.value)}
           />
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={useProModel}
-              onChange={(event) => setUseProModel(event.target.checked)}
-              className="size-3.5 accent-primary"
-            />
-            Use the hero model (slower, higher fidelity)
-          </label>
-          <Button
-            type="button"
-            onClick={() => generateMutation.mutate()}
-            disabled={generating}
-          >
-            <Icon
-              icon={generating ? Loading03Icon : MagicWand01Icon}
-              className={generating ? "animate-spin" : undefined}
-            />
-            {generating ? "Generating…" : "Generate concepts"}
-          </Button>
         </div>
       </div>
 
