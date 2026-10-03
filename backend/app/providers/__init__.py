@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 from app.config import Settings, get_settings
+from app.providers.imagegen import ImageGenProvider
 from app.providers.llm import LlmProvider
 from app.providers.stt import SttProvider
 
@@ -9,6 +10,7 @@ class Providers:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self.llm = LlmProvider(settings)
+        self.images = ImageGenProvider(settings)
         self.stt = SttProvider(settings)
 
 
@@ -19,3 +21,6 @@ def build_providers(settings: Settings) -> Providers:
 @lru_cache
 def get_providers() -> Providers:
     return build_providers(get_settings())
+
+
+__all__ = ["Providers", "build_providers", "get_providers"]

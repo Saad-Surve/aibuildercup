@@ -505,3 +505,74 @@ export interface CaptionRenderAccepted {
   jobId: string;
   status: string;
 }
+
+// ------------------------------------------------------------------- thumbnails
+
+export type ThumbnailAspect = "16:9" | "9:16" | "1:1";
+export type ThumbnailStatus = "queued" | "generating" | "ready" | "failed";
+
+export interface ThumbnailCritique {
+  legibility: number;
+  promise: number;
+  platformFit: number;
+  summary: string;
+  suggestions: string[];
+}
+
+export interface ThumbnailVersion {
+  versionId: string;
+  version: number;
+  storagePath: string | null;
+  mimeType: string;
+  width: number;
+  height: number;
+  sizeBytes: number;
+  instruction: string;
+  headline: string;
+  rationale: string;
+  referenceTimestampsMs: number[];
+  critique: ThumbnailCritique | null;
+  model: string;
+  costUsd: number;
+  createdAt: string;
+}
+
+export interface ThumbnailConcept {
+  thumbnailId: string;
+  projectId: string;
+  status: ThumbnailStatus;
+  aspect: ThumbnailAspect;
+  headline: string;
+  rationale: string;
+  sourceTimestampMs: number | null;
+  referenceTimestampsMs: number[];
+  activeVersionId: string | null;
+  versions: ThumbnailVersion[];
+  isApplied: boolean;
+  jobId: string | null;
+  error: { code?: string; message?: string } | null;
+  previewUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GenerateThumbnailsInput {
+  count?: number;
+  aspect?: ThumbnailAspect;
+  imageSize?: string;
+  brief?: string;
+  useRealFrames?: boolean;
+  useProModel?: boolean;
+}
+
+export interface ThumbnailBatchAccepted {
+  thumbnailIds: string[];
+  jobId: string;
+  status: string;
+}
+
+export interface ThumbnailRevisionAccepted {
+  thumbnailId: string;
+  jobId: string;
+  status: string;
+}

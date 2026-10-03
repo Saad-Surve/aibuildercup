@@ -168,6 +168,14 @@ class TtsProvider(Protocol):
     ) -> bytes: ...
 
 
+@dataclass(frozen=True)
+class GeneratedImage:
+    """One image returned by an image-generation model."""
+
+    data: bytes
+    mime_type: str
+
+
 @runtime_checkable
 class ImageGenProvider(Protocol):
     async def generate(
@@ -175,8 +183,22 @@ class ImageGenProvider(Protocol):
         *,
         model: str,
         prompt: str,
-        count: int,
-    ) -> list[bytes]: ...
+        count: int = 1,
+        aspect_ratio: str = "16:9",
+        image_size: str = "1K",
+        # Reference images (for example a frame of the actual creator) that the model
+        # should keep consistent. Empty means a from-scratch generation.
+        reference_images: Sequence[MediaPart] = (),
+        # When set, the model edits this image instead of generating from scratch.
+        # `prompt` becomes the edit instruction.
+        base_image: MediaPart | None = None,
+    ) -> list[GeneratedImage]:
+        """Generate or edit images from a prompt.
+
+        Returns up to `count` images; a model may return fewer. Raising signals a hard
+        failure the caller should surface to the user.
+        """
+        ...
 
 
 @runtime_checkable

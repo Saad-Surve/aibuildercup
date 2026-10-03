@@ -8,12 +8,16 @@ import type {
   CaptionRenderAccepted,
   CaptionStyle,
   CreateProjectInput,
+  GenerateThumbnailsInput,
   Job,
   DownloadUrl,
   Project,
   ProjectList,
   RevisionActivation,
   RevisionList,
+  ThumbnailBatchAccepted,
+  ThumbnailConcept,
+  ThumbnailRevisionAccepted,
   Transcript,
   TranscriptSegment,
   TranscriptVersion,
@@ -249,6 +253,59 @@ export function deleteCaptionRender(
     `/projects/${projectId}/captions/renders/${captionRenderId}`,
     { method: "DELETE" },
   );
+}
+
+// ------------------------------------------------------------------- thumbnails
+
+export function listThumbnails(
+  projectId: string,
+): Promise<{ items: ThumbnailConcept[] }> {
+  return apiFetch<{ items: ThumbnailConcept[] }>(
+    `/projects/${projectId}/thumbnails`,
+  );
+}
+
+/** Plan and render a batch of grounded thumbnail concepts. */
+export function generateThumbnails(
+  projectId: string,
+  input: GenerateThumbnailsInput,
+): Promise<ThumbnailBatchAccepted> {
+  return apiFetch<ThumbnailBatchAccepted>(`/projects/${projectId}/thumbnails`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+/** Conversationally edit a concept's active image; appends a new version. */
+export function reviseThumbnail(
+  projectId: string,
+  thumbnailId: string,
+  instruction: string,
+): Promise<ThumbnailRevisionAccepted> {
+  return apiFetch<ThumbnailRevisionAccepted>(
+    `/projects/${projectId}/thumbnails/${thumbnailId}/revise`,
+    { method: "POST", body: JSON.stringify({ instruction }) },
+  );
+}
+
+/** Make this concept the project's packaging promise (feeds the reviewers). */
+export function applyThumbnail(
+  projectId: string,
+  thumbnailId: string,
+): Promise<ThumbnailConcept> {
+  return apiFetch<ThumbnailConcept>(
+    `/projects/${projectId}/thumbnails/${thumbnailId}/apply`,
+    { method: "POST" },
+  );
+}
+
+export function deleteThumbnail(
+  projectId: string,
+  thumbnailId: string,
+): Promise<void> {
+  return apiFetch<void>(`/projects/${projectId}/thumbnails/${thumbnailId}`, {
+    method: "DELETE",
+  });
 }
 
 /**

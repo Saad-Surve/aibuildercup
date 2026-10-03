@@ -29,6 +29,7 @@ from app.providers.base import (
     ToolExecutor,
     ToolSpec,
 )
+from app.providers.gemini_client import get_gemini_client
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +40,6 @@ TRANSIENT_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 class LlmProvider:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        # Built once and reused: constructing a client is not free, and the
-        # worker calls this per reviewer.
-        self._cached_client: Any | None = None
 
     async def complete_json(
         self,
@@ -169,25 +167,12 @@ class LlmProvider:
         )
 
     def _client(self) -> Any:
-        """Build (once) the Agent Platform client.
+        """The shared Agent Platform client (built once per project/location).
 
         A lazy import keeps `google.genai` out of the module import path. No API
-        key: ADC supplies credentials.
+        key: ADC supplies credentials. The image provider uses the same client.
         """
-        if self._cached_client is None:
-            from google import genai
-
-            logger.info(
-                "LLM via Agent Platform project=%s location=%s",
-                self.settings.project_id,
-                self.settings.vertex_location,
-            )
-            self._cached_client = genai.Client(
-                vertexai=True,
-                project=self.settings.project_id,
-                location=self.settings.vertex_location,
-            )
-        return self._cached_client
+        return get_gemini_client(self.settings)
 
     async def _generate(
         self,

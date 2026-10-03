@@ -16,6 +16,7 @@ from app.api import (
     jobs,
     onboarding,
     projects,
+    thumbnails,
     transcripts,
     uploads,
     users,
@@ -130,6 +131,7 @@ def create_app() -> FastAPI:
     app.include_router(ws.router, prefix="/api")
     app.include_router(transcripts.router, prefix="/api")
     app.include_router(captions.router, prefix="/api")
+    app.include_router(thumbnails.router, prefix="/api")
     app.include_router(draft.router, prefix="/api")
     app.include_router(analysis.router, prefix="/api")
     app.include_router(internal.router, prefix="/api")

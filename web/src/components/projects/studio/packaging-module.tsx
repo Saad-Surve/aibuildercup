@@ -2,7 +2,6 @@
 
 import {
   ImageAdd01Icon,
-  MagicWand01Icon,
   PlayIcon,
   SearchList01Icon,
   VideoReplayIcon,
@@ -22,6 +21,7 @@ import { WORKSPACE_SNAP_TARGET } from "@/lib/workspace";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ThumbnailPanel } from "@/components/projects/studio/thumbnail-panel";
 
 function Sample() {
   return (
@@ -29,36 +29,8 @@ function Sample() {
       variant="outline"
       className="border-border bg-muted text-muted-foreground"
     >
-      Sample preview
+      Coming soon
     </Badge>
-  );
-}
-
-/** A believable thumbnail mock: gradient, oversized hook, and a face bubble. */
-function ThumbSample({
-  headline,
-  kicker,
-  className,
-}: {
-  headline: string;
-  kicker: string;
-  className: string;
-}) {
-  return (
-    <div
-      className={`relative flex aspect-video flex-col justify-between overflow-hidden rounded-lg p-3 text-white shadow-sm ring-1 ring-foreground/10 ${className}`}
-    >
-      <span className="w-fit rounded bg-black/30 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase backdrop-blur-sm">
-        {kicker}
-      </span>
-      <p className="max-w-[80%] font-heading text-lg leading-tight font-extrabold uppercase drop-shadow-md">
-        {headline}
-      </p>
-      <div
-        aria-hidden
-        className="absolute -right-4 -bottom-6 size-24 rounded-full bg-white/20 ring-4 ring-white/30"
-      />
-    </div>
   );
 }
 
@@ -104,43 +76,41 @@ function ClipSample({
 }
 
 /**
- * Packaging placeholder: thumbnail concepts, infographic clips, and a
- * search-ready listing. Everything is inert, but the content is realistic so the
- * finished module can be judged at a glance.
+ * Packaging: live thumbnail concepts (grounded in the transcript and review findings),
+ * then the infographic-clip and listing sections, which are still mocks.
  */
-export function PackagingModule() {
+export function PackagingModule({
+  projectId,
+  projectName,
+  thumbnailConcept,
+}: {
+  projectId: string;
+  projectName: string;
+  thumbnailConcept: string;
+}) {
   return (
     <div className="space-y-8">
       <Card className={WORKSPACE_SNAP_TARGET}>
         <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle className="flex items-center gap-2">
-              <Icon icon={ImageAdd01Icon} className="text-muted-foreground" />
-              Thumbnail options
-            </CardTitle>
-            <Sample />
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <Icon icon={ImageAdd01Icon} className="text-muted-foreground" />
+            Thumbnail concepts
+          </CardTitle>
           <CardDescription>
-            Three concepts that match the hook, with the text sized to survive a
-            phone screen.
+            Options grounded in what the video actually says: each one cites the
+            moment it came from, keeps your real face, and is scored on
+            legibility, honesty, and platform fit. Edit any concept in plain
+            language, then apply the winner.
           </CardDescription>
+          {thumbnailConcept ? (
+            <p className="text-xs text-muted-foreground">
+              Current packaging promise:{" "}
+              <span className="text-foreground">{thumbnailConcept}</span>
+            </p>
+          ) : null}
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-3">
-          <ThumbSample
-            headline="Stop wasting week 3"
-            kicker="Mistake"
-            className="bg-gradient-to-br from-rose-500 via-red-500 to-orange-500"
-          />
-          <ThumbSample
-            headline="The 3-week rule"
-            kicker="Framework"
-            className="bg-gradient-to-br from-sky-500 via-indigo-500 to-violet-600"
-          />
-          <ThumbSample
-            headline="Why projects die"
-            kicker="Truth"
-            className="bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600"
-          />
+        <CardContent>
+          <ThumbnailPanel projectId={projectId} projectName={projectName} />
         </CardContent>
       </Card>
 
@@ -235,7 +205,6 @@ export function PackagingModule() {
             </div>
           </div>
           <Button type="button" disabled>
-            <Icon icon={MagicWand01Icon} />
             Generate listing
           </Button>
         </CardContent>

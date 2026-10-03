@@ -60,10 +60,10 @@ export const STUDIO_MODULES: StudioModule[] = [
     id: "packaging",
     label: "Thumbnail, Clips & SEO",
     description:
-      "Thumbnail options, infographic clips, and a search-ready title and description.",
+      "Generate grounded thumbnail concepts from the video, then iterate and apply the winner.",
     icon: ImageAdd01Icon,
     needsTranscript: false,
-    ready: false,
+    ready: true,
   },
   {
     id: "localization",

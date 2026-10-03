@@ -158,6 +158,50 @@ def caption_render_object_path(
     return f"{project_path(uid, project_id)}/renders/captions/{segment}.{ext}"
 
 
+def thumbnail_concepts_collection_path(uid: str, project_id: str) -> str:
+    return f"{project_path(uid, project_id)}/thumbnailConcepts"
+
+
+def thumbnail_concept_path(uid: str, project_id: str, thumbnail_id: str) -> str:
+    return (
+        f"{thumbnail_concepts_collection_path(uid, project_id)}/"
+        f"{safe_segment(thumbnail_id, name='thumbnailId')}"
+    )
+
+
+def thumbnail_object_path(
+    uid: str, project_id: str, thumbnail_id: str, version: int, extension: str
+) -> str:
+    """Generated image: `.../thumbnails/{id}/v{version}.{ext}`."""
+    segment = safe_segment(thumbnail_id, name="thumbnailId")
+    ext = extension.lower().lstrip(".")
+    if not ext.isalnum():
+        raise InvalidPathSegment(f"Invalid extension: {extension!r}")
+    return f"{project_path(uid, project_id)}/thumbnails/{segment}/v{max(1, version)}.{ext}"
+
+
+def thumbnail_reference_object_path(
+    uid: str,
+    project_id: str,
+    thumbnail_id: str,
+    timestamp_ms: int,
+    extension: str = "jpg",
+) -> str:
+    """A source frame kept as a reference: `.../thumbnails/{id}/refs/f{ms}.{ext}`.
+
+    Kept so the UI can show exactly which moment a concept was built from and the delete
+    path covers it with the rest of the project prefix.
+    """
+    segment = safe_segment(thumbnail_id, name="thumbnailId")
+    ext = extension.lower().lstrip(".")
+    if not ext.isalnum():
+        raise InvalidPathSegment(f"Invalid extension: {extension!r}")
+    return (
+        f"{project_path(uid, project_id)}/thumbnails/{segment}/refs/"
+        f"f{max(0, int(timestamp_ms))}.{ext}"
+    )
+
+
 def analysis_runs_collection_path(uid: str, project_id: str) -> str:
     return f"{project_path(uid, project_id)}/analysisRuns"
 

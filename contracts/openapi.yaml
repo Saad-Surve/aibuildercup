@@ -625,6 +625,133 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/projects/{projectId}/thumbnails:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: List thumbnail concepts, newest first
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ThumbnailConceptList" }
+    post:
+      summary: Plan and render a batch of grounded thumbnail concepts
+      description: |
+        Queues one `thumbnail` job. A planner reads the transcript, the reviewer findings, the
+        title and the creator persona, and writes a distinct concept per thumbnail: a short
+        headline, a visual direction, the timestamp of the moment to take the presenter's face
+        from, and a rationale that cites the evidence. FFmpeg pulls reference frames from the
+        source video and Gemini image generation ("Nano Banana") renders each concept around the
+        real person; a cheap multimodal pass then critiques legibility, promise-vs-content and
+        platform fit. Records live under the project subtree and images under the project object
+        prefix, so project and account deletion remove them with no extra wiring.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GenerateThumbnailsRequest" }
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ThumbnailBatchAccepted" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: The project has reached its image-generation budget
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/projects/{projectId}/thumbnails/{thumbnailId}:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { name: thumbnailId, in: path, required: true, schema: { type: string } }
+    get:
+      summary: Get one thumbnail concept with its versions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ThumbnailConcept" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      summary: Delete a thumbnail concept and its images
+      responses:
+        "204": { description: Deleted }
+
+  /api/projects/{projectId}/thumbnails/{thumbnailId}/revise:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { name: thumbnailId, in: path, required: true, schema: { type: string } }
+    post:
+      summary: Conversationally edit a concept's active image
+      description: |
+        Queues a `thumbnail` job in `revise` mode. The active image is fed back to Gemini image
+        generation with the creator's instruction, and the result is appended as a new version;
+        no earlier image is overwritten.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReviseThumbnailRequest" }
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ThumbnailRevisionAccepted" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: The concept has no image to edit yet
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/projects/{projectId}/thumbnails/{thumbnailId}/apply:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { name: thumbnailId, in: path, required: true, schema: { type: string } }
+    post:
+      summary: Apply a concept as the project's packaging promise
+      description: |
+        Writes the concept's headline and rationale to `project.thumbnailConcept`, which the
+        reviewers already read when judging a hook. Marks this concept `isApplied` and clears
+        the flag on the others.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ThumbnailConcept" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: The concept has no headline yet
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/projects/{projectId}/thumbnails/{thumbnailId}/download-url:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { name: thumbnailId, in: path, required: true, schema: { type: string } }
+    get:
+      summary: Signed download URL for a concept's active image
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DownloadUrl" }
+        "400":
+          description: The thumbnail is not ready yet
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/projects/{projectId}/analysis:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
@@ -1315,6 +1442,127 @@ components:
       type: object
       properties:
         captionRenderId: { type: string }
+        jobId: { type: string }
+        status: { type: string }
+
+    ThumbnailAspect:
+      type: string
+      enum: ["16:9", "9:16", "1:1"]
+
+    ThumbnailStatus:
+      type: string
+      enum: [queued, generating, ready, failed]
+
+    ThumbnailCritique:
+      type: object
+      description: An honest read of a generated thumbnail, each axis scored 1-5.
+      properties:
+        legibility:
+          type: integer
+          minimum: 0
+          maximum: 5
+          description: Can the headline be read at phone size?
+        promise:
+          type: integer
+          minimum: 0
+          maximum: 5
+          description: Does the thumbnail promise what the video actually delivers?
+        platformFit:
+          type: integer
+          minimum: 0
+          maximum: 5
+        summary: { type: string }
+        suggestions: { type: array, items: { type: string } }
+
+    ThumbnailVersion:
+      type: object
+      description: One immutable generated image; edits append versions.
+      properties:
+        versionId: { type: string }
+        version: { type: integer }
+        storagePath: { type: [string, "null"] }
+        mimeType: { type: string }
+        width: { type: integer }
+        height: { type: integer }
+        sizeBytes: { type: integer }
+        instruction:
+          type: string
+          description: The visual direction (v1) or the creator's edit instruction (later).
+        headline: { type: string }
+        rationale: { type: string }
+        referenceTimestampsMs:
+          type: array
+          items: { type: integer }
+          description: Source-video offsets used as reference frames for this version.
+        critique:
+          oneOf:
+            - $ref: "#/components/schemas/ThumbnailCritique"
+            - type: "null"
+        model: { type: string }
+        costUsd: { type: number }
+        createdAt: { type: string, format: date-time }
+
+    ThumbnailConcept:
+      type: object
+      properties:
+        thumbnailId: { type: string }
+        projectId: { type: string }
+        status: { $ref: "#/components/schemas/ThumbnailStatus" }
+        aspect: { $ref: "#/components/schemas/ThumbnailAspect" }
+        headline: { type: string }
+        rationale: { type: string }
+        sourceTimestampMs: { type: [integer, "null"] }
+        referenceTimestampsMs: { type: array, items: { type: integer } }
+        activeVersionId: { type: [string, "null"] }
+        versions: { type: array, items: { $ref: "#/components/schemas/ThumbnailVersion" } }
+        isApplied:
+          type: boolean
+          description: True when written to `project.thumbnailConcept`.
+        jobId: { type: [string, "null"] }
+        error: { type: [object, "null"], additionalProperties: true }
+        previewUrl:
+          type: [string, "null"]
+          description: Signed URL for the active version, minted on read for ready concepts.
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ThumbnailConceptList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ThumbnailConcept" }
+
+    GenerateThumbnailsRequest:
+      type: object
+      properties:
+        count: { type: integer, minimum: 1, maximum: 6, default: 4 }
+        aspect: { $ref: "#/components/schemas/ThumbnailAspect" }
+        imageSize: { type: string, enum: ["512", "1K", "2K", "4K"], default: "1K" }
+        brief: { type: string, maxLength: 600 }
+        useRealFrames:
+          type: boolean
+          default: true
+          description: Use the project's real frames as references so the creator's likeness survives.
+        useProModel: { type: boolean, default: false }
+
+    ReviseThumbnailRequest:
+      type: object
+      required: [instruction]
+      properties:
+        instruction: { type: string, minLength: 1, maxLength: 600 }
+
+    ThumbnailBatchAccepted:
+      type: object
+      properties:
+        thumbnailIds: { type: array, items: { type: string } }
+        jobId: { type: string }
+        status: { type: string }
+
+    ThumbnailRevisionAccepted:
+      type: object
+      properties:
+        thumbnailId: { type: string }
         jobId: { type: string }
         status: { type: string }
 

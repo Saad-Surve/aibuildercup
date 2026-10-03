@@ -19,10 +19,12 @@ from app.services.persona_service import PersonaService
 from app.services.project_service import ProjectService
 from app.services.pubsub_service import PubSubClient, get_pubsub_client
 from app.services.storage_service import get_storage_client
+from app.services.thumbnail_service import ThumbnailService
 from app.services.transcript_service import TranscriptService
 from app.services.user_service import UserService
 from app.workers.analysis_worker import analysis_after_response
 from app.workers.caption_worker import caption_render_after_response
+from app.workers.thumbnail_worker import thumbnail_after_response
 from app.workers.transcribe_worker import transcribe_after_response
 
 
@@ -89,6 +91,31 @@ def get_caption_service() -> CaptionRenderService:
         storage=storage,
         url_ttl_seconds=get_settings().upload_url_ttl_seconds,
     )
+
+
+def get_thumbnail_service() -> ThumbnailService:
+    client = get_firestore_client()
+    storage = get_storage_client()
+    settings = get_settings()
+    projects = ProjectService(client, storage=storage)
+    return ThumbnailService(
+        client,
+        projects=projects,
+        jobs=JobService(client),
+        storage=storage,
+        url_ttl_seconds=settings.upload_url_ttl_seconds,
+        price_per_image_usd=settings.imagegen_price_per_image_usd,
+        max_project_cost_usd=settings.max_project_cost_usd,
+    )
+
+
+# (background_tasks, *, owner_uid, project_id, job_id) -> None. Injected so tests can
+# record scheduling without running the worker.
+ThumbnailScheduler = Callable[..., None]
+
+
+def get_thumbnail_scheduler() -> ThumbnailScheduler:
+    return thumbnail_after_response
 
 
 # (background_tasks, *, owner_uid, project_id, job_id) -> None. Injected so tests can

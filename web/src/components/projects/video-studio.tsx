@@ -278,7 +278,13 @@ export function VideoStudio({
           <CaptionsModule projectId={projectId} projectName={project.name} />
         );
       case "packaging":
-        return <PackagingModule />;
+        return (
+          <PackagingModule
+            projectId={projectId}
+            projectName={project.name}
+            thumbnailConcept={project.thumbnailConcept}
+          />
+        );
       case "localization":
         return (
           <LocalizationModule

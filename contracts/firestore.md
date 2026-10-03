@@ -17,6 +17,7 @@ users/{uid}
     ├── jobs/{jobId}/events/{eventId}
     ├── transcripts/{transcriptId}/segments/{segmentId}
     ├── captionRenders/{captionRenderId}
+    ├── thumbnailConcepts/{thumbnailId}
     ├── draft/main
     ├── analysisRuns/{analysisRunId}
     │   ├── reviewers/{reviewerRunId}
@@ -49,3 +50,15 @@ demoProfiles/{demoProfileId}  platform
 `versions[]`. Deletes need no special handling because the document sits under the project
 subtree. The project document mirrors `draftSummary` (title, preview, word/block/version
 counts) for list cards.
+
+## Thumbnail concept documents
+
+`users/{uid}/projects/{projectId}/thumbnailConcepts/{thumbnailId}` holds one candidate
+thumbnail: the planned `headline`, the evidence-citing `rationale`, the `aspect`, the
+`referenceTimestampsMs` used to keep the creator's likeness, and an append-only `versions[]`
+(each with its `storagePath`, `critique`, `model`, and `costUsd`). The generated images live
+under the project object prefix at `.../thumbnails/{thumbnailId}/v{n}.{ext}`, and the reference
+frames at `.../thumbnails/{thumbnailId}/refs/f{ms}.jpg`. Both the Firestore subtree and the
+object prefix are covered by the existing recursive project / account delete, so thumbnail data
+needs no extra delete wiring. Applying a concept writes its headline + rationale to
+`project.thumbnailConcept`, which the reviewers already read as packaging context.

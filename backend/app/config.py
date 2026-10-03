@@ -43,9 +43,26 @@ class Settings(BaseSettings):
     #: Draft studio writing partner (Gemini). Defaults to the flash-lite tier; the
     #: deployed config can point it at a stronger Gemini for better prose.
     model_writer: str = "gemini-3.1-flash-lite"
-    model_image: str = "imagen-4.0-generate-001"
+    #: Images use Gemini image generation ("Nano Banana") on Agent Platform. It accepts
+    #: reference images (the creator's real face), edits conversationally, and renders
+    #: legible text, unlike Imagen. See docs/current-progress/2026-10-03-1015.
+    model_image: str = "gemini-3.1-flash-image"
+    #: Higher-fidelity image model for hero shots; more expensive. Used only when a
+    #: request explicitly opts into it.
+    model_image_pro: str = "gemini-3-pro-image"
     model_video: str = "veo-3.1-fast"
     model_stt: str = "chirp_3"
+
+    # Thumbnail studio. `imagegen_max_concepts` bounds one generation batch, and the
+    # per-image price feeds the project cost guard. Fetching real frames as references is
+    # what keeps the creator's likeness; `thumbnail_reference_frames` caps how many are
+    # attached per image so a call cannot balloon.
+    imagegen_max_concepts: int = 4
+    imagegen_default_aspect: str = "16:9"
+    imagegen_default_size: str = "1K"
+    imagegen_price_per_image_usd: float = 0.067
+    thumbnail_reference_frames: int = 3
+    thumbnail_frame_max_width: int = 1024
 
     # Transcript cleanup: after Chirp returns, one cheap LLM pass fixes only obvious
     # recognition errors and infers speaker turns. Best-effort; a failure keeps the raw
