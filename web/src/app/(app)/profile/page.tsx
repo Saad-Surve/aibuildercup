@@ -7,6 +7,7 @@ import { Delete02Icon, Edit02Icon } from "@hugeicons/core-free-icons";
 import { useAuth } from "@/components/auth/auth-provider";
 import { AvatarEditorDialog } from "@/components/avatar/avatar-customizer";
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { PageHeader } from "@/components/common/page-header";
 import { PersonaText } from "@/components/common/persona-text";
 import {
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError, apiFetch } from "@/lib/api-client";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 // import { cn } from "@/lib/utils";
 import type { Persona } from "@/lib/types";
 
@@ -77,6 +79,7 @@ export default function ProfilePage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const readOnly = useReadOnly();
 
   useEffect(() => {
     let active = true;
@@ -173,14 +176,17 @@ export default function ProfilePage() {
           </CardDescription>
           {persona ? (
             <CardAction>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push("/persona")}
-              >
-                <Icon icon={Edit02Icon} />
-                Edit persona
-              </Button>
+              <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push("/persona")}
+                  disabled={readOnly}
+                >
+                  <Icon icon={Edit02Icon} />
+                  Edit persona
+                </Button>
+              </DisabledReason>
             </CardAction>
           ) : null}
         </CardHeader>
@@ -196,12 +202,15 @@ export default function ProfilePage() {
           ) : (
             <div className="space-y-3 text-sm text-muted-foreground">
               <p>{personaError ?? "No persona yet."}</p>
-              <Button
-                variant="outline"
-                onClick={() => router.push("/onboarding")}
-              >
-                Go to onboarding
-              </Button>
+              <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push("/onboarding")}
+                  disabled={readOnly}
+                >
+                  Go to onboarding
+                </Button>
+              </DisabledReason>
             </div>
           )}
         </CardContent>
@@ -221,10 +230,14 @@ export default function ProfilePage() {
           ) : null}
 
           <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-            <AlertDialogTrigger render={<Button variant="destructive" />}>
-              <Icon icon={Delete02Icon} />
-              Delete account
-            </AlertDialogTrigger>
+            <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+              <AlertDialogTrigger
+                render={<Button variant="destructive" disabled={readOnly} />}
+              >
+                <Icon icon={Delete02Icon} />
+                Delete account
+              </AlertDialogTrigger>
+            </DisabledReason>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete your account?</AlertDialogTitle>

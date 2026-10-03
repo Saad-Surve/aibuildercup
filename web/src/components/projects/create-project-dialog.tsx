@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { ChipSelect } from "@/components/common/chip-select";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api-client";
 import { DRAFT_FORMAT_OPTIONS } from "@/lib/drafts";
 import { createProject } from "@/lib/projects";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { workspaceHref } from "@/lib/studio";
 import {
   LANGUAGE_OPTIONS,
@@ -83,6 +85,7 @@ const FORMAT_CHIPS = DRAFT_FORMAT_OPTIONS.map((option) => ({
 export function CreateProjectDialog() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const readOnly = useReadOnly();
 
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<ProjectKind>("video");
@@ -170,10 +173,12 @@ export function CreateProjectDialog() {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger render={<Button />}>
-        <Icon icon={PlusSignIcon} />
-        New project
-      </DialogTrigger>
+      <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+        <DialogTrigger render={<Button disabled={readOnly} />}>
+          <Icon icon={PlusSignIcon} />
+          New project
+        </DialogTrigger>
+      </DisabledReason>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>New project</DialogTitle>
@@ -382,7 +387,7 @@ export function CreateProjectDialog() {
             >
               Cancel
             </DialogClose>
-            <Button type="submit" disabled={mutation.isPending}>
+            <Button type="submit" disabled={mutation.isPending || readOnly}>
               {mutation.isPending
                 ? "Creating…"
                 : kind === "draft"

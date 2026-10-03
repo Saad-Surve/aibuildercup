@@ -912,7 +912,8 @@ const STEPS = [
 ];
 
 export function LandingPage() {
-  const { profile, status, error, signInWithGoogle, signOut } = useAuth();
+  const { profile, status, error, signInWithGoogle, signInAsDemo, demoAvailable, signOut } =
+    useAuth();
   const router = useRouter();
   const [hoverCard, setHoverCard] = useState<string | null>(null);
   const { flowStageRef } = useFlowStage();
@@ -982,6 +983,15 @@ export function LandingPage() {
             ) : (
               <>
                 <GoogleSignInButton onClick={signInWithGoogle} />
+                {demoAvailable ? (
+                  <button
+                    type="button"
+                    onClick={signInAsDemo}
+                    className="cursor-pointer text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                  >
+                    or explore the read-only demo
+                  </button>
+                ) : null}
                 <a
                   href="#features"
                   className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -1325,7 +1335,7 @@ export function LandingPage() {
                 Join Resonance and turn one upload into transcripts, reviews,
                 clips, posts, and dubbing.
               </p>
-              <div className="mt-8">
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <button
                   type="button"
                   onClick={signInWithGoogle}
@@ -1334,6 +1344,15 @@ export function LandingPage() {
                   Start creating
                   <Icon icon={ArrowRight01Icon} className="size-4" />
                 </button>
+                {demoAvailable ? (
+                  <button
+                    type="button"
+                    onClick={signInAsDemo}
+                    className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full border border-white/40 px-6 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                  >
+                    Try the read-only demo
+                  </button>
+                ) : null}
               </div>
               <p className="mt-5 text-xs text-white/70">
                 Free to start · Continue with Google · Your footage stays yours

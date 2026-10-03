@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Delete02Icon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api-client";
 import { purgeProjectMedia } from "@/lib/local-media";
 import { deleteProject } from "@/lib/projects";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 
 function describe(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -43,6 +45,7 @@ export function DeleteProjectDialog({
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const readOnly = useReadOnly();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,14 +76,20 @@ export function DeleteProjectDialog({
         if (!next) setError(null);
       }}
     >
-      <AlertDialogTrigger
-        render={
-          <Button variant={destructive ? "destructive" : "outline"} size="sm">
-            <Icon icon={Delete02Icon} />
-            Delete
-          </Button>
-        }
-      />
+      <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+        <AlertDialogTrigger
+          render={
+            <Button
+              variant={destructive ? "destructive" : "outline"}
+              size="sm"
+              disabled={readOnly}
+            >
+              <Icon icon={Delete02Icon} />
+              Delete
+            </Button>
+          }
+        />
+      </DisabledReason>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
           <AlertDialogMedia>

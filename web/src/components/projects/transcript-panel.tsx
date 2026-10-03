@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -49,6 +50,7 @@ import {
   transcriptFileBase,
   type TranscriptExportFormat,
 } from "@/lib/transcript-export";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { WORKSPACE_PANE_SNAP } from "@/lib/workspace";
 
 /*
@@ -74,6 +76,7 @@ export function TranscriptPanel({
   failureMessage?: string | null;
 }) {
   const [version, setVersion] = useState<number | null>(null);
+  const readOnly = useReadOnly();
   const router = useRouter();
   // `processing` gates the missing-transcript messaging; polling only happens
   // when push is unavailable (`live` false). See the hook for the full rules.
@@ -191,30 +194,37 @@ export function TranscriptPanel({
               </Select>
             )}
             <div className="ml-auto flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => rerun.mutate()}
-                disabled={rerun.isPending || processing}
-                title={
-                  processing ? "Transcription is already running" : undefined
-                }
-              >
-                <Icon icon={SparklesIcon} />
-                {rerun.isPending ? "Starting…" : "Re-run"}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  router.push(`/projects/transcript?projectId=${projectId}`)
-                }
-              >
-                <Icon icon={PencilEdit02Icon} />
-                Edit
-              </Button>
+              <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => rerun.mutate()}
+                  disabled={rerun.isPending || processing || readOnly}
+                  title={
+                    processing
+                      ? "Transcription is already running"
+                      : undefined
+                  }
+                >
+                  <Icon icon={SparklesIcon} />
+                  {rerun.isPending ? "Starting…" : "Re-run"}
+                </Button>
+              </DisabledReason>
+              <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    router.push(`/projects/transcript?projectId=${projectId}`)
+                  }
+                  disabled={readOnly}
+                >
+                  <Icon icon={PencilEdit02Icon} />
+                  Edit
+                </Button>
+              </DisabledReason>
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={<Button type="button" size="sm" variant="outline" />}

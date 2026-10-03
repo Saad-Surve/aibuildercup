@@ -32,6 +32,7 @@ import {
   type OnboardingAnswers,
   type StepId,
 } from "@/lib/onboarding";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import type { OnboardingState, Persona } from "@/lib/types";
 
 const DATA_STEPS: StepId[] = [
@@ -55,6 +56,7 @@ export function OnboardingFlow({
 }) {
   const { profile, refreshProfile } = useAuth();
   const router = useRouter();
+  const readOnly = useReadOnly();
 
   // Editing reuses the same steps but starts at the first data step and ends
   // back on the profile, with every answer prefilled from what was saved.
@@ -183,6 +185,27 @@ export function OnboardingFlow({
   }
 
   const canContinue = stepIsComplete(step.id, answers);
+
+  if (readOnly) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 px-6 text-center">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+          Editing is disabled
+        </h1>
+        <p className="max-w-prose text-sm text-muted-foreground">
+          {READ_ONLY_REASON} You can browse the rest of the studio freely.
+        </p>
+        <Button
+          variant="outline"
+          onClick={() =>
+            router.push(mode === "edit" ? "/profile" : "/dashboard")
+          }
+        >
+          Back
+        </Button>
+      </div>
+    );
+  }
   const percent = Math.round(((index + 1) / steps.length) * 100);
 
   const continueLabel =

@@ -210,8 +210,26 @@ Firebase is attached to the `habeas-codus` GCP project (imported, not a separate
 | Web app | `Creator Studio Web` |
 | App ID | `1:538724167565:web:87eb1e0f5245b5079217c4` |
 | Auth domain | `habeas-codus.firebaseapp.com` |
-| Sign-in | Google enabled |
+| Sign-in | Google enabled. Email/Password is **disabled**; the demo uses passwordless custom tokens |
 | Authorized domains | `localhost`, `habeas-codus.firebaseapp.com`, `habeas-codus.web.app` |
+
+### Read-only demo account
+
+The shared demo account `demo@habeascodus.app` (UID `demoCreatorHabeasCodus`) is **passwordless**:
+the web client calls `POST /api/demo/session`, which returns a short-lived Firebase custom token
+minted via the IAM signBlob API (the API service account has `serviceAccountTokenCreator` on
+itself). No password is ever shipped to the browser, and Email/Password sign-in is disabled so
+the old shared password cannot be used. Its content was seeded from a real creator with
+`backend/scripts/copy_user_content.py`.
+
+The UID is listed in `READ_ONLY_USER_UIDS`, so the API rejects every POST/PUT/PATCH/DELETE from
+it with 403, and `DEMO_USER_UID` enables the session endpoint. The web client disables the
+matching controls and shows a read-only banner. The landing page shows a one-click "Try the
+demo" when `NEXT_PUBLIC_DEMO_ENABLED=true`.
+
+Residual client-SDK actions on the account itself (e.g. `deleteUser`) do not touch any content
+(it lives in Firestore/Cloud Storage and survives an Auth deletion); `POST /api/demo/session`
+recreates the Auth user if it is missing, so the demo self-heals on the next click.
 
 Web config (public, safe to expose — the API key is an identifier, not a secret):
 

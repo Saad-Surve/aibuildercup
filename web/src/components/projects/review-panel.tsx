@@ -10,6 +10,7 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { FindingsPanel } from "@/components/projects/findings-panel";
 import { GroundingPanel } from "@/components/projects/grounding-panel";
 import { HeatmapTracks } from "@/components/projects/heatmap-tracks";
@@ -41,6 +42,7 @@ import {
 } from "@/lib/analysis";
 import type { AnalysisDimension, AnalysisRun, Severity } from "@/lib/types";
 import { CORE_DIMENSIONS } from "@/lib/types";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { WORKSPACE_PANE_SNAP } from "@/lib/workspace";
 import { cn } from "@/lib/utils";
 
@@ -68,6 +70,7 @@ export function ReviewPanel({
   transcriptShouldPoll?: boolean;
 }) {
   const queryClient = useQueryClient();
+  const readOnly = useReadOnly();
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [severityFilter, setSeverityFilter] = useState<Severity[]>([]);
   const [selectedBinId, setSelectedBinId] = useState<string | null>(null);
@@ -265,25 +268,27 @@ export function ReviewPanel({
                   </SelectContent>
                 </Select>
               )}
-              <Button
-                size="sm"
-                onClick={() => startMutation.mutate()}
-                disabled={
-                  startMutation.isPending || isRunning || !hasTranscript
-                }
-                title={
-                  hasTranscript
-                    ? undefined
-                    : "Available once the transcript is ready"
-                }
-              >
-                <Icon icon={SparklesIcon} />
-                {startMutation.isPending
-                  ? "Starting…"
-                  : runs.length > 0
-                    ? "Run analysis again"
-                    : "Run analysis"}
-              </Button>
+              <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                <Button
+                  size="sm"
+                  onClick={() => startMutation.mutate()}
+                  disabled={
+                    startMutation.isPending || isRunning || !hasTranscript || readOnly
+                  }
+                  title={
+                    hasTranscript
+                      ? undefined
+                      : "Available once the transcript is ready"
+                  }
+                >
+                  <Icon icon={SparklesIcon} />
+                  {startMutation.isPending
+                    ? "Starting…"
+                    : runs.length > 0
+                      ? "Run analysis again"
+                      : "Run analysis"}
+                </Button>
+              </DisabledReason>
             </div>
           </div>
         </CardHeader>
@@ -306,13 +311,15 @@ export function ReviewPanel({
                 A newer transcript is ready. Run the review again to grade this
                 revision.
               </span>
-              <Button
-                size="sm"
-                onClick={() => startMutation.mutate()}
-                disabled={startMutation.isPending}
-              >
-                {startMutation.isPending ? "Starting…" : "Run analysis again"}
-              </Button>
+              <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                <Button
+                  size="sm"
+                  onClick={() => startMutation.mutate()}
+                  disabled={startMutation.isPending || readOnly}
+                >
+                  {startMutation.isPending ? "Starting…" : "Run analysis again"}
+                </Button>
+              </DisabledReason>
             </div>
           )}
 

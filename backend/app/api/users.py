@@ -27,7 +27,7 @@ async def get_me(user: UserDep, service: UserServiceDep) -> Me:
         email=user.email,
         photo_url=user.picture,
     )
-    return service.to_me(user.uid, data)
+    return service.to_me(user.uid, data, read_only=user.read_only)
 
 
 @router.put("/me/avatar", response_model=AvatarState)

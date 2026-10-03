@@ -11,6 +11,7 @@ from app.api import (
     analysis,
     captions,
     connections,
+    demo,
     draft,
     glossaries,
     health,
@@ -25,6 +26,12 @@ from app.api import (
     uploads,
     users,
     ws,
+)
+from app.auth.read_only import (
+    READ_ONLY_MESSAGE,
+    is_read_only_allowed,
+    is_write_method,
+    read_only_claims,
 )
 from app.config import get_settings
 from app.errors import AppError, error_body
@@ -54,6 +61,39 @@ def create_app() -> FastAPI:
         redoc_url=None,
         openapi_url="/openapi.json" if settings.is_local else None,
     )
+
+    # Registered before CORS so CORS wraps it: a read-only 403 then still carries the CORS
+    # headers the browser needs to surface the error. (Starlette wraps last-added outermost,
+    # so the middleware defined first here ends up innermost.)
+    @app.middleware("http")
+    async def read_only_middleware(request: Request, call_next):
+        """Reject writes from demo accounts before any router or service runs.
+
+        This is the enforcement, not a hint: the UI disables the same controls, but a crafted
+        request is stopped here. Non-read-only deployments (`read_only_user_uids` empty) pay
+        nothing. Requests without a valid token fall through so the router returns its own 401.
+        """
+        if (
+            settings.read_only_user_uids
+            and is_write_method(request.method)
+            and not is_read_only_allowed(request.url.path)
+        ):
+            header = request.headers.get("authorization", "")
+            if header.lower().startswith("bearer "):
+                claims = read_only_claims(header[7:].strip())
+                if claims is not None:
+                    # Cache the verified claims so `current_user` need not verify again.
+                    request.state.firebase_token_claims = claims
+                    return JSONResponse(
+                        status_code=403,
+                        content=error_body(
+                            code="FORBIDDEN",
+                            message=READ_ONLY_MESSAGE,
+                            request_id=_request_id(request),
+                            details={"reason": "read_only_demo"},
+                        ),
+                    )
+        return await call_next(request)
 
     app.add_middleware(
         CORSMiddleware,
@@ -127,6 +167,7 @@ def create_app() -> FastAPI:
         )
 
     app.include_router(health.router, prefix="/api")
+    app.include_router(demo.router, prefix="/api")
     app.include_router(users.router, prefix="/api")
     app.include_router(onboarding.router, prefix="/api")
     app.include_router(connections.router, prefix="/api")

@@ -7,6 +7,7 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,6 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { Job, Project } from "@/lib/types";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
 
 /** The job carries the provider's real failure reason; it is the best message to show. */
@@ -68,6 +70,7 @@ export function ProcessingStatusCard({
   onRetry?: () => void;
   retrying?: boolean;
 }) {
+  const readOnly = useReadOnly();
   const failed = job?.status === "failed" || project.status === "failed";
   const step = job?.progress.step ?? project.progress?.stage ?? null;
   const label = stateLabel(step, failed);
@@ -126,19 +129,21 @@ export function ProcessingStatusCard({
           {message}
         </p>
         {failed && onRetry ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onRetry}
-            disabled={retrying}
-          >
-            <Icon
-              icon={RefreshIcon}
-              className={retrying ? "animate-spin" : undefined}
-            />
-            {retrying ? "Retrying…" : "Retry transcription"}
-          </Button>
+          <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onRetry}
+              disabled={retrying || readOnly}
+            >
+              <Icon
+                icon={RefreshIcon}
+                className={retrying ? "animate-spin" : undefined}
+              />
+              {retrying ? "Retrying…" : "Retry transcription"}
+            </Button>
+          </DisabledReason>
         ) : null}
       </CardContent>
     </Card>

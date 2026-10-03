@@ -1,6 +1,8 @@
 from functools import lru_cache
+from typing import Annotated
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -9,6 +11,31 @@ class Settings(BaseSettings):
     environment: str = "local"
     project_id: str = "habeas-codus"
     region: str = "us-central1"
+
+    # Read-only demo accounts. Any UID listed here can read everything it owns, but the API
+    # rejects every mutating request (POST/PUT/PATCH/DELETE) with a 403 before it reaches a
+    # service, and the web client disables the matching controls. Set this to the demo
+    # account's `users/{uid}` id. Accepts a JSON array or a comma-separated list.
+    read_only_user_uids: Annotated[list[str], NoDecode] = []
+
+    #: The shared demo account visitors sign into. When set, `POST /api/demo/session` mints a
+    #: Firebase custom token for this UID, so no password is ever exposed to the browser. The
+    #: UID must also be listed in `read_only_user_uids`; the API still rejects its writes.
+    demo_user_uid: str | None = None
+
+    @field_validator("read_only_user_uids", mode="before")
+    @classmethod
+    def _split_read_only_uids(cls, value: object) -> object:
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return []
+            if text.startswith("["):
+                import json
+
+                return json.loads(text)
+            return [part.strip() for part in text.split(",") if part.strip()]
+        return value
 
     firebase_project_id: str = "habeas-codus"
     media_bucket: str = "habeas-codus-media"

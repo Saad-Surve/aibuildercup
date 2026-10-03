@@ -17,8 +17,10 @@ import type { IconSvgElement } from "@hugeicons/react";
 import { Icon } from "@/components/common/icon";
 import { Logo, LogoMark } from "@/components/common/logo";
 import { CopyTokenButton } from "@/components/layout/copy-token-button";
+import { ReadOnlyBanner } from "@/components/layout/read-only-banner";
 import { UserMenu } from "@/components/layout/user-menu";
 import { useFeatureFlag } from "@/lib/feature-flags";
+import { useReadOnly } from "@/lib/read-only";
 import { HeaderNavProvider } from "@/lib/header-nav";
 import { cn } from "@/lib/utils";
 
@@ -174,6 +176,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const readyItems = NAV.filter((item) => item.ready);
   const [collapsed, setCollapsed] = useSidebarCollapsed();
   const copyAuthToken = useFeatureFlag("copyAuthToken");
+  const readOnly = useReadOnly();
   // A page can put its own navigation in the sticky header (see `useSetHeaderNav`).
   const [headerNav, setHeaderNavState] = useState<ReactNode>(null);
   const setHeaderNav = useCallback((node: ReactNode) => {
@@ -270,7 +273,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {headerNav}
             </div>
             <div className="flex shrink-0 items-center gap-1">
-              {copyAuthToken ? <CopyTokenButton /> : null}
+              {copyAuthToken && !readOnly ? <CopyTokenButton /> : null}
               <UserMenu />
             </div>
           </header>
@@ -299,6 +302,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
+
+          <ReadOnlyBanner />
 
           <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">
             {children}

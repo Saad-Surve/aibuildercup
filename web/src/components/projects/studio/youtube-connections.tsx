@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api-client";
@@ -22,6 +23,7 @@ import {
   syncConnection,
 } from "@/lib/connections";
 import type { Connection } from "@/lib/types";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
 
 function describe(error: unknown, fallback: string): string {
@@ -81,6 +83,7 @@ export function YouTubeConnections({
   className?: string;
 }) {
   const queryClient = useQueryClient();
+  const readOnly = useReadOnly();
   const connectionsQuery = useQuery({
     queryKey: ["connections"],
     queryFn: listConnections,
@@ -160,20 +163,22 @@ export function YouTubeConnections({
             </Badge>
           ) : null}
         </div>
-        <Button
-          type="button"
-          size="sm"
-          variant={connections.length === 0 ? "default" : "outline"}
-          onClick={() => connectMutation.mutate()}
-          disabled={connectMutation.isPending}
-        >
-          {connectMutation.isPending ? (
-            <Icon icon={Loading03Icon} className="animate-spin" />
-          ) : (
-            <Icon icon={Link01Icon} />
-          )}
-          Connect a Google account
-        </Button>
+        <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+          <Button
+            type="button"
+            size="sm"
+            variant={connections.length === 0 ? "default" : "outline"}
+            onClick={() => connectMutation.mutate()}
+            disabled={connectMutation.isPending || readOnly}
+          >
+            {connectMutation.isPending ? (
+              <Icon icon={Loading03Icon} className="animate-spin" />
+            ) : (
+              <Icon icon={Link01Icon} />
+            )}
+            Connect a Google account
+          </Button>
+        </DisabledReason>
       </div>
 
       {connectionsQuery.isLoading ? (
@@ -241,34 +246,38 @@ export function YouTubeConnections({
                     ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
-                    <Button
-                      type="button"
-                      size="icon-sm"
-                      variant="ghost"
-                      aria-label="Refresh channel stats"
-                      onClick={() => syncMutation.mutate(connection.connectionId)}
-                      disabled={syncMutation.isPending}
-                    >
-                      <Icon
-                        icon={Refresh01Icon}
-                        className={cn(
-                          syncMutation.isPending &&
-                            syncMutation.variables === connection.connectionId &&
-                            "animate-spin",
-                        )}
-                      />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() =>
-                        disconnectMutation.mutate(connection.connectionId)
-                      }
-                      disabled={disconnectMutation.isPending}
-                    >
-                      Disconnect
-                    </Button>
+                    <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label="Refresh channel stats"
+                        onClick={() => syncMutation.mutate(connection.connectionId)}
+                        disabled={syncMutation.isPending || readOnly}
+                      >
+                        <Icon
+                          icon={Refresh01Icon}
+                          className={cn(
+                            syncMutation.isPending &&
+                              syncMutation.variables === connection.connectionId &&
+                              "animate-spin",
+                          )}
+                        />
+                      </Button>
+                    </DisabledReason>
+                    <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          disconnectMutation.mutate(connection.connectionId)
+                        }
+                        disabled={disconnectMutation.isPending || readOnly}
+                      >
+                        Disconnect
+                      </Button>
+                    </DisabledReason>
                   </div>
                 </div>
               </li>

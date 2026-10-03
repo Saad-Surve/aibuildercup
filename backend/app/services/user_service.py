@@ -84,7 +84,7 @@ class UserService:
     def get_user(self, owner_uid: str) -> dict[str, Any]:
         return self.ensure_user(owner_uid)
 
-    def to_me(self, owner_uid: str, data: dict[str, Any]) -> Me:
+    def to_me(self, owner_uid: str, data: dict[str, Any], *, read_only: bool = False) -> Me:
         onboarding = data.get("onboarding") or {}
         persona = data.get("persona") or {}
         preferences = data.get("preferences") or {}
@@ -100,6 +100,7 @@ class UserService:
                 defaultLanguage=preferences.get("defaultLanguage", "en"),
             ),
             avatar=AvatarState(**avatar) if isinstance(avatar, dict) else None,
+            readOnly=read_only,
         )
 
     def save_avatar(self, owner_uid: str, avatar: AvatarState) -> AvatarState:

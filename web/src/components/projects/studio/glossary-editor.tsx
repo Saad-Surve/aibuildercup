@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api-client";
 import { getGlobalCorpus, getGlossary, putGlossary } from "@/lib/dubbing";
 import type { GlossaryTerm } from "@/lib/types";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { WORKSPACE_SNAP_TARGET } from "@/lib/workspace";
 
 function errorMessage(error: unknown, fallback: string): string {
@@ -59,6 +61,7 @@ function parseTerms(text: string): GlossaryTerm[] {
  */
 export function GlossaryEditor({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
+  const readOnly = useReadOnly();
   const [draft, setDraft] = useState<string | null>(null);
 
   const glossaryQuery = useQuery({
@@ -147,6 +150,7 @@ export function GlossaryEditor({ projectId }: { projectId: string }) {
               onChange={(event) => setDraft(event.target.value)}
               rows={6}
               spellCheck={false}
+              readOnly={readOnly}
               placeholder={"credit score = क्रेडिट स्कोर\nfinancial freedom = आर्थिक आज़ादी"}
               aria-label="Project glossary terms"
             />
@@ -157,18 +161,24 @@ export function GlossaryEditor({ projectId }: { projectId: string }) {
                   ? ` · source ${glossaryQuery.data.sourceLanguage}`
                   : null}
               </span>
-              <Button
-                type="button"
-                size="sm"
-                disabled={!dirty || saveMutation.isPending}
-                onClick={() => saveMutation.mutate()}
-              >
-                <Icon
-                  icon={saveMutation.isPending ? Loading03Icon : CheckmarkBadge01Icon}
-                  className={saveMutation.isPending ? "animate-spin" : undefined}
-                />
-                {saveMutation.isPending ? "Saving…" : "Save glossary"}
-              </Button>
+              <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!dirty || saveMutation.isPending || readOnly}
+                  onClick={() => saveMutation.mutate()}
+                >
+                  <Icon
+                    icon={
+                      saveMutation.isPending
+                        ? Loading03Icon
+                        : CheckmarkBadge01Icon
+                    }
+                    className={saveMutation.isPending ? "animate-spin" : undefined}
+                  />
+                  {saveMutation.isPending ? "Saving…" : "Save glossary"}
+                </Button>
+              </DisabledReason>
             </div>
           </>
         )}

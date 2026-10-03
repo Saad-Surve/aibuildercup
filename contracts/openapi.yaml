@@ -42,6 +42,26 @@ paths:
                 properties:
                   status: { type: string, const: ready }
 
+  /api/demo/session:
+    post:
+      security: []
+      summary: Start a passwordless read-only demo session
+      description: |
+        Ensures the shared demo Auth user exists and returns a short-lived Firebase custom
+        token for it. The demo UID is read-only, so every mutating request it makes is still
+        rejected with 403. Disabled (404) unless `DEMO_USER_UID` is configured.
+      responses:
+        "200":
+          description: Custom token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token]
+                properties:
+                  token: { type: string }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /api/me:
     get:
       summary: Current application profile
@@ -1399,6 +1419,11 @@ components:
             timezone: { type: string }
             defaultLanguage: { type: string }
         avatar: { $ref: "#/components/schemas/AvatarState" }
+        readOnly:
+          type: boolean
+          description: |
+            True for the read-only demo account. The API rejects every mutating request from
+            this user with 403 and the web client disables the matching controls.
 
     AvatarState:
       type: object

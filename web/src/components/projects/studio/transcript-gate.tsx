@@ -9,6 +9,7 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,6 +19,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import type { StudioModule } from "@/lib/studio";
 
 /**
@@ -43,6 +45,7 @@ export function TranscriptGate({
   failureMessage?: string | null;
   onGenerate: () => void;
 }) {
+  const readOnly = useReadOnly();
   const working = processing || generating;
   return (
     <Card>
@@ -78,16 +81,18 @@ export function TranscriptGate({
               ? "Generating the transcript…"
               : "Generate the timestamped transcript"}
           </MarkerContent>
-          <Button
-            type="button"
-            size="sm"
-            className="ml-auto shrink-0"
-            onClick={onGenerate}
-            disabled={working || !hasVideo || generating}
-          >
-            <Icon icon={SparklesIcon} />
-            {working ? "Generating…" : "Generate transcript"}
-          </Button>
+          <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+            <Button
+              type="button"
+              size="sm"
+              className="ml-auto shrink-0"
+              onClick={onGenerate}
+              disabled={working || !hasVideo || generating || readOnly}
+            >
+              <Icon icon={SparklesIcon} />
+              {working ? "Generating…" : "Generate transcript"}
+            </Button>
+          </DisabledReason>
         </Marker>
 
         <Marker variant="separator" className="py-1">

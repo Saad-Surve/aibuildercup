@@ -10,12 +10,14 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { UserAvatar } from "@/components/avatar/user-avatar";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useUserAvatar } from "@/lib/avatar";
+import { READ_ONLY_REASON } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
 import { WORKSPACE_PANE_HEIGHT } from "@/lib/workspace";
 import type { DraftMessage } from "@/lib/types";
@@ -100,6 +102,7 @@ export function DraftChat({
   onClearContext,
   hasContent,
   onSend,
+  readOnly = false,
 }: {
   messages: DraftMessage[];
   pending: boolean;
@@ -107,6 +110,7 @@ export function DraftChat({
   onClearContext: () => void;
   hasContent: boolean;
   onSend: (message: string) => void;
+  readOnly?: boolean;
 }) {
   const [value, setValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -127,7 +131,7 @@ export function DraftChat({
 
   function submit() {
     const message = value.trim();
-    if (!message || pending) return;
+    if (!message || pending || readOnly) return;
     setValue("");
     onSend(message);
   }
@@ -239,19 +243,24 @@ export function DraftChat({
                 submit();
               }
             }}
-            placeholder="Ask for a change…"
+            readOnly={readOnly}
+            placeholder={
+              readOnly ? "Read-only demo — chatting is disabled" : "Ask for a change…"
+            }
             rows={2}
             className="field-sizing-content min-h-9 resize-none"
           />
-          <Button
-            type="button"
-            size="icon"
-            aria-label="Send"
-            onClick={submit}
-            disabled={pending || !value.trim()}
-          >
-            <Icon icon={SendIcon} />
-          </Button>
+          <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+            <Button
+              type="button"
+              size="icon"
+              aria-label="Send"
+              onClick={submit}
+              disabled={pending || !value.trim() || readOnly}
+            >
+              <Icon icon={SendIcon} />
+            </Button>
+          </DisabledReason>
         </div>
       </div>
     </Card>

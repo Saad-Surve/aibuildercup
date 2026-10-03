@@ -10,6 +10,7 @@ import {
 import { format } from "date-fns";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { VideoDropzone } from "@/components/projects/video-dropzone";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { ApiError } from "@/lib/api-client";
 import { activateRevision, formatBytes, listRevisions } from "@/lib/projects";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import type { Revision } from "@/lib/types";
 
 /*
@@ -156,6 +158,7 @@ export function NewRevisionButton({
   variant?: "outline" | "default";
 }) {
   const invalidate = useRevisionInvalidation(projectId);
+  const readOnly = useReadOnly();
   const [uploadOpen, setUploadOpen] = useState(false);
 
   function handleQueued(jobId: string) {
@@ -166,14 +169,16 @@ export function NewRevisionButton({
 
   return (
     <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
-      <DialogTrigger
-        render={
-          <Button variant={variant} size="sm">
-            <Icon icon={CloudUploadIcon} />
-            New revision
-          </Button>
-        }
-      />
+      <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+        <DialogTrigger
+          render={
+            <Button variant={variant} size="sm" disabled={readOnly}>
+              <Icon icon={CloudUploadIcon} />
+              New revision
+            </Button>
+          }
+        />
+      </DisabledReason>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Upload a new revision</DialogTitle>
@@ -200,6 +205,7 @@ function RevisionRow({
   busy: boolean;
   onActivate: () => void;
 }) {
+  const readOnly = useReadOnly();
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm">
       <div className="flex items-center gap-2">
@@ -221,17 +227,19 @@ function RevisionRow({
           </span>
         ) : null}
         {!revision.isActive && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onActivate}
-            disabled={busy}
-          >
-            {activating ? (
-              <Icon icon={Loading03Icon} className="animate-spin" />
-            ) : null}
-            {activating ? "Switching…" : "Activate"}
-          </Button>
+          <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onActivate}
+              disabled={busy || readOnly}
+            >
+              {activating ? (
+                <Icon icon={Loading03Icon} className="animate-spin" />
+              ) : null}
+              {activating ? "Switching…" : "Activate"}
+            </Button>
+          </DisabledReason>
         )}
       </div>
     </li>

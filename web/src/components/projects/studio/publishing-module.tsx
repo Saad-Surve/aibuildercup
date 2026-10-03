@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { YouTubeConnections } from "@/components/projects/studio/youtube-connections";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,7 @@ import type {
   ThumbnailConcept,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { WORKSPACE_SNAP_TARGET } from "@/lib/workspace";
 
 const CATEGORY_OPTIONS = [
@@ -125,6 +127,7 @@ export function PublishingModule({
   onJobId?: (jobId: string) => void;
 }) {
   const queryClient = useQueryClient();
+  const readOnly = useReadOnly();
 
   const [connectionId, setConnectionId] = useState<string | null>(null);
   const [videoValue, setVideoValue] = useState("source");
@@ -521,18 +524,20 @@ export function PublishingModule({
             </label>
           </div>
 
-          <Button
-            type="button"
-            onClick={() => createMutation.mutate()}
-            disabled={!canSubmit}
-          >
-            {createMutation.isPending ? (
-              <Icon icon={Loading03Icon} className="animate-spin" />
-            ) : (
-              <Icon icon={CloudUploadIcon} />
-            )}
-            Publish to YouTube
-          </Button>
+          <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+            <Button
+              type="button"
+              onClick={() => createMutation.mutate()}
+              disabled={!canSubmit || readOnly}
+            >
+              {createMutation.isPending ? (
+                <Icon icon={Loading03Icon} className="animate-spin" />
+              ) : (
+                <Icon icon={CloudUploadIcon} />
+              )}
+              Publish to YouTube
+            </Button>
+          </DisabledReason>
           {!connectionId ? (
             <p className="text-xs text-muted-foreground">
               Choose a connected channel above first.
@@ -575,16 +580,18 @@ export function PublishingModule({
                   <div className="flex items-center gap-2">
                     <PublishStatusBadge status={publish.status} />
                     {publish.status === "failed" ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => retryMutation.mutate(publish.publishId)}
-                        disabled={retryMutation.isPending}
-                      >
-                        <Icon icon={Refresh01Icon} />
-                        Retry
-                      </Button>
+                      <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => retryMutation.mutate(publish.publishId)}
+                          disabled={retryMutation.isPending || readOnly}
+                        >
+                          <Icon icon={Refresh01Icon} />
+                          Retry
+                        </Button>
+                      </DisabledReason>
                     ) : null}
                     {publish.youtubeUrl ? (
                       <a
@@ -596,16 +603,18 @@ export function PublishingModule({
                         Open on YouTube
                       </a>
                     ) : null}
-                    <Button
-                      type="button"
-                      size="icon-sm"
-                      variant="ghost"
-                      aria-label="Delete publish record"
-                      onClick={() => deleteMutation.mutate(publish.publishId)}
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Icon icon={Delete02Icon} />
-                    </Button>
+                    <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label="Delete publish record"
+                        onClick={() => deleteMutation.mutate(publish.publishId)}
+                        disabled={deleteMutation.isPending || readOnly}
+                      >
+                        <Icon icon={Delete02Icon} />
+                      </Button>
+                    </DisabledReason>
                   </div>
                 </div>
                 {publish.status === "uploading" ||

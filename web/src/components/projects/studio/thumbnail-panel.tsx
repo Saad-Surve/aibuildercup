@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -40,6 +41,7 @@ import {
   reviseThumbnail,
 } from "@/lib/projects";
 import type { ThumbnailAspect, ThumbnailConcept } from "@/lib/types";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
 
 const ASPECTS: { value: ThumbnailAspect; label: string; hint: string }[] = [
@@ -104,6 +106,7 @@ function ConceptCard({
   onApply: (thumbnailId: string) => void;
   onDelete: (thumbnailId: string) => void;
 }) {
+  const readOnly = useReadOnly();
   const [editing, setEditing] = useState(false);
   const [instruction, setInstruction] = useState("");
   const active = useMemo(() => {
@@ -226,13 +229,15 @@ function ConceptCard({
               }}
             />
             <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                onClick={submitRevise}
-                disabled={working || !instruction.trim()}
-              >
-                Apply edit
-              </Button>
+              <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                <Button
+                  size="sm"
+                  onClick={submitRevise}
+                  disabled={working || !instruction.trim() || readOnly}
+                >
+                  Apply edit
+                </Button>
+              </DisabledReason>
               <Button
                 size="sm"
                 variant="ghost"
@@ -247,40 +252,48 @@ function ConceptCard({
           </div>
         ) : (
           <div className="mt-auto flex items-center gap-1.5 pt-1">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={working || !active}
-              onClick={() => setEditing(true)}
-            >
-              <Icon icon={PencilEdit02Icon} />
-              Edit
-            </Button>
-            <Button
-              size="sm"
-              variant={concept.isApplied ? "secondary" : "default"}
-              disabled={working || concept.isApplied || !concept.headline}
-              onClick={() => onApply(concept.thumbnailId)}
-            >
-              <Icon icon={CheckmarkCircle02Icon} />
-              {concept.isApplied ? "Applied" : "Use"}
-            </Button>
-            <div className="ml-auto flex items-center gap-0.5">
+            <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
               <Button
-                size="icon"
-                variant="ghost"
-                aria-label="More like this"
-                title="More like this"
-                disabled={working}
-                onClick={() =>
-                  onRevise(
-                    concept.thumbnailId,
-                    "Create a fresh alternative in the same direction and tone, but with a different composition.",
-                  )
-                }
+                size="sm"
+                variant="outline"
+                disabled={working || !active || readOnly}
+                onClick={() => setEditing(true)}
               >
-                <Icon icon={Refresh01Icon} />
+                <Icon icon={PencilEdit02Icon} />
+                Edit
               </Button>
+            </DisabledReason>
+            <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+              <Button
+                size="sm"
+                variant={concept.isApplied ? "secondary" : "default"}
+                disabled={
+                  working || concept.isApplied || !concept.headline || readOnly
+                }
+                onClick={() => onApply(concept.thumbnailId)}
+              >
+                <Icon icon={CheckmarkCircle02Icon} />
+                {concept.isApplied ? "Applied" : "Use"}
+              </Button>
+            </DisabledReason>
+            <div className="ml-auto flex items-center gap-0.5">
+              <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label="More like this"
+                  title="More like this"
+                  disabled={working || readOnly}
+                  onClick={() =>
+                    onRevise(
+                      concept.thumbnailId,
+                      "Create a fresh alternative in the same direction and tone, but with a different composition.",
+                    )
+                  }
+                >
+                  <Icon icon={Refresh01Icon} />
+                </Button>
+              </DisabledReason>
               {concept.previewUrl ? (
                 <Button
                   size="icon"
@@ -300,15 +313,17 @@ function ConceptCard({
                   <Icon icon={Download01Icon} />
                 </Button>
               ) : null}
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label="Delete concept"
-                disabled={busy}
-                onClick={() => onDelete(concept.thumbnailId)}
-              >
-                <Icon icon={Delete02Icon} />
-              </Button>
+              <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Delete concept"
+                  disabled={busy || readOnly}
+                  onClick={() => onDelete(concept.thumbnailId)}
+                >
+                  <Icon icon={Delete02Icon} />
+                </Button>
+              </DisabledReason>
             </div>
           </div>
         )}
@@ -329,6 +344,7 @@ export function ThumbnailPanel({
   projectName: string;
 }) {
   const queryClient = useQueryClient();
+  const readOnly = useReadOnly();
   const [aspect, setAspect] = useState<ThumbnailAspect>("16:9");
   const [count, setCount] = useState("4");
   const [brief, setBrief] = useState("");
@@ -589,17 +605,19 @@ export function ThumbnailPanel({
               </Select>
             </div>
           </div>
-          <Button
-            type="button"
-            onClick={() => generateMutation.mutate()}
-            disabled={generating}
-          >
-            <Icon
-              icon={generating ? Loading03Icon : MagicWand01Icon}
-              className={generating ? "animate-spin" : undefined}
-            />
-            {generating ? "Generating…" : "Generate concepts"}
-          </Button>
+          <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+            <Button
+              type="button"
+              onClick={() => generateMutation.mutate()}
+              disabled={generating || readOnly}
+            >
+              <Icon
+                icon={generating ? Loading03Icon : MagicWand01Icon}
+                className={generating ? "animate-spin" : undefined}
+              />
+              {generating ? "Generating…" : "Generate concepts"}
+            </Button>
+          </DisabledReason>
         </div>
 
         <div className="space-y-1.5">
@@ -648,15 +666,17 @@ export function ThumbnailPanel({
                 <span className="mr-1 text-xs text-muted-foreground">
                   {selectedIds.length} selected
                 </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={bulkBusy}
-                  onClick={() => regenerateMutation.mutate(selectedIds)}
-                >
-                  <Icon icon={Refresh01Icon} />
-                  Redo
-                </Button>
+                <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={bulkBusy || readOnly}
+                    onClick={() => regenerateMutation.mutate(selectedIds)}
+                  >
+                    <Icon icon={Refresh01Icon} />
+                    Redo
+                  </Button>
+                </DisabledReason>
                 <Button
                   size="sm"
                   variant="outline"
@@ -666,15 +686,17 @@ export function ThumbnailPanel({
                   <Icon icon={Download01Icon} />
                   Download
                 </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  disabled={bulkBusy}
-                  onClick={() => bulkDeleteMutation.mutate(selectedIds)}
-                >
-                  <Icon icon={Delete02Icon} />
-                  Delete
-                </Button>
+                <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    disabled={bulkBusy || readOnly}
+                    onClick={() => bulkDeleteMutation.mutate(selectedIds)}
+                  >
+                    <Icon icon={Delete02Icon} />
+                    Delete
+                  </Button>
+                </DisabledReason>
                 <Button
                   size="sm"
                   variant="ghost"

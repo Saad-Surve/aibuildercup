@@ -67,6 +67,7 @@ export function FreeFlowEditor({
   onSuggest,
   onSelectText,
   onUseContext,
+  readOnly = false,
 }: {
   draft: Draft;
   onTitle: (title: string) => void;
@@ -77,6 +78,8 @@ export function FreeFlowEditor({
   ) => Promise<string[]>;
   onSelectText: (text: string) => void;
   onUseContext: (text: string) => void;
+  /** Render the document as static text; no caret, toolbar, or version cycling. */
+  readOnly?: boolean;
 }) {
   const [selection, setSelection] = useState<AltSelection | null>(null);
   const [suggesting, setSuggesting] = useState(false);
@@ -338,6 +341,38 @@ export function FreeFlowEditor({
 
   return (
     <>
+      {readOnly ? (
+        <Card className={cn(EDITOR_HEIGHT, "flex min-h-0 flex-col gap-0 py-0")}>
+          <CardHeader className="shrink-0 gap-3 border-b py-(--card-spacing)">
+            <div className="min-w-0 flex-1 space-y-2">
+              <h2 className="font-heading text-xl font-semibold">
+                {draft.title || "Untitled draft"}
+              </h2>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <Badge variant="secondary">
+                  {draft.brief.format === "script"
+                    ? "Video script"
+                    : "Written content"}
+                </Badge>
+                <span className="tabular">{wordCount} words</span>
+                <span aria-hidden>·</span>
+                <span className="tabular">
+                  {alternativeCount}{" "}
+                  {alternativeCount === 1 ? "alternative" : "alternatives"}
+                </span>
+              </div>
+            </div>
+          </CardHeader>
+          <div className="flex min-h-0 flex-1 flex-col">
+            <CardContent className="scroll-fade-y min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-(--card-spacing) py-(--card-spacing)">
+              <div
+                className="prose-draft mx-auto min-h-full w-full max-w-[70ch] px-1 py-2 text-sm leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: markdownToHtml(docMarkdown) }}
+              />
+            </CardContent>
+          </div>
+        </Card>
+      ) : (
       <Card className={cn(EDITOR_HEIGHT, "flex min-h-0 flex-col gap-0 py-0")}>
         <CardHeader className="shrink-0 gap-3 border-b py-(--card-spacing)">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -393,8 +428,10 @@ export function FreeFlowEditor({
         </div>
       </Card>
 
+      )}
+
       <Drawer
-        open={Boolean(selection && selectedVariant)}
+        open={Boolean(!readOnly && selection && selectedVariant)}
         modal={false}
         disablePointerDismissal
         onOpenChange={(open) => {
@@ -441,7 +478,7 @@ export function FreeFlowEditor({
         </DrawerContent>
       </Drawer>
 
-      {toolbar ? (
+      {toolbar && !readOnly ? (
         <div
           role="toolbar"
           aria-label="Formatting"

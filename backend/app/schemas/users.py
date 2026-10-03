@@ -27,3 +27,6 @@ class Me(BaseModel):
     personaVersion: int | None = None
     preferences: Preferences = Field(default_factory=Preferences)
     avatar: AvatarState | None = None
+    #: True for the read-only demo account. The web client uses it to disable every
+    #: mutating control; the API enforces read-only independently of this flag.
+    readOnly: bool = False

@@ -5,10 +5,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CloudUploadIcon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ApiError } from "@/lib/api-client";
 import { saveVideoBlob } from "@/lib/local-media";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import {
   ACCEPTED_VIDEO_EXTENSIONS,
   completeUpload,
@@ -35,6 +37,7 @@ export function VideoDropzone({
 }) {
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
+  const readOnly = useReadOnly();
 
   const [dragging, setDragging] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -81,7 +84,7 @@ export function VideoDropzone({
   function onDrop(event: React.DragEvent) {
     event.preventDefault();
     setDragging(false);
-    if (busy) return;
+    if (busy || readOnly) return;
     const file = event.dataTransfer.files?.[0];
     if (file) void start(file);
   }
@@ -91,7 +94,7 @@ export function VideoDropzone({
       <div
         onDragOver={(event) => {
           event.preventDefault();
-          if (!busy) setDragging(true);
+          if (!busy && !readOnly) setDragging(true);
         }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
@@ -122,14 +125,17 @@ export function VideoDropzone({
                 MP4, MOV, WebM, or M4V up to 500 MB.
               </p>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => inputRef.current?.click()}
-            >
-              <Icon icon={CloudUploadIcon} />
-              Choose a file
-            </Button>
+            <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => inputRef.current?.click()}
+                disabled={readOnly}
+              >
+                <Icon icon={CloudUploadIcon} />
+                Choose a file
+              </Button>
+            </DisabledReason>
           </>
         )}
 

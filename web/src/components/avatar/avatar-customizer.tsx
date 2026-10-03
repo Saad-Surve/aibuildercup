@@ -6,6 +6,7 @@ import { createPartPreview, getPartsForUiGroup } from "@humation/core";
 import { DicesIcon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { UserAvatar } from "@/components/avatar/user-avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,7 @@ import {
   useUserAvatar,
 } from "@/lib/avatar";
 import { useAuth } from "@/components/auth/auth-provider";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
 import type { AvatarState } from "@/lib/types";
 
@@ -82,6 +84,7 @@ function describe(error: unknown): string {
 export function AvatarCustomizer() {
   const saved = useUserAvatar();
   const { refreshProfile } = useAuth();
+  const readOnly = useReadOnly();
   const [draft, setDraft] = useState<AvatarState | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -166,14 +169,16 @@ export function AvatarCustomizer() {
               <Icon icon={DicesIcon} />
               Randomize
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => void save()}
-              disabled={pending}
-            >
-              {pending ? "Saving…" : "Save avatar"}
-            </Button>
+            <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void save()}
+                disabled={pending || readOnly}
+              >
+                {pending ? "Saving…" : "Save avatar"}
+              </Button>
+            </DisabledReason>
           </div>
           <p className="text-xs text-muted-foreground">
             Randomize for a new look, or mix parts and colors below.
@@ -260,6 +265,7 @@ export function AvatarCustomizer() {
  */
 export function AvatarEditorDialog() {
   const saved = useUserAvatar();
+  const readOnly = useReadOnly();
   const [open, setOpen] = useState(false);
 
   return (
@@ -267,9 +273,13 @@ export function AvatarEditorDialog() {
       <UserAvatar state={saved} size={96} title="Your avatar" />
       <div className="space-y-1.5">
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger render={<Button variant="outline" />}>
-            Customize avatar
-          </DialogTrigger>
+          <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+            <DialogTrigger
+              render={<Button variant="outline" disabled={readOnly} />}
+            >
+              Customize avatar
+            </DialogTrigger>
+          </DisabledReason>
           <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>Avatar studio</DialogTitle>

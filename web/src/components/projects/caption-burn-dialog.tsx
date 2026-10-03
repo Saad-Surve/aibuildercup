@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { useCaptionPreview } from "@/components/projects/studio/caption-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ import {
   listCaptionRenders,
 } from "@/lib/projects";
 import type { CaptionRender, CaptionStyle } from "@/lib/types";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 
 function errorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError) return error.message;
@@ -281,6 +283,7 @@ export function CaptionBurnPanel({
 }) {
   const queryClient = useQueryClient();
   const preview = useCaptionPreview();
+  const readOnly = useReadOnly();
   const [selected, setSelected] = useState<CaptionStyle | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -662,17 +665,19 @@ export function CaptionBurnPanel({
               Close
             </Button>
           ) : null}
-          <Button
-            type="button"
-            onClick={() => createMutation.mutate()}
-            disabled={isRendering || createMutation.isPending}
-          >
-            <Icon
-              icon={isRendering ? Loading03Icon : SparklesIcon}
-              className={isRendering ? "animate-spin" : undefined}
-            />
-            {isRendering ? "Rendering…" : "Render captions"}
-          </Button>
+          <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+            <Button
+              type="button"
+              onClick={() => createMutation.mutate()}
+              disabled={isRendering || createMutation.isPending || readOnly}
+            >
+              <Icon
+                icon={isRendering ? Loading03Icon : SparklesIcon}
+                className={isRendering ? "animate-spin" : undefined}
+              />
+              {isRendering ? "Rendering…" : "Render captions"}
+            </Button>
+          </DisabledReason>
         </div>
       </div>
 
@@ -730,15 +735,17 @@ export function CaptionBurnPanel({
                     Download
                   </Button>
                 ) : null}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  aria-label="Delete render"
-                  disabled={deleteMutation.isPending}
-                  onClick={() => deleteMutation.mutate(render.captionRenderId)}
-                >
-                  <Icon icon={Delete02Icon} />
-                </Button>
+                <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label="Delete render"
+                    disabled={deleteMutation.isPending || readOnly}
+                    onClick={() => deleteMutation.mutate(render.captionRenderId)}
+                  >
+                    <Icon icon={Delete02Icon} />
+                  </Button>
+                </DisabledReason>
               </li>
             ))}
           </ul>

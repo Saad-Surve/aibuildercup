@@ -6,6 +6,7 @@ import { Edit02Icon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api-client";
 import { updateProject } from "@/lib/projects";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 
 function describe(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -49,6 +51,7 @@ export function EditProjectDialog({
   iconOnly?: boolean;
 }) {
   const queryClient = useQueryClient();
+  const readOnly = useReadOnly();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
@@ -96,23 +99,31 @@ export function EditProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger
-        render={
-          iconOnly ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Edit project"
-            />
-          ) : (
-            <Button type="button" variant="outline" size="sm" />
-          )
-        }
-      >
-        <Icon icon={Edit02Icon} />
-        {iconOnly ? null : "Edit"}
-      </DialogTrigger>
+      <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+        <DialogTrigger
+          render={
+            iconOnly ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Edit project"
+                disabled={readOnly}
+              />
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={readOnly}
+              />
+            )
+          }
+        >
+          <Icon icon={Edit02Icon} />
+          {iconOnly ? null : "Edit"}
+        </DialogTrigger>
+      </DisabledReason>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit project</DialogTitle>
@@ -172,7 +183,7 @@ export function EditProjectDialog({
             >
               Cancel
             </DialogClose>
-            <Button type="submit" disabled={mutation.isPending}>
+            <Button type="submit" disabled={mutation.isPending || readOnly}>
               {mutation.isPending ? "Saving…" : "Save changes"}
             </Button>
           </DialogFooter>

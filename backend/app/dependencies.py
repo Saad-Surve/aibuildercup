@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.auth.firebase import delete_user as firebase_delete_user
@@ -42,6 +42,8 @@ class AuthenticatedUser:
     email: str | None
     display_name: str | None = None
     picture: str | None = None
+    #: True for demo accounts: reads are allowed, every write is rejected by the API.
+    read_only: bool = False
 
 
 def get_project_service() -> ProjectService:
@@ -280,16 +282,25 @@ BearerCredentials = Annotated[
 ]
 
 
-async def current_user(credentials: BearerCredentials) -> AuthenticatedUser:
+async def current_user(
+    request: Request, credentials: BearerCredentials
+) -> AuthenticatedUser:
     if credentials is None or not credentials.credentials:
         raise HTTPException(status_code=401, detail="Missing bearer token")
-    try:
-        decoded = verify_id_token(credentials.credentials)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=401, detail="Invalid token") from exc
+    # The read-only middleware may already have verified this token for a mutating request;
+    # reuse its result instead of verifying twice.
+    decoded = getattr(request.state, "firebase_token_claims", None)
+    if decoded is None:
+        try:
+            decoded = verify_id_token(credentials.credentials)
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(status_code=401, detail="Invalid token") from exc
+        request.state.firebase_token_claims = decoded
+    uid = decoded["uid"]
     return AuthenticatedUser(
-        uid=decoded["uid"],
+        uid=uid,
         email=decoded.get("email"),
         display_name=decoded.get("name"),
         picture=decoded.get("picture"),
+        read_only=uid in set(get_settings().read_only_user_uids),
     )

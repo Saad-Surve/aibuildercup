@@ -6,6 +6,7 @@ import { PencilEdit02Icon, SparklesIcon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
+import { DisabledReason } from "@/components/common/disabled-reason";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,6 +28,7 @@ import {
   suggestDraft,
 } from "@/lib/drafts";
 import { markdownToPlain } from "@/lib/draft-content";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import type { Draft, DraftBlock, DraftBrief } from "@/lib/types";
 import {
   DRAFT_PANE_STACK_SPACER,
@@ -125,6 +127,7 @@ export function DraftWorkspace({
 }) {
   const projectId = project.projectId;
   const queryClient = useQueryClient();
+  const readOnly = useReadOnly();
   const [briefOpen, setBriefOpen] = useState(false);
   const [contextText, setContextText] = useState("");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -214,6 +217,7 @@ export function DraftWorkspace({
   // brief already captured at creation.
   const runGenerate = generateMutation.mutate;
   useEffect(() => {
+    if (readOnly) return;
     if (autoRan.current || !draft) return;
     if (draft.status !== "empty" || draft.blocks.length > 0) {
       autoRan.current = true;
@@ -222,7 +226,7 @@ export function DraftWorkspace({
     if (!draft.brief.topic.trim()) return;
     autoRan.current = true;
     runGenerate(undefined);
-  }, [draft, runGenerate]);
+  }, [draft, runGenerate, readOnly]);
 
   function editDoc(markdown: string) {
     mutateDraft((current) => ({
@@ -330,16 +334,19 @@ export function DraftWorkspace({
         </span>
         {draft.brief.audience ? <span>· {draft.brief.audience}</span> : null}
         {draft.brief.tone ? <span>· {draft.brief.tone}</span> : null}
-        <Button
-          type="button"
-          size="xs"
-          variant="ghost"
-          className="ml-auto"
-          onClick={() => setBriefOpen(true)}
-        >
-          <Icon icon={PencilEdit02Icon} />
-          Edit brief
-        </Button>
+        <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+          <Button
+            type="button"
+            size="xs"
+            variant="ghost"
+            className="ml-auto"
+            onClick={() => setBriefOpen(true)}
+            disabled={readOnly}
+          >
+            <Icon icon={PencilEdit02Icon} />
+            Edit brief
+          </Button>
+        </DisabledReason>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
@@ -373,15 +380,22 @@ export function DraftWorkspace({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button type="button" onClick={() => setBriefOpen(true)}>
-                <Icon icon={SparklesIcon} />
-                Write a brief
-              </Button>
+              <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                <Button
+                  type="button"
+                  onClick={() => setBriefOpen(true)}
+                  disabled={readOnly}
+                >
+                  <Icon icon={SparklesIcon} />
+                  Write a brief
+                </Button>
+              </DisabledReason>
             </CardContent>
           </Card>
         ) : (
           <FreeFlowEditor
             draft={draft}
+            readOnly={readOnly}
             onTitle={(title) =>
               mutateDraft((current) => ({ ...current, title }))
             }
@@ -398,6 +412,7 @@ export function DraftWorkspace({
           messages={draft.messages}
           pending={assistMutation.isPending}
           contextText={contextText}
+          readOnly={readOnly}
           onClearContext={() => setContextText("")}
           hasContent={!empty}
           onSend={(message) => {

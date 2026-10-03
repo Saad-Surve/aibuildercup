@@ -12,6 +12,7 @@ import {
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
+  signInWithCustomToken,
   signInWithPopup,
   signInWithRedirect,
   signOut as firebaseSignOut,
@@ -19,6 +20,8 @@ import {
 } from "firebase/auth";
 
 import { ApiError, apiFetch } from "@/lib/api-client";
+import { API_BASE_URL } from "@/lib/api-base";
+import { DEMO_ENABLED } from "@/lib/demo";
 import { auth } from "@/lib/firebase";
 import type { Me } from "@/lib/types";
 
@@ -30,6 +33,8 @@ interface AuthContextValue {
   status: AuthStatus;
   error: string | null;
   signInWithGoogle: () => Promise<void>;
+  signInAsDemo: () => Promise<void>;
+  demoAvailable: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -116,6 +121,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(auth);
   }, []);
 
+  const signInAsDemo = useCallback(async () => {
+    setError(null);
+    if (!DEMO_ENABLED) {
+      setError("The demo account is not configured.");
+      return;
+    }
+    try {
+      // The API mints a custom token for the read-only demo account, so no password ever
+      // reaches the browser. The endpoint is unauthenticated on purpose.
+      const response = await fetch(`${API_BASE_URL}/demo/session`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error("Could not start the demo session.");
+      }
+      const { token } = (await response.json()) as { token: string };
+      await signInWithCustomToken(auth, token);
+    } catch (caught) {
+      setError(describeError(caught));
+      setStatus("signed_out");
+    }
+  }, []);
+
   const refreshProfile = useCallback(async () => {
     if (!auth.currentUser) return;
     try {
@@ -135,10 +163,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       error,
       signInWithGoogle,
+      signInAsDemo,
+      demoAvailable: DEMO_ENABLED,
       signOut,
       refreshProfile,
     }),
-    [user, profile, status, error, signInWithGoogle, signOut, refreshProfile],
+    [user, profile, status, error, signInWithGoogle, signInAsDemo, signOut, refreshProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

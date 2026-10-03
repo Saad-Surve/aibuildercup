@@ -17,6 +17,8 @@ export interface Me {
   personaVersion: number | null;
   preferences: Preferences;
   avatar: AvatarState | null;
+  /** True for the read-only demo account; the API refuses its writes. */
+  readOnly: boolean;
 }
 
 export interface Persona {

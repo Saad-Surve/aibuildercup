@@ -52,6 +52,7 @@ import {
   pickSourceAsset,
   updateTranscript,
 } from "@/lib/projects";
+import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { workspaceHref } from "@/lib/studio";
 import type { TranscriptSegment } from "@/lib/types";
 
@@ -196,6 +197,7 @@ function TimestampInput({
  */
 export function TranscriptEditor({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
+  const readOnly = useReadOnly();
   const [draft, setDraft] = useState<TranscriptSegment[] | null>(null);
   const [labelsDraft, setLabelsDraft] = useState<Record<string, string> | null>(
     null,
@@ -431,6 +433,21 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
         <p className="text-sm text-muted-foreground">
           There is no transcript to edit yet. Finish transcription first, then
           come back.
+        </p>
+      </div>
+    );
+  }
+
+  // The editor is a write surface. Read-only demo sessions can browse every saved version
+  // from the workspace transcript card, so block editing rather than disabling each control.
+  if (readOnly) {
+    return (
+      <div className="w-full space-y-4">
+        {backLink}
+        <PageHeader title="Editing is disabled" />
+        <p className="max-w-prose text-sm text-muted-foreground">
+          {READ_ONLY_REASON} Use the version picker on the project workspace to
+          browse every saved transcript.
         </p>
       </div>
     );
