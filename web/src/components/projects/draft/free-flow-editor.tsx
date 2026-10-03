@@ -83,6 +83,9 @@ export function FreeFlowEditor({
 }) {
   const [selection, setSelection] = useState<AltSelection | null>(null);
   const [suggesting, setSuggesting] = useState(false);
+  //: Read-only view override. Cycling versions is a local view change there, so the stored
+  //: document is never touched.
+  const [previewMarkdown, setPreviewMarkdown] = useState<string | null>(null);
   const [toolbar, setToolbar] = useState<{ top: number; left: number } | null>(
     null,
   );
@@ -93,10 +96,12 @@ export function FreeFlowEditor({
   // change `docMarkdown` and force a re-render.
   const lastRendered = useRef<string | null>(null);
 
-  const docMarkdown = useMemo(
+  const derivedMarkdown = useMemo(
     () => (draft.blocks.length ? draft.blocks.map(activeText).join("\n\n") : ""),
     [draft.blocks],
   );
+  const docMarkdown =
+    readOnly && previewMarkdown !== null ? previewMarkdown : derivedMarkdown;
   const alternativeCount = useMemo(
     () => variantSpans(docMarkdown).length,
     [docMarkdown],
@@ -162,9 +167,11 @@ export function FreeFlowEditor({
       const count = parsed.options.length;
       const next = (parsed.activeIndex + direction + count) % count;
       setSelection({ index });
-      onEditMarkdown(setActiveOption(docMarkdown, index, next));
+      const updated = setActiveOption(docMarkdown, index, next);
+      if (readOnly) setPreviewMarkdown(updated);
+      else onEditMarkdown(updated);
     },
-    [docMarkdown, onEditMarkdown],
+    [docMarkdown, onEditMarkdown, readOnly],
   );
 
   // Tab cycles the selected group wherever the focus happens to be.
@@ -341,38 +348,6 @@ export function FreeFlowEditor({
 
   return (
     <>
-      {readOnly ? (
-        <Card className={cn(EDITOR_HEIGHT, "flex min-h-0 flex-col gap-0 py-0")}>
-          <CardHeader className="shrink-0 gap-3 border-b py-(--card-spacing)">
-            <div className="min-w-0 flex-1 space-y-2">
-              <h2 className="font-heading text-xl font-semibold">
-                {draft.title || "Untitled draft"}
-              </h2>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <Badge variant="secondary">
-                  {draft.brief.format === "script"
-                    ? "Video script"
-                    : "Written content"}
-                </Badge>
-                <span className="tabular">{wordCount} words</span>
-                <span aria-hidden>·</span>
-                <span className="tabular">
-                  {alternativeCount}{" "}
-                  {alternativeCount === 1 ? "alternative" : "alternatives"}
-                </span>
-              </div>
-            </div>
-          </CardHeader>
-          <div className="flex min-h-0 flex-1 flex-col">
-            <CardContent className="scroll-fade-y min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-(--card-spacing) py-(--card-spacing)">
-              <div
-                className="prose-draft mx-auto min-h-full w-full max-w-[70ch] px-1 py-2 text-sm leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: markdownToHtml(docMarkdown) }}
-              />
-            </CardContent>
-          </div>
-        </Card>
-      ) : (
       <Card className={cn(EDITOR_HEIGHT, "flex min-h-0 flex-col gap-0 py-0")}>
         <CardHeader className="shrink-0 gap-3 border-b py-(--card-spacing)">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -381,6 +356,7 @@ export function FreeFlowEditor({
                 aria-label="Draft title"
                 value={draft.title}
                 onChange={(event) => onTitle(event.target.value)}
+                readOnly={readOnly}
                 placeholder="Untitled draft"
                 className="h-auto border-0 bg-transparent px-0 font-heading text-xl font-semibold shadow-none focus-visible:ring-0 dark:bg-transparent"
               />
@@ -412,7 +388,7 @@ export function FreeFlowEditor({
           >
             <div
               ref={rootRef}
-              contentEditable
+              contentEditable={!readOnly}
               suppressContentEditableWarning
               role="textbox"
               tabIndex={0}
@@ -427,8 +403,6 @@ export function FreeFlowEditor({
           </CardContent>
         </div>
       </Card>
-
-      )}
 
       <Drawer
         open={Boolean(!readOnly && selection && selectedVariant)}

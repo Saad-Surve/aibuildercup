@@ -154,8 +154,57 @@ def _new_id() -> str:
 
 
 _TAG = re.compile(r"<[^>]+>")
-_VARIANT = re.compile(r"\{\{([^{}]*)\}\}")
 _MARKER_RUN = re.compile(r"^[*@~]+")
+
+
+def _find_variants(text: str) -> list[tuple[int, int, str]]:
+    r"""Find `{{…}}` groups, tolerating single braces inside the option text.
+
+    The old `/\{\{([^{}]*)\}\}/` regex could not parse an alternative whose text
+    contained `{` or `}` — e.g. a code snippet — so the raw `{{…}}` leaked into word
+    counts, summaries, and the AI context. A depth-aware scan treats a `{`/`}` inside
+    the group as content and only ends it at a `}}` seen at depth 0.
+    """
+    spans: list[tuple[int, int, str]] = []
+    i = 0
+    n = len(text)
+    while i < n - 1:
+        if text[i] == "{" and text[i + 1] == "{":
+            depth = 0
+            j = i + 2
+            end = -1
+            while j < n:
+                ch = text[j]
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    if depth == 0 and j + 1 < n and text[j + 1] == "}":
+                        end = j
+                        break
+                    if depth > 0:
+                        depth -= 1
+                j += 1
+            if end != -1:
+                spans.append((i, end + 2, text[i + 2 : end]))
+                i = end + 2
+                continue
+        i += 1
+    return spans
+
+
+def resolve_variants(text: str) -> str:
+    """Replace every `{{…}}` group with its active option."""
+    spans = _find_variants(text)
+    if not spans:
+        return text
+    parts: list[str] = []
+    last = 0
+    for start, end, inner in spans:
+        parts.append(text[last:start])
+        parts.append(active_variant_text(inner))
+        last = end
+    parts.append(text[last:])
+    return "".join(parts)
 
 
 def _strip_markers(option: str) -> str:
@@ -185,7 +234,7 @@ def strip_html(text: str) -> str:
     reasons about the words resolves to the active option and strips the markers
     before stripping any HTML.
     """
-    text = _VARIANT.sub(lambda match: active_variant_text(match.group(1)), text)
+    text = resolve_variants(text)
     if "<" not in text:
         return text.strip()
     plain = _TAG.sub(" ", text)

@@ -35,8 +35,52 @@ export interface ParsedVariant {
   activeIndex: number;
 }
 
-const VARIANT = /\{\{([^{}]*)\}\}/g;
 const MARKER_RUN = /^[*@~]+/;
+
+interface RawVariant {
+  start: number;
+  end: number;
+  inner: string;
+}
+
+/**
+ * Find every `{{…}}` group, tolerating single braces inside the option text.
+ *
+ * The old `/\{\{([^{}]*)\}\}/` regex could not parse an alternative whose text
+ * contained `{` or `}` — e.g. a code snippet — so the group rendered literally and
+ * version cycling silently did nothing. A depth-aware scan treats a `{`/`}` inside
+ * the group as content and only ends the group at a `}}` seen at depth 0.
+ */
+function findVariants(markdown: string): RawVariant[] {
+  const spans: RawVariant[] = [];
+  let i = 0;
+  while (i < markdown.length - 1) {
+    if (markdown[i] === "{" && markdown[i + 1] === "{") {
+      let depth = 0;
+      let j = i + 2;
+      let end = -1;
+      while (j < markdown.length) {
+        const ch = markdown[j];
+        if (ch === "{") depth += 1;
+        else if (ch === "}") {
+          if (depth === 0 && markdown[j + 1] === "}") {
+            end = j;
+            break;
+          }
+          if (depth > 0) depth -= 1;
+        }
+        j += 1;
+      }
+      if (end !== -1) {
+        spans.push({ start: i, end: end + 2, inner: markdown.slice(i + 2, end) });
+        i = end + 2;
+        continue;
+      }
+    }
+    i += 1;
+  }
+  return spans;
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -126,18 +170,7 @@ interface VariantMatch {
 
 /** Every `{{…}}` span in a block, in document order, with its offsets. */
 export function variantSpans(markdown: string): VariantMatch[] {
-  const spans: VariantMatch[] = [];
-  const pattern = new RegExp(VARIANT.source, "g");
-  let match: RegExpExecArray | null;
-  while ((match = pattern.exec(markdown))) {
-    spans.push({
-      start: match.index,
-      end: match.index + match[0].length,
-      inner: match[1],
-      index: spans.length,
-    });
-  }
-  return spans;
+  return findVariants(markdown).map((span, index) => ({ ...span, index }));
 }
 
 /** The variant containing a caret/character offset, if any. */
@@ -212,12 +245,14 @@ function replaceVariantAt(
   variantIndex: number,
   update: (parsed: ParsedVariant) => ParsedVariant,
 ): string {
-  let index = 0;
-  return markdown.replace(VARIANT, (match, inner: string) => {
-    if (index++ !== variantIndex) return match;
-    const next = update(parseVariantInner(inner));
-    return serializeVariant(next.options, next.activeIndex);
-  });
+  const span = findVariants(markdown)[variantIndex];
+  if (!span) return markdown;
+  const next = update(parseVariantInner(span.inner));
+  return (
+    markdown.slice(0, span.start) +
+    serializeVariant(next.options, next.activeIndex) +
+    markdown.slice(span.end)
+  );
 }
 
 /** Make one option the active version (the original stays in the list). */
@@ -288,11 +323,20 @@ export function deleteVariantOption(
 
 /** Drop the `{{…}}` wrapper once a span has nothing left to choose between. */
 export function unwrapSingletonVariants(markdown: string): string {
-  return markdown.replace(VARIANT, (match, inner: string) => {
-    const { options, activeIndex } = parseVariantInner(inner);
-    if (options.length > 1) return match;
-    return options[activeIndex]?.text ?? options[0]?.text ?? "";
-  });
+  const spans = findVariants(markdown);
+  if (spans.length === 0) return markdown;
+  let result = "";
+  let last = 0;
+  for (const span of spans) {
+    const { options, activeIndex } = parseVariantInner(span.inner);
+    result += markdown.slice(last, span.start);
+    result +=
+      options.length > 1
+        ? markdown.slice(span.start, span.end)
+        : (options[activeIndex]?.text ?? options[0]?.text ?? "");
+    last = span.end;
+  }
+  return result + markdown.slice(last);
 }
 
 export function moveVariantOption(
@@ -391,19 +435,21 @@ export function inlineVariantHtml(
 
 /** An entire line that is nothing but one alternative group. */
 function wholeLineVariant(line: string): string | null {
-  const match = line.match(/^\s*\{\{([^{}]*)\}\}\s*$/);
-  return match ? match[1] : null;
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("{{")) return null;
+  const spans = findVariants(trimmed);
+  if (spans.length !== 1) return null;
+  const [span] = spans;
+  return span.start === 0 && span.end === trimmed.length ? span.inner : null;
 }
 
 /** Inline Markdown (bold, italic, code, inline variants) to HTML. */
 function inline(markdown: string, counter: InlineCounter): string {
   let html = "";
   let last = 0;
-  const pattern = new RegExp(VARIANT.source, "g");
-  let match: RegExpExecArray | null;
-  while ((match = pattern.exec(markdown))) {
-    html += formatInline(escapeHtml(markdown.slice(last, match.index)));
-    const { options, activeIndex } = parseVariantInner(match[1]);
+  for (const span of findVariants(markdown)) {
+    html += formatInline(escapeHtml(markdown.slice(last, span.start)));
+    const { options, activeIndex } = parseVariantInner(span.inner);
     if (options.length === 1) {
       html += formatInline(escapeHtml(options[0].text));
     } else if (options.length > 1) {
@@ -422,7 +468,7 @@ function inline(markdown: string, counter: InlineCounter): string {
           activeIndex,
         )}</span></span>`;
     }
-    last = match.index + match[0].length;
+    last = span.end;
   }
   html += formatInline(escapeHtml(markdown.slice(last)));
   return html;
@@ -535,16 +581,22 @@ function activeOptionText(inner: string): string {
 
 /** Resolve inline variants to their active option, keeping Markdown intact. */
 export function resolveVariants(markdown: string): string {
-  return markdown.replace(VARIANT, (_match, inner: string) =>
-    activeOptionText(inner),
-  );
+  const spans = findVariants(markdown);
+  if (spans.length === 0) return markdown;
+  let result = "";
+  let last = 0;
+  for (const span of spans) {
+    result += markdown.slice(last, span.start);
+    result += activeOptionText(span.inner);
+    last = span.end;
+  }
+  return result + markdown.slice(last);
 }
 
 /** The plain text a block shows in summaries/exports (active option only). */
 export function markdownToPlain(markdown: string): string {
   if (!markdown) return "";
-  return markdown
-    .replace(VARIANT, (_match, inner: string) => activeOptionText(inner))
+  return resolveVariants(markdown)
     .replace(/[#>*`]/g, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -599,19 +651,13 @@ export function reorderVariant(
     options[Math.max(0, Math.min(options.length - 1, chosenIndex))];
   const reordered = [chosen, ...options.filter((option) => option !== chosen)];
   const syntax = `{{${reordered.join(" | ")}}}`;
-  let match: RegExpExecArray | null;
-  const pattern = new RegExp(VARIANT.source, "g");
-  while ((match = pattern.exec(markdown))) {
-    const found = parseVariantInner(match[1]).options;
+  for (const span of findVariants(markdown)) {
+    const found = parseVariantInner(span.inner).options;
     if (
       found.length === options.length &&
       found.every((option) => options.includes(option.text))
     ) {
-      return (
-        markdown.slice(0, match.index) +
-        syntax +
-        markdown.slice(match.index + match[0].length)
-      );
+      return markdown.slice(0, span.start) + syntax + markdown.slice(span.end);
     }
   }
   return markdown;
@@ -640,10 +686,7 @@ export function sentenceAtOffset(
     candidates.length === 0
       ? value.length
       : clamped + Math.min(...candidates) + 1;
-  const text = value
-    .slice(start, end)
-    .replace(VARIANT, (_match, inner: string) => activeOptionText(inner))
-    .trim();
+  const text = resolveVariants(value.slice(start, end)).trim();
   if (!text) return null;
   return { start, end, text };
 }
