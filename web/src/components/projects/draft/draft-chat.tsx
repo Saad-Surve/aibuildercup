@@ -7,15 +7,64 @@ import {
   Loading03Icon,
   SendIcon,
   SparklesIcon,
-  UserIcon,
 } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
+import { UserAvatar } from "@/components/avatar/user-avatar";
+import { useAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { useUserAvatar } from "@/lib/avatar";
+import { cn } from "@/lib/utils";
 import { WORKSPACE_PANE_HEIGHT } from "@/lib/workspace";
 import type { DraftMessage } from "@/lib/types";
+
+/**
+ * Render a chat message with Markdown-style blockquotes: a run of `>` lines
+ * becomes a quote (used for the context pulled from the draft), everything else
+ * stays plain text.
+ */
+function MessageBody({
+  content,
+  role,
+}: {
+  content: string;
+  role: "user" | "assistant";
+}) {
+  const parts = content.split(/\n{2,}/);
+  return (
+    <div className="space-y-2">
+      {parts.map((part, index) => {
+        const lines = part.split("\n");
+        if (lines.every((line) => line.startsWith(">") || !line.trim())) {
+          const quote = lines
+            .map((line) => line.replace(/^>\s?/, ""))
+            .join("\n")
+            .trim();
+          return (
+            <blockquote
+              key={index}
+              className={cn(
+                "border-l-2 pl-2.5 text-[0.95em] italic whitespace-pre-wrap opacity-90",
+                role === "user"
+                  ? "border-primary-foreground/50"
+                  : "border-foreground/25",
+              )}
+            >
+              {quote}
+            </blockquote>
+          );
+        }
+        return (
+          <p key={index} className="whitespace-pre-wrap">
+            {part}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
 
 /**
  * Suggestions follow the state of the draft: an empty document needs an opening,
@@ -61,6 +110,9 @@ export function DraftChat({
 }) {
   const [value, setValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const avatar = useUserAvatar();
+  const { profile, user } = useAuth();
+  const name = profile?.displayName ?? user?.displayName ?? "You";
   const suggestions = useMemo(
     () => suggestionsFor(hasContent, contextText),
     [hasContent, contextText],
@@ -107,8 +159,8 @@ export function DraftChat({
             key={message.messageId}
             className={
               message.role === "user"
-                ? "flex justify-end gap-2"
-                : "flex justify-start gap-2"
+                ? "flex items-start justify-end gap-2"
+                : "flex items-start justify-start gap-2"
             }
           >
             {message.role === "assistant" ? (
@@ -117,17 +169,19 @@ export function DraftChat({
               </span>
             ) : null}
             <div
-              className={`max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
+              className={`min-w-0 break-words rounded-2xl px-3 py-2 text-sm ${
                 message.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground"
+                  ? "max-w-[75%] rounded-br-sm bg-primary text-primary-foreground"
+                  : "max-w-[78%] rounded-bl-sm bg-muted text-foreground"
               }`}
             >
-              {message.content}
+              <MessageBody content={message.content} role={message.role} />
             </div>
             {message.role === "user" ? (
-              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <Icon icon={UserIcon} className="size-3.5" />
+              <span className="mt-0.5 shrink-0 rounded-full bg-gradient-to-br from-cyan-400 via-fuchsia-500 to-orange-400 p-[1.5px]">
+                <span className="block rounded-full bg-background p-[1.5px]">
+                  <UserAvatar state={avatar} size={22} title={name} />
+                </span>
               </span>
             ) : null}
           </div>
@@ -146,13 +200,10 @@ export function DraftChat({
 
       <div className="shrink-0 space-y-3 border-t p-(--card-spacing)">
         {contextText.trim() ? (
-          <div className="flex items-start gap-2 rounded-lg border border-signal/40 bg-signal/5 px-2.5 py-1.5 text-xs">
-            <span className="min-w-0 flex-1 text-foreground/90">
-              <span className="text-muted-foreground">Context: </span>
-              {contextText.length > 140
-                ? `${contextText.slice(0, 140)}…`
-                : contextText}
-            </span>
+          <div className="flex items-start gap-2">
+            <blockquote className="min-w-0 flex-1 border-l-2 border-signal/50 pl-2.5 text-xs text-muted-foreground italic whitespace-pre-wrap">
+              {contextText}
+            </blockquote>
             <button
               type="button"
               aria-label="Clear context"

@@ -31,3 +31,10 @@ export const WORKSPACE_SNAP_TARGET =
 
 /** Extra room after the last pane so it can snap level with the video card. */
 export const WORKSPACE_PANE_STACK_SPACER = "hidden h-[55vh] shrink-0 lg:block";
+
+/**
+ * Bottom room for the draft grid. Much smaller than the video-studio spacer:
+ * the draft is one two-column row, so it only needs enough page scroll to bring
+ * the editor card up to its snap point — not 55vh of empty page.
+ */
+export const DRAFT_PANE_STACK_SPACER = "hidden h-[20vh] shrink-0 lg:block";

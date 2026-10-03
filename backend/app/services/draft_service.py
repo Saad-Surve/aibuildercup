@@ -155,18 +155,37 @@ def _new_id() -> str:
 
 _TAG = re.compile(r"<[^>]+>")
 _VARIANT = re.compile(r"\{\{([^{}]*)\}\}")
+_MARKER_RUN = re.compile(r"^[*@~]+")
+
+
+def _strip_markers(option: str) -> str:
+    return _MARKER_RUN.sub("", option.strip()).strip()
+
+
+def _is_active_option(option: str) -> bool:
+    markers = _MARKER_RUN.match(option.strip())
+    return bool(markers and "*" in markers.group(0))
+
+
+def active_variant_text(inner: str) -> str:
+    options = [part.strip() for part in inner.split("|") if part.strip()]
+    active = next(
+        (option for option in options if _is_active_option(option)),
+        options[0] if options else "",
+    )
+    return _strip_markers(active)
 
 
 def strip_html(text: str) -> str:
     """Plain text for word counts, prompts, and summaries.
 
-    Block text is Markdown and may contain inline variants
-    (`{{a | b | c}}`); the first option is the active one. Anything that reasons
-    about the words resolves variants and strips any HTML first.
+    Block text is Markdown and may contain inline alternatives
+    (`{{original | ~*ai version | @my version}}`). Each option may carry markers
+    (`*` active, `~` AI, `@` user) and the original has none. Anything that
+    reasons about the words resolves to the active option and strips the markers
+    before stripping any HTML.
     """
-    text = _VARIANT.sub(
-        lambda match: match.group(1).split("|")[0].strip(), text
-    )
+    text = _VARIANT.sub(lambda match: active_variant_text(match.group(1)), text)
     if "<" not in text:
         return text.strip()
     plain = _TAG.sub(" ", text)
@@ -314,10 +333,10 @@ class DraftService:
         draft = self.get(owner_uid=owner_uid, project_id=project_id)
         if payload.title is not None:
             draft.title = payload.title.strip()[:200]
-        if payload.blocks:
-            # The client owns block creation (splits, merges, new paragraphs), so
-            # the payload is the full set and may contain ids the server has not
-            # seen yet. It is a replace, not a patch.
+        # The client always sends the full block set, so an explicit empty list
+        # means "I deleted everything" and must clear the draft. Only an omitted
+        # field leaves the blocks untouched.
+        if "blocks" in payload.model_fields_set:
             draft.blocks = payload.blocks
         status = (
             ProjectStatus.draft if not draft.blocks else ProjectStatus.ready

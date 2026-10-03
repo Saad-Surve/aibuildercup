@@ -156,9 +156,115 @@
   padding: 0.1em 0.3em;
 }
 .prose-draft .draft-variant {
-  cursor: pointer;
-  border-bottom: 1px dotted var(--signal);
-  padding-bottom: 1px;
+  position: relative;
+  cursor: text;
+  border-radius: 3px;
+  padding: 0 1px 3px;
+  /* Muted while the original is active; signal when a different version is. */
+  --alt-color: var(--muted-foreground);
+}
+/* A simple dashed underline marks a phrase or heading with alternatives. */
+.prose-draft .draft-variant::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-top: 1.5px dashed var(--alt-color);
+  pointer-events: none;
+}
+.prose-draft .draft-variant[data-changed="true"] {
+  --alt-color: var(--signal);
+}
+.prose-draft .draft-variant[data-variant-selected="true"] {
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--signal) 35%, transparent);
+}
+.draft-alt-dots {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 3px;
+  vertical-align: middle;
+  transform: translateY(-1px);
+  user-select: none;
+  pointer-events: none;
+}
+.draft-alt-dots i {
+  width: 3px;
+  height: 3px;
+  border-radius: 9999px;
+  background: var(--alt-color);
+  opacity: 0.35;
+}
+.draft-alt-dots i.is-on {
+  opacity: 1;
+}
+
+/*
+ * Whole-line alternative groups.
+ *
+ * A heading gets the phrase treatment but at block scale: the underline spans
+ * the text and the version dots sit centred underneath. A paragraph keeps its
+ * lines clean and shows a vertical marker with stacked dots in the margin.
+ */
+.prose-draft .draft-variant-block {
+  padding: 0;
+  cursor: text;
+}
+
+.prose-draft h1.draft-variant-heading,
+.prose-draft h2.draft-variant-heading,
+.prose-draft h3.draft-variant-heading,
+.prose-draft h4.draft-variant-heading,
+.prose-draft h5.draft-variant-heading,
+.prose-draft h6.draft-variant-heading {
+  display: inline-block;
+  padding-bottom: 0.35rem;
+}
+.prose-draft .draft-variant-heading::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-top: 1.5px dashed var(--alt-color);
+  pointer-events: none;
+}
+.prose-draft .draft-variant-heading .draft-alt-dots {
+  position: absolute;
+  left: 50%;
+  bottom: -0.55rem;
+  margin-left: 0;
+  transform: translateX(-50%);
+}
+
+.prose-draft .draft-variant-paragraph {
+  padding-left: 1.15rem;
+}
+.prose-draft .draft-variant-paragraph::before {
+  content: "";
+  position: absolute;
+  left: 0.55rem;
+  top: 0.15rem;
+  bottom: 0.15rem;
+  width: 2px;
+  border-radius: 2px;
+  background-color: var(--alt-color);
+  pointer-events: none;
+}
+.prose-draft .draft-variant-paragraph .draft-alt-dots {
+  position: absolute;
+  left: 0.05rem;
+  top: 0.35rem;
+  margin-left: 0;
+  flex-direction: column;
+  transform: none;
+}
+
+/* Empty-document hint. */
+.prose-draft[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+  pointer-events: none;
 }
 
 :root {

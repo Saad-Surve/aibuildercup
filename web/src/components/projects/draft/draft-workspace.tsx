@@ -26,8 +26,12 @@ import {
   saveDraft,
   suggestDraft,
 } from "@/lib/drafts";
+import { markdownToPlain } from "@/lib/draft-content";
 import type { Draft, DraftBlock, DraftBrief } from "@/lib/types";
-import { WORKSPACE_PANE_STACK_SPACER } from "@/lib/workspace";
+import {
+  DRAFT_PANE_STACK_SPACER,
+  WORKSPACE_SNAP_TARGET,
+} from "@/lib/workspace";
 
 function newId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -52,63 +56,67 @@ function activeBlockText(block: DraftBlock): string {
   );
 }
 
-/**
- * Update a block's active version, forking an assistant version into a user
- * version on first edit so the model's wording is kept as a sibling.
- */
-function forkBlockHtml(block: DraftBlock, html: string): DraftBlock {
-  const active = block.versions.find(
-    (version) => version.versionId === block.activeVersionId,
-  );
-  if (active?.origin === "user") {
-    return {
-      ...block,
-      versions: block.versions.map((version) =>
-        version.versionId === active.versionId
-          ? { ...version, text: html }
-          : version,
-      ),
-    };
+/** The block a chat selection came from, so an assistant rewrite edits it in place. */
+function findBlockForSelection(
+  blocks: DraftBlock[],
+  selection: string,
+): DraftBlock | null {
+  const needle = selection.replace(/\s+/g, " ").trim().toLowerCase();
+  if (!needle) return null;
+  for (const block of blocks) {
+    const text = markdownToPlain(activeBlockText(block))
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+    if (!text) continue;
+    if (text.includes(needle) || needle.includes(text)) return block;
   }
-  const version = {
-    versionId: newId(),
-    text: html,
-    label: "My edit",
-    origin: "user" as const,
-    createdAt: new Date().toISOString(),
-  };
-  return {
-    ...block,
-    versions: [...block.versions, version],
-    activeVersionId: version.versionId,
-  };
-}
-
-function makeBlock(
-  html: string,
-  type: DraftBlock["type"] = "paragraph",
-): DraftBlock {
-  const version = {
-    versionId: newId(),
-    text: html,
-    label: "My edit",
-    origin: "user" as const,
-    createdAt: new Date().toISOString(),
-  };
-  return {
-    blockId: newId(),
-    type,
-    versions: [version],
-    activeVersionId: version.versionId,
-  };
+  return null;
 }
 
 /**
- * The draft studio: a free-flowing rich document on the left, a writing partner
- * on the right. The React Query cache is the single source of truth — edits
- * write to it optimistically and a debounced save persists them, while assistant
- * replies replace it wholesale. Every block keeps its own version history and
- * inline alternatives live inside the text, so nothing is ever lost.
+ * Rebuild the stored blocks from the single editable document. Blank lines are
+ * paragraph breaks; an unchanged chunk keeps its history (and assistant
+ * versions) so a normal edit does not throw previous wording away.
+ */
+function blocksFromMarkdown(
+  markdown: string,
+  previous: DraftBlock[],
+): DraftBlock[] {
+  const chunks = markdown
+    .split(/\n{2,}/)
+    .map((chunk) => chunk.replace(/\s+$/, ""))
+    .filter((chunk) => chunk.trim().length > 0);
+  return chunks.map((text, index) => {
+    const prev = previous[index];
+    const type: DraftBlock["type"] = /^#{1,6}\s/.test(text)
+      ? "heading"
+      : "paragraph";
+    if (prev && prev.type === type && activeBlockText(prev) === text) {
+      return prev;
+    }
+    const version = {
+      versionId: newId(),
+      text,
+      label: "My edit",
+      origin: "user" as const,
+      createdAt: new Date().toISOString(),
+    };
+    return {
+      blockId: prev?.blockId ?? newId(),
+      type,
+      versions: [version],
+      activeVersionId: version.versionId,
+    };
+  });
+}
+
+/**
+ * The draft studio: a free-flowing document on the left, a writing partner on
+ * the right. The React Query cache is the single source of truth — edits write
+ * to it optimistically and a debounced save persists them, while assistant
+ * replies replace it wholesale. Alternative groups live inline in the text, so
+ * nothing is ever lost. (The first paragraph keeps the docstring honest.)
  */
 export function DraftWorkspace({
   project,
@@ -118,7 +126,6 @@ export function DraftWorkspace({
   const projectId = project.projectId;
   const queryClient = useQueryClient();
   const [briefOpen, setBriefOpen] = useState(false);
-  const [busyBlockId, setBusyBlockId] = useState<string | null>(null);
   const [contextText, setContextText] = useState("");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoRan = useRef(false);
@@ -164,11 +171,9 @@ export function DraftWorkspace({
     }) => assistDraft(projectId, input),
     onSuccess: (next) => {
       queryClient.setQueryData(["draft", projectId], next);
-      setBusyBlockId(null);
       void queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
     onError: (error) => {
-      setBusyBlockId(null);
       toast.error(describe(error, "The writing partner could not respond."));
     },
   });
@@ -219,93 +224,26 @@ export function DraftWorkspace({
     runGenerate(undefined);
   }, [draft, runGenerate]);
 
-  function editBlockText(blockId: string, markdown: string) {
+  function editDoc(markdown: string) {
     mutateDraft((current) => ({
       ...current,
-      blocks: current.blocks.map((block) =>
-        block.blockId === blockId ? forkBlockHtml(block, markdown) : block,
-      ),
+      blocks: blocksFromMarkdown(markdown, current.blocks),
     }));
-  }
-
-  function splitBlock(blockId: string, before: string, after: string): string {
-    const newBlock = makeBlock(after);
-    mutateDraft((current) => {
-      const index = current.blocks.findIndex(
-        (block) => block.blockId === blockId,
-      );
-      if (index < 0) return current;
-      const blocks = [...current.blocks];
-      blocks.splice(
-        index,
-        1,
-        forkBlockHtml(current.blocks[index], before),
-        newBlock,
-      );
-      return { ...current, blocks };
-    });
-    void flushSave();
-    return newBlock.blockId;
-  }
-
-  function mergeBlock(blockId: string): string | null {
-    const cached = queryClient.getQueryData<Draft>(["draft", projectId]);
-    const index =
-      cached?.blocks.findIndex((block) => block.blockId === blockId) ?? -1;
-    if (!cached || index <= 0) return null;
-    const previousId = cached.blocks[index - 1].blockId;
-    mutateDraft((current) => {
-      const at = current.blocks.findIndex((block) => block.blockId === blockId);
-      if (at <= 0) return current;
-      const previous = current.blocks[at - 1];
-      const blocks = [...current.blocks];
-      blocks.splice(
-        at - 1,
-        2,
-        forkBlockHtml(
-          previous,
-          activeBlockText(previous) + activeBlockText(current.blocks[at]),
-        ),
-      );
-      return { ...current, blocks };
-    });
-    void flushSave();
-    return previousId;
-  }
-
-  function setActiveVersion(blockId: string, versionId: string) {
-    mutateDraft((current) => ({
-      ...current,
-      blocks: current.blocks.map((block) =>
-        block.blockId === blockId
-          ? { ...block, activeVersionId: versionId }
-          : block,
-      ),
-    }));
-    void flushSave();
-  }
-
-  function removeBlock(blockId: string) {
-    mutateDraft((current) => ({
-      ...current,
-      blocks: current.blocks.filter((block) => block.blockId !== blockId),
-    }));
-    void flushSave();
   }
 
   async function suggest(
-    blockId: string,
     text: string,
     mode: "rewrite" | "alternatives",
   ): Promise<string[]> {
-    const block = draft?.blocks.find((item) => item.blockId === blockId);
-    const context = block ? activeBlockText(block) : "";
+    const context = draft
+      ? draft.blocks.map((block) => activeBlockText(block)).join("\n\n")
+      : "";
     try {
       const result = await suggestDraft(projectId, {
         text,
         context,
         mode,
-        count: mode === "alternatives" ? 3 : 1,
+        count: mode === "alternatives" ? 4 : 1,
       });
       if (result.suggestions.length === 0) {
         toast.error("The writing partner had no suggestions. Try again.");
@@ -321,9 +259,7 @@ export function DraftWorkspace({
     message: string;
     blockId?: string | null;
     mode?: string;
-    busy?: string | null;
   }) {
-    setBusyBlockId(input.busy ?? null);
     // Show the creator's message immediately; the server echoes it back with the
     // reply and replaces this optimistic copy.
     queryClient.setQueryData<Draft>(["draft", projectId], (previous) =>
@@ -408,7 +344,7 @@ export function DraftWorkspace({
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
         {generating ? (
-          <Card className="lg:snap-start lg:snap-always lg:scroll-mt-20">
+          <Card className={WORKSPACE_SNAP_TARGET}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Icon
@@ -428,7 +364,7 @@ export function DraftWorkspace({
             </CardContent>
           </Card>
         ) : empty ? (
-          <Card className="lg:snap-start lg:snap-always lg:scroll-mt-20">
+          <Card className={WORKSPACE_SNAP_TARGET}>
             <CardHeader>
               <CardTitle>Start your draft</CardTitle>
               <CardDescription>
@@ -446,16 +382,12 @@ export function DraftWorkspace({
         ) : (
           <FreeFlowEditor
             draft={draft}
-            busyBlockId={busyBlockId}
             onTitle={(title) =>
               mutateDraft((current) => ({ ...current, title }))
             }
-            onEditText={editBlockText}
-            onSplitBlock={splitBlock}
-            onMergeBlock={mergeBlock}
-            onRemoveBlock={removeBlock}
-            onSetVersion={setActiveVersion}
+            onEditMarkdown={editDoc}
             onSuggest={suggest}
+            onSelectText={setContextText}
             onUseContext={(text) => {
               setContextText(text);
               toast.success("Added to the chat context");
@@ -470,15 +402,22 @@ export function DraftWorkspace({
           hasContent={!empty}
           onSend={(message) => {
             const trimmed = contextText.trim();
-            const full = trimmed
-              ? `Context selected from the draft: "${trimmed}"\n\nRequest: ${message}`
-              : message;
+            const quoted = trimmed
+              ? `> ${trimmed.replace(/\n/g, "\n> ")}`
+              : "";
+            const full = quoted ? `${quoted}\n\n${message}` : message;
+            const target = trimmed
+              ? findBlockForSelection(draft.blocks, trimmed)
+              : null;
             setContextText("");
-            void runAssist({ message: full });
+            void runAssist({
+              message: full,
+              blockId: target?.blockId ?? null,
+            });
           }}
         />
       </div>
-      <div aria-hidden className={WORKSPACE_PANE_STACK_SPACER} />
+      <div aria-hidden className={DRAFT_PANE_STACK_SPACER} />
 
       <DraftBriefDialog
         key={briefOpen ? "open" : "closed"}
