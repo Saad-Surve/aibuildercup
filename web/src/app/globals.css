@@ -159,19 +159,20 @@
   position: relative;
   cursor: text;
   border-radius: 3px;
-  padding: 0 1px 3px;
+  padding: 0 1px;
   /* Muted while the original is active; signal when a different version is. */
   --alt-color: var(--muted-foreground);
-}
-/* A simple dashed underline marks a phrase or heading with alternatives. */
-.prose-draft .draft-variant::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-top: 1.5px dashed var(--alt-color);
-  pointer-events: none;
+  /*
+   * `text-decoration` rather than an absolutely-positioned `::after` border: a border
+   * draws once at the bottom of the inline box, so a group that wraps across lines showed
+   * a single underline under the last line only. `text-decoration` underlines every line
+   * the group covers, so the whole versioned section reads as underlined.
+   */
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-color: var(--alt-color);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
 }
 .prose-draft .draft-variant[data-changed="true"] {
   --alt-color: var(--signal);
@@ -219,15 +220,6 @@
 .prose-draft h6.draft-variant-heading {
   display: inline-block;
   padding-bottom: 0.35rem;
-}
-.prose-draft .draft-variant-heading::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-top: 1.5px dashed var(--alt-color);
-  pointer-events: none;
 }
 .prose-draft .draft-variant-heading .draft-alt-dots {
   position: absolute;
