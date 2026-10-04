@@ -42,6 +42,30 @@ def _v(
     return Voice(id=vid, name=name, label=label, gender=gender, language_code=language_code)
 
 
+def _chirp3(slug: str, locale: str, label: str) -> tuple[Voice, ...]:
+    """Two female + two male Chirp 3 HD voices.
+
+    Chirp 3 HD uses the same voice-name set for every locale it supports, so one helper
+    covers all of the Asia Pacific languages below.
+    """
+
+    def voice(name: str, gender: str) -> Voice:
+        return _v(
+            f"{slug}-{name.lower()}",
+            f"{locale}-Chirp3-HD-{name}",
+            gender,
+            locale,
+            f"{name} — {label} {gender}",
+        )
+
+    return (
+        voice("Aoede", "female"),
+        voice("Achernar", "female"),
+        voice("Charon", "male"),
+        voice("Alnilam", "male"),
+    )
+
+
 #: Languages offered by the dubbing feature. The first voice in each list is the default.
 CATALOG: tuple[Language, ...] = (
     Language(
@@ -67,8 +91,8 @@ CATALOG: tuple[Language, ...] = (
         code="es",
         label="Spanish",
         voices=(
-            _v("es-es-nestor", "es-ES-Wavenet-B", "male", "es-ES", "Néstor — ES male"),
-            _v("es-es-lucia", "es-ES-Wavenet-C", "female", "es-ES", "Lucía — ES female"),
+            _v("es-es-nestor", "es-ES-Neural2-F", "male", "es-ES", "Néstor — ES male"),
+            _v("es-es-lucia", "es-ES-Neural2-A", "female", "es-ES", "Lucía — ES female"),
             _v("es-us-elena", "es-US-Neural2-A", "female", "es-US", "Elena — US female"),
         ),
     ),
@@ -76,8 +100,8 @@ CATALOG: tuple[Language, ...] = (
         code="fr",
         label="French",
         voices=(
-            _v("fr-fr-henri", "fr-FR-Wavenet-B", "male", "fr-FR", "Henri — FR male"),
-            _v("fr-fr-amelie", "fr-FR-Wavenet-A", "female", "fr-FR", "Amélie — FR female"),
+            _v("fr-fr-henri", "fr-FR-Neural2-G", "male", "fr-FR", "Henri — FR male"),
+            _v("fr-fr-amelie", "fr-FR-Neural2-F", "female", "fr-FR", "Amélie — FR female"),
             _v("fr-ca-lea", "fr-CA-Neural2-A", "female", "fr-CA", "Léa — CA female"),
         ),
     ),
@@ -85,9 +109,9 @@ CATALOG: tuple[Language, ...] = (
         code="de",
         label="German",
         voices=(
-            _v("de-de-hans", "de-DE-Wavenet-B", "male", "de-DE", "Hans — DE male"),
-            _v("de-de-anna", "de-DE-Wavenet-A", "female", "de-DE", "Anna — DE female"),
-            _v("de-de-viktor", "de-DE-Wavenet-D", "male", "de-DE", "Viktor — DE male"),
+            _v("de-de-hans", "de-DE-Neural2-H", "male", "de-DE", "Hans — DE male"),
+            _v("de-de-anna", "de-DE-Neural2-G", "female", "de-DE", "Anna — DE female"),
+            _v("de-de-viktor", "de-DE-Wavenet-H", "male", "de-DE", "Viktor — DE male"),
         ),
     ),
     Language(
@@ -112,6 +136,39 @@ CATALOG: tuple[Language, ...] = (
         voices=(
             _v("ar-xa-tarik", "ar-XA-Wavenet-B", "male", "ar-XA", "Tarik — Arabic male"),
             _v("ar-xa-hala", "ar-XA-Wavenet-A", "female", "ar-XA", "Hala — Arabic female"),
+        ),
+    ),
+    # --- Asia Pacific (Chirp 3 HD) ---
+    Language(code="zh", label="Chinese (Mandarin)", voices=_chirp3("zh", "cmn-CN", "Mandarin")),
+    Language(code="yue", label="Cantonese", voices=_chirp3("yue", "yue-HK", "Cantonese")),
+    Language(code="ko", label="Korean", voices=_chirp3("ko", "ko-KR", "Korean")),
+    Language(code="id", label="Indonesian", voices=_chirp3("id", "id-ID", "Indonesian")),
+    Language(code="th", label="Thai", voices=_chirp3("th", "th-TH", "Thai")),
+    Language(code="vi", label="Vietnamese", voices=_chirp3("vi", "vi-VN", "Vietnamese")),
+    Language(code="ta", label="Tamil", voices=_chirp3("ta", "ta-IN", "Tamil")),
+    Language(code="te", label="Telugu", voices=_chirp3("te", "te-IN", "Telugu")),
+    Language(code="bn", label="Bengali", voices=_chirp3("bn", "bn-IN", "Bengali")),
+    Language(code="mr", label="Marathi", voices=_chirp3("mr", "mr-IN", "Marathi")),
+    Language(code="gu", label="Gujarati", voices=_chirp3("gu", "gu-IN", "Gujarati")),
+    Language(code="kn", label="Kannada", voices=_chirp3("kn", "kn-IN", "Kannada")),
+    Language(code="ml", label="Malayalam", voices=_chirp3("ml", "ml-IN", "Malayalam")),
+    Language(code="pa", label="Punjabi", voices=_chirp3("pa", "pa-IN", "Punjabi")),
+    Language(code="ur", label="Urdu", voices=_chirp3("ur", "ur-IN", "Urdu")),
+    # --- Asia Pacific (Wavenet / Neural2) ---
+    Language(
+        code="ms",
+        label="Malay",
+        voices=(
+            _v("ms-my-a", "ms-MY-Wavenet-A", "female", "ms-MY", "Malay female"),
+            _v("ms-my-b", "ms-MY-Wavenet-B", "male", "ms-MY", "Malay male"),
+        ),
+    ),
+    Language(
+        code="fil",
+        label="Filipino",
+        voices=(
+            _v("fil-ph-a", "fil-ph-Neural2-A", "female", "fil-PH", "Filipino female"),
+            _v("fil-ph-d", "fil-ph-Neural2-D", "male", "fil-PH", "Filipino male"),
         ),
     ),
 )
