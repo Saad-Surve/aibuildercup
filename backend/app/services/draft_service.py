@@ -35,6 +35,7 @@ from app.schemas.draft import (
     SuggestMode,
 )
 from app.schemas.projects import ProjectStatus
+from app.services.channel_content_service import ChannelContentService
 from app.services.firestore_service import FirestoreClient, draft_path
 from app.services.project_service import ProjectService
 
@@ -54,6 +55,9 @@ GENERATE_SYSTEM = (
     "(each scene is one shootable moment with a clear visual or spoken beat).\n"
     "- Open with a hook that earns the next sentence. No throat-clearing.\n"
     "- Be concrete. Prefer examples and specifics over adjectives and filler.\n"
+    "- When `creatorContext` is present, match the creator's established voice and structure: "
+    "study the example titles, tags, and descriptions and write in the same register and reading "
+    "level. Treat them as style evidence only — never copy a title or invent claims from them.\n"
     "- Do not add meta commentary, labels, or markdown syntax inside `text`."
 )
 
@@ -343,11 +347,13 @@ class DraftService:
         projects: ProjectService,
         llm: LlmProvider,
         settings: Settings,
+        content: ChannelContentService | None = None,
     ) -> None:
         self.client = client
         self.projects = projects
         self.llm = llm
         self.settings = settings
+        self.content = content
 
     # ------------------------------------------------------------------ reads
 
@@ -405,7 +411,7 @@ class DraftService:
         draft.status = DraftStatus.generating
         self._persist(owner_uid=owner_uid, draft=draft, status=ProjectStatus.processing)
 
-        blocks = await self._generate_blocks(draft.brief, draft)
+        blocks = await self._generate_blocks(draft.brief, draft, owner_uid=owner_uid)
         draft.blocks = blocks
         draft.messages = [
             DraftMessage(
@@ -542,9 +548,20 @@ class DraftService:
         return merged
 
     async def _generate_blocks(
-        self, brief: DraftBrief, draft: Draft
+        self, brief: DraftBrief, draft: Draft, *, owner_uid: str
     ) -> list[DraftBlock]:
-        user = json.dumps(brief.model_dump(mode="json"), indent=2, ensure_ascii=False)
+        payload: dict[str, Any] = {"brief": brief.model_dump(mode="json")}
+        # RAG: the creator's own past titles/descriptions (their most recently synced channel) as
+        # style evidence, retrieved against this brief. Absent when nothing has been synced.
+        if self.content is not None:
+            creator_context = self.content.build_context_for_user(
+                owner_uid,
+                query=f"{brief.topic} {brief.instructions}".strip(),
+                k=5,
+            )
+            if creator_context:
+                payload["creatorContext"] = creator_context
+        user = json.dumps(payload, indent=2, ensure_ascii=False)
         try:
             completion = await self.llm.complete_json(
                 model=self.settings.model_writer,

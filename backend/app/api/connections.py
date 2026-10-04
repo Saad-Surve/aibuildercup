@@ -17,14 +17,17 @@ from fastapi.responses import RedirectResponse
 from app.dependencies import (
     AuthenticatedUser,
     current_user,
+    get_channel_content_service,
     get_connection_service,
 )
 from app.schemas.connections import (
+    ChannelContentProfile,
     Connection,
     ConnectionList,
     OAuthStartRequest,
     OAuthStartResponse,
 )
+from app.services.channel_content_service import ChannelContentService
 from app.services.connection_service import ConnectionService
 
 router = APIRouter(tags=["connections"])
@@ -78,6 +81,34 @@ async def sync_connection(
     service: ServiceDep,
 ) -> Connection:
     return service.sync(owner_uid=user.uid, connection_id=connectionId)
+
+
+ContentServiceDep = Annotated[ChannelContentService, Depends(get_channel_content_service)]
+
+
+@router.post(
+    "/connections/{connectionId}/content/sync",
+    response_model=ChannelContentProfile,
+)
+async def sync_connection_content(
+    connectionId: str,
+    user: UserDep,
+    service: ContentServiceDep,
+) -> ChannelContentProfile:
+    """Read the channel's existing videos back for style/RAG analysis."""
+    return service.sync(owner_uid=user.uid, connection_id=connectionId)
+
+
+@router.get(
+    "/connections/{connectionId}/content",
+    response_model=ChannelContentProfile,
+)
+async def get_connection_content(
+    connectionId: str,
+    user: UserDep,
+    service: ContentServiceDep,
+) -> ChannelContentProfile:
+    return service.profile(owner_uid=user.uid, connection_id=connectionId)
 
 
 @router.delete("/connections/{connectionId}", status_code=status.HTTP_204_NO_CONTENT)

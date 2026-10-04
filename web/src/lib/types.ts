@@ -699,6 +699,7 @@ export interface Connection {
   displayName: string;
   externalAccountId: string;
   externalHandle: string | null;
+  uploadsPlaylistId: string | null;
   googleAccountEmail: string | null;
   avatarUrl: string | null;
   subscriberCount: number | null;
@@ -708,6 +709,8 @@ export interface Connection {
   lastSyncAt: string | null;
   lastSyncStatus: string | null;
   lastErrorCode: string | null;
+  contentSyncedAt: string | null;
+  contentItemCount: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -724,6 +727,42 @@ export interface OAuthStartRequest {
 export interface OAuthStartResponse {
   authorizationUrl: string;
   state: string;
+}
+
+export interface ContentItem {
+  videoId: string;
+  title: string;
+  description: string;
+  tags: string[];
+  publishedAt: string | null;
+  durationSeconds: number | null;
+  viewCount: number | null;
+  likeCount: number | null;
+  commentCount: number | null;
+  thumbnailUrl: string | null;
+  hasCustomThumbnail: boolean | null;
+  language: string | null;
+}
+
+export interface ContentStyleSummary {
+  videoCount: number;
+  avgTitleWords: number;
+  titleWithNumberPct: number;
+  titleWithEmojiPct: number;
+  avgDescriptionChars: number;
+  descriptionWithHashtagPct: number;
+  videosPerMonth: number;
+  commonTitleOpeners: string[];
+  topTags: string[];
+}
+
+export interface ChannelContentProfile {
+  connectionId: string;
+  syncedAt: string | null;
+  itemCount: number;
+  style: ContentStyleSummary;
+  topVideos: ContentItem[];
+  recentItems: ContentItem[];
 }
 
 /* ------------------------------------------------------------------ publishing */

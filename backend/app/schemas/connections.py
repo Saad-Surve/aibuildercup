@@ -35,6 +35,8 @@ class Connection(BaseModel):
     #: The YouTube channel id (`UC...`).
     externalAccountId: str
     externalHandle: str | None = None
+    #: The channel's hidden "uploads" playlist, used to read back published videos cheaply.
+    uploadsPlaylistId: str | None = None
     #: The Gmail account that owns/targets the channel, shown so the creator can tell
     #: two connections apart when the same Google account owns several channels.
     googleAccountEmail: str | None = None
@@ -46,6 +48,9 @@ class Connection(BaseModel):
     lastSyncAt: datetime | None = None
     lastSyncStatus: str | None = None
     lastErrorCode: str | None = None
+    #: When the channel's existing videos were last read back for style/RAG analysis.
+    contentSyncedAt: datetime | None = None
+    contentItemCount: int | None = None
     createdAt: datetime
     updatedAt: datetime
 
@@ -70,3 +75,45 @@ class OAuthStartResponse(BaseModel):
 class ConnectionSyncAccepted(BaseModel):
     connectionId: str
     status: str
+
+
+class ContentItem(BaseModel):
+    """One video already published on a connected channel, read back for style/RAG."""
+
+    videoId: str
+    title: str = ""
+    description: str = ""
+    tags: list[str] = Field(default_factory=list)
+    publishedAt: datetime | None = None
+    durationSeconds: int | None = None
+    viewCount: int | None = None
+    likeCount: int | None = None
+    commentCount: int | None = None
+    thumbnailUrl: str | None = None
+    hasCustomThumbnail: bool | None = None
+    language: str | None = None
+
+
+class ContentStyleSummary(BaseModel):
+    """Aggregate patterns across a channel's published videos, for prompts and the UI."""
+
+    videoCount: int = 0
+    avgTitleWords: float = 0
+    titleWithNumberPct: int = 0
+    titleWithEmojiPct: int = 0
+    avgDescriptionChars: int = 0
+    descriptionWithHashtagPct: int = 0
+    videosPerMonth: float = 0
+    commonTitleOpeners: list[str] = Field(default_factory=list)
+    topTags: list[str] = Field(default_factory=list)
+
+
+class ChannelContentProfile(BaseModel):
+    """A connected channel's read-back content plus aggregate style signals."""
+
+    connectionId: str
+    syncedAt: datetime | None = None
+    itemCount: int = 0
+    style: ContentStyleSummary = Field(default_factory=ContentStyleSummary)
+    topVideos: list[ContentItem] = Field(default_factory=list)
+    recentItems: list[ContentItem] = Field(default_factory=list)

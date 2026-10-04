@@ -59,6 +59,7 @@ def _to_connection(connection_id: str, data: dict[str, Any]) -> Connection:
         externalAccountId=data.get("externalAccountId", ""),
         externalHandle=data.get("externalHandle"),
         googleAccountEmail=data.get("googleAccountEmail"),
+        uploadsPlaylistId=data.get("uploadsPlaylistId"),
         avatarUrl=data.get("avatarUrl"),
         subscriberCount=data.get("subscriberCount"),
         videoCount=data.get("videoCount"),
@@ -67,6 +68,8 @@ def _to_connection(connection_id: str, data: dict[str, Any]) -> Connection:
         lastSyncAt=data.get("lastSyncAt"),
         lastSyncStatus=data.get("lastSyncStatus"),
         lastErrorCode=data.get("lastErrorCode"),
+        contentSyncedAt=data.get("contentSyncedAt"),
+        contentItemCount=data.get("contentItemCount"),
         createdAt=data["createdAt"],
         updatedAt=data["updatedAt"],
     )
@@ -218,6 +221,7 @@ class ConnectionService:
             "displayName": channel.title,
             "externalAccountId": channel.channel_id,
             "externalHandle": channel.handle,
+            "uploadsPlaylistId": channel.uploads_playlist_id,
             "googleAccountEmail": google_email,
             "avatarUrl": channel.thumbnail_url,
             "subscriberCount": channel.subscriber_count,
@@ -343,6 +347,7 @@ class ConnectionService:
             {
                 "displayName": channel.title,
                 "externalHandle": channel.handle,
+                "uploadsPlaylistId": channel.uploads_playlist_id,
                 "avatarUrl": channel.thumbnail_url,
                 "subscriberCount": channel.subscriber_count,
                 "videoCount": channel.video_count,

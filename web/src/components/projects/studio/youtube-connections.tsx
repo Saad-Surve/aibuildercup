@@ -7,6 +7,7 @@ import {
   Link01Icon,
   Loading03Icon,
   Refresh01Icon,
+  SparklesIcon,
   YoutubeIcon,
 } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ import {
   listConnections,
   startYouTubeOAuth,
   syncConnection,
+  syncConnectionContent,
 } from "@/lib/connections";
 import type { Connection } from "@/lib/types";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
@@ -38,6 +40,9 @@ function subtitle(connection: Connection): string {
   if (connection.externalHandle) parts.push(connection.externalHandle);
   if (connection.subscriberCount != null) {
     parts.push(`${connection.subscriberCount.toLocaleString()} subscribers`);
+  }
+  if (connection.contentItemCount) {
+    parts.push(`${connection.contentItemCount} videos read`);
   }
   return parts.join(" · ");
 }
@@ -131,6 +136,20 @@ export function YouTubeConnections({
       void queryClient.invalidateQueries({ queryKey: ["connections"] });
     },
     onError: (error) => toast.error(describe(error, "Could not refresh the channel.")),
+  });
+
+  const contentMutation = useMutation({
+    mutationFn: (connectionId: string) => syncConnectionContent(connectionId),
+    onSuccess: (profile) => {
+      toast.success(
+        profile.itemCount > 0
+          ? `Read ${profile.itemCount} videos — the writer will match your voice.`
+          : "No public videos found on this channel yet.",
+      );
+      void queryClient.invalidateQueries({ queryKey: ["connections"] });
+    },
+    onError: (error) =>
+      toast.error(describe(error, "Could not read the channel content.")),
   });
 
   const disconnectMutation = useMutation({
@@ -246,6 +265,26 @@ export function YouTubeConnections({
                     ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
+                    <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label="Read channel content for the AI"
+                        title="Read your published videos so the writer can match your style"
+                        onClick={() => contentMutation.mutate(connection.connectionId)}
+                        disabled={contentMutation.isPending || readOnly}
+                      >
+                        <Icon
+                          icon={SparklesIcon}
+                          className={cn(
+                            contentMutation.isPending &&
+                              contentMutation.variables === connection.connectionId &&
+                              "animate-pulse",
+                          )}
+                        />
+                      </Button>
+                    </DisabledReason>
                     <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
                       <Button
                         type="button"

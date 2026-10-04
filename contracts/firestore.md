@@ -167,6 +167,14 @@ The encrypted token payload lives in `users/{uid}/connectionSecrets/{connectionI
 `{ownerUid, connectionId, platform, ciphertext, keyVersion, updatedAt}`. Both collections sit
 under the user subtree, so account deletion removes them.
 
+`users/{uid}/connections/{connectionId}/contentItems/{videoId}` holds a compact read-back copy of
+one video already published on the channel: `title`, `description`, `tags`, `publishedAt`,
+`durationSeconds`, `viewCount`, `likeCount`, `commentCount`, `thumbnailUrl`, `hasCustomThumbnail`,
+and `language`. It is written by `POST /connections/{id}/content/sync` (the cheap uploads-playlist
+read) and read back by the draft writer as style/RAG evidence. It lives under the connection, so
+the recursive account delete covers it. The connection document also keeps `uploadsPlaylistId`,
+`contentSyncedAt`, and `contentItemCount`.
+
 `users/{uid}/oauthStates/{state}` is a single-use OAuth state record (PKCE verifier, platform,
 post-login redirect path, expiry). The callback runs without Firebase auth and finds the record
 by state via a collection-group query, then deletes it. Expired states are deleted on lookup.

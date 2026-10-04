@@ -13,6 +13,7 @@ from app.providers import get_providers
 from app.services.analysis_service import AnalysisService
 from app.services.asset_service import AssetService
 from app.services.caption_service import CaptionRenderService
+from app.services.channel_content_service import ChannelContentService
 from app.services.connection_service import ConnectionService
 from app.services.draft_service import DraftService
 from app.services.firestore_service import get_firestore_client
@@ -89,6 +90,7 @@ def get_draft_service() -> DraftService:
         client,
         projects=ProjectService(client),
         llm=get_providers().llm,
+        content=get_channel_content_service(),
         settings=get_settings(),
     )
 
@@ -171,6 +173,14 @@ def get_connection_service() -> ConnectionService:
         get_firestore_client(),
         cipher=get_token_cipher(),
         settings=settings,
+    )
+
+
+def get_channel_content_service() -> ChannelContentService:
+    return ChannelContentService(
+        get_firestore_client(),
+        connections=get_connection_service(),
+        settings=get_settings(),
     )
 
 

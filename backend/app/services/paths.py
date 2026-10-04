@@ -119,6 +119,18 @@ def connection_secret_path(uid: str, connection_id: str) -> str:
     )
 
 
+def content_items_collection_path(uid: str, connection_id: str) -> str:
+    """Read-back copies of a connected channel's existing videos (style / RAG source)."""
+    return f"{connection_path(uid, connection_id)}/contentItems"
+
+
+def content_item_path(uid: str, connection_id: str, video_id: str) -> str:
+    return (
+        f"{content_items_collection_path(uid, connection_id)}/"
+        f"{safe_segment(video_id, name='videoId')}"
+    )
+
+
 def oauth_states_collection_path(uid: str) -> str:
     return f"{user_path(uid)}/oauthStates"
 

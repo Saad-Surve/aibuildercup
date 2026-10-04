@@ -1244,6 +1244,39 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /api/connections/{connectionId}/content:
+    get:
+      summary: A connected channel's read-back content profile (style signals + top/recent videos)
+      parameters:
+        - { $ref: "#/components/parameters/ConnectionId" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChannelContentProfile" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/connections/{connectionId}/content/sync:
+    post:
+      summary: Read the channel's existing videos back for style/RAG analysis
+      description: |
+        Lists the channel's uploads playlist (cheap: ~1 quota unit per 50 videos) and stores a
+        compact copy of each video under the connection. Draft generation then retrieves the most
+        relevant past videos as style evidence. Reads the creator's own channel data only.
+      parameters:
+        - { $ref: "#/components/parameters/ConnectionId" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChannelContentProfile" }
+        "400": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /api/projects/{projectId}/publishes:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
@@ -2645,6 +2678,7 @@ components:
         displayName: { type: string }
         externalAccountId: { type: string }
         externalHandle: { type: [string, "null"] }
+        uploadsPlaylistId: { type: [string, "null"], description: Hidden uploads playlist used to read back published videos }
         googleAccountEmail: { type: [string, "null"] }
         avatarUrl: { type: [string, "null"] }
         subscriberCount: { type: [integer, "null"] }
@@ -2656,6 +2690,8 @@ components:
         lastSyncAt: { type: [string, "null"], format: date-time }
         lastSyncStatus: { type: [string, "null"] }
         lastErrorCode: { type: [string, "null"] }
+        contentSyncedAt: { type: [string, "null"], format: date-time, description: When the channel's videos were last read back for style/RAG }
+        contentItemCount: { type: [integer, "null"] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -2678,6 +2714,57 @@ components:
       properties:
         authorizationUrl: { type: string }
         state: { type: string }
+
+    ContentItem:
+      type: object
+      required: [videoId]
+      properties:
+        videoId: { type: string }
+        title: { type: string }
+        description: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+        publishedAt: { type: [string, "null"], format: date-time }
+        durationSeconds: { type: [integer, "null"] }
+        viewCount: { type: [integer, "null"] }
+        likeCount: { type: [integer, "null"] }
+        commentCount: { type: [integer, "null"] }
+        thumbnailUrl: { type: [string, "null"] }
+        hasCustomThumbnail: { type: [boolean, "null"] }
+        language: { type: [string, "null"] }
+
+    ContentStyleSummary:
+      type: object
+      properties:
+        videoCount: { type: integer }
+        avgTitleWords: { type: number }
+        titleWithNumberPct: { type: integer }
+        titleWithEmojiPct: { type: integer }
+        avgDescriptionChars: { type: integer }
+        descriptionWithHashtagPct: { type: integer }
+        videosPerMonth: { type: number }
+        commonTitleOpeners:
+          type: array
+          items: { type: string }
+        topTags:
+          type: array
+          items: { type: string }
+
+    ChannelContentProfile:
+      type: object
+      required: [connectionId]
+      properties:
+        connectionId: { type: string }
+        syncedAt: { type: [string, "null"], format: date-time }
+        itemCount: { type: integer }
+        style: { $ref: "#/components/schemas/ContentStyleSummary" }
+        topVideos:
+          type: array
+          items: { $ref: "#/components/schemas/ContentItem" }
+        recentItems:
+          type: array
+          items: { $ref: "#/components/schemas/ContentItem" }
 
     PublishSourceKind:
       type: string

@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api-client";
 import type {
+  ChannelContentProfile,
   Connection,
   ConnectionList,
   OAuthStartRequest,
@@ -34,4 +35,20 @@ export function syncConnection(connectionId: string): Promise<Connection> {
 
 export function deleteConnection(connectionId: string): Promise<void> {
   return apiFetch<void>(`/connections/${connectionId}`, { method: "DELETE" });
+}
+
+/** Read the channel's existing videos back for style/RAG. */
+export function syncConnectionContent(
+  connectionId: string,
+): Promise<ChannelContentProfile> {
+  return apiFetch<ChannelContentProfile>(
+    `/connections/${connectionId}/content/sync`,
+    { method: "POST" },
+  );
+}
+
+export function getConnectionContent(
+  connectionId: string,
+): Promise<ChannelContentProfile> {
+  return apiFetch<ChannelContentProfile>(`/connections/${connectionId}/content`);
 }

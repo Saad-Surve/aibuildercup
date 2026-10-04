@@ -14,12 +14,13 @@ unverified client's uploads are locked private regardless of the requested priva
 
 import io
 import logging
+import re
 import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from app.connectors.base import ChannelInfo, ConnectorError, UploadedVideo
+from app.connectors.base import ChannelInfo, ChannelVideo, ConnectorError, UploadedVideo
 from app.services.oauth_service import OAuthTokenSet
 
 logger = logging.getLogger(__name__)
@@ -91,6 +92,61 @@ class YouTubeConnector:
         if not items:
             raise ConnectorError("The channel is no longer available.", code="CHANNEL_NOT_FOUND")
         return self._channel_from(items[0])
+
+    # ------------------------------------------------------------------ read-back
+
+    def list_videos(
+        self,
+        tokens: OAuthTokenSet,
+        *,
+        uploads_playlist_id: str,
+        max_videos: int = 50,
+    ) -> list[ChannelVideo]:
+        """Read a channel's published videos for style/RAG analysis.
+
+        Two cheap calls per page: `playlistItems.list` (1 unit/page of 50) for the ids, then
+        `videos.list` (1 unit per 50 ids) for metadata. Never `search.list` (100 units).
+        """
+        service = self._service(tokens)
+        video_ids: list[str] = []
+        page_token: str | None = None
+        try:
+            while len(video_ids) < max_videos:
+                response = (
+                    service.playlistItems()
+                    .list(
+                        part="contentDetails",
+                        playlistId=uploads_playlist_id,
+                        maxResults=min(50, max_videos - len(video_ids)),
+                        pageToken=page_token,
+                    )
+                    .execute()
+                )
+                for item in response.get("items") or []:
+                    video_id = (item.get("contentDetails") or {}).get("videoId")
+                    if video_id:
+                        video_ids.append(str(video_id))
+                page_token = response.get("nextPageToken")
+                if not page_token:
+                    break
+
+            videos: list[ChannelVideo] = []
+            for start in range(0, len(video_ids), 50):
+                batch = video_ids[start : start + 50]
+                response = (
+                    service.videos()
+                    .list(
+                        part="snippet,contentDetails,statistics,status",
+                        id=",".join(batch),
+                    )
+                    .execute()
+                )
+                videos.extend(
+                    self._video_from(item) for item in response.get("items") or []
+                )
+            return videos
+        except Exception as exc:  # noqa: BLE001 - normalised below
+            raise self._translate(exc, "Could not read the channel's videos.") from exc
 
     def revoke(self, tokens: OAuthTokenSet) -> None:
         """No channel-level revoke endpoint; the OAuth service revokes the token itself."""
@@ -259,6 +315,35 @@ class YouTubeConnector:
         )
 
     @staticmethod
+    def _video_from(item: dict[str, Any]) -> ChannelVideo:
+        snippet = item.get("snippet") or {}
+        content = item.get("contentDetails") or {}
+        statistics = item.get("statistics") or {}
+        thumbnails = snippet.get("thumbnails") or {}
+        best = (
+            thumbnails.get("maxres")
+            or thumbnails.get("standard")
+            or thumbnails.get("high")
+            or thumbnails.get("medium")
+            or thumbnails.get("default")
+            or {}
+        )
+        return ChannelVideo(
+            video_id=str(item.get("id") or ""),
+            title=str(snippet.get("title") or ""),
+            description=str(snippet.get("description") or ""),
+            tags=tuple(str(tag) for tag in (snippet.get("tags") or [])),
+            published_at=snippet.get("publishedAt"),
+            duration_seconds=_iso_duration_seconds(content.get("duration")),
+            view_count=_int_or_none(statistics.get("viewCount")),
+            like_count=_int_or_none(statistics.get("likeCount")),
+            comment_count=_int_or_none(statistics.get("commentCount")),
+            thumbnail_url=best.get("url"),
+            has_custom_thumbnail=content.get("hasCustomThumbnail"),
+            language=snippet.get("defaultAudioLanguage") or snippet.get("defaultLanguage"),
+        )
+
+    @staticmethod
     def _translate(exc: Exception, message: str) -> ConnectorError:
         """Turn a `googleapiclient` HttpError into a typed `ConnectorError`."""
         status = None
@@ -298,3 +383,24 @@ def _int_or_none(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+_DURATION = re.compile(
+    r"^P(?:(?P<days>\d+)D)?"
+    r"(?:T(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?(?:(?P<seconds>\d+)S)?)?$"
+)
+
+
+def _iso_duration_seconds(value: Any) -> int | None:
+    """Parse an ISO 8601 duration (`PT1H2M3S`) into seconds."""
+    if not value:
+        return None
+    match = _DURATION.match(str(value))
+    if match is None:
+        return None
+    return (
+        int(match.group("days") or 0) * 86400
+        + int(match.group("hours") or 0) * 3600
+        + int(match.group("minutes") or 0) * 60
+        + int(match.group("seconds") or 0)
+    )
