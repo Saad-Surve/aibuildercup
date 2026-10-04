@@ -2804,6 +2804,8 @@ components:
         contentSyncedAt: { type: [string, "null"], format: date-time, description: When the channel's videos were last read back for style/RAG }
         contentItemCount: { type: [integer, "null"] }
         isSeed: { type: boolean, description: Demo seed connection (CC-BY content, no tokens to sync) }
+        seedAttribution: { type: [string, "null"], description: CC-BY credit line for a seed connection }
+        seedLicense: { type: [string, "null"] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 

@@ -354,6 +354,16 @@ export function YouTubeConnections({
                         {subtitle(connection)}
                       </p>
                     ) : null}
+                    {connection.isSeed ? (
+                      <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                        {connection.seedLicense
+                          ? `Licensed: ${connection.seedLicense}.`
+                          : "CC BY licensed demo content."}{" "}
+                        Credit each video:{" "}
+                        {connection.seedAttribution ||
+                          "the original creator and link to the source video."}
+                      </p>
+                    ) : null}
                     {selectable && onSelect ? (
                       <Button
                         type="button"

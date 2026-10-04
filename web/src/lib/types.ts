@@ -712,6 +712,8 @@ export interface Connection {
   contentSyncedAt: string | null;
   contentItemCount: number | null;
   isSeed: boolean;
+  seedAttribution: string | null;
+  seedLicense: string | null;
   createdAt: string;
   updatedAt: string;
 }

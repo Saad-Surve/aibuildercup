@@ -53,6 +53,9 @@ class Connection(BaseModel):
     contentItemCount: int | None = None
     #: True for a demo seed connection (public CC-BY content, no OAuth tokens to sync).
     isSeed: bool = False
+    #: CC-BY credit line for a seed connection (see fixtures/seed/youtube/ATTRIBUTION.md).
+    seedAttribution: str | None = None
+    seedLicense: str | None = None
     createdAt: datetime
     updatedAt: datetime
 

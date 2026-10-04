@@ -71,6 +71,8 @@ def _to_connection(connection_id: str, data: dict[str, Any]) -> Connection:
         contentSyncedAt=data.get("contentSyncedAt"),
         contentItemCount=data.get("contentItemCount"),
         isSeed=bool(data.get("seedSource")),
+        seedAttribution=data.get("seedAttribution"),
+        seedLicense=data.get("seedLicense"),
         createdAt=data["createdAt"],
         updatedAt=data["updatedAt"],
     )
