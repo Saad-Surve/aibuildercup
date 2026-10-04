@@ -3,10 +3,10 @@
 Wraps `googleapiclient` so no feature code imports the Google SDK. Handles channel lookup,
 resumable video upload, thumbnail set, and caption upload.
 
-Quota notes (the demo stays well under the 10,000 units/day default):
-- `videos.insert` costs ~1600 units.
-- `thumbnails.set` costs ~50 units.
-- `captions.insert` costs ~400 units.
+Quota notes (the demo stays well under the defaults):
+- `videos.insert` has its own bucket of 100 uploads/day (cost 1 each), separate from the shared
+  10,000 units/day pool.
+- `thumbnails.set` costs 50 units and `captions.insert` costs 400 units, from the shared pool.
 
 Uploaded videos start as `private` until the OAuth client passes YouTube's API audit; an
 unverified client's uploads are locked private regardless of the requested privacy status.

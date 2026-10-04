@@ -302,6 +302,37 @@ class ConnectionService:
         self.client.delete_document(connection_secret_path(owner_uid, connection_id))
         self.client.delete_document(connection_path(owner_uid, connection_id))
 
+    def revoke_all(self, *, owner_uid: str) -> None:
+        """Best-effort revoke of every connected account's token before account deletion.
+
+        Account deletion removes the Firestore tree, which is the only place the encrypted
+        tokens live, so the grants must be revoked here or they leak at the provider. Never
+        raises: deletion must proceed even if the OAuth client is unconfigured or a provider
+        revoke fails.
+        """
+        try:
+            connections = self.list(owner_uid=owner_uid)
+        except Exception:  # noqa: BLE001 - a read failure must not block deletion
+            logger.warning("revoke_all: could not list connections", exc_info=True)
+            return
+        if not connections:
+            return
+        try:
+            client = self._oauth_client()
+        except Exception:  # noqa: BLE001 - e.g. OAUTH_NOT_CONFIGURED
+            logger.warning("revoke_all: OAuth client unavailable; skipping revoke", exc_info=True)
+            return
+        for connection in connections:
+            try:
+                data = self._require(owner_uid, connection.connectionId)
+                tokens = self._load_tokens(owner_uid, data)
+                if tokens is not None:
+                    client.revoke(token=tokens.refresh_token or tokens.access_token)
+            except Exception:  # noqa: BLE001 - one failure must not block the rest
+                logger.warning(
+                    "revoke_all: revoke failed for %s", connection.connectionId, exc_info=True
+                )
+
     def sync(self, *, owner_uid: str, connection_id: str) -> Connection:
         data = self._require(owner_uid, connection_id)
         tokens = self.tokens_for_use(owner_uid=owner_uid, connection_id=connection_id)

@@ -13,3 +13,8 @@ image.png
 
 # Editor scratch (Competitive Programming Helper)
 .cph/
+
+# Local Supermemory instance (PGlite data, runtime, per-project API key)
+.supermemory/
+# YouTube seed media (gathered locally, not committed)
+fixtures/seed

@@ -171,7 +171,10 @@ async def run_publish(
             storage,
             storage_path=str(publish["videoStoragePath"]),
             suffix=_suffix_for(str(publish.get("videoMimeType") or "video/mp4")),
-            max_bytes=settings.publish_max_source_bytes,
+            # The business limit and the runtime temp-disk limit both apply; the smaller wins.
+            max_bytes=min(
+                settings.publish_max_source_bytes, settings.publish_max_stage_bytes
+            ),
         )
         def on_progress(fraction: int) -> None:
             span = _UPLOAD_PERCENT_END - _UPLOAD_PERCENT_START

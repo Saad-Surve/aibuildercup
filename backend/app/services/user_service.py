@@ -6,13 +6,16 @@ stored on the same document under `onboarding`.
 """
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from app.schemas.onboarding import OnboardingState, OnboardingStatus, OnboardingStep
 from app.schemas.users import AvatarState, Me, Preferences
 from app.services.firestore_service import FirestoreClient, user_path
 from app.services.paths import user_object_prefix
 from app.services.storage_service import StorageClient
+
+if TYPE_CHECKING:
+    from app.services.connection_service import ConnectionService
 
 DEFAULT_PREFERENCES: dict[str, Any] = {
     "timezone": "UTC",
@@ -29,10 +32,15 @@ DEFAULT_LIMITS: dict[str, Any] = {
 
 class UserService:
     def __init__(
-        self, client: FirestoreClient, *, storage: StorageClient | None = None
+        self,
+        client: FirestoreClient,
+        *,
+        storage: StorageClient | None = None,
+        connections: "ConnectionService | None" = None,
     ) -> None:
         self.client = client
         self.storage = storage
+        self.connections = connections
 
     def ensure_user(
         self,
@@ -165,7 +173,14 @@ class UserService:
         )
 
     def delete_account(self, owner_uid: str) -> None:
-        """Remove the entire `users/{uid}` subtree and all stored objects. Idempotent."""
+        """Remove the entire `users/{uid}` subtree and all stored objects. Idempotent.
+
+        OAuth grants are revoked at the provider first: the tree delete destroys the only copy
+        of the encrypted tokens. `revoke_all` is best-effort and never raises, so a provider
+        failure cannot leave the account half-deleted.
+        """
+        if self.connections is not None:
+            self.connections.revoke_all(owner_uid=owner_uid)
         if self.storage is not None:
             self.storage.delete_prefix(user_object_prefix(owner_uid))
         self.client.delete_document_tree(user_path(owner_uid))

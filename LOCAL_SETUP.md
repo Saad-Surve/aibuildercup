@@ -436,7 +436,7 @@ This needs a **Google OAuth client**; everything else is already wired.
 2. **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application**.
 3. Add **Authorized redirect URIs**:
    - Local: `http://localhost:8080/api/connections/youtube/oauth/callback`
-   - Deployed: `https://<your-cloud-run-url>/api/connections/youtube/oauth/callback`
+   - Deployed: `https://creator-studio-api-3sim77rugq-uc.a.run.app/api/connections/youtube/oauth/callback`
 4. Copy the **client id** and **client secret**.
 
 ### 7b.2 Wire the credentials

@@ -66,7 +66,12 @@ def get_asset_service() -> AssetService:
 
 
 def get_user_service() -> UserService:
-    return UserService(get_firestore_client(), storage=get_storage_client())
+    return UserService(
+        get_firestore_client(),
+        storage=get_storage_client(),
+        # Account deletion revokes the connected accounts' OAuth grants before dropping the tree.
+        connections=get_connection_service(),
+    )
 
 
 def get_identity_deleter() -> Callable[[str], None]:

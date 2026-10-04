@@ -212,6 +212,10 @@ class Settings(BaseSettings):
     # Refuse to stage a source larger than this to the publish worker's temp dir. YouTube's
     # own limit is 256GB, but the hackathon demo stays far below it.
     publish_max_source_bytes: int = 8_000_000_000
+    # Smaller cap for the worker's local temp disk. Cloud Run's default writable disk is ~2 GB,
+    # so staging a larger file fails with ENOSPC; fail fast with a clear message instead. Raise
+    # this only after raising the Cloud Run disk size.
+    publish_max_stage_bytes: int = 2_000_000_000
 
     # Upload limits. `max_upload_size_bytes` mirrors users/{uid}.limits.maxVideoSizeBytes.
     max_upload_size_bytes: int = 524_288_000
