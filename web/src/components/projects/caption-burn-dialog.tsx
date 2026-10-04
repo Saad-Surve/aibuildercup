@@ -270,12 +270,15 @@ export function CaptionBurnPanel({
   projectId,
   projectName,
   transcriptVersion,
+  localizationId,
   enabled = true,
   onClose,
 }: {
   projectId: string;
   projectName?: string;
   transcriptVersion?: number | null;
+  /** Burn a dub's localized captions onto its dubbed video instead of the source transcript. */
+  localizationId?: string;
   /** Whether the panel's queries should run (false while a dialog is closed). */
   enabled?: boolean;
   /** Renders a Close button when provided (dialog mode). */
@@ -313,10 +316,16 @@ export function CaptionBurnPanel({
     retry: false,
   });
 
-  const renders = useMemo(
-    () => rendersQuery.data?.items ?? [],
-    [rendersQuery.data],
-  );
+  // The list endpoint returns every render for the project; each panel only wants its own
+  // source (the transcript, or one specific dub).
+  const renders = useMemo(() => {
+    const items = rendersQuery.data?.items ?? [];
+    return items.filter((item) =>
+      localizationId
+        ? item.localizationId === localizationId
+        : !item.localizationId,
+    );
+  }, [rendersQuery.data, localizationId]);
   const activeRender = renders.find(
     (item) => item.status === "queued" || item.status === "rendering",
   );
@@ -344,7 +353,10 @@ export function CaptionBurnPanel({
     [presetsQuery.data],
   );
   const fallback = presets[0]?.style ?? DEFAULT_CAPTION_STYLE;
-  const style = preview?.style ?? selected ?? fallback;
+  // The panel keeps its own selection as the source of truth. The shared preview only drives
+  // the live overlay on the source video and is intentionally null outside the Captions module
+  // (for example the dub-caption dialog), so it cannot be the only state.
+  const style = selected ?? preview?.style ?? fallback;
   const presetId = style.preset;
 
   // Seed the shared preview with the first preset so the overlay on the video
@@ -382,6 +394,7 @@ export function CaptionBurnPanel({
       createCaptionRender(projectId, {
         style,
         transcriptVersion: transcriptVersion ?? null,
+        localizationId: localizationId ?? null,
         fileName: projectName ?? null,
       }),
     onSuccess: (result) => {
@@ -410,8 +423,8 @@ export function CaptionBurnPanel({
   });
 
   function applyStyle(next: CaptionStyle) {
-    if (preview) preview.setStyle(next);
-    else setSelected(next);
+    setSelected(next);
+    preview?.setStyle(next);
   }
 
   function applyPreset(id: string) {

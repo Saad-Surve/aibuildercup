@@ -1866,6 +1866,12 @@ components:
         transcriptVersion:
           type: [integer, "null"]
           description: Render a specific saved transcript version; defaults to the active one.
+        localizationId:
+          type: [string, "null"]
+          description: |
+            Burn a finished dub's localized captions onto its dubbed video instead of the source
+            transcript. The cues come from the localization's localized SRT and the source video
+            is the dubbed MP4; `transcriptVersion` is ignored.
         fileName: { type: [string, "null"], maxLength: 200 }
 
     CaptionPreset:
@@ -1893,6 +1899,9 @@ components:
         sourceAssetId: { type: [string, "null"] }
         sourceTranscriptId: { type: [string, "null"] }
         transcriptVersion: { type: [integer, "null"] }
+        localizationId:
+          type: [string, "null"]
+          description: Set when this render burns a dub's localized captions onto its dubbed video.
         fileName: { type: [string, "null"] }
         storagePath: { type: [string, "null"] }
         assStoragePath: { type: [string, "null"] }

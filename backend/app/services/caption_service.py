@@ -21,6 +21,7 @@ from app.schemas.captions import (
     CaptionStyle,
 )
 from app.schemas.jobs import Job, JobType
+from app.schemas.localizations import LocalizationStatus
 from app.services.firestore_service import (
     FirestoreClient,
     asset_path,
@@ -28,6 +29,7 @@ from app.services.firestore_service import (
     caption_render_object_path,
     caption_render_path,
     caption_renders_collection_path,
+    localization_path,
     project_path,
 )
 from app.services.job_service import JobService
@@ -64,6 +66,7 @@ def _to_render(
         sourceAssetId=data.get("sourceAssetId"),
         sourceTranscriptId=data.get("sourceTranscriptId"),
         transcriptVersion=data.get("transcriptVersion"),
+        localizationId=data.get("localizationId"),
         fileName=data.get("fileName"),
         storagePath=data.get("storagePath"),
         assStoragePath=data.get("assStoragePath"),
@@ -103,31 +106,69 @@ class CaptionRenderService:
     def create(
         self, *, owner_uid: str, project_id: str, payload: CaptionRenderRequest
     ) -> tuple[CaptionRender, Job]:
-        """Validate the project/transcript/source and queue a render job."""
+        """Validate the source (transcript or dub) and queue a render job."""
         self.projects.get(owner_uid=owner_uid, project_id=project_id)
-        raw_project = self.client.get_document(project_path(owner_uid, project_id)) or {}
-        source_asset_id = raw_project.get("sourceAssetId") or self._first_source_asset(
-            owner_uid=owner_uid, project_id=project_id
-        )
-        if not source_asset_id:
-            raise BadRequestError(
-                "This project has no source video to render.",
-                code="SOURCE_NOT_FOUND",
-                details={"projectId": project_id},
-            )
-        asset = self.client.get_document(
-            asset_path(owner_uid, project_id, source_asset_id)
-        )
-        if asset is None or not is_owner(asset, owner_uid):
-            raise NotFoundError(
-                "Source video not found", details={"projectId": project_id}
-            )
 
-        transcript = self.transcripts.get(
-            owner_uid=owner_uid,
-            project_id=project_id,
-            version=payload.transcriptVersion,
-        )
+        localization_id: str | None = None
+        dub_video_path: str | None = None
+        dub_captions_path: str | None = None
+        source_asset_id: str | None = None
+        source_transcript_id: str | None = None
+        duration_ms = 0
+
+        if payload.localizationId:
+            # Burn a finished dub's localized captions onto its dubbed video.
+            localization_id = payload.localizationId
+            localization = self.client.get_document(
+                localization_path(owner_uid, project_id, localization_id)
+            )
+            if localization is None or not is_owner(localization, owner_uid):
+                raise NotFoundError(
+                    "Localization not found",
+                    details={"localizationId": localization_id},
+                )
+            if localization.get("status") != LocalizationStatus.ready.value:
+                raise BadRequestError(
+                    "The dub is not ready yet.",
+                    code="LOCALIZATION_NOT_READY",
+                    details={"localizationId": localization_id},
+                )
+            dub_video_path = localization.get("videoStoragePath")
+            dub_captions_path = localization.get("captionsStoragePath")
+            if not dub_video_path:
+                raise BadRequestError(
+                    "The dub has no video to caption.",
+                    code="LOCALIZATION_NOT_READY",
+                    details={"localizationId": localization_id},
+                )
+            duration_ms = int(localization.get("durationMs") or 0)
+        else:
+            raw_project = self.client.get_document(
+                project_path(owner_uid, project_id)
+            ) or {}
+            source_asset_id = raw_project.get(
+                "sourceAssetId"
+            ) or self._first_source_asset(owner_uid=owner_uid, project_id=project_id)
+            if not source_asset_id:
+                raise BadRequestError(
+                    "This project has no source video to render.",
+                    code="SOURCE_NOT_FOUND",
+                    details={"projectId": project_id},
+                )
+            asset = self.client.get_document(
+                asset_path(owner_uid, project_id, source_asset_id)
+            )
+            if asset is None or not is_owner(asset, owner_uid):
+                raise NotFoundError(
+                    "Source video not found", details={"projectId": project_id}
+                )
+            transcript = self.transcripts.get(
+                owner_uid=owner_uid,
+                project_id=project_id,
+                version=payload.transcriptVersion,
+            )
+            source_transcript_id = transcript.transcriptId
+            duration_ms = transcript.durationMs
 
         render_id = uuid4().hex
         now = datetime.now(UTC)
@@ -137,14 +178,17 @@ class CaptionRenderService:
             "status": CaptionRenderStatus.queued.value,
             "style": payload.style.model_dump(mode="json"),
             "sourceAssetId": source_asset_id,
-            "sourceTranscriptId": transcript.transcriptId,
+            "sourceTranscriptId": source_transcript_id,
             "transcriptVersion": payload.transcriptVersion,
+            "localizationId": localization_id,
+            "dubVideoStoragePath": dub_video_path,
+            "dubCaptionsStoragePath": dub_captions_path,
             "fileName": (payload.fileName or "").strip() or None,
             "storagePath": None,
             "assStoragePath": None,
             "mimeType": "video/mp4",
             "sizeBytes": 0,
-            "durationMs": transcript.durationMs,
+            "durationMs": duration_ms,
             "width": 0,
             "height": 0,
             "jobId": None,

@@ -491,6 +491,8 @@ export interface CaptionRender {
   sourceAssetId: string | null;
   sourceTranscriptId: string | null;
   transcriptVersion: number | null;
+  /** Set when this render burns a dub's localized captions onto its dubbed video. */
+  localizationId: string | null;
   fileName: string | null;
   storagePath: string | null;
   assStoragePath: string | null;

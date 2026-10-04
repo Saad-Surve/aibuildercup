@@ -228,6 +228,8 @@ export function createCaptionRender(
   input: {
     style: CaptionStyle;
     transcriptVersion?: number | null;
+    /** Burn a dub's localized captions onto its dubbed video instead of the source. */
+    localizationId?: string | null;
     fileName?: string | null;
   },
 ): Promise<CaptionRenderAccepted> {

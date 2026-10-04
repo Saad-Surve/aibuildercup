@@ -76,6 +76,10 @@ class CaptionRenderRequest(BaseModel):
     style: CaptionStyle = Field(default_factory=CaptionStyle)
     #: Render a specific saved transcript generation; defaults to the active one.
     transcriptVersion: int | None = None
+    #: Burn the localized captions onto a finished dub instead of the source transcript. When
+    #: set, the render's source video is the localization's dubbed video and its cues are the
+    #: localized SRT the dub already produced; `transcriptVersion` is ignored.
+    localizationId: str | None = Field(default=None, max_length=64)
     #: Optional human name stored on the render (used for the downloaded file name).
     fileName: str | None = Field(default=None, max_length=200)
 
@@ -95,6 +99,8 @@ class CaptionRender(BaseModel):
     sourceAssetId: str | None = None
     sourceTranscriptId: str | None = None
     transcriptVersion: int | None = None
+    #: Set when this render burns a dub's localized captions onto its dubbed video.
+    localizationId: str | None = None
     fileName: str | None = None
     storagePath: str | None = None
     assStoragePath: str | None = None

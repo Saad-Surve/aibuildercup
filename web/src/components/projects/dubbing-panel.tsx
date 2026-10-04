@@ -7,12 +7,14 @@ import {
   Delete02Icon,
   FileAudioIcon,
   Loading03Icon,
+  TextFontIcon,
   TranslationIcon,
 } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
 import { DisabledReason } from "@/components/common/disabled-reason";
+import { DubCaptionsDialog } from "@/components/projects/studio/dub-captions-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -103,6 +105,9 @@ export function DubbingPanel({
   const queryClient = useQueryClient();
   const readOnly = useReadOnly();
   const [open, setOpen] = useState(false);
+  const [captionsTarget, setCaptionsTarget] = useState<Localization | null>(
+    null,
+  );
 
   const localizationsQuery = useQuery({
     queryKey: ["localizations", projectId],
@@ -260,6 +265,19 @@ export function DubbingPanel({
                       SRT
                     </Button>
                   ) : null}
+                  {item.status === "ready" ? (
+                    <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={readOnly}
+                        onClick={() => setCaptionsTarget(item)}
+                      >
+                        <Icon icon={TextFontIcon} />
+                        Burn
+                      </Button>
+                    </DisabledReason>
+                  ) : null}
                   <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
                     <Button
                       size="icon"
@@ -307,6 +325,19 @@ export function DubbingPanel({
           })
         }
       />
+
+      {captionsTarget ? (
+        <DubCaptionsDialog
+          projectId={projectId}
+          projectName={projectName}
+          localizationId={captionsTarget.localizationId}
+          language={captionsTarget.targetLanguage}
+          open
+          onOpenChange={(next) => {
+            if (!next) setCaptionsTarget(null);
+          }}
+        />
+      ) : null}
     </Card>
   );
 }

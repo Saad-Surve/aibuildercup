@@ -34,6 +34,7 @@ from app.services.job_service import JobService
 from app.services.project_service import ProjectService
 from app.services.source_media import stage_source
 from app.services.storage_service import StorageClient, get_storage_client
+from app.services.subtitles import parse_srt
 from app.services.transcript_service import TranscriptService
 from app.services.video_tools import (
     VideoToolError,
@@ -61,8 +62,15 @@ _PROGRESS_MIN_INTERVAL_SECONDS = 1.5
 
 
 def _filter_value(value: str) -> str:
-    """Quote a path for an FFmpeg filtergraph option value."""
-    return "'" + value.replace("'", "'\\''") + "'"
+    """Escape a path for an FFmpeg filtergraph option value.
+
+    FFmpeg's filter parser treats `:` as an option separator and a backslash as an escape, so a
+    Windows path (`C:/Users/...`) breaks `ass=filename=...` with "Error parsing filterchain".
+    Normalising separators to `/` and escaping the colon makes both the Windows drive letter and
+    the fonts directory parse; on POSIX paths neither step changes anything.
+    """
+    normalized = value.replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
+    return f"'{normalized}'"
 
 
 def _encode_timeout(duration_ms: int) -> int:
@@ -297,35 +305,55 @@ async def _render(
         caption_render_id=caption_render_id,
     )
 
-    source_asset_id = render.get("sourceAssetId")
-    if not source_asset_id:
-        raise VideoToolError("The render has no source video.")
-    asset = firestore.get_document(asset_path(owner_uid, project_id, str(source_asset_id)))
-    if asset is None or asset.get("ownerUid") != owner_uid:
-        raise VideoToolError("The source video is missing.")
-    source_path = str(asset.get("storagePath") or "")
-    if not source_path or not storage.object_exists(source_path):
-        raise VideoToolError("The source video is missing from storage.")
-
-    transcript_id = render.get("sourceTranscriptId")
-    if not transcript_id:
-        raise VideoToolError("The render has no source transcript.")
-    transcript = transcripts.get_by_id(
-        owner_uid=owner_uid, project_id=project_id, transcript_id=str(transcript_id)
-    )
-    if not transcript.segments:
-        raise VideoToolError("The transcript has no segments to burn.")
-
     style = _style_from(render)
-    segments = [
-        {
-            "startMs": segment.startMs,
-            "endMs": segment.endMs,
-            "text": segment.text,
-            "speaker": segment.speaker,
-        }
-        for segment in transcript.segments
-    ]
+    localization_id = render.get("localizationId")
+
+    if localization_id:
+        # Burn the dub's localized SRT onto the dubbed video.
+        source_path = str(render.get("dubVideoStoragePath") or "")
+        captions_path = str(render.get("dubCaptionsStoragePath") or "")
+        if not source_path or not storage.object_exists(source_path):
+            raise VideoToolError("The dubbed video is missing from storage.")
+        if not captions_path or not storage.object_exists(captions_path):
+            raise VideoToolError("The dub has no localized captions to burn.")
+        srt_text = await asyncio.to_thread(storage.download_text, captions_path)
+        segments = parse_srt(srt_text)
+        if not segments:
+            raise VideoToolError("The dub's captions are empty.")
+        speaker_labels: dict[str, str] = {}
+        fallback_duration_ms = int(render.get("durationMs") or 0)
+    else:
+        source_asset_id = render.get("sourceAssetId")
+        if not source_asset_id:
+            raise VideoToolError("The render has no source video.")
+        asset = firestore.get_document(
+            asset_path(owner_uid, project_id, str(source_asset_id))
+        )
+        if asset is None or asset.get("ownerUid") != owner_uid:
+            raise VideoToolError("The source video is missing.")
+        source_path = str(asset.get("storagePath") or "")
+        if not source_path or not storage.object_exists(source_path):
+            raise VideoToolError("The source video is missing from storage.")
+
+        transcript_id = render.get("sourceTranscriptId")
+        if not transcript_id:
+            raise VideoToolError("The render has no source transcript.")
+        transcript = transcripts.get_by_id(
+            owner_uid=owner_uid, project_id=project_id, transcript_id=str(transcript_id)
+        )
+        if not transcript.segments:
+            raise VideoToolError("The transcript has no segments to burn.")
+        segments = [
+            {
+                "startMs": segment.startMs,
+                "endMs": segment.endMs,
+                "text": segment.text,
+                "speaker": segment.speaker,
+            }
+            for segment in transcript.segments
+        ]
+        speaker_labels = transcript.speakerLabels
+        fallback_duration_ms = transcript.durationMs
 
     video_object, ass_object = captions.target_paths(
         owner_uid=owner_uid,
@@ -340,14 +368,14 @@ async def _render(
             source_path=source_path,
             tmpdir=tmpdir,
             settings=settings,
-            fallback_duration_ms=transcript.durationMs,
+            fallback_duration_ms=fallback_duration_ms,
         )
         ass_text = build_ass(
             segments,
             style,
             width=width,
             height=height,
-            speaker_labels=transcript.speakerLabels,
+            speaker_labels=speaker_labels,
         )
         ass_path = os.path.join(tmpdir, "captions.ass")
         out_path = os.path.join(tmpdir, "captioned.mp4")
