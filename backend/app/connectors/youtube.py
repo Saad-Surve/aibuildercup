@@ -20,7 +20,14 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from app.connectors.base import ChannelInfo, ChannelVideo, ConnectorError, UploadedVideo
+from app.connectors.base import (
+    AnalyticsReport,
+    CaptionTrack,
+    ChannelInfo,
+    ChannelVideo,
+    ConnectorError,
+    UploadedVideo,
+)
 from app.services.oauth_service import OAuthTokenSet
 
 logger = logging.getLogger(__name__)
@@ -151,6 +158,81 @@ class YouTubeConnector:
     def revoke(self, tokens: OAuthTokenSet) -> None:
         """No channel-level revoke endpoint; the OAuth service revokes the token itself."""
         return None
+
+    # ------------------------------------------------------------------ captions
+
+    def list_captions(self, tokens: OAuthTokenSet, *, video_id: str) -> list[CaptionTrack]:
+        """Caption tracks on a video the authenticated user can edit (own videos only)."""
+        service = self._service(tokens)
+        try:
+            response = (
+                service.captions()
+                .list(part="snippet", videoId=video_id)
+                .execute()
+            )
+        except Exception as exc:  # noqa: BLE001 - normalised below
+            raise self._translate(exc, "Could not read the video's captions.") from exc
+        return [self._caption_from(item) for item in response.get("items") or []]
+
+    def download_caption(
+        self, tokens: OAuthTokenSet, *, caption_id: str, tfmt: str = "srt"
+    ) -> str:
+        """Download a caption track. Requires permission to edit the video (own videos)."""
+        service = self._service(tokens)
+        try:
+            data = service.captions().download(id=caption_id, tfmt=tfmt).execute()
+        except Exception as exc:  # noqa: BLE001
+            raise self._translate(exc, "Could not download the caption track.") from exc
+        if isinstance(data, bytes):
+            return data.decode("utf-8", errors="replace")
+        return str(data)
+
+    # ------------------------------------------------------------------ analytics
+
+    def query_analytics(
+        self,
+        tokens: OAuthTokenSet,
+        *,
+        metrics: str,
+        dimensions: str | None = None,
+        start_date: str,
+        end_date: str,
+        filters: str | None = None,
+        sort: str | None = None,
+        max_results: int | None = None,
+    ) -> AnalyticsReport:
+        """Run one YouTube Analytics report for the authenticated user's channel."""
+        from googleapiclient.discovery import build
+
+        try:
+            service = build(
+                "youtubeAnalytics",
+                "v2",
+                credentials=self._credentials(tokens),
+                cache_discovery=False,
+            )
+            response = (
+                service.reports()
+                .query(
+                    ids="channel==MINE",
+                    metrics=metrics,
+                    dimensions=dimensions,
+                    startDate=start_date,
+                    endDate=end_date,
+                    filters=filters,
+                    sort=sort,
+                    maxResults=max_results,
+                )
+                .execute()
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise self._translate(exc, "Could not read the channel's analytics.") from exc
+        headers = tuple(
+            str(header.get("name") or "")
+            for header in (response.get("columnHeaders") or [])
+        )
+        rows = tuple(tuple(row) for row in (response.get("rows") or []))
+        return AnalyticsReport(headers=headers, rows=rows)
 
     # ------------------------------------------------------------------ uploads
 
@@ -341,6 +423,18 @@ class YouTubeConnector:
             thumbnail_url=best.get("url"),
             has_custom_thumbnail=content.get("hasCustomThumbnail"),
             language=snippet.get("defaultAudioLanguage") or snippet.get("defaultLanguage"),
+            has_captions=str(content.get("caption") or "").lower() == "true",
+        )
+
+    @staticmethod
+    def _caption_from(item: dict[str, Any]) -> CaptionTrack:
+        snippet = item.get("snippet") or {}
+        return CaptionTrack(
+            caption_id=str(item.get("id") or ""),
+            language=str(snippet.get("language") or ""),
+            name=str(snippet.get("name") or ""),
+            track_kind=str(snippet.get("trackKind") or ""),
+            is_auto_synced=bool(snippet.get("isAutoSynced")),
         )
 
     @staticmethod

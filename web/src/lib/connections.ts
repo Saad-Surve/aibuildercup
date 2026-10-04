@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api-client";
 import type {
+  AudienceProfile,
   ChannelContentProfile,
   Connection,
   ConnectionList,
@@ -51,4 +52,20 @@ export function getConnectionContent(
   connectionId: string,
 ): Promise<ChannelContentProfile> {
   return apiFetch<ChannelContentProfile>(`/connections/${connectionId}/content`);
+}
+
+/** Read YouTube Analytics for the channel's audience profile. */
+export function syncConnectionAudience(
+  connectionId: string,
+): Promise<AudienceProfile> {
+  return apiFetch<AudienceProfile>(
+    `/connections/${connectionId}/audience/sync`,
+    { method: "POST" },
+  );
+}
+
+export function getConnectionAudience(
+  connectionId: string,
+): Promise<AudienceProfile> {
+  return apiFetch<AudienceProfile>(`/connections/${connectionId}/audience`);
 }

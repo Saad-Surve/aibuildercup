@@ -92,6 +92,7 @@ class ContentItem(BaseModel):
     thumbnailUrl: str | None = None
     hasCustomThumbnail: bool | None = None
     language: str | None = None
+    hasTranscript: bool = False
 
 
 class ContentStyleSummary(BaseModel):
@@ -117,3 +118,31 @@ class ChannelContentProfile(BaseModel):
     style: ContentStyleSummary = Field(default_factory=ContentStyleSummary)
     topVideos: list[ContentItem] = Field(default_factory=list)
     recentItems: list[ContentItem] = Field(default_factory=list)
+
+
+class MetricValue(BaseModel):
+    metric: str
+    value: float
+
+
+class BreakdownRow(BaseModel):
+    label: str
+    value: float
+
+
+class AudienceBreakdown(BaseModel):
+    dimension: str
+    rows: list[BreakdownRow] = Field(default_factory=list)
+
+
+class AudienceProfile(BaseModel):
+    """YouTube Analytics signals for the connected channel (last `periodDays`)."""
+
+    connectionId: str
+    syncedAt: datetime | None = None
+    periodDays: int = 28
+    summary: list[MetricValue] = Field(default_factory=list)
+    demographics: AudienceBreakdown | None = None
+    trafficSources: AudienceBreakdown | None = None
+    topCountries: AudienceBreakdown | None = None
+    topVideos: list[ContentItem] = Field(default_factory=list)

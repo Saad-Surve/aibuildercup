@@ -223,6 +223,13 @@ class Settings(BaseSettings):
     #: How many of a connected channel's existing videos to read back for style/RAG. The
     #: uploads-playlist read costs ~1 unit per 50 videos, so a batch of 50 is cheap.
     channel_content_max_videos: int = 50
+    #: How many of those to pull caption transcripts for. `captions.download` costs 200 quota
+    #: units each, so this stays small; videos that already have a stored transcript are skipped.
+    channel_transcript_max_videos: int = 10
+    #: Cap on a stored transcript, in characters (keeps the RAG prompt and Firestore doc small).
+    channel_transcript_max_chars: int = 6000
+    #: Window, in days, for the channel analytics sync.
+    channel_analytics_days: int = 28
 
     # Upload limits. `max_upload_size_bytes` mirrors users/{uid}.limits.maxVideoSizeBytes.
     max_upload_size_bytes: int = 524_288_000

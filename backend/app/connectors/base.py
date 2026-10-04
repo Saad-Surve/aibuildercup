@@ -62,6 +62,26 @@ class ChannelVideo:
     thumbnail_url: str | None = None
     has_custom_thumbnail: bool | None = None
     language: str | None = None
+    has_captions: bool = False
+
+
+@dataclass(frozen=True)
+class CaptionTrack:
+    """One caption track on a video the authenticated user can edit."""
+
+    caption_id: str
+    language: str
+    name: str
+    track_kind: str
+    is_auto_synced: bool
+
+
+@dataclass(frozen=True)
+class AnalyticsReport:
+    """A raw YouTube Analytics report: column headers plus rows."""
+
+    headers: tuple[str, ...]
+    rows: tuple[tuple[Any, ...], ...]
 
 
 @runtime_checkable

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Analytics01Icon,
   CheckmarkCircle02Icon,
   Link01Icon,
   Loading03Icon,
@@ -22,6 +23,7 @@ import {
   listConnections,
   startYouTubeOAuth,
   syncConnection,
+  syncConnectionAudience,
   syncConnectionContent,
 } from "@/lib/connections";
 import type { Connection } from "@/lib/types";
@@ -152,6 +154,21 @@ export function YouTubeConnections({
       toast.error(describe(error, "Could not read the channel content.")),
   });
 
+  const audienceMutation = useMutation({
+    mutationFn: (connectionId: string) => syncConnectionAudience(connectionId),
+    onSuccess: (profile) => {
+      const views = profile.summary.find((metric) => metric.metric === "views")?.value;
+      toast.success(
+        views != null
+          ? `Audience read — ${Math.round(views).toLocaleString()} views in the last ${profile.periodDays} days.`
+          : "Audience profile updated.",
+      );
+      void queryClient.invalidateQueries({ queryKey: ["connections"] });
+    },
+    onError: (error) =>
+      toast.error(describe(error, "Could not read the channel's analytics.")),
+  });
+
   const disconnectMutation = useMutation({
     mutationFn: (connectionId: string) => deleteConnection(connectionId),
     onSuccess: () => {
@@ -280,6 +297,26 @@ export function YouTubeConnections({
                           className={cn(
                             contentMutation.isPending &&
                               contentMutation.variables === connection.connectionId &&
+                              "animate-pulse",
+                          )}
+                        />
+                      </Button>
+                    </DisabledReason>
+                    <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label="Read channel analytics"
+                        title="Read your audience analytics (demographics, traffic, top videos)"
+                        onClick={() => audienceMutation.mutate(connection.connectionId)}
+                        disabled={audienceMutation.isPending || readOnly}
+                      >
+                        <Icon
+                          icon={Analytics01Icon}
+                          className={cn(
+                            audienceMutation.isPending &&
+                              audienceMutation.variables === connection.connectionId &&
                               "animate-pulse",
                           )}
                         />

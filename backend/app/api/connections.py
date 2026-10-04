@@ -21,6 +21,7 @@ from app.dependencies import (
     get_connection_service,
 )
 from app.schemas.connections import (
+    AudienceProfile,
     ChannelContentProfile,
     Connection,
     ConnectionList,
@@ -109,6 +110,31 @@ async def get_connection_content(
     service: ContentServiceDep,
 ) -> ChannelContentProfile:
     return service.profile(owner_uid=user.uid, connection_id=connectionId)
+
+
+@router.post(
+    "/connections/{connectionId}/audience/sync",
+    response_model=AudienceProfile,
+)
+async def sync_connection_audience(
+    connectionId: str,
+    user: UserDep,
+    service: ContentServiceDep,
+) -> AudienceProfile:
+    """Read YouTube Analytics (summary, demographics, traffic, top videos) for the channel."""
+    return service.sync_audience(owner_uid=user.uid, connection_id=connectionId)
+
+
+@router.get(
+    "/connections/{connectionId}/audience",
+    response_model=AudienceProfile,
+)
+async def get_connection_audience(
+    connectionId: str,
+    user: UserDep,
+    service: ContentServiceDep,
+) -> AudienceProfile:
+    return service.audience(owner_uid=user.uid, connection_id=connectionId)
 
 
 @router.delete("/connections/{connectionId}", status_code=status.HTTP_204_NO_CONTENT)

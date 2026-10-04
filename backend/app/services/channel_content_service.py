@@ -1,9 +1,9 @@
 """Read a connected channel's existing videos and turn them into style signals / RAG context.
 
 The YouTube connector lists a channel's published videos cheaply (uploads playlist -> videos.list).
-This service persists a compact copy per video under the connection, builds an aggregate style
-summary, and retrieves the most relevant past videos for a query so the draft writer can match the
-creator's established voice.
+This service persists a compact copy per video under the connection, pulls caption transcripts for a
+capped number of them, reads YouTube Analytics for the audience profile, and retrieves the most
+relevant past videos for a query so the draft writer can match the creator's established voice.
 
 Everything lives under `users/{uid}/connections/{id}/contentItems`, so the existing recursive
 project/account delete covers it.
@@ -12,16 +12,21 @@ project/account delete covers it.
 import logging
 import re
 from collections import Counter
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app.config import Settings
+from app.connectors.base import CaptionTrack, ChannelVideo
 from app.connectors.youtube import YouTubeConnector
 from app.errors import BadRequestError
 from app.schemas.connections import (
+    AudienceBreakdown,
+    AudienceProfile,
+    BreakdownRow,
     ChannelContentProfile,
     ContentItem,
     ContentStyleSummary,
+    MetricValue,
 )
 from app.services.connection_service import ConnectionService
 from app.services.firestore_service import (
@@ -92,6 +97,7 @@ def _to_content_item(video_id: str, data: dict[str, Any]) -> ContentItem:
         thumbnailUrl=data.get("thumbnailUrl"),
         hasCustomThumbnail=data.get("hasCustomThumbnail"),
         language=data.get("language"),
+        hasTranscript=bool(data.get("transcript")),
     )
 
 
@@ -151,6 +157,41 @@ def retrieve_examples(
     return (positive or [item for _, item in scored])[:k]
 
 
+def _srt_to_text(srt: str) -> str:
+    """Flatten an SRT/VTT caption track to a single plain-text string."""
+    lines: list[str] = []
+    for raw in srt.replace("\r\n", "\n").split("\n"):
+        line = raw.strip()
+        if not line or line.isdigit() or "-->" in line or line.upper() == "WEBVTT":
+            continue
+        lines.append(re.sub(r"<[^>]+>", "", line))
+    return re.sub(r"\s+", " ", " ".join(lines)).strip()
+
+
+def _pick_caption_track(
+    tracks: list[CaptionTrack], language: str | None
+) -> CaptionTrack | None:
+    """Prefer a creator-uploaded track in the video's language, then English, then any."""
+    if not tracks:
+        return None
+    prefix = language.lower()[:2] if language else ""
+
+    def in_language(track: CaptionTrack) -> bool:
+        return bool(prefix) and track.language.lower().startswith(prefix)
+
+    def in_english(track: CaptionTrack) -> bool:
+        return track.language.lower().startswith("en")
+
+    manual = [track for track in tracks if not track.is_auto_synced]
+    auto = [track for track in tracks if track.is_auto_synced]
+    for pool in (manual, auto):
+        for predicate in (in_language, in_english):
+            for track in pool:
+                if predicate(track):
+                    return track
+    return (manual or auto)[0]
+
+
 class ChannelContentService:
     def __init__(
         self,
@@ -176,7 +217,7 @@ class ChannelContentService:
     # ------------------------------------------------------------------ sync
 
     def sync(self, *, owner_uid: str, connection_id: str) -> ChannelContentProfile:
-        """Read the channel's published videos back into `contentItems`."""
+        """Read the channel's published videos (and a capped set of transcripts) into Firestore."""
         connection = self.connections.get(owner_uid=owner_uid, connection_id=connection_id)
         tokens = self.connections.tokens_for_use(
             owner_uid=owner_uid, connection_id=connection_id
@@ -222,18 +263,185 @@ class ChannelContentService:
                     "thumbnailUrl": video.thumbnail_url,
                     "hasCustomThumbnail": video.has_custom_thumbnail,
                     "language": video.language,
+                    "hasCaptions": video.has_captions,
                     "updatedAt": now,
                 },
             )
+
+        transcripts = self._fetch_transcripts(
+            owner_uid=owner_uid,
+            connection_id=connection_id,
+            videos=videos,
+            tokens=tokens,
+            connector=connector,
+        )
         self.client.update_document(
             connection_path(owner_uid, connection_id),
             {
                 "contentSyncedAt": now,
                 "contentItemCount": len(videos),
+                "contentTranscriptCount": transcripts,
                 "updatedAt": now,
             },
         )
         return self.profile(owner_uid=owner_uid, connection_id=connection_id)
+
+    def _fetch_transcripts(
+        self,
+        *,
+        owner_uid: str,
+        connection_id: str,
+        videos: list[ChannelVideo],
+        tokens: Any,
+        connector: YouTubeConnector,
+    ) -> int:
+        """Download caption tracks for up to N videos that have captions and no stored transcript.
+
+        `captions.download` costs 200 quota units each, so this is capped and skips videos that
+        already have a transcript (re-syncs are then free).
+        """
+        fetched = 0
+        for video in videos:
+            if fetched >= self.settings.channel_transcript_max_videos:
+                break
+            if not video.has_captions:
+                continue
+            existing = self.client.get_document(
+                content_item_path(owner_uid, connection_id, video.video_id)
+            )
+            if existing and existing.get("transcript"):
+                continue
+            try:
+                tracks = connector.list_captions(tokens, video_id=video.video_id)
+                track = _pick_caption_track(tracks, video.language)
+                if track is None:
+                    continue
+                raw = connector.download_caption(
+                    tokens, caption_id=track.caption_id, tfmt="srt"
+                )
+            except Exception:  # noqa: BLE001 - one bad video must not fail the sync
+                logger.warning(
+                    "content: transcript fetch failed for %s", video.video_id, exc_info=True
+                )
+                continue
+            text = _srt_to_text(raw)[: self.settings.channel_transcript_max_chars]
+            if not text:
+                continue
+            self.client.update_document(
+                content_item_path(owner_uid, connection_id, video.video_id),
+                {
+                    "transcript": text,
+                    "transcriptLanguage": track.language,
+                    "updatedAt": datetime.now(UTC),
+                },
+            )
+            fetched += 1
+        return fetched
+
+    # ------------------------------------------------------------------ audience
+
+    def sync_audience(self, *, owner_uid: str, connection_id: str) -> AudienceProfile:
+        """Read YouTube Analytics (summary, demographics, traffic, top videos) for the channel."""
+        self.connections.get(owner_uid=owner_uid, connection_id=connection_id)
+        tokens = self.connections.tokens_for_use(
+            owner_uid=owner_uid, connection_id=connection_id
+        )
+        connector = self._connector()
+        days = self.settings.channel_analytics_days
+        end = datetime.now(UTC).date()
+        start = end - timedelta(days=days)
+        start_s, end_s = start.isoformat(), end.isoformat()
+
+        profile = AudienceProfile(connectionId=connection_id, periodDays=days)
+        summary = connector.query_analytics(
+            tokens,
+            metrics=(
+                "views,estimatedMinutesWatched,averageViewDuration,"
+                "subscribersGained,subscribersLost,likes,comments,shares"
+            ),
+            start_date=start_s,
+            end_date=end_s,
+        )
+        if summary.rows:
+            row = summary.rows[0]
+            profile.summary = [
+                MetricValue(metric=summary.headers[i], value=_float(row[i]))
+                for i in range(len(summary.headers))
+            ]
+
+        profile.demographics = self._breakdown(
+            connector, tokens, "ageGroup,gender", "viewerPercentage", start_s, end_s
+        )
+        profile.trafficSources = self._breakdown(
+            connector, tokens, "insightTrafficSourceType", "views", start_s, end_s
+        )
+        profile.topCountries = self._breakdown(
+            connector, tokens, "country", "views", start_s, end_s
+        )
+
+        top = connector.query_analytics(
+            tokens,
+            metrics="views",
+            dimensions="video",
+            start_date=start_s,
+            end_date=end_s,
+            sort="-views",
+            max_results=5,
+        )
+        top_ids = [str(row[0]) for row in top.rows]
+        items = {item.videoId: item for item in self.list_items(
+            owner_uid=owner_uid, connection_id=connection_id, limit=200
+        )}
+        profile.topVideos = [items[vid] for vid in top_ids if vid in items]
+
+        now = datetime.now(UTC)
+        profile.syncedAt = now
+        self.client.update_document(
+            connection_path(owner_uid, connection_id),
+            {
+                "audienceSyncedAt": now,
+                "audienceProfile": profile.model_dump(mode="json"),
+                "updatedAt": now,
+            },
+        )
+        return profile
+
+    def _breakdown(
+        self,
+        connector: YouTubeConnector,
+        tokens: Any,
+        dimensions: str,
+        metric: str,
+        start_date: str,
+        end_date: str,
+    ) -> AudienceBreakdown:
+        report = connector.query_analytics(
+            tokens,
+            metrics=metric,
+            dimensions=dimensions,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        rows = [
+            BreakdownRow(
+                label=" · ".join(str(part) for part in row[:-1]),
+                value=_float(row[-1]),
+            )
+            for row in report.rows
+        ]
+        rows.sort(key=lambda row: row.value, reverse=True)
+        return AudienceBreakdown(dimension=dimensions, rows=rows[:10])
+
+    def audience(self, *, owner_uid: str, connection_id: str) -> AudienceProfile:
+        self.connections.get(owner_uid=owner_uid, connection_id=connection_id)
+        raw = self.client.get_document(connection_path(owner_uid, connection_id)) or {}
+        stored = raw.get("audienceProfile")
+        if not stored:
+            return AudienceProfile(
+                connectionId=connection_id,
+                periodDays=self.settings.channel_analytics_days,
+            )
+        return AudienceProfile.model_validate(stored)
 
     # ------------------------------------------------------------------ reads
 
@@ -288,6 +496,17 @@ class ChannelContentService:
         )
         return candidates[0].connectionId
 
+    def _transcript_excerpt(
+        self, owner_uid: str, connection_id: str, video_id: str, limit: int = 600
+    ) -> str | None:
+        data = self.client.get_document(
+            content_item_path(owner_uid, connection_id, video_id)
+        )
+        transcript = (data or {}).get("transcript")
+        if not isinstance(transcript, str) or not transcript:
+            return None
+        return transcript[:limit]
+
     def build_context(
         self,
         *,
@@ -296,15 +515,36 @@ class ChannelContentService:
         query: str,
         k: int = 5,
     ) -> dict[str, Any] | None:
-        """Style summary + the k most query-relevant past videos, for the writer prompt."""
+        """Style summary + audience profile + the k most query-relevant past videos."""
         items = self.list_items(owner_uid=owner_uid, connection_id=connection_id, limit=200)
         if not items:
             return None
-        examples = retrieve_examples(items, query, k=k)
-        return {
+        examples: list[dict[str, Any]] = []
+        for example in retrieve_examples(items, query, k=k):
+            payload = example.model_dump(mode="json")
+            excerpt = self._transcript_excerpt(owner_uid, connection_id, example.videoId)
+            if excerpt:
+                payload["transcriptExcerpt"] = excerpt
+            examples.append(payload)
+        context: dict[str, Any] = {
             "style": build_style_summary(items).model_dump(mode="json"),
-            "examples": [example.model_dump(mode="json") for example in examples],
+            "examples": examples,
         }
+        audience = self.audience(owner_uid=owner_uid, connection_id=connection_id)
+        if audience.summary or audience.demographics:
+            context["audience"] = {
+                "periodDays": audience.periodDays,
+                "summary": [metric.model_dump() for metric in audience.summary],
+                "demographics": (
+                    audience.demographics.model_dump() if audience.demographics else None
+                ),
+                "trafficSources": (
+                    audience.trafficSources.model_dump()
+                    if audience.trafficSources
+                    else None
+                ),
+            }
+        return context
 
     def build_context_for_user(
         self, owner_uid: str, *, query: str, k: int = 5
@@ -323,3 +563,10 @@ class ChannelContentService:
         except Exception:  # noqa: BLE001 - context is an enhancement, never a blocker
             logger.warning("content: could not build creator context", exc_info=True)
             return None
+
+
+def _float(value: Any) -> float:
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0

@@ -765,6 +765,32 @@ export interface ChannelContentProfile {
   recentItems: ContentItem[];
 }
 
+export interface MetricValue {
+  metric: string;
+  value: number;
+}
+
+export interface BreakdownRow {
+  label: string;
+  value: number;
+}
+
+export interface AudienceBreakdown {
+  dimension: string;
+  rows: BreakdownRow[];
+}
+
+export interface AudienceProfile {
+  connectionId: string;
+  syncedAt: string | null;
+  periodDays: number;
+  summary: MetricValue[];
+  demographics: AudienceBreakdown | null;
+  trafficSources: AudienceBreakdown | null;
+  topCountries: AudienceBreakdown | null;
+  topVideos: ContentItem[];
+}
+
 /* ------------------------------------------------------------------ publishing */
 
 export type PublishSourceKind = "source" | "captionRender" | "localization";

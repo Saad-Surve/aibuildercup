@@ -1277,6 +1277,39 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /api/connections/{connectionId}/audience:
+    get:
+      summary: The connected channel's YouTube Analytics profile (summary, demographics, traffic)
+      parameters:
+        - { $ref: "#/components/parameters/ConnectionId" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AudienceProfile" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/connections/{connectionId}/audience/sync:
+    post:
+      summary: Read the channel's YouTube Analytics for the audience profile
+      description: |
+        Queries YouTube Analytics (last `CHANNEL_ANALYTICS_DAYS` days) for the channel summary,
+        viewer demographics, traffic sources, top countries, and top videos, and stores them on the
+        connection. Draft generation includes this audience profile as context.
+      parameters:
+        - { $ref: "#/components/parameters/ConnectionId" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AudienceProfile" }
+        "400": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /api/projects/{projectId}/publishes:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
@@ -2733,6 +2766,7 @@ components:
         thumbnailUrl: { type: [string, "null"] }
         hasCustomThumbnail: { type: [boolean, "null"] }
         language: { type: [string, "null"] }
+        hasTranscript: { type: boolean }
 
     ContentStyleSummary:
       type: object
@@ -2763,6 +2797,46 @@ components:
           type: array
           items: { $ref: "#/components/schemas/ContentItem" }
         recentItems:
+          type: array
+          items: { $ref: "#/components/schemas/ContentItem" }
+
+    MetricValue:
+      type: object
+      required: [metric, value]
+      properties:
+        metric: { type: string }
+        value: { type: number }
+
+    BreakdownRow:
+      type: object
+      required: [label, value]
+      properties:
+        label: { type: string }
+        value: { type: number }
+
+    AudienceBreakdown:
+      type: object
+      required: [dimension]
+      properties:
+        dimension: { type: string }
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/BreakdownRow" }
+
+    AudienceProfile:
+      type: object
+      required: [connectionId]
+      properties:
+        connectionId: { type: string }
+        syncedAt: { type: [string, "null"], format: date-time }
+        periodDays: { type: integer }
+        summary:
+          type: array
+          items: { $ref: "#/components/schemas/MetricValue" }
+        demographics: { oneOf: [{ $ref: "#/components/schemas/AudienceBreakdown" }, { type: "null" }] }
+        trafficSources: { oneOf: [{ $ref: "#/components/schemas/AudienceBreakdown" }, { type: "null" }] }
+        topCountries: { oneOf: [{ $ref: "#/components/schemas/AudienceBreakdown" }, { type: "null" }] }
+        topVideos:
           type: array
           items: { $ref: "#/components/schemas/ContentItem" }
 
