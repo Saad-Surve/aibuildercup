@@ -26,6 +26,7 @@ import {
   syncConnectionAudience,
   syncConnectionContent,
 } from "@/lib/connections";
+import { seedYouTubeContent } from "@/lib/seed";
 import type { Connection } from "@/lib/types";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
@@ -169,6 +170,17 @@ export function YouTubeConnections({
       toast.error(describe(error, "Could not read the channel's analytics.")),
   });
 
+  const seedMutation = useMutation({
+    mutationFn: () => seedYouTubeContent(),
+    onSuccess: (result) => {
+      toast.success(
+        `Loaded ${result.itemCount} videos from ${result.channel} (CC BY) for the demo.`,
+      );
+      void queryClient.invalidateQueries({ queryKey: ["connections"] });
+    },
+    onError: (error) => toast.error(describe(error, "Could not load the demo content.")),
+  });
+
   const disconnectMutation = useMutation({
     mutationFn: (connectionId: string) => deleteConnection(connectionId),
     onSuccess: () => {
@@ -199,22 +211,41 @@ export function YouTubeConnections({
             </Badge>
           ) : null}
         </div>
-        <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
-          <Button
-            type="button"
-            size="sm"
-            variant={connections.length === 0 ? "default" : "outline"}
-            onClick={() => connectMutation.mutate()}
-            disabled={connectMutation.isPending || readOnly}
-          >
-            {connectMutation.isPending ? (
-              <Icon icon={Loading03Icon} className="animate-spin" />
-            ) : (
-              <Icon icon={Link01Icon} />
-            )}
-            Connect a Google account
-          </Button>
-        </DisabledReason>
+        <div className="flex items-center gap-1.5">
+          <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              title="Load a public CC-BY channel's content for the demo (no account needed)"
+              onClick={() => seedMutation.mutate()}
+              disabled={seedMutation.isPending || readOnly}
+            >
+              {seedMutation.isPending ? (
+                <Icon icon={Loading03Icon} className="animate-spin" />
+              ) : (
+                <Icon icon={SparklesIcon} />
+              )}
+              Load CC-BY demo
+            </Button>
+          </DisabledReason>
+          <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+            <Button
+              type="button"
+              size="sm"
+              variant={connections.length === 0 ? "default" : "outline"}
+              onClick={() => connectMutation.mutate()}
+              disabled={connectMutation.isPending || readOnly}
+            >
+              {connectMutation.isPending ? (
+                <Icon icon={Loading03Icon} className="animate-spin" />
+              ) : (
+                <Icon icon={Link01Icon} />
+              )}
+              Connect a Google account
+            </Button>
+          </DisabledReason>
+        </div>
       </div>
 
       {connectionsQuery.isLoading ? (

@@ -178,6 +178,13 @@ connection, so the recursive account delete covers it. The connection document a
 `audienceSyncedAt`, and the last `audienceProfile` (YouTube Analytics summary, demographics,
 traffic, top videos) written by `POST /connections/{id}/audience/sync`.
 
+**Demo seed.** `POST /seed/youtube-content` writes a synthetic connection at
+`users/{uid}/connections/seed-<slug>` (with `seedSource`, `seedLicense`, `seedAttribution`, and a
+fresh `contentSyncedAt`) plus its `contentItems`, loaded from `seed/youtube/<slug>.json` in the
+media bucket. It is a public CC-BY channel (see `fixtures/seed/youtube/ATTRIBUTION.md`), so a fresh
+account has creator content for the style/RAG, transcript, and thumbnail-reference features. A seed
+connection has no OAuth tokens, so the sync endpoints reject it (`CONNECTION_IS_SEED`).
+
 `users/{uid}/oauthStates/{state}` is a single-use OAuth state record (PKCE verifier, platform,
 post-login redirect path, expiry). The callback runs without Firebase auth and finds the record
 by state via a collection-group query, then deletes it. Expired states are deleted on lookup.

@@ -369,6 +369,12 @@ class ConnectionService:
         prompt the creator to reconnect instead of failing every publish.
         """
         data = self._require(owner_uid, connection_id)
+        if data.get("seedSource"):
+            raise BadRequestError(
+                "This is seeded demo content. Connect a real channel to sync.",
+                code="CONNECTION_IS_SEED",
+                details={"connectionId": connection_id},
+            )
         tokens = self._load_tokens(owner_uid, data)
         if tokens is None or not tokens.refresh_token:
             self._mark_needs_reauth(owner_uid, connection_id, "NO_TOKEN")

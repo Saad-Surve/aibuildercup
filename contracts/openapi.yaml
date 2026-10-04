@@ -1310,6 +1310,28 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /api/seed/youtube-content:
+    post:
+      summary: Seed the account with a public CC-BY channel's content (demo)
+      description: |
+        Loads a pre-built seed (`seed/youtube/<channel>.json` in the media bucket) as a synthetic
+        demo connection plus its content items, so a fresh account has creator content for the
+        style/RAG, transcript, and thumbnail-reference features. Authenticated; writes only the
+        caller's subtree. Known channels: `lawrencesystems`, `psych2go`, `thehumanistreport`.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SeedYouTubeContentRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedYouTubeContentResult" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /api/projects/{projectId}/publishes:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
@@ -2839,6 +2861,21 @@ components:
         topVideos:
           type: array
           items: { $ref: "#/components/schemas/ContentItem" }
+
+    SeedYouTubeContentRequest:
+      type: object
+      properties:
+        channel: { type: string, default: lawrencesystems, description: "Seed channel slug" }
+
+    SeedYouTubeContentResult:
+      type: object
+      required: [connectionId, channel, itemCount]
+      properties:
+        connectionId: { type: string }
+        channel: { type: string }
+        itemCount: { type: integer }
+        license: { type: string }
+        attribution: { type: string }
 
     PublishSourceKind:
       type: string

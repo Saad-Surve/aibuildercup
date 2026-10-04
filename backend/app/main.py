@@ -21,6 +21,7 @@ from app.api import (
     onboarding,
     projects,
     publishes,
+    seed,
     thumbnails,
     transcripts,
     uploads,
@@ -183,6 +184,7 @@ def create_app() -> FastAPI:
     app.include_router(glossaries.router, prefix="/api")
     app.include_router(analysis.router, prefix="/api")
     app.include_router(publishes.router, prefix="/api")
+    app.include_router(seed.router, prefix="/api")
     app.include_router(internal.router, prefix="/api")
     return app
 

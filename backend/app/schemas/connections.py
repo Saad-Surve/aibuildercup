@@ -146,3 +146,16 @@ class AudienceProfile(BaseModel):
     trafficSources: AudienceBreakdown | None = None
     topCountries: AudienceBreakdown | None = None
     topVideos: list[ContentItem] = Field(default_factory=list)
+
+
+class SeedYouTubeContentRequest(BaseModel):
+    #: Seed channel slug, e.g. `lawrencesystems`, `psych2go`, `thehumanistreport`.
+    channel: str = Field(default="lawrencesystems", max_length=64)
+
+
+class SeedYouTubeContentResult(BaseModel):
+    connectionId: str
+    channel: str
+    itemCount: int
+    license: str = ""
+    attribution: str = ""

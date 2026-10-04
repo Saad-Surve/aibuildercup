@@ -791,6 +791,14 @@ export interface AudienceProfile {
   topVideos: ContentItem[];
 }
 
+export interface SeedYouTubeContentResult {
+  connectionId: string;
+  channel: string;
+  itemCount: number;
+  license: string;
+  attribution: string;
+}
+
 /* ------------------------------------------------------------------ publishing */
 
 export type PublishSourceKind = "source" | "captionRender" | "localization";

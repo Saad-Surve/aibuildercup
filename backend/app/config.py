@@ -232,6 +232,8 @@ class Settings(BaseSettings):
     channel_analytics_days: int = 28
     #: How many of the creator's past thumbnails to pass as style references to the image model.
     thumbnail_creator_references: int = 3
+    #: Cap on how many videos a demo seed channel loads (0 = all in the seed file).
+    seed_content_max_items: int = 60
 
     # Upload limits. `max_upload_size_bytes` mirrors users/{uid}.limits.maxVideoSizeBytes.
     max_upload_size_bytes: int = 524_288_000
