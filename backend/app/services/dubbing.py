@@ -164,15 +164,23 @@ def assign_voices(
 ) -> dict[int | None, Voice]:
     """Pick a voice per diarized speaker, cycling through the language catalog.
 
-    Speaker 0 (the first distinct speaker) always gets the preferred voice. `None` (an
-    undiarized transcript) is treated as one speaker.
+    Speaker 0 always gets the preferred voice. An undiarized segment (`None`) is the
+    **same speaker** as index 0: diarization only labels some segments, so treating
+    `None` as a separate speaker gives the primary voice a second, wrong voice part-way
+    through the track. Extra speakers (1, 2, …) get later catalog voices, first-seen order.
     """
-    ordered: list[int | None] = []
-    for speaker in speakers:
-        if speaker not in ordered:
-            ordered.append(speaker)
+    seen = list(speakers)
+
+    def normalise(speaker: int | None) -> int:
+        return 0 if speaker is None else speaker
+
+    ordered: list[int] = []
+    for speaker in seen:
+        key = normalise(speaker)
+        if key not in ordered:
+            ordered.append(key)
     if not ordered:
-        ordered = [None]
+        ordered = [0]
 
     first = default_voice(language_code, preferred_voice_id)
     language = find_language(language_code)
@@ -180,7 +188,9 @@ def assign_voices(
     rest = [voice for voice in language.voices if voice.id != first.id]
     pool = [first, *rest]
 
-    return {speaker: pool[index % len(pool)] for index, speaker in enumerate(ordered)}
+    by_key = {key: pool[index % len(pool)] for index, key in enumerate(ordered)}
+    # Map every original speaker value (including `None`) to its voice.
+    return {speaker: by_key[normalise(speaker)] for speaker in seen}
 
 
 # --------------------------------------------------------------------- timeline

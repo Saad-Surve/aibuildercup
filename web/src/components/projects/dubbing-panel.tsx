@@ -226,6 +226,7 @@ export function DubbingPanel({
                     <Button
                       size="sm"
                       variant="outline"
+                      nativeButton={false}
                       render={
                         <a
                           href={item.downloadUrl}
@@ -244,6 +245,7 @@ export function DubbingPanel({
                     <Button
                       size="sm"
                       variant="outline"
+                      nativeButton={false}
                       render={
                         <a
                           href={item.captionsUrl}
@@ -382,7 +384,10 @@ function DubDialog({
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Language</Label>
-            <Select value={selectedLanguage?.language} onValueChange={handleLanguageChange}>
+            <Select
+              value={selectedLanguage?.language ?? ""}
+              onValueChange={handleLanguageChange}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Choose a language" />
               </SelectTrigger>
@@ -399,7 +404,7 @@ function DubDialog({
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Voice</Label>
             <Select
-              value={selectedVoice?.id}
+              value={selectedVoice?.id ?? ""}
               onValueChange={setVoiceId}
               disabled={voices.length === 0}
             >

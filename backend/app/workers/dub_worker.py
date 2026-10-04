@@ -17,6 +17,7 @@ import os
 import shutil
 import tempfile
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
 
 from app.config import Settings, get_settings
@@ -62,6 +63,13 @@ _TTS_TIMEOUT_SECONDS = 120
 #: counts small enough that a failed batch is cheap to retry.
 _TRANSLATE_MAX_CHARS = 8_000
 _TRANSLATE_MAX_ITEMS = 60
+
+#: Merge consecutive same-speaker segments into one Text-to-Speech take so the speech flows
+#: instead of being chopped into one rigid window per line (which leaves a pause after a short
+#: take and clips the tail of a long one). The caps bound a single take and its window.
+_CHUNK_MAX_MS = 15_000
+_CHUNK_MAX_CHARS = 300
+_CHUNK_MAX_GAP_MS = 1_000
 
 
 def _encode_timeout(duration_ms: int) -> int:
@@ -235,31 +243,41 @@ async def _dub(
     target_language = str(localization.get("targetLanguage") or "en")
     source_language = transcript.language or localization.get("sourceLanguage")
 
-    corpus = _corpus(localization, source_language, target_language)
-    translated = await _translate(
-        transcript=transcript,
-        target_language=target_language,
-        source_language=source_language,
-        owner_uid=owner_uid,
-        project_id=project_id,
-        job_id=job_id,
-        jobs=jobs,
-        localizations=localizations,
-        localization_id=localization_id,
-        translate=providers.translate,
-        corpus=corpus,
-        llm=providers.llm,
-        model=settings.model_localization,
-    )
-
-    assignments = assign_voices(
-        target_language,
-        localization.get("voice"),
-        (segment.speaker for segment in transcript.segments),
-    )
-
     tmpdir = tempfile.mkdtemp(prefix="dub-")
     try:
+        # Stage the source first: a local copy makes the later encode seek reliable, and a
+        # missing/unreadable source fails before any paid Text-to-Speech work.
+        source_ref, width, height, duration_ms = await stage_source(
+            storage=storage,
+            source_path=source_path,
+            tmpdir=tmpdir,
+            settings=settings,
+            fallback_duration_ms=transcript.durationMs,
+        )
+
+        assignments = assign_voices(
+            target_language,
+            localization.get("voice"),
+            (segment.speaker for segment in transcript.segments),
+        )
+
+        corpus = _corpus(localization, source_language, target_language)
+        translated = await _translate(
+            transcript=transcript,
+            target_language=target_language,
+            source_language=source_language,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            job_id=job_id,
+            jobs=jobs,
+            localizations=localizations,
+            localization_id=localization_id,
+            translate=providers.translate,
+            corpus=corpus,
+            llm=providers.llm,
+            model=settings.model_localization,
+        )
+
         localizations.mark_status(
             owner_uid=owner_uid,
             project_id=project_id,
@@ -277,14 +295,6 @@ async def _dub(
             jobs=jobs,
             tts=providers.tts,
             settings=settings,
-        )
-
-        source_ref, width, height, duration_ms = await stage_source(
-            storage=storage,
-            source_path=source_path,
-            tmpdir=tmpdir,
-            settings=settings,
-            fallback_duration_ms=transcript.durationMs,
         )
 
         total_ms = duration_ms or _last_end_ms(transcript.segments) or transcript.durationMs
@@ -504,6 +514,58 @@ def _chunks(texts: Sequence[str]) -> list[list[int]]:
     return chunks
 
 
+@dataclass(frozen=True)
+class _SpeechChunk:
+    start_ms: int
+    end_ms: int
+    text: str
+    speaker: int | None
+
+
+def _chunk_segments(
+    segments: Sequence[Any], texts: Sequence[str]
+) -> list[_SpeechChunk]:
+    """Group consecutive same-speaker segments into continuous Text-to-Speech takes.
+
+    Synthesizing one clip per transcript line comes out choppy: every line gets a hard
+    window, so a short take leaves a silence and a long one is truncated mid-word. Joining
+    adjacent lines that share a speaker and are not separated by a real pause keeps the
+    prosody and removes most of those gaps.
+    """
+    chunks: list[_SpeechChunk] = []
+    for index, segment in enumerate(segments):
+        text = (texts[index] if index < len(texts) else segment.text).strip()
+        if not text:
+            continue
+        start_ms = int(segment.startMs)
+        end_ms = int(segment.endMs)
+        speaker = segment.speaker
+        if chunks:
+            current = chunks[-1]
+            gap = start_ms - current.end_ms
+            same_speaker = (0 if speaker is None else speaker) == (
+                0 if current.speaker is None else current.speaker
+            )
+            joined = f"{current.text} {text}"
+            if (
+                same_speaker
+                and gap <= _CHUNK_MAX_GAP_MS
+                and len(joined) <= _CHUNK_MAX_CHARS
+                and end_ms - current.start_ms <= _CHUNK_MAX_MS
+            ):
+                chunks[-1] = _SpeechChunk(
+                    start_ms=current.start_ms,
+                    end_ms=end_ms,
+                    text=joined,
+                    speaker=current.speaker,
+                )
+                continue
+        chunks.append(
+            _SpeechChunk(start_ms=start_ms, end_ms=end_ms, text=text, speaker=speaker)
+        )
+    return chunks
+
+
 async def _synthesize(
     *,
     segments: Sequence[Any],
@@ -517,29 +579,28 @@ async def _synthesize(
     tts: Any,
     settings: Settings,
 ) -> list[tuple[int, int, bytes]]:
-    """Synthesize and normalize every segment, returning `(startMs, endMs, pcm)` takes."""
+    """Synthesize and normalize continuous chunks, returning `(startMs, endMs, pcm)` takes."""
     concurrency = max(1, settings.dub_max_concurrency)
     placements: list[tuple[int, int, bytes]] = []
-    total = len(segments)
+    chunks = _chunk_segments(segments, texts)
+    total = len(chunks)
+    fallback_voice = next(iter(assignments.values()))
 
     async def one(index: int) -> tuple[int, int, bytes] | None:
-        segment = segments[index]
-        text = (texts[index] if index < len(texts) else segment.text).strip()
-        if not text:
-            return None
-        voice = assignments.get(segment.speaker) or next(iter(assignments.values()))
+        chunk = chunks[index]
+        voice = assignments.get(chunk.speaker) or fallback_voice
         mp3 = await tts.synthesize(
-            text=text, language=voice.language_code, voice=voice.name
+            text=chunk.text, language=voice.language_code, voice=voice.name
         )
         if not mp3:
             return None
-        mp3_path = os.path.join(tmpdir, f"seg-{index:04d}.mp3")
+        mp3_path = os.path.join(tmpdir, f"chunk-{index:04d}.mp3")
         with open(mp3_path, "wb") as handle:
             handle.write(mp3)
         actual_ms = await asyncio.to_thread(
             probe_duration_ms, mp3_path, ffprobe_path=settings.ffprobe_path
         )
-        target_ms = max(0, int(segment.endMs) - int(segment.startMs))
+        target_ms = max(0, chunk.end_ms - chunk.start_ms)
         tempo = tempo_for(
             actual_ms or target_ms,
             target_ms,
@@ -568,7 +629,7 @@ async def _synthesize(
             ],
             timeout_seconds=_TTS_TIMEOUT_SECONDS,
         )
-        return (int(segment.startMs), int(segment.endMs), pcm)
+        return (chunk.start_ms, chunk.end_ms, pcm)
 
     for start in range(0, total, concurrency):
         batch = range(start, min(start + concurrency, total))

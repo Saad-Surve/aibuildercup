@@ -146,10 +146,12 @@ class Settings(BaseSettings):
     #: Mix the source audio quietly under the dub instead of replacing it. Overridable per
     #: request with `keepOriginalAudio`.
     dub_keep_original_audio: bool = False
-    #: `atempo` bends pitch-preserving tempo within [0.5, 2.0]; values past the clamp mean the
-    #: take cannot fit the window and is truncated (compressed takes) or padded (expanded ones).
-    dub_min_tempo: float = 0.75
-    dub_max_tempo: float = 1.5
+    #: `atempo` bends pitch-preserving tempo within [0.5, 2.0]. The clamp is the point past
+    #: which a take cannot fit its window and is truncated (too long) or padded with silence
+    #: (too short). Widen toward the filter's limits so verbose translations compress instead
+    #: of losing their tail, and concise ones slow down instead of leaving a long gap.
+    dub_min_tempo: float = 0.70
+    dub_max_tempo: float = 1.80
     dub_original_audio_volume: float = 0.12
     #: How many Text-to-Speech calls run at once. Bounded so a long transcript does not
     #: trip the Text-to-Speech per-minute quota or hold a huge number of connections.
