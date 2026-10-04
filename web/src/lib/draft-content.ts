@@ -23,6 +23,8 @@
  * option is active and original, the rest are user alternatives.
  */
 
+import { highlightCode } from "./markdown";
+
 export type AltOrigin = "original" | "user" | "ai";
 
 export interface AltOption {
@@ -497,6 +499,22 @@ export function markdownToHtml(markdown: string): string {
   for (let index = 0; index < lines.length; index += 1) {
     const raw = lines[index];
     const line = raw.trimEnd();
+    // A fenced code block is emitted verbatim (highlighted), so fences and Markdown inside are
+    // never parsed. The opening fence line is consumed, then the closing fence.
+    const fence = line.match(/^\s*```+\s*([\w#+.-]*)\s*$/);
+    if (fence) {
+      flushParagraph();
+      closeList();
+      const language = fence[1] ?? "";
+      const code: string[] = [];
+      index += 1;
+      while (index < lines.length && !/^\s*```+\s*$/.test(lines[index])) {
+        code.push(lines[index]);
+        index += 1;
+      }
+      out.push(highlightCode(code.join("\n"), language));
+      continue;
+    }
     const heading = line.match(/^(#{1,6})\s+(.*)$/);
     const headingLevel = heading ? Math.min(6, heading[1].length) : 0;
     const body = heading ? heading[2] : line;
@@ -738,6 +756,12 @@ function serializeDomNode(node: Node): string {
       return Array.from(node.children).map(serializeDomNode).join("\n");
     case "blockquote":
       return `> ${children()}`;
+    case "pre": {
+      // A highlighted code block: recover the fence language and the raw code text.
+      const language = node.getAttribute("data-language") ?? "";
+      const code = (node.textContent ?? "").replace(/\n$/, "");
+      return `\`\`\`${language}\n${code}\n\`\`\``;
+    }
     case "p":
     case "div":
       return children();

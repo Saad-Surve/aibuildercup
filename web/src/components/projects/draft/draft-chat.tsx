@@ -17,54 +17,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useUserAvatar } from "@/lib/avatar";
+import { renderMarkdown } from "@/lib/markdown";
 import { READ_ONLY_REASON } from "@/lib/read-only";
-import { cn } from "@/lib/utils";
 import { WORKSPACE_PANE_HEIGHT } from "@/lib/workspace";
 import type { DraftMessage } from "@/lib/types";
 
 /**
- * Render a chat message with Markdown-style blockquotes: a run of `>` lines
- * becomes a quote (used for the context pulled from the draft), everything else
- * stays plain text.
+ * Render a chat message as Markdown. The assistant writes Markdown, so headings, lists, quotes,
+ * links and fenced code all render properly (code is syntax-highlighted). Raw HTML is disabled by
+ * the renderer, so model output cannot inject markup.
  */
-function MessageBody({
-  content,
-  role,
-}: {
-  content: string;
-  role: "user" | "assistant";
-}) {
-  const parts = content.split(/\n{2,}/);
+function MessageBody({ content }: { content: string }) {
+  const html = useMemo(() => renderMarkdown(content), [content]);
   return (
-    <div className="space-y-2">
-      {parts.map((part, index) => {
-        const lines = part.split("\n");
-        if (lines.every((line) => line.startsWith(">") || !line.trim())) {
-          const quote = lines
-            .map((line) => line.replace(/^>\s?/, ""))
-            .join("\n")
-            .trim();
-          return (
-            <blockquote
-              key={index}
-              className={cn(
-                "border-l-2 pl-2.5 text-[0.95em] italic whitespace-pre-wrap opacity-90",
-                role === "user"
-                  ? "border-primary-foreground/50"
-                  : "border-foreground/25",
-              )}
-            >
-              {quote}
-            </blockquote>
-          );
-        }
-        return (
-          <p key={index} className="whitespace-pre-wrap">
-            {part}
-          </p>
-        );
-      })}
-    </div>
+    <div
+      className="prose-chat break-words"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   );
 }
 
@@ -179,7 +148,7 @@ export function DraftChat({
                   : "max-w-[78%] rounded-bl-sm bg-muted text-foreground"
               }`}
             >
-              <MessageBody content={message.content} role={message.role} />
+              <MessageBody content={message.content} />
             </div>
             {message.role === "user" ? (
               <span className="mt-0.5 shrink-0 rounded-full bg-gradient-to-br from-cyan-400 via-fuchsia-500 to-orange-400 p-[1.5px]">
