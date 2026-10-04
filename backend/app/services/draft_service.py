@@ -513,7 +513,7 @@ class DraftService:
         )
         try:
             completion = await self.llm.complete_json(
-                model=self.settings.model_writer,
+                model=self.settings.model_suggest,
                 prompt_version=DRAFT_SUGGEST_PROMPT_VERSION,
                 system=SUGGEST_SYSTEM,
                 user=user,

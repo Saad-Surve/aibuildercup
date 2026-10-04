@@ -105,6 +105,9 @@ jobs:
           MODEL_REVIEWER: ${{ vars.MODEL_REVIEWER || 'gemini-3.8-flash' }}
           MODEL_ORCHESTRATOR: ${{ vars.MODEL_ORCHESTRATOR || 'gemini-3.8-flash' }}
           MODEL_TRANSCRIPT_REPAIR: ${{ vars.MODEL_TRANSCRIPT_REPAIR || 'gemini-3.8-flash' }}
+          # Draft studio: main generation + chat use the strong tier; alternatives stay cheap.
+          MODEL_WRITER: ${{ vars.MODEL_WRITER || 'gemini-3.8-flash' }}
+          MODEL_SUGGEST: ${{ vars.MODEL_SUGGEST || 'gemini-3.1-flash-lite' }}
           LLM_INPUT_PRICE_PER_MTOK: ${{ vars.LLM_INPUT_PRICE_PER_MTOK || '0.75' }}
           LLM_OUTPUT_PRICE_PER_MTOK: ${{ vars.LLM_OUTPUT_PRICE_PER_MTOK || '3.75' }}
           # Web origin the OAuth callback redirects back to.
@@ -138,7 +141,7 @@ jobs:
             --timeout 3600 \
             --quiet \
             "$secrets_args" \
-            --set-env-vars "^|^ENVIRONMENT=production|PROJECT_ID=habeas-codus|REGION=us-central1|VERTEX_LOCATION=global|MODEL_REVIEWER=${MODEL_REVIEWER}|MODEL_ORCHESTRATOR=${MODEL_ORCHESTRATOR}|MODEL_TRANSCRIPT_REPAIR=${MODEL_TRANSCRIPT_REPAIR}|LLM_INPUT_PRICE_PER_MTOK=${LLM_INPUT_PRICE_PER_MTOK}|LLM_OUTPUT_PRICE_PER_MTOK=${LLM_OUTPUT_PRICE_PER_MTOK}|CORS_ALLOWED_ORIGINS=${CORS_ORIGINS}|WEB_BASE_URL=${WEB_BASE_URL}|API_PUBLIC_BASE_URL=${{ steps.api.outputs.url }}|PUBSUB_PUSH_AUDIENCE=${{ steps.api.outputs.url }}|PUBSUB_PUSH_SERVICE_ACCOUNT=creator-studio-transcribe@habeas-codus.iam.gserviceaccount.com|READ_ONLY_USER_UIDS=${READ_ONLY_USER_UIDS}|DEMO_USER_UID=${DEMO_USER_UID}"
+            --set-env-vars "^|^ENVIRONMENT=production|PROJECT_ID=habeas-codus|REGION=us-central1|VERTEX_LOCATION=global|MODEL_REVIEWER=${MODEL_REVIEWER}|MODEL_ORCHESTRATOR=${MODEL_ORCHESTRATOR}|MODEL_TRANSCRIPT_REPAIR=${MODEL_TRANSCRIPT_REPAIR}|MODEL_WRITER=${MODEL_WRITER}|MODEL_SUGGEST=${MODEL_SUGGEST}|LLM_INPUT_PRICE_PER_MTOK=${LLM_INPUT_PRICE_PER_MTOK}|LLM_OUTPUT_PRICE_PER_MTOK=${LLM_OUTPUT_PRICE_PER_MTOK}|CORS_ALLOWED_ORIGINS=${CORS_ORIGINS}|WEB_BASE_URL=${WEB_BASE_URL}|API_PUBLIC_BASE_URL=${{ steps.api.outputs.url }}|PUBSUB_PUSH_AUDIENCE=${{ steps.api.outputs.url }}|PUBSUB_PUSH_SERVICE_ACCOUNT=creator-studio-transcribe@habeas-codus.iam.gserviceaccount.com|READ_ONLY_USER_UIDS=${READ_ONLY_USER_UIDS}|DEMO_USER_UID=${DEMO_USER_UID}"
 
   web:
     needs: changes

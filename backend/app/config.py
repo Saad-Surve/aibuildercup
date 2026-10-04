@@ -67,9 +67,11 @@ class Settings(BaseSettings):
     model_reviewer: str = "gemini-3.1-flash-lite"
     model_orchestrator: str = "gemini-3.1-flash-lite"
     model_transcript_repair: str = "gemini-3.1-flash-lite"
-    #: Draft studio writing partner (Gemini). Defaults to the flash-lite tier; the
-    #: deployed config can point it at a stronger Gemini for better prose.
-    model_writer: str = "gemini-3.1-flash-lite"
+    #: Draft studio: full draft generation and the writing-partner chat. Needs real prose
+    #: quality, so it defaults to the stronger flash tier (not flash-lite).
+    model_writer: str = "gemini-3.8-flash"
+    #: Draft alternatives (short span rewrites). Cheap and fast; flash-lite is good enough.
+    model_suggest: str = "gemini-3.1-flash-lite"
     #: Images use Gemini image generation ("Nano Banana") on Agent Platform. It accepts
     #: reference images (the creator's real face), edits conversationally, and renders
     #: legible text, unlike Imagen. See docs/current-progress/2026-10-03-1015.
