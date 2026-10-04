@@ -1437,13 +1437,52 @@ export function LandingPage() {
                   </li>
                 </ul>
               </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Legal
+                </p>
+                <ul className="mt-3 space-y-2.5 text-sm">
+                  <li>
+                    <a
+                      href="/privacy"
+                      className="transition-colors hover:text-foreground"
+                    >
+                      Privacy Policy
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/terms"
+                      className="transition-colors hover:text-foreground"
+                    >
+                      Terms of Service
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/data-deletion"
+                      className="transition-colors hover:text-foreground"
+                    >
+                      Data Deletion
+                    </a>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
           <div className="mt-12 flex flex-col gap-2 border-t border-border/60 pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <p>Resonance · A digital creator studio</p>
-            <p>
-              © {new Date().getFullYear()} Resonance. Create without limits.
-            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <a
+                href="/privacy"
+                className="transition-colors hover:text-foreground"
+              >
+                Privacy Policy
+              </a>
+              <p>
+                © {new Date().getFullYear()} Resonance. Create without limits.
+              </p>
+            </div>
           </div>
         </div>
         <div aria-hidden="true" className="overflow-hidden select-none">
