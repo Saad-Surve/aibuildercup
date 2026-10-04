@@ -18,6 +18,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { DraftBriefDialog } from "@/components/projects/draft/draft-brief-dialog";
 import { DraftChat } from "@/components/projects/draft/draft-chat";
+import { DraftContextPanel } from "@/components/projects/draft/draft-context-panel";
 import { FreeFlowEditor } from "@/components/projects/draft/free-flow-editor";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -161,6 +162,7 @@ export function DraftWorkspace({
       queryClient.setQueryData(["draft", projectId], next);
       setBriefOpen(false);
       void queryClient.invalidateQueries({ queryKey: ["projects"] });
+      void queryClient.invalidateQueries({ queryKey: ["draft-context", projectId] });
     },
     onError: (error) =>
       toast.error(describe(error, "Could not generate the draft.")),
@@ -432,6 +434,9 @@ export function DraftWorkspace({
           }}
         />
       </div>
+
+      <DraftContextPanel projectId={projectId} enabled={!empty} />
+
       <div aria-hidden className={DRAFT_PANE_STACK_SPACER} />
 
       <DraftBriefDialog

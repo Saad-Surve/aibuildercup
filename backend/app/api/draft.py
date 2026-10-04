@@ -11,6 +11,7 @@ from app.dependencies import (
 )
 from app.schemas.draft import (
     AssistDraftRequest,
+    CreatorContext,
     Draft,
     GenerateDraftRequest,
     SaveDraftRequest,
@@ -42,6 +43,16 @@ async def save_draft(
     service: ServiceDep,
 ) -> Draft:
     return service.save(owner_uid=user.uid, project_id=projectId, payload=payload)
+
+
+@router.get("/projects/{projectId}/draft/context", response_model=CreatorContext)
+async def get_draft_context(
+    projectId: str,
+    user: UserDep,
+    service: ServiceDep,
+) -> CreatorContext:
+    """What the last generation retrieved from the creator's channel (style evidence)."""
+    return service.creator_context(owner_uid=user.uid, project_id=projectId)
 
 
 @router.post("/projects/{projectId}/draft/generate", response_model=Draft)

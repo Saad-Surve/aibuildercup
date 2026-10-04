@@ -12,6 +12,12 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
+from app.schemas.connections import (
+    AudienceBreakdown,
+    ContentStyleSummary,
+    MetricValue,
+)
+
 
 class DraftFormat(StrEnum):
     written = "written"
@@ -140,3 +146,38 @@ class AssistDraftRequest(BaseModel):
     #: When set, the instruction is scoped to this block.
     blockId: str | None = None
     mode: AssistMode = AssistMode.chat
+
+
+class CreatorContextExample(BaseModel):
+    """One past video the writer retrieved as style evidence."""
+
+    videoId: str
+    title: str = ""
+    tags: list[str] = Field(default_factory=list)
+    viewCount: int | None = None
+    likeCount: int | None = None
+    commentCount: int | None = None
+    publishedAt: datetime | None = None
+    thumbnailUrl: str | None = None
+    transcriptExcerpt: str | None = None
+
+
+class CreatorContextAudience(BaseModel):
+    """The audience slice sent to the writer."""
+
+    periodDays: int = 28
+    summary: list[MetricValue] = Field(default_factory=list)
+    demographics: AudienceBreakdown | None = None
+    trafficSources: AudienceBreakdown | None = None
+
+
+class CreatorContext(BaseModel):
+    """What the last draft generation pulled from the creator's channel (for the UI)."""
+
+    available: bool = False
+    generatedAt: datetime | None = None
+    connectionId: str | None = None
+    connectionDisplayName: str | None = None
+    style: ContentStyleSummary | None = None
+    examples: list[CreatorContextExample] = Field(default_factory=list)
+    audience: CreatorContextAudience | None = None

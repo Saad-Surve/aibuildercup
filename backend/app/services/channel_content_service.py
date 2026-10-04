@@ -552,6 +552,9 @@ class ChannelContentService:
         k: int = 5,
     ) -> dict[str, Any] | None:
         """Style summary + audience profile + the k most query-relevant past videos."""
+        connection = self.connections.get(
+            owner_uid=owner_uid, connection_id=connection_id
+        )
         items = self.list_items(owner_uid=owner_uid, connection_id=connection_id, limit=200)
         if not items:
             return None
@@ -563,6 +566,8 @@ class ChannelContentService:
                 payload["transcriptExcerpt"] = excerpt
             examples.append(payload)
         context: dict[str, Any] = {
+            "connectionId": connection_id,
+            "connectionDisplayName": connection.displayName,
             "style": build_style_summary(items).model_dump(mode="json"),
             "examples": examples,
         }

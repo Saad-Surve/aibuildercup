@@ -799,6 +799,35 @@ export interface SeedYouTubeContentResult {
   attribution: string;
 }
 
+export interface CreatorContextExample {
+  videoId: string;
+  title: string;
+  tags: string[];
+  viewCount: number | null;
+  likeCount: number | null;
+  commentCount: number | null;
+  publishedAt: string | null;
+  thumbnailUrl: string | null;
+  transcriptExcerpt: string | null;
+}
+
+export interface CreatorContextAudience {
+  periodDays: number;
+  summary: MetricValue[];
+  demographics: AudienceBreakdown | null;
+  trafficSources: AudienceBreakdown | null;
+}
+
+export interface CreatorContext {
+  available: boolean;
+  generatedAt: string | null;
+  connectionId: string | null;
+  connectionDisplayName: string | null;
+  style: ContentStyleSummary | null;
+  examples: CreatorContextExample[];
+  audience: CreatorContextAudience | null;
+}
+
 /* ------------------------------------------------------------------ publishing */
 
 export type PublishSourceKind = "source" | "captionRender" | "localization";

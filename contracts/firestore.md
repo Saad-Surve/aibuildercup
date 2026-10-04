@@ -49,7 +49,9 @@ demoProfiles/{demoProfileId}  platform
 `kind: "draft"` project: a `brief`, ordered `blocks[]`, and each block's immutable
 `versions[]`. Deletes need no special handling because the document sits under the project
 subtree. The project document mirrors `draftSummary` (title, preview, word/block/version
-counts) for list cards.
+counts) for list cards. After each generation the draft document also keeps `lastCreatorContext` —
+the style evidence (retrieved past videos, style signals, audience profile) the writer used — read
+back by `GET /projects/{id}/draft/context` for the studio's "Style evidence" panel.
 
 ## Thumbnail concept documents
 

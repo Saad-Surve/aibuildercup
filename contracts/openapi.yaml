@@ -364,6 +364,23 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Draft" }
 
+  /api/projects/{projectId}/draft/context:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: What the last generation retrieved from the creator's channel
+      description: |
+        Returns the style evidence (retrieved past videos, style signals, and audience profile) the
+        draft writer used on the last generation. Empty (`available: false`) when no channel content
+        has been synced. Read-only, for the studio's "Style evidence" panel.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CreatorContext" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /api/projects/{projectId}/draft/generate:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
@@ -2714,6 +2731,45 @@ components:
         suggestions:
           type: array
           items: { type: string }
+
+    CreatorContextExample:
+      type: object
+      required: [videoId]
+      properties:
+        videoId: { type: string }
+        title: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+        viewCount: { type: [integer, "null"] }
+        likeCount: { type: [integer, "null"] }
+        commentCount: { type: [integer, "null"] }
+        publishedAt: { type: [string, "null"], format: date-time }
+        thumbnailUrl: { type: [string, "null"] }
+        transcriptExcerpt: { type: [string, "null"] }
+
+    CreatorContextAudience:
+      type: object
+      properties:
+        periodDays: { type: integer }
+        summary:
+          type: array
+          items: { $ref: "#/components/schemas/MetricValue" }
+        demographics: { oneOf: [{ $ref: "#/components/schemas/AudienceBreakdown" }, { type: "null" }] }
+        trafficSources: { oneOf: [{ $ref: "#/components/schemas/AudienceBreakdown" }, { type: "null" }] }
+
+    CreatorContext:
+      type: object
+      properties:
+        available: { type: boolean }
+        generatedAt: { type: [string, "null"], format: date-time }
+        connectionId: { type: [string, "null"] }
+        connectionDisplayName: { type: [string, "null"] }
+        style: { oneOf: [{ $ref: "#/components/schemas/ContentStyleSummary" }, { type: "null" }] }
+        examples:
+          type: array
+          items: { $ref: "#/components/schemas/CreatorContextExample" }
+        audience: { oneOf: [{ $ref: "#/components/schemas/CreatorContextAudience" }, { type: "null" }] }
 
     ConnectionPlatform:
       type: string

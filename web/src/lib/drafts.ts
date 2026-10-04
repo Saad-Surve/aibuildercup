@@ -1,8 +1,19 @@
 import { apiFetch } from "@/lib/api-client";
-import type { Draft, DraftBlock, DraftBrief, DraftFormat } from "@/lib/types";
+import type {
+  CreatorContext,
+  Draft,
+  DraftBlock,
+  DraftBrief,
+  DraftFormat,
+} from "@/lib/types";
 
 export function getDraft(projectId: string): Promise<Draft> {
   return apiFetch<Draft>(`/projects/${projectId}/draft`);
+}
+
+/** What the last generation retrieved from the creator's channel (style evidence). */
+export function getDraftContext(projectId: string): Promise<CreatorContext> {
+  return apiFetch<CreatorContext>(`/projects/${projectId}/draft/context`);
 }
 
 export function saveDraft(

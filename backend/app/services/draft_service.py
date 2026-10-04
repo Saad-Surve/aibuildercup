@@ -20,6 +20,7 @@ from app.providers.base import LlmProvider
 from app.schemas.draft import (
     AssistDraftRequest,
     AssistMode,
+    CreatorContext,
     Draft,
     DraftBlock,
     DraftBlockType,
@@ -364,6 +365,19 @@ class DraftService:
             return Draft(projectId=project_id)
         return self._to_draft(project_id, data)
 
+    def creator_context(self, *, owner_uid: str, project_id: str) -> CreatorContext:
+        """What the last generation retrieved from the creator's channel (for the UI)."""
+        self.projects.get(owner_uid=owner_uid, project_id=project_id)
+        data = self.client.get_document(draft_path(owner_uid, project_id))
+        raw = (data or {}).get("lastCreatorContext")
+        if not isinstance(raw, dict):
+            return CreatorContext()
+        try:
+            return CreatorContext.model_validate({"available": True, **raw})
+        except Exception:  # noqa: BLE001 - a corrupt record must not break the draft
+            logger.warning("draft: corrupt creator context", exc_info=True)
+            return CreatorContext()
+
     def ensure(
         self,
         *,
@@ -411,7 +425,20 @@ class DraftService:
         draft.status = DraftStatus.generating
         self._persist(owner_uid=owner_uid, draft=draft, status=ProjectStatus.processing)
 
-        blocks = await self._generate_blocks(draft.brief, draft, owner_uid=owner_uid)
+        # RAG: the creator's own past titles/descriptions/transcripts (their most recently synced
+        # channel) as style evidence, retrieved against this brief. Stored on the draft so the UI
+        # can show what was used. Absent when nothing has been synced.
+        creator_context: dict[str, Any] | None = None
+        if self.content is not None:
+            creator_context = self.content.build_context_for_user(
+                owner_uid,
+                query=f"{draft.brief.topic} {draft.brief.instructions}".strip(),
+                k=5,
+            )
+
+        blocks = await self._generate_blocks(
+            draft.brief, draft, creator_context=creator_context
+        )
         draft.blocks = blocks
         draft.messages = [
             DraftMessage(
@@ -428,6 +455,16 @@ class DraftService:
         draft.status = DraftStatus.ready
         draft.error = None
         self._persist(owner_uid=owner_uid, draft=draft, status=ProjectStatus.ready)
+        if creator_context:
+            self.client.update_document(
+                draft_path(owner_uid, project_id),
+                {
+                    "lastCreatorContext": {
+                        "generatedAt": datetime.now(UTC).isoformat(),
+                        **creator_context,
+                    }
+                },
+            )
         return draft
 
     async def assist(
@@ -548,19 +585,15 @@ class DraftService:
         return merged
 
     async def _generate_blocks(
-        self, brief: DraftBrief, draft: Draft, *, owner_uid: str
+        self,
+        brief: DraftBrief,
+        draft: Draft,
+        *,
+        creator_context: dict[str, Any] | None,
     ) -> list[DraftBlock]:
         payload: dict[str, Any] = {"brief": brief.model_dump(mode="json")}
-        # RAG: the creator's own past titles/descriptions (their most recently synced channel) as
-        # style evidence, retrieved against this brief. Absent when nothing has been synced.
-        if self.content is not None:
-            creator_context = self.content.build_context_for_user(
-                owner_uid,
-                query=f"{brief.topic} {brief.instructions}".strip(),
-                k=5,
-            )
-            if creator_context:
-                payload["creatorContext"] = creator_context
+        if creator_context:
+            payload["creatorContext"] = creator_context
         user = json.dumps(payload, indent=2, ensure_ascii=False)
         try:
             completion = await self.llm.complete_json(
