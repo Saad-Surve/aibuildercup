@@ -55,9 +55,11 @@ locals {
       "roles/run.admin",
       "roles/iam.serviceAccountUser",
       "roles/firebasehosting.admin",
-      # Cloud Run deploy reads the secrets it attaches (youtube-oauth-client-*), so the
-      # deployer needs access to them in addition to the runtime service account.
+      # Cloud Run deploy attaches the OAuth secrets (youtube-oauth-client-*) and checks for a
+      # `latest` version before attaching. secretAccessor reads the values; viewer reads the
+      # version metadata (`versions.get`) that the existence check needs.
       "roles/secretmanager.secretAccessor",
+      "roles/secretmanager.viewer",
     ]
   }
 }
