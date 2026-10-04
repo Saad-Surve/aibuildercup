@@ -2803,6 +2803,7 @@ components:
         lastErrorCode: { type: [string, "null"] }
         contentSyncedAt: { type: [string, "null"], format: date-time, description: When the channel's videos were last read back for style/RAG }
         contentItemCount: { type: [integer, "null"] }
+        isSeed: { type: boolean, description: Demo seed connection (CC-BY content, no tokens to sync) }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 

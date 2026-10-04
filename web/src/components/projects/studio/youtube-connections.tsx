@@ -339,6 +339,9 @@ export function YouTubeConnections({
                         {connection.displayName}
                       </span>
                       <StatusBadge connection={connection} />
+                      {connection.isSeed ? (
+                        <Badge variant="outline">CC-BY demo</Badge>
+                      ) : null}
                       {isSelected ? (
                         <Icon
                           icon={CheckmarkCircle02Icon}
@@ -364,6 +367,8 @@ export function YouTubeConnections({
                     ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
+                    {!connection.isSeed ? (
+                      <>
                     <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
                       <Button
                         type="button"
@@ -423,6 +428,8 @@ export function YouTubeConnections({
                         />
                       </Button>
                     </DisabledReason>
+                      </>
+                    ) : null}
                     <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
                       <Button
                         type="button"

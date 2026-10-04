@@ -70,6 +70,7 @@ def _to_connection(connection_id: str, data: dict[str, Any]) -> Connection:
         lastErrorCode=data.get("lastErrorCode"),
         contentSyncedAt=data.get("contentSyncedAt"),
         contentItemCount=data.get("contentItemCount"),
+        isSeed=bool(data.get("seedSource")),
         createdAt=data["createdAt"],
         updatedAt=data["updatedAt"],
     )

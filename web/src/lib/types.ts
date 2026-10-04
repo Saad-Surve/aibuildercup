@@ -711,6 +711,7 @@ export interface Connection {
   lastErrorCode: string | null;
   contentSyncedAt: string | null;
   contentItemCount: number | null;
+  isSeed: boolean;
   createdAt: string;
   updatedAt: string;
 }

@@ -51,6 +51,8 @@ class Connection(BaseModel):
     #: When the channel's existing videos were last read back for style/RAG analysis.
     contentSyncedAt: datetime | None = None
     contentItemCount: int | None = None
+    #: True for a demo seed connection (public CC-BY content, no OAuth tokens to sync).
+    isSeed: bool = False
     createdAt: datetime
     updatedAt: datetime
 
