@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -262,21 +263,23 @@ export function YouTubeConnections({
                 <Icon icon={ArrowDown01Icon} />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuLabel>Seed demo content from…</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {SEED_CHANNELS.map((option) => (
-                  <DropdownMenuItem
-                    key={option.value}
-                    onClick={() => seedMutation.mutate(option.value)}
-                  >
-                    <span className="flex flex-col items-start">
-                      <span className="text-sm">{option.label}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {option.hint}
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>Seed demo content from…</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {SEED_CHANNELS.map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => seedMutation.mutate(option.value)}
+                    >
+                      <span className="flex flex-col items-start">
+                        <span className="text-sm">{option.label}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {option.hint}
+                        </span>
                       </span>
-                    </span>
-                  </DropdownMenuItem>
-                ))}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
           </DisabledReason>
