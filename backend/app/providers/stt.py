@@ -52,8 +52,6 @@ class SttProvider:
         model: str,
         enable_diarization: bool = False,
     ) -> dict[str, Any]:
-        import asyncio
-
         from google.cloud import speech_v2
 
         client = speech_v2.SpeechClient(
@@ -100,10 +98,7 @@ class SttProvider:
             enable_diarization,
         )
         try:
-            operation = await asyncio.to_thread(client.batch_recognize, request=request)
-            # Batch recognition is long-running; poll in a thread so the event loop stays free.
-            # Ack deadline max is 600s, so cap the wait there.
-            result = await asyncio.to_thread(operation.result, 600)
+            result = await self._recognize_with_retry(client=client, request=request)
             return _response_to_dict(result)
         except Exception as exc:
             # Diarization is optional: if a model/region rejects it, fall back to plain
@@ -117,6 +112,39 @@ class SttProvider:
                 model=model,
                 enable_diarization=False,
             )
+
+    async def _recognize_with_retry(self, *, client: Any, request: Any) -> Any:
+        """Run one batch recognition, retrying the region's 429 rate limit with backoff.
+
+        Speech-to-Text is rate-limited per region (150 batch/operation requests per 60s); a burst
+        (several uploads, or a retried job) returns `ResourceExhausted`. Retrying the whole call
+        is safe: a lost operation is simply re-created, and the worker is idempotent.
+        """
+        import asyncio
+
+        from google.api_core.exceptions import ResourceExhausted
+
+        attempts = max(1, self.settings.stt_max_attempts)
+        for attempt in range(1, attempts + 1):
+            try:
+                operation = await asyncio.to_thread(
+                    client.batch_recognize, request=request
+                )
+                # Batch recognition is long-running; poll in a thread so the event loop stays
+                # free. Ack deadline max is 600s, so cap the wait there.
+                return await asyncio.to_thread(operation.result, 600)
+            except ResourceExhausted:
+                if attempt == attempts:
+                    raise
+                delay = self.settings.stt_retry_base_seconds * (2 ** (attempt - 1))
+                logger.warning(
+                    "STT rate-limited (429): retry %d/%d in %.0fs",
+                    attempt,
+                    attempts,
+                    delay,
+                )
+                await asyncio.sleep(delay)
+        raise RuntimeError("STT retry loop produced no result")  # pragma: no cover
 
     def _decoding_config(self, speech_v2: Any, gcs_uri: str) -> dict[str, Any]:
         """Pick a decoding config for the container, falling back to auto-detection."""
