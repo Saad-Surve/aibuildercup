@@ -34,6 +34,7 @@ from app.providers.imagegen import ImageGenError
 from app.schemas.jobs import JobStatus
 from app.schemas.thumbnails import ThumbnailCritique, ThumbnailVersion
 from app.services.analysis_service import AnalysisService
+from app.services.channel_content_service import ChannelContentService
 from app.services.firestore_service import (
     FirestoreClient,
     asset_path,
@@ -140,6 +141,7 @@ async def run_thumbnail_generation(
     thumbnails: ThumbnailService,
     transcripts: TranscriptService,
     analysis: AnalysisService,
+    content: ChannelContentService,
     storage: StorageClient,
     llm: LlmProvider,
     images: ImageGenProvider,
@@ -195,6 +197,7 @@ async def run_thumbnail_generation(
                 thumbnails=thumbnails,
                 transcripts=transcripts,
                 analysis=analysis,
+                content=content,
                 firestore=firestore,
                 storage=storage,
                 llm=llm,
@@ -239,6 +242,7 @@ async def _generate_batch(
     thumbnails: ThumbnailService,
     transcripts: TranscriptService,
     analysis: AnalysisService,
+    content: ChannelContentService,
     firestore: FirestoreClient,
     storage: StorageClient,
     llm: LlmProvider,
@@ -255,6 +259,14 @@ async def _generate_batch(
     persona = _persona_markdown(
         firestore=firestore, storage=storage, owner_uid=owner_uid
     )
+    # The creator's own past thumbnails, as image-model style references (best-effort).
+    creator_references: list[MediaPart] = []
+    try:
+        creator_references = content.creator_thumbnail_references(
+            owner_uid, limit=settings.thumbnail_creator_references
+        )
+    except Exception:  # noqa: BLE001 - style references are a bonus, never a blocker
+        logger.warning("thumbnail: creator thumbnail references unavailable", exc_info=True)
 
     regenerate = payload.get("mode") == "regenerate"
     if regenerate:
@@ -383,13 +395,16 @@ async def _generate_batch(
                 timestamp_ms=timestamp_ms,
                 settings=settings,
             )
+            frame_references = references
+            references = [*frame_references, *creator_references]
             prompt = _build_generate_prompt(
                 headline=headline,
                 direction=direction,
                 emotion=emotion,
                 platform=_platform(project.targetPlatforms),
                 aspect=concept_aspect,
-                has_references=bool(references),
+                has_frames=bool(frame_references),
+                has_creator_references=bool(creator_references),
             )
             generated = await images.generate(
                 model=model,
@@ -797,7 +812,8 @@ def _build_generate_prompt(
     emotion: str,
     platform: str,
     aspect: str,
-    has_references: bool,
+    has_frames: bool,
+    has_creator_references: bool,
 ) -> str:
     lines = [
         f"Create a scroll-stopping {platform} thumbnail, {aspect} aspect ratio.",
@@ -807,10 +823,16 @@ def _build_generate_prompt(
         lines.append(f"Composition: {direction}")
     if emotion:
         lines.append(f"Presenter's expression/emotion: {emotion}.")
-    if has_references:
+    if has_frames:
         lines.append(
             "Use the person from the reference frames as the presenter: preserve their face "
             "and identity. Do not replace them with a different person."
+        )
+    if has_creator_references:
+        lines.append(
+            "Some reference images are past thumbnails from this creator's channel. Match their "
+            "visual style — colour, typography, and composition — but do not copy them or "
+            "reproduce their text."
         )
     lines.extend(
         [
@@ -1040,6 +1062,7 @@ def build_worker_services(
     thumbnails: ThumbnailService,
     transcripts: TranscriptService,
     analysis: AnalysisService,
+    content: ChannelContentService,
     storage: StorageClient,
     llm: LlmProvider,
     images: ImageGenProvider,
@@ -1052,6 +1075,7 @@ def build_worker_services(
         "thumbnails": thumbnails,
         "transcripts": transcripts,
         "analysis": analysis,
+        "content": content,
         "storage": storage,
         "llm": llm,
         "images": images,
@@ -1061,6 +1085,8 @@ def build_worker_services(
 
 def live_worker_dependencies() -> dict[str, Any]:
     from app.providers import get_providers
+    from app.services.connection_service import ConnectionService
+    from app.services.token_cipher import build_token_cipher
 
     firestore = get_firestore_client()
     settings = get_settings()
@@ -1068,6 +1094,9 @@ def live_worker_dependencies() -> dict[str, Any]:
     jobs = JobService(firestore)
     projects = ProjectService(firestore, storage=storage)
     transcripts = TranscriptService(firestore, storage=storage)
+    connections = ConnectionService(
+        firestore, cipher=build_token_cipher(settings), settings=settings
+    )
     providers = get_providers()
     return build_worker_services(
         firestore=firestore,
@@ -1084,6 +1113,9 @@ def live_worker_dependencies() -> dict[str, Any]:
         ),
         transcripts=transcripts,
         analysis=AnalysisService(firestore, jobs=jobs, settings=settings),
+        content=ChannelContentService(
+            firestore, connections=connections, settings=settings
+        ),
         storage=storage,
         llm=providers.llm,
         images=providers.images,

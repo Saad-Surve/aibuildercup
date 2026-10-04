@@ -230,6 +230,8 @@ class Settings(BaseSettings):
     channel_transcript_max_chars: int = 6000
     #: Window, in days, for the channel analytics sync.
     channel_analytics_days: int = 28
+    #: How many of the creator's past thumbnails to pass as style references to the image model.
+    thumbnail_creator_references: int = 3
 
     # Upload limits. `max_upload_size_bytes` mirrors users/{uid}.limits.maxVideoSizeBytes.
     max_upload_size_bytes: int = 524_288_000

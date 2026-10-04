@@ -15,10 +15,13 @@ from collections import Counter
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import requests
+
 from app.config import Settings
 from app.connectors.base import CaptionTrack, ChannelVideo
 from app.connectors.youtube import YouTubeConnector
 from app.errors import BadRequestError
+from app.providers.base import MediaPart
 from app.schemas.connections import (
     AudienceBreakdown,
     AudienceProfile,
@@ -507,6 +510,39 @@ class ChannelContentService:
             return None
         return transcript[:limit]
 
+    def creator_thumbnail_references(
+        self, owner_uid: str, *, limit: int = 3
+    ) -> list[MediaPart]:
+        """Download a few of the creator's past thumbnails as image-model style references."""
+        if limit <= 0:
+            return []
+        connection_id = self.primary_connection_id(owner_uid)
+        if connection_id is None:
+            return []
+        items = self.list_items(
+            owner_uid=owner_uid, connection_id=connection_id, limit=50
+        )
+        references: list[MediaPart] = []
+        for item in items:
+            if not item.thumbnailUrl:
+                continue
+            data = _download_image(item.thumbnailUrl)
+            if data is None:
+                continue
+            references.append(
+                MediaPart(
+                    mime_type=_image_mime(item.thumbnailUrl),
+                    data=data,
+                    label=(
+                        "A past thumbnail from this creator's channel — match its visual "
+                        "style (colour, typography, composition), do not copy it"
+                    ),
+                )
+            )
+            if len(references) >= limit:
+                break
+        return references
+
     def build_context(
         self,
         *,
@@ -570,3 +606,28 @@ def _float(value: Any) -> float:
         return float(value or 0)
     except (TypeError, ValueError):
         return 0.0
+
+
+_MAX_REFERENCE_BYTES = 5_000_000
+
+
+def _download_image(url: str) -> bytes | None:
+    """Fetch a public thumbnail URL (i.ytimg.com). Best-effort; never raises."""
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException:
+        return None
+    data = response.content
+    if not data or len(data) > _MAX_REFERENCE_BYTES:
+        return None
+    return data
+
+
+def _image_mime(url: str) -> str:
+    lowered = url.lower()
+    if ".png" in lowered:
+        return "image/png"
+    if ".webp" in lowered:
+        return "image/webp"
+    return "image/jpeg"
