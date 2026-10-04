@@ -2921,7 +2921,7 @@ components:
     SeedYouTubeContentRequest:
       type: object
       properties:
-        channel: { type: string, default: lawrencesystems, description: "Seed channel slug" }
+        channel: { type: string, default: psych2go, description: "Seed channel slug" }
 
     SeedYouTubeContentResult:
       type: object

@@ -6,7 +6,7 @@ import type { SeedYouTubeContentResult } from "@/lib/types";
  * connection, so the creator-content features have data to work with on a fresh account.
  */
 export function seedYouTubeContent(
-  channel = "lawrencesystems",
+  channel = "psych2go",
 ): Promise<SeedYouTubeContentResult> {
   return apiFetch<SeedYouTubeContentResult>("/seed/youtube-content", {
     method: "POST",

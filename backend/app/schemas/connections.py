@@ -149,8 +149,8 @@ class AudienceProfile(BaseModel):
 
 
 class SeedYouTubeContentRequest(BaseModel):
-    #: Seed channel slug, e.g. `lawrencesystems`, `psych2go`, `thehumanistreport`.
-    channel: str = Field(default="lawrencesystems", max_length=64)
+    #: Seed channel slug, e.g. `psych2go`, `lawrencesystems`, `thehumanistreport`.
+    channel: str = Field(default="psych2go", max_length=64)
 
 
 class SeedYouTubeContentResult(BaseModel):

@@ -59,7 +59,7 @@ class SeedService:
         self,
         *,
         owner_uid: str,
-        channel: str = "lawrencesystems",
+        channel: str = "psych2go",
         limit: int | None = None,
     ) -> SeedYouTubeContentResult:
         """Load one CC-BY seed channel into a synthetic demo connection for this user."""

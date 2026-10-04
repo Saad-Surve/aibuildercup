@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Analytics01Icon,
+  ArrowDown01Icon,
   CheckmarkCircle02Icon,
   Link01Icon,
   Loading03Icon,
@@ -17,6 +18,14 @@ import { Icon } from "@/components/common/icon";
 import { DisabledReason } from "@/components/common/disabled-reason";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ApiError } from "@/lib/api-client";
 import {
   deleteConnection,
@@ -36,6 +45,25 @@ function describe(error: unknown, fallback: string): string {
   if (error instanceof Error) return error.message;
   return fallback;
 }
+
+/** Public CC-BY channels available to seed the demo with (see fixtures/seed/youtube). */
+const SEED_CHANNELS = [
+  {
+    value: "psych2go",
+    label: "Psychology & self-help",
+    hint: "Psych2Go — everyday, relatable",
+  },
+  {
+    value: "lawrencesystems",
+    label: "Tech & self-hosting",
+    hint: "Lawrence Systems — expert-level",
+  },
+  {
+    value: "thehumanistreport",
+    label: "Politics & commentary",
+    hint: "The Humanist Report",
+  },
+];
 
 function subtitle(connection: Connection): string {
   const parts: string[] = [];
@@ -171,7 +199,7 @@ export function YouTubeConnections({
   });
 
   const seedMutation = useMutation({
-    mutationFn: () => seedYouTubeContent(),
+    mutationFn: (channel: string) => seedYouTubeContent(channel),
     onSuccess: (result) => {
       toast.success(
         `Loaded ${result.itemCount} videos from ${result.channel} (CC BY) for the demo.`,
@@ -213,21 +241,44 @@ export function YouTubeConnections({
         </div>
         <div className="flex items-center gap-1.5">
           <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              title="Load a public CC-BY channel's content for the demo (no account needed)"
-              onClick={() => seedMutation.mutate()}
-              disabled={seedMutation.isPending || readOnly}
-            >
-              {seedMutation.isPending ? (
-                <Icon icon={Loading03Icon} className="animate-spin" />
-              ) : (
-                <Icon icon={SparklesIcon} />
-              )}
-              Load CC-BY demo
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={seedMutation.isPending || readOnly}
+                    title="Load a public CC-BY channel's content for the demo (no account needed)"
+                  />
+                }
+              >
+                {seedMutation.isPending ? (
+                  <Icon icon={Loading03Icon} className="animate-spin" />
+                ) : (
+                  <Icon icon={SparklesIcon} />
+                )}
+                Load CC-BY demo
+                <Icon icon={ArrowDown01Icon} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel>Seed demo content from…</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {SEED_CHANNELS.map((option) => (
+                  <DropdownMenuItem
+                    key={option.value}
+                    onClick={() => seedMutation.mutate(option.value)}
+                  >
+                    <span className="flex flex-col items-start">
+                      <span className="text-sm">{option.label}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {option.hint}
+                      </span>
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </DisabledReason>
           <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
             <Button
