@@ -134,6 +134,29 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/PersonaRef" }
 
+  /api/onboarding/research:
+    post:
+      summary: Research the creator from public links and prefill the persona form
+      description: |
+        One grounded Gemini call (Grounding with Google Search) reads the creator's public
+        profile links and drafts their onboarding answers. The links and grounding metadata are
+        stored on the user document under `onboarding`. The client must render
+        `searchSuggestions` exactly as returned and show `sources` (Google Search grounding terms).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OnboardingResearchRequest" }
+      responses:
+        "200":
+          description: Prefilled answers plus grounding provenance
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OnboardingResearch" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
   /api/persona:
     get:
       summary: Read current persona
@@ -1481,6 +1504,16 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Not allowed (read-only account or disabled feature)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
     NotFound:
       description: Not found
       content:
@@ -1567,6 +1600,43 @@ components:
         version: { type: integer }
         content: { type: string }
         storagePath: { type: string }
+
+    OnboardingResearchRequest:
+      type: object
+      required: [links]
+      properties:
+        links:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items: { type: string }
+          description: Public creator profile URLs (YouTube, Instagram, X, Facebook, TikTok, LinkedIn).
+
+    ResearchSource:
+      type: object
+      properties:
+        title: { type: string }
+        url: { type: string }
+
+    OnboardingResearch:
+      type: object
+      properties:
+        answers:
+          type: object
+          additionalProperties: true
+          description: Full merged onboarding answers after research; load straight into the form.
+        sources:
+          type: array
+          items: { $ref: "#/components/schemas/ResearchSource" }
+        queries:
+          type: array
+          items: { type: string }
+          description: Search queries the grounded model ran.
+        searchSuggestions:
+          type: string
+          description: |
+            Google-provided Search Suggestions HTML. Google's grounding terms require rendering it
+            exactly as returned whenever the grounded response is shown.
 
     CreateProject:
       type: object

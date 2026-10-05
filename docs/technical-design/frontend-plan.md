@@ -138,6 +138,7 @@ Component tree:
 ~~~text
 OnboardingShell
 ├── WelcomeStep
+├── ImportStep
 ├── CreatorIdentityStep
 ├── ContentTopicsStep
 ├── AudienceStep
@@ -152,6 +153,13 @@ OnboardingShell
 - Explain the studio.
 - Explain what data will be accessed.
 - Link to privacy and consent information.
+
+### ImportStep
+
+- Paste public creator profile links (YouTube, Instagram, X, Facebook, TikTok, LinkedIn).
+- `POST /onboarding/research` runs one grounded Gemini call that prefills the form.
+- Show the grounding sources, queries, and Google Search Suggestions (required by Google's terms).
+- Optional: the creator can skip and fill everything manually.
 
 ### CreatorIdentityStep
 

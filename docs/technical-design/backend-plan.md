@@ -365,6 +365,15 @@ hence the "Grounded with Google Search" panel and the per-finding source links i
 In JSON mode `groundingChunks` can come back empty even when the model searched, so the
 model-emitted `sources` are the primary citation path.
 
+**Onboarding research.** `POST /onboarding/research` uses the same grounded call to prefill the
+creator persona: the creator pastes their public profile links and one Gemini call
+(`model_research`, grounding on) drafts the onboarding answers. `persona_research.py` validates
+every value against the same allow-lists the web form uses, infers `platforms` from the link
+hostnames as a reliable signal, and merges the grounding metadata (`queries`, `sources`,
+`searchSuggestions`) into the response. Links and metadata are persisted on the user document
+under `onboarding`. Gated by `ONBOARDING_RESEARCH_ENABLED`, capped by
+`ONBOARDING_RESEARCH_MAX_LINKS`.
+
 ### Reviewer fan-out
 
 Running every reviewer over every segment is unbounded cost. Instead, each reviewer runs as one

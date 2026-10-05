@@ -43,6 +43,35 @@ demoProfiles/{demoProfileId}  platform
 - Only the backend reads `connections`, `glossaries`, `demoProfiles`.
 - Ownership is checked in the API, not only in Firestore rules.
 
+## User document: onboarding and research
+
+`users/{uid}.onboarding` holds `status`, `currentStep`, `answers`, and `schemaVersion`. After
+`POST /onboarding/research` the answers include `creatorLinks` (the public profile URLs the
+creator gave) and a sibling `research` object records the grounding provenance:
+
+```json
+{
+  "status": "in_progress",
+  "currentStep": "import",
+  "answers": {
+    "creatorName": "Priya Sharma",
+    "topics": ["finance", "career"],
+    "creatorLinks": ["https://youtube.com/@priya"]
+  },
+  "research": {
+    "model": "gemini-3.1-flash-lite",
+    "sources": [{ "title": "Priya Creates", "url": "https://youtube.com/@priya" }],
+    "queries": ["Priya Sharma creator finance"],
+    "searchSuggestions": "<div>…</div>",
+    "updatedAt": "timestamp"
+  },
+  "schemaVersion": 1
+}
+```
+
+It all sits on the user document, so account deletion removes it with the rest of
+`users/{uid}`.
+
 ## Draft document
 
 `users/{uid}/projects/{projectId}/draft/main` is the single versioned draft for a

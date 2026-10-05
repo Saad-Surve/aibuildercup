@@ -94,6 +94,7 @@ Example GET /me response:
 |---|---|---|
 | GET | /onboarding | Read onboarding progress |
 | PUT | /onboarding | Save a partial onboarding step |
+| POST | /onboarding/research | Research the creator from their public links and prefill the persona form |
 | POST | /onboarding/complete | Generate and save initial persona |
 | GET | /persona | Read current persona |
 | PATCH | /persona | Apply user-approved persona edit |
@@ -123,6 +124,37 @@ POST /onboarding/complete response:
   "personaStoragePath": "users/uid/profile/persona.md"
 }
 ~~~
+
+POST /onboarding/research request:
+
+~~~json
+{
+  "links": ["https://youtube.com/@priya", "https://instagram.com/priya"]
+}
+~~~
+
+One grounded Gemini call (Grounding with Google Search) drafts the onboarding answers from
+those public profiles. The response carries the merged `answers` plus the grounding provenance:
+
+~~~json
+{
+  "answers": {
+    "creatorName": "Priya Sharma",
+    "topics": ["finance", "career"],
+    "primaryLanguage": "hi",
+    "platforms": ["youtube", "instagram"],
+    "creatorLinks": ["https://youtube.com/@priya"]
+  },
+  "sources": [{ "title": "Priya Creates", "url": "https://youtube.com/@priya" }],
+  "queries": ["Priya Sharma creator finance"],
+  "searchSuggestions": "<div>…</div>"
+}
+~~~
+
+The links and grounding metadata are stored on the user document under `onboarding` (inside
+`users/{uid}`, so the account delete covers them). Google's Search grounding terms require the
+client to render `searchSuggestions` exactly as returned and to show the sources; the web
+onboarding Import step does both.
 
 PATCH /persona request:
 

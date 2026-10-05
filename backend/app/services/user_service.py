@@ -172,6 +172,53 @@ class UserService:
             user_path(owner_uid), {"onboarding": onboarding, "updatedAt": now}
         )
 
+    def save_onboarding_research(
+        self,
+        owner_uid: str,
+        *,
+        links: list[str],
+        answers: dict[str, Any],
+        sources: list[dict[str, Any]],
+        queries: list[str],
+        search_suggestions: str,
+        model: str,
+    ) -> OnboardingState:
+        """Merge grounded research results into the onboarding state.
+
+        The links and grounding metadata live under `onboarding`, so they are covered by the
+        account delete (the whole `users/{uid}` tree). `creatorLinks` also lands in `answers`
+        so the form reloads with the links the user gave.
+        """
+        data = self.get_user(owner_uid)
+        onboarding = dict(data.get("onboarding") or {})
+        merged = dict(onboarding.get("answers") or {})
+        merged.update(answers)
+        merged["creatorLinks"] = links
+
+        status = onboarding.get("status", OnboardingStatus.not_started.value)
+        if status != OnboardingStatus.completed.value:
+            status = OnboardingStatus.in_progress.value
+
+        now = datetime.now(UTC)
+        onboarding.update(
+            {
+                "status": status,
+                "answers": merged,
+                "research": {
+                    "model": model,
+                    "sources": sources,
+                    "queries": queries,
+                    "searchSuggestions": search_suggestions,
+                    "updatedAt": now,
+                },
+                "schemaVersion": onboarding.get("schemaVersion", 1),
+            }
+        )
+        self.client.update_document(
+            user_path(owner_uid), {"onboarding": onboarding, "updatedAt": now}
+        )
+        return self.get_onboarding(owner_uid)
+
     def delete_account(self, owner_uid: str) -> None:
         """Remove the entire `users/{uid}` subtree and all stored objects. Idempotent.
 

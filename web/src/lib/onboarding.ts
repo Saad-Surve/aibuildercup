@@ -1,5 +1,6 @@
 export type StepId =
   | "welcome"
+  | "import"
   | "identity"
   | "topics"
   | "audience"
@@ -26,6 +27,13 @@ export const ONBOARDING_STEPS: StepMeta[] = [
     title: "Let's set up your studio",
     description:
       "A few questions so the reviewers understand your voice, audience, and goals.",
+  },
+  {
+    id: "import",
+    label: "Import",
+    title: "Start from your profiles",
+    description:
+      "Paste your creator links and we'll research them to prefill your persona. You can skip this.",
   },
   {
     id: "identity",
@@ -92,6 +100,8 @@ export interface OnboardingAnswers {
   captionPreferences?: string;
   regionalPreferences?: string;
   platforms?: string[];
+  /** Public profile links the creator gave for grounded research. */
+  creatorLinks?: string[];
 }
 
 export const LANGUAGE_OPTIONS = [
@@ -198,6 +208,7 @@ export const PLATFORM_OPTIONS = [
 
 const STEP_KEYS: Record<StepId, (keyof OnboardingAnswers)[]> = {
   welcome: [],
+  import: ["creatorLinks"],
   identity: ["creatorName", "location", "timezone", "primaryLanguage", "bio"],
   topics: ["topics", "contentFormats", "typicalLength"],
   audience: ["audience", "audienceLocation", "knowledgeLevel", "primaryGoal"],
@@ -235,4 +246,61 @@ export function stepIsComplete(
     return Boolean(answers.creatorName?.trim());
   }
   return true;
+}
+
+/** Split a textarea of profile links into a clean, de-duplicated list. */
+export function parseProfileLinks(text: string): string[] {
+  const links: string[] = [];
+  for (const part of text.split(/[\n,\s]+/)) {
+    const value = part.trim();
+    if (value && !links.includes(value)) links.push(value);
+  }
+  return links;
+}
+
+const RESEARCH_KEYS: (keyof OnboardingAnswers)[] = [
+  "creatorName",
+  "location",
+  "primaryLanguage",
+  "bio",
+  "topics",
+  "contentFormats",
+  "typicalLength",
+  "audience",
+  "audienceLocation",
+  "knowledgeLevel",
+  "primaryGoal",
+  "tone",
+  "wordsToAvoid",
+  "hookStyle",
+  "captionPreferences",
+  "regionalPreferences",
+  "platforms",
+];
+
+/**
+ * Merge grounded research into the current answers without clobbering anything the creator
+ * already typed. Returns the merged answers and the keys research actually filled.
+ */
+export function mergeResearchAnswers(
+  current: OnboardingAnswers,
+  researched: Record<string, unknown>,
+): { answers: OnboardingAnswers; filled: (keyof OnboardingAnswers)[] } {
+  const merged: Record<string, unknown> = { ...current };
+  const filled: (keyof OnboardingAnswers)[] = [];
+  for (const key of RESEARCH_KEYS) {
+    const next = researched[key];
+    if (next === undefined || next === null) continue;
+    const existing = current[key];
+    const isEmpty =
+      existing === undefined ||
+      existing === null ||
+      (Array.isArray(existing) && existing.length === 0) ||
+      (typeof existing === "string" && !existing.trim());
+    if (isEmpty) {
+      merged[key] = next;
+      filled.push(key);
+    }
+  }
+  return { answers: merged as OnboardingAnswers, filled };
 }

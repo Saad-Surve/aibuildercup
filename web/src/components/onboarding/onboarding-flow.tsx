@@ -14,6 +14,7 @@ import {
   AudienceStep,
   DoneStep,
   IdentityStep,
+  ImportStep,
   PersonaStep,
   PlatformsStep,
   StyleStep,
@@ -28,14 +29,16 @@ import { ApiError, apiFetch } from "@/lib/api-client";
 import {
   ONBOARDING_STEPS,
   answersForStep,
+  mergeResearchAnswers,
   stepIsComplete,
   type OnboardingAnswers,
   type StepId,
 } from "@/lib/onboarding";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
-import type { OnboardingState, Persona } from "@/lib/types";
+import type { OnboardingResearch, OnboardingState, Persona } from "@/lib/types";
 
 const DATA_STEPS: StepId[] = [
+  "import",
   "identity",
   "topics",
   "audience",
@@ -59,10 +62,13 @@ export function OnboardingFlow({
   const readOnly = useReadOnly();
 
   // Editing reuses the same steps but starts at the first data step and ends
-  // back on the profile, with every answer prefilled from what was saved.
+  // back on the profile, with every answer prefilled from what was saved. The
+  // import shortcut is onboarding-only, so editing skips it.
   const steps =
     mode === "edit"
-      ? ONBOARDING_STEPS.filter((item) => item.id !== "welcome")
+      ? ONBOARDING_STEPS.filter(
+          (item) => item.id !== "welcome" && item.id !== "import",
+        )
       : ONBOARDING_STEPS;
 
   const [index, setIndex] = useState(0);
@@ -70,6 +76,9 @@ export function OnboardingFlow({
   // Last answers known to be persisted, used to skip no-op PUTs.
   const [savedAnswers, setSavedAnswers] = useState<OnboardingAnswers>({});
   const [persona, setPersona] = useState<Persona | null>(null);
+  const [research, setResearch] = useState<OnboardingResearch | null>(null);
+  const [researchTried, setResearchTried] = useState(false);
+  const [researchError, setResearchError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,11 +139,45 @@ export function OnboardingFlow({
     await refreshProfile();
   }
 
+  // Research the creator from their public links and prefill the form. Kept self-contained:
+  // a failure is shown inline and does not block the creator from continuing manually.
+  async function runResearch() {
+    const links = answers.creatorLinks ?? [];
+    if (links.length === 0) return;
+    setError(null);
+    setResearchError(null);
+    setBusy(true);
+    try {
+      const result = await apiFetch<OnboardingResearch>("/onboarding/research", {
+        method: "POST",
+        body: JSON.stringify({ links }),
+      });
+      const { answers: merged } = mergeResearchAnswers(answers, result.answers);
+      setAnswers(merged);
+      // The API already persisted the merged answers and the links, so don't re-PUT them.
+      setSavedAnswers(merged);
+      setResearch(result);
+    } catch (caught) {
+      setResearchError(describe(caught));
+    } finally {
+      setResearchTried(true);
+      setBusy(false);
+    }
+  }
+
   async function goNext() {
     if (busy) return;
     setError(null);
     setBusy(true);
     try {
+      if (step.id === "import") {
+        const links = answers.creatorLinks ?? [];
+        if (links.length > 0 && !research && !researchTried) {
+          // Research first, and stay so the creator can review the result and sources.
+          await runResearch();
+          return;
+        }
+      }
       await persistCurrentStep();
       if (step.id === "platforms") {
         await generatePersona();
@@ -208,17 +251,33 @@ export function OnboardingFlow({
   }
   const percent = Math.round(((index + 1) / steps.length) * 100);
 
+  const linksGiven = (answers.creatorLinks ?? []).length > 0;
   const continueLabel =
     step.id === "welcome"
       ? "Get started"
-      : step.id === "platforms"
-        ? "Generate persona"
-        : "Continue";
+      : step.id === "import"
+        ? research || researchTried || !linksGiven
+          ? "Continue"
+          : "Research with Gemini"
+        : step.id === "platforms"
+          ? "Generate persona"
+          : "Continue";
 
   function renderStep() {
     switch (step.id) {
       case "welcome":
         return <WelcomeStep />;
+      case "import":
+        return (
+          <ImportStep
+            links={answers.creatorLinks ?? []}
+            onLinksChange={(links) => update({ creatorLinks: links })}
+            research={research}
+            researchError={researchError}
+            busy={busy}
+            onResearch={runResearch}
+          />
+        );
       case "identity":
         return <IdentityStep answers={answers} update={update} />;
       case "topics":

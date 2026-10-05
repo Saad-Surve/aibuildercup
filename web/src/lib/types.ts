@@ -39,6 +39,20 @@ export interface OnboardingState {
   answers: Record<string, unknown>;
 }
 
+export interface OnboardingResearchSource {
+  title: string;
+  url: string;
+}
+
+export interface OnboardingResearch {
+  /** Full merged answers after research; load straight into the form. */
+  answers: Record<string, unknown>;
+  sources: OnboardingResearchSource[];
+  queries: string[];
+  /** Google Search Suggestions HTML; must be rendered exactly as returned. */
+  searchSuggestions: string;
+}
+
 export type ProjectStatus =
   | "draft"
   | "uploading"

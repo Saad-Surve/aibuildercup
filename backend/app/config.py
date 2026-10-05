@@ -72,6 +72,10 @@ class Settings(BaseSettings):
     model_writer: str = "gemini-3.8-flash"
     #: Draft alternatives (short span rewrites). Cheap and fast; flash-lite is good enough.
     model_suggest: str = "gemini-3.1-flash-lite"
+    #: Onboarding "research from links": one grounded Gemini call that drafts the persona
+    #: answers from the creator's public profile links, so the form arrives prefilled.
+    #: Grounding with Google Search is billed per query, so this stays one call per submit.
+    model_research: str = "gemini-3.1-flash-lite"
     #: Images use Gemini image generation ("Nano Banana") on Agent Platform. It accepts
     #: reference images (the creator's real face), edits conversationally, and renders
     #: legible text, unlike Imagen. See docs/current-progress/2026-10-03-1015.
@@ -125,6 +129,12 @@ class Settings(BaseSettings):
     # Gemini 3 only; billed per search query after 5k free/month, so only the truth
     # reviewer opts in (see `TruthEvidenceReviewer.supports_grounding`).
     truth_grounding_enabled: bool = True
+
+    # Onboarding "research from links" (Grounding with Google Search). One grounded call
+    # prefills the persona form from the creator's public profile links. Gated so it can be
+    # turned off without a code change, and capped so a single submit stays cheap.
+    onboarding_research_enabled: bool = True
+    onboarding_research_max_links: int = 6
 
     # Speech-to-Text location. Chirp 3 (multilingual, language-agnostic transcription) is GA on
     # the `us` multi-region but not in `us-central1`, so STT is the one service that does not use

@@ -20,6 +20,7 @@ from app.services.firestore_service import get_firestore_client
 from app.services.glossary_service import GlossaryService
 from app.services.job_service import JobService
 from app.services.localization_service import LocalizationService
+from app.services.persona_research import PersonaResearchService
 from app.services.persona_service import PersonaService
 from app.services.project_service import ProjectService
 from app.services.publish_service import PublishService
@@ -287,6 +288,14 @@ def get_persona_service() -> PersonaService:
     return PersonaService(
         client=get_firestore_client(),
         storage=get_storage_client(),
+        llm=get_providers().llm,
+        users=get_user_service(),
+        settings=get_settings(),
+    )
+
+
+def get_persona_research_service() -> PersonaResearchService:
+    return PersonaResearchService(
         llm=get_providers().llm,
         users=get_user_service(),
         settings=get_settings(),

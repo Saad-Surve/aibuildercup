@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 
 import { ChipSelect, type ChipOption } from "@/components/common/chip-select";
@@ -35,9 +37,10 @@ import {
   TONE_OPTIONS,
   TOPIC_OPTIONS,
   languageLabel,
+  parseProfileLinks,
   type OnboardingAnswers,
 } from "@/lib/onboarding";
-import type { Persona } from "@/lib/types";
+import type { OnboardingResearch, Persona } from "@/lib/types";
 
 interface DataStepProps {
   answers: OnboardingAnswers;
@@ -101,6 +104,116 @@ export function WelcomeStep() {
       <p className="text-sm text-muted-foreground">
         It takes about two minutes, and you can change all of it later.
       </p>
+    </div>
+  );
+}
+
+function ResearchSummary({ research }: { research: OnboardingResearch }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      <div className="px-3 py-2 text-sm break-words">
+        Grounded with Google Search
+        <span className="ml-1.5 text-muted-foreground">
+          — your next steps are prefilled. Edit anything that isn&apos;t right.
+        </span>
+      </div>
+      <div className="space-y-3 border-t border-border p-3">
+        {research.queries.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {research.queries.map((query) => (
+              <span
+                key={query}
+                className="rounded-4xl bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+              >
+                {query}
+              </span>
+            ))}
+          </div>
+        )}
+        {research.sources.length > 0 && (
+          <ul className="space-y-0.5">
+            {research.sources.map((source) => (
+              <li
+                key={source.url || source.title}
+                className="truncate text-xs"
+              >
+                <a
+                  href={source.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-signal underline-offset-2 hover:underline"
+                >
+                  {source.title || source.url}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+        {research.searchSuggestions ? (
+          <div
+            className="overflow-hidden break-words [&_*]:max-w-full"
+            dangerouslySetInnerHTML={{ __html: research.searchSuggestions }}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+export function ImportStep({
+  links,
+  onLinksChange,
+  research,
+  researchError,
+  busy,
+  onResearch,
+}: {
+  links: string[];
+  onLinksChange: (links: string[]) => void;
+  research: OnboardingResearch | null;
+  researchError: string | null;
+  busy: boolean;
+  onResearch: () => void;
+}) {
+  const [text, setText] = useState(links.join("\n"));
+
+  return (
+    <div className="space-y-5">
+      <Field>
+        <FieldLabel htmlFor="creatorLinks">Creator profile links</FieldLabel>
+        <Textarea
+          id="creatorLinks"
+          value={text}
+          onChange={(event) => {
+            setText(event.target.value);
+            onLinksChange(parseProfileLinks(event.target.value));
+          }}
+          placeholder={"https://youtube.com/@yourchannel\nhttps://instagram.com/yourhandle"}
+          className="min-h-28 font-mono text-sm"
+        />
+        <FieldDescription>
+          One per line. YouTube, Instagram, X, Facebook, TikTok, or LinkedIn. We
+          read only public pages and cite what we find.
+        </FieldDescription>
+      </Field>
+
+      {research ? (
+        <ResearchSummary research={research} />
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Leave this empty to fill everything in yourself.
+        </p>
+      )}
+
+      {researchError ? (
+        <p className="text-sm text-destructive">{researchError}</p>
+      ) : null}
+
+      {(research || researchError) && links.length > 0 ? (
+        <Button variant="outline" size="sm" onClick={onResearch} disabled={busy}>
+          {research ? "Research again" : "Try again"}
+        </Button>
+      ) : null}
     </div>
   );
 }
