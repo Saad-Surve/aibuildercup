@@ -73,6 +73,23 @@ class DraftMessage(BaseModel):
     createdAt: datetime
 
 
+class DraftGroundingSource(BaseModel):
+    """One web source the draft writer used, for the studio's provenance panel."""
+
+    title: str = ""
+    url: str = ""
+
+
+class DraftGrounding(BaseModel):
+    """What Search grounding returned for the most recent grounded draft call."""
+
+    queries: list[str] = Field(default_factory=list)
+    sources: list[DraftGroundingSource] = Field(default_factory=list)
+    #: Google-provided Search Suggestions HTML; must be rendered exactly as returned.
+    searchSuggestions: str = ""
+    updatedAt: datetime | None = None
+
+
 class DraftSummary(BaseModel):
     """Small denormalised copy kept on the project for list cards."""
 
@@ -92,6 +109,8 @@ class Draft(BaseModel):
     messages: list[DraftMessage] = Field(default_factory=list)
     error: str | None = None
     summary: DraftSummary = Field(default_factory=DraftSummary)
+    #: Latest grounded research (generation or assist), for the studio's sources panel.
+    grounding: DraftGrounding | None = None
     createdAt: datetime | None = None
     updatedAt: datetime | None = None
 

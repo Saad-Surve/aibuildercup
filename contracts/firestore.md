@@ -80,7 +80,10 @@ It all sits on the user document, so account deletion removes it with the rest o
 subtree. The project document mirrors `draftSummary` (title, preview, word/block/version
 counts) for list cards. After each generation the draft document also keeps `lastCreatorContext` —
 the style evidence (retrieved past videos, style signals, audience profile) the writer used — read
-back by `GET /projects/{id}/draft/context` for the studio's "Style evidence" panel.
+back by `GET /projects/{id}/draft/context` for the studio's "Style evidence" panel. The document
+also keeps `grounding` (the newest grounded call's `queries`, `sources`, and
+`searchSuggestions`), read back with the draft for the studio's "Grounded with Google Search"
+panel. It sits under the project subtree, so project / account delete covers it.
 
 ## Thumbnail concept documents
 

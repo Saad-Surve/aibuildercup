@@ -52,6 +52,8 @@ runs the research and stays on the step so the result + sources are visible, the
 - `bun run lint` (oxlint) clean; `bun run build` (Next 16, includes TypeScript) clean.
 - One-off check of the pure helpers (`_normalize_links`, `infer_platforms`, `_clean_answers`,
   `_clean_sources`): invalid/space/`ftp` links rejected, enums filtered, sources deduped.
+- Live end-to-end pass: researched MKBHD's links and the prefilled answers/sources came back
+  correct (confirmed by the product owner).
 
 ## Gotchas
 
@@ -64,7 +66,6 @@ runs the research and stays on the step so the result + sources are visible, the
 
 ## Not done / next step
 
-- The live grounded call has not been exercised end-to-end (needs auth + GCP creds + a running
-  API). Smoke-test `POST /api/onboarding/research` against the dev project with a real channel.
+- Live grounded call verified end-to-end (MKBHD). No follow-up needed unless we broaden platforms.
 - Could reuse `creatorLinks`/`research` later (e.g. show provenance on the profile page, or seed
   the YouTube content sync from a linked channel instead of OAuth).

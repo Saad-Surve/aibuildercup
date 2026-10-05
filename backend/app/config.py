@@ -72,6 +72,10 @@ class Settings(BaseSettings):
     model_writer: str = "gemini-3.8-flash"
     #: Draft alternatives (short span rewrites). Cheap and fast; flash-lite is good enough.
     model_suggest: str = "gemini-3.1-flash-lite"
+    #: Draft studio: Grounding with Google Search for first-draft generation and the
+    #: writing-partner chat, so the writer can verify current facts instead of inventing them.
+    #: Billed per search query; `suggest` (word/sentence alternatives) stays ungrounded.
+    draft_grounding_enabled: bool = True
     #: Onboarding "research from links": one grounded Gemini call that drafts the persona
     #: answers from the creator's public profile links, so the form arrives prefilled.
     #: Grounding with Google Search is billed per query, so this stays one call per submit.

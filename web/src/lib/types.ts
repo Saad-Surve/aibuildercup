@@ -165,6 +165,19 @@ export interface DraftMessage {
   createdAt: string;
 }
 
+export interface DraftGroundingSource {
+  title: string;
+  url: string;
+}
+
+export interface DraftGrounding {
+  queries: string[];
+  sources: DraftGroundingSource[];
+  /** Google Search Suggestions HTML; must be rendered exactly as returned. */
+  searchSuggestions: string;
+  updatedAt: string | null;
+}
+
 export interface Draft {
   projectId: string;
   title: string;
@@ -174,6 +187,8 @@ export interface Draft {
   messages: DraftMessage[];
   error: string | null;
   summary: DraftSummary;
+  /** Latest grounded research (generation or assist); null when the draft used none. */
+  grounding: DraftGrounding | null;
   createdAt: string | null;
   updatedAt: string | null;
 }

@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DraftBriefDialog } from "@/components/projects/draft/draft-brief-dialog";
 import { DraftChat } from "@/components/projects/draft/draft-chat";
 import { DraftContextPanel } from "@/components/projects/draft/draft-context-panel";
+import { DraftGroundingPanel } from "@/components/projects/draft/draft-grounding-panel";
 import { FreeFlowEditor } from "@/components/projects/draft/free-flow-editor";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -436,6 +437,8 @@ export function DraftWorkspace({
       </div>
 
       <DraftContextPanel projectId={projectId} enabled={!empty} />
+
+      <DraftGroundingPanel grounding={draft.grounding ?? null} />
 
       <div aria-hidden className={DRAFT_PANE_STACK_SPACER} />
 

@@ -2756,7 +2756,28 @@ components:
           items: { $ref: "#/components/schemas/DraftMessage" }
         error: { type: [string, "null"] }
         summary: { $ref: "#/components/schemas/DraftSummary" }
+        grounding: { oneOf: [{ $ref: "#/components/schemas/DraftGrounding" }, { type: "null" }] }
         createdAt: { type: [string, "null"], format: date-time }
+        updatedAt: { type: [string, "null"], format: date-time }
+
+    DraftGroundingSource:
+      type: object
+      properties:
+        title: { type: string }
+        url: { type: string }
+
+    DraftGrounding:
+      type: object
+      description: |
+        Search grounding returned for the most recent grounded draft call (generation or
+        assist). Sources and Search Suggestions must be shown when a grounded response is
+        displayed.
+      properties:
+        queries: { type: array, items: { type: string } }
+        sources:
+          type: array
+          items: { $ref: "#/components/schemas/DraftGroundingSource" }
+        searchSuggestions: { type: string }
         updatedAt: { type: [string, "null"], format: date-time }
 
     GenerateDraftRequest:

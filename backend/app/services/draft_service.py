@@ -16,7 +16,7 @@ from uuid import uuid4
 
 from app.config import Settings
 from app.errors import BadRequestError
-from app.providers.base import LlmProvider
+from app.providers.base import GroundingInfo, LlmProvider
 from app.schemas.draft import (
     AssistDraftRequest,
     AssistMode,
@@ -26,6 +26,8 @@ from app.schemas.draft import (
     DraftBlockType,
     DraftBrief,
     DraftFormat,
+    DraftGrounding,
+    DraftGroundingSource,
     DraftMessage,
     DraftStatus,
     DraftSummary,
@@ -85,6 +87,15 @@ ASSIST_SYSTEM = (
     "claiming you did it."
 )
 
+#: Appended to the generation/assist prompts only when grounding is on, so the instruction
+#: never promises search the model cannot perform.
+DRAFT_GROUNDING_INSTRUCTION = (
+    "\n- You may use Google Search to verify a current fact, figure, date, name, or event "
+    "before you write it. When you rely on something you found, list it in `sources` with its "
+    "exact title and URL. If you cannot verify a specific detail, leave it out rather than "
+    "guessing."
+)
+
 GENERATE_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -101,6 +112,17 @@ GENERATE_SCHEMA: dict[str, Any] = {
                     "text": {"type": "string"},
                 },
                 "required": ["type", "text"],
+            },
+        },
+        "sources": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "url": {"type": "string"},
+                },
+                "required": ["title", "url"],
             },
         },
     },
@@ -130,6 +152,17 @@ ASSIST_SCHEMA: dict[str, Any] = {
                 "required": ["text"],
             },
         },
+        "sources": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "url": {"type": "string"},
+                },
+                "required": ["title", "url"],
+            },
+        },
     },
     "required": ["reply"],
 }
@@ -156,6 +189,43 @@ SUGGEST_SCHEMA: dict[str, Any] = {
 
 def _new_id() -> str:
     return uuid4().hex[:12]
+
+
+def _grounding_from(
+    raw_sources: Any, info: GroundingInfo | None
+) -> DraftGrounding | None:
+    """Merge the model's `sources` with the provider's grounding chunks, deduped by URL.
+
+    In JSON mode `groundingChunks` can come back empty even when the model searched (same
+    note as the truth reviewer), so the model-emitted sources are the primary citation path.
+    """
+    sources: list[DraftGroundingSource] = []
+    seen: set[str] = set()
+
+    def add(title: str, url: str) -> None:
+        url = url.strip()
+        if not url.startswith(("http://", "https://")) or url in seen:
+            return
+        seen.add(url)
+        sources.append(DraftGroundingSource(title=title.strip() or url, url=url))
+
+    if isinstance(raw_sources, list):
+        for item in raw_sources:
+            if isinstance(item, dict):
+                add(str(item.get("title") or ""), str(item.get("url") or ""))
+    queries = list(info.queries) if info is not None else []
+    suggestions = info.search_suggestions_html if info is not None else ""
+    if info is not None:
+        for source in info.sources:
+            add(source.title, source.uri)
+    if not (sources or queries or suggestions):
+        return None
+    return DraftGrounding(
+        queries=queries,
+        sources=sources[:8],
+        searchSuggestions=suggestions,
+        updatedAt=datetime.now(UTC),
+    )
 
 
 _TAG = re.compile(r"<[^>]+>")
@@ -436,10 +506,12 @@ class DraftService:
                 k=5,
             )
 
-        blocks = await self._generate_blocks(
+        blocks, grounding = await self._generate_blocks(
             draft.brief, draft, creator_context=creator_context
         )
         draft.blocks = blocks
+        # A fresh generation replaces any previous sources (None clears stale ones).
+        draft.grounding = grounding
         draft.messages = [
             DraftMessage(
                 messageId=_new_id(),
@@ -484,13 +556,20 @@ class DraftService:
             result = await self.llm.complete_json(
                 model=self.settings.model_writer,
                 prompt_version=DRAFT_ASSIST_PROMPT_VERSION,
-                system=ASSIST_SYSTEM,
+                system=ASSIST_SYSTEM
+                + (
+                    DRAFT_GROUNDING_INSTRUCTION
+                    if self.settings.draft_grounding_enabled
+                    else ""
+                ),
                 user=self._assist_context(draft, payload),
                 schema=ASSIST_SCHEMA,
+                grounding=self.settings.draft_grounding_enabled,
             )
             reply, title, clear_draft, remove_ids, edits = self._parse_assist(
                 result.data
             )
+            grounding = _grounding_from(result.data.get("sources"), result.grounding)
         except Exception as exc:  # noqa: BLE001 - keep the user's message on failure
             logger.exception("Draft assist failed")
             reply = "I could not reach the writing model just now. Your draft is safe — try again."
@@ -498,6 +577,7 @@ class DraftService:
             clear_draft = False
             remove_ids = []
             edits = []
+            grounding = None
             draft.error = str(exc)[:300]
         if clear_draft:
             draft.blocks = []
@@ -517,6 +597,9 @@ class DraftService:
         ):
             draft.blocks = []
         self._apply_edits(draft, edits)
+        # Keep the previous sources when this turn did not search; replace them when it did.
+        if grounding is not None:
+            draft.grounding = grounding
         if title:
             draft.title = title.strip()[:200]
         draft.messages.append(
@@ -590,18 +673,25 @@ class DraftService:
         draft: Draft,
         *,
         creator_context: dict[str, Any] | None,
-    ) -> list[DraftBlock]:
+    ) -> tuple[list[DraftBlock], DraftGrounding | None]:
         payload: dict[str, Any] = {"brief": brief.model_dump(mode="json")}
         if creator_context:
             payload["creatorContext"] = creator_context
         user = json.dumps(payload, indent=2, ensure_ascii=False)
+        grounding: DraftGrounding | None = None
         try:
             completion = await self.llm.complete_json(
                 model=self.settings.model_writer,
                 prompt_version=DRAFT_GENERATE_PROMPT_VERSION,
-                system=GENERATE_SYSTEM,
+                system=GENERATE_SYSTEM
+                + (
+                    DRAFT_GROUNDING_INSTRUCTION
+                    if self.settings.draft_grounding_enabled
+                    else ""
+                ),
                 user=user,
                 schema=GENERATE_SCHEMA,
+                grounding=self.settings.draft_grounding_enabled,
             )
             data = completion.data
             blocks = [
@@ -614,6 +704,7 @@ class DraftService:
                 if str(item.get("text", "")).strip()
             ]
             title = str(data.get("title", "")).strip()
+            grounding = _grounding_from(data.get("sources"), completion.grounding)
         except Exception:  # noqa: BLE001 - always return a usable draft
             logger.exception("Draft generation failed; using deterministic fallback")
             blocks = _fallback_blocks(brief)
@@ -622,7 +713,7 @@ class DraftService:
             blocks = _fallback_blocks(brief)
         if title and not draft.title:
             draft.title = title
-        return blocks
+        return blocks, grounding
 
     def _assist_context(self, draft: Draft, payload: AssistDraftRequest) -> str:
         blocks = [

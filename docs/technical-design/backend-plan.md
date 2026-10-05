@@ -374,6 +374,15 @@ hostnames as a reliable signal, and merges the grounding metadata (`queries`, `s
 under `onboarding`. Gated by `ONBOARDING_RESEARCH_ENABLED`, capped by
 `ONBOARDING_RESEARCH_MAX_LINKS`.
 
+**Draft writer.** Draft/script generation (`_generate_blocks`) and the writing-partner chat
+(`assist`) also opt into grounding when `DRAFT_GROUNDING_ENABLED` is set, so the writer verifies
+current facts instead of inventing them. `suggest` (word/sentence alternatives) stays ungrounded.
+The prompt gets a search instruction only when grounding is on, and both calls add a `sources`
+field to their response schema. The merged grounding metadata is stored on the draft document as
+`grounding` (`queries`, `sources`, `searchSuggestions`) and shown in the studio's "Grounded with
+Google Search" panel. A fresh generation replaces the previous grounding; an assist turn that did
+not search keeps it.
+
 ### Reviewer fan-out
 
 Running every reviewer over every segment is unbounded cost. Instead, each reviewer runs as one
