@@ -1442,6 +1442,93 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
 
+  /api/schedules:
+    get:
+      summary: Every scheduled slot across the caller's projects, oldest first
+      description: |
+        Powers the content calendar. Optional `start`/`end` bound the window; both are
+        ISO datetimes. A schedule may link to a publish attempt (`publishId`); editing a
+        linked schedule's `scheduledAt` also moves the publish's `publishAt`.
+      parameters:
+        - name: start
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+        - name: end
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScheduleList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/projects/{projectId}/schedules:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: List a project's calendar slots, oldest first
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScheduleList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      summary: Plan a calendar slot for a project
+      description: |
+        `publishId` links the slot to a publish attempt; rescheduling the slot later also
+        moves the publish's `publishAt`. Send `publishId: null` to keep it a rough plan.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScheduleCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Schedule" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/projects/{projectId}/schedules/{scheduleId}:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/ScheduleId" }
+    patch:
+      summary: Edit a calendar slot (reschedule, rename, relink, cancel)
+      description: |
+        Only the fields sent are changed; `publishId: null` unlinks the publish. Moving
+        `scheduledAt` on a linked slot also moves the publish's `publishAt`, unless that
+        publish already went out (409 SCHEDULE_PUBLISH_FINISHED).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScheduleUpdate" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Schedule" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+    delete:
+      summary: Remove a calendar slot (does not touch a linked publish)
+      responses:
+        "204": { description: Slot removed }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
 components:
   securitySchemes:
     FirebaseBearer:
@@ -1485,6 +1572,11 @@ components:
       schema: { type: string }
     PublishId:
       name: publishId
+      in: path
+      required: true
+      schema: { type: string }
+    ScheduleId:
+      name: scheduleId
       in: path
       required: true
       schema: { type: string }
@@ -3118,6 +3210,11 @@ components:
           type: array
           items: { type: string }
         jobId: { type: [string, "null"] }
+        publishAt:
+          type: [string, "null"]
+          format: date-time
+          description: |
+            Go-public time. Set at create; rescheduling a linked calendar slot moves it.
         error: { type: [object, "null"], additionalProperties: true }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
@@ -3136,3 +3233,54 @@ components:
         publishId: { type: string }
         jobId: { type: string }
         status: { type: string }
+
+    ScheduleStatus:
+      type: string
+      enum: [planned, scheduled, published, cancelled]
+
+    Schedule:
+      type: object
+      properties:
+        scheduleId: { type: string }
+        projectId: { type: string }
+        projectName: { type: [string, "null"] }
+        title: { type: string }
+        notes: { type: string }
+        platform: { type: string }
+        scheduledAt: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/ScheduleStatus" }
+        publishId: { type: [string, "null"] }
+        connectionId: { type: [string, "null"] }
+        connectionDisplayName: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ScheduleCreate:
+      type: object
+      required: [title, scheduledAt]
+      properties:
+        title: { type: string, maxLength: 140 }
+        notes: { type: string, maxLength: 2000 }
+        platform: { type: string }
+        scheduledAt: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/ScheduleStatus" }
+        publishId: { type: [string, "null"] }
+        connectionId: { type: [string, "null"] }
+
+    ScheduleUpdate:
+      type: object
+      properties:
+        title: { type: string, maxLength: 140 }
+        notes: { type: string, maxLength: 2000 }
+        platform: { type: string }
+        scheduledAt: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/ScheduleStatus" }
+        publishId: { type: [string, "null"] }
+        connectionId: { type: [string, "null"] }
+
+    ScheduleList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Schedule" }

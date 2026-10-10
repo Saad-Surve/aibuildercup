@@ -928,6 +928,8 @@ export interface Publish {
   uploadProgress: number;
   steps: string[];
   jobId: string | null;
+  /** Go-public time; rescheduling a linked calendar slot moves it. */
+  publishAt: string | null;
   error: { code?: string; message?: string } | null;
   createdAt: string;
   updatedAt: string;
@@ -941,4 +943,54 @@ export interface PublishAccepted {
   publishId: string;
   jobId: string;
   status: string;
+}
+
+/* ------------------------------------------------------------------ scheduling */
+
+export type ScheduleStatus =
+  | "planned"
+  | "scheduled"
+  | "published"
+  | "cancelled";
+
+export interface Schedule {
+  scheduleId: string;
+  projectId: string;
+  /** Snapshot of the project name at create time, so the calendar renders without a join. */
+  projectName: string | null;
+  title: string;
+  notes: string;
+  platform: string;
+  scheduledAt: string;
+  status: ScheduleStatus;
+  /** Link to a publish attempt; rescheduling also moves the publish's `publishAt`. */
+  publishId: string | null;
+  connectionId: string | null;
+  connectionDisplayName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ScheduleCreateInput {
+  title: string;
+  notes?: string;
+  platform?: string;
+  scheduledAt: string;
+  status?: ScheduleStatus;
+  publishId?: string | null;
+  connectionId?: string | null;
+}
+
+export interface ScheduleUpdateInput {
+  title?: string;
+  notes?: string;
+  platform?: string;
+  scheduledAt?: string;
+  status?: ScheduleStatus;
+  publishId?: string | null;
+  connectionId?: string | null;
+}
+
+export interface ScheduleList {
+  items: Schedule[];
 }

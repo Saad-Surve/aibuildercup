@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { Icon } from "@/components/common/icon";
 import { DisabledReason } from "@/components/common/disabled-reason";
 import { YouTubeConnections } from "@/components/projects/studio/youtube-connections";
+import { ProjectSchedules } from "@/components/projects/studio/project-schedules";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -546,6 +547,12 @@ export function PublishingModule({
         </CardContent>
       </Card>
 
+      <ProjectSchedules
+        projectId={projectId}
+        projectName={projectName}
+        publishes={publishes}
+      />
+
       <Card className={WORKSPACE_SNAP_TARGET}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -575,6 +582,12 @@ export function PublishingModule({
                     <p className="text-xs text-muted-foreground">
                       {publish.connectionDisplayName ?? "YouTube"} ·{" "}
                       {format(new Date(publish.createdAt), "d MMM, HH:mm")}
+                      {publish.publishAt ? (
+                        <>
+                          {" "}· Goes public{" "}
+                          {format(new Date(publish.publishAt), "d MMM, HH:mm")}
+                        </>
+                      ) : null}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

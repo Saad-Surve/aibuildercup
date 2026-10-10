@@ -231,3 +231,33 @@ resolved thumbnail version, and the caption text at create time, so a later edit
 an in-flight upload. It stores the resulting `youtubeVideoId` / `youtubeUrl` on success. The
 document lives under the project subtree, so the recursive project delete covers it; the YouTube
 video it created is **not** deleted (that is external state) and is called out here deliberately.
+
+## Schedules (content calendar)
+
+`users/{uid}/projects/{projectId}/schedules/{scheduleId}` is one planned posting slot on the
+content calendar: what will be posted, from which project, and when.
+
+```json
+{
+  "ownerUid": "uid",
+  "projectId": "project-id",
+  "projectName": "Priya Explains Credit Scores",
+  "title": "Credit scores explainer goes public",
+  "notes": "Thumb B won the poll; use it.",
+  "platform": "youtube",
+  "scheduledAt": "timestamp",
+  "status": "planned | scheduled | published | cancelled",
+  "publishId": "publish-id | null",
+  "connectionId": "connection-id | null",
+  "connectionDisplayName": "Priya Creates | null",
+  "createdAt": "timestamp",
+  "updatedAt": "timestamp"
+}
+```
+
+Two-way link with publishes: creating a publish with `publishAt` auto-creates a `scheduled`
+entry pointing at it; rescheduling a linked entry (`PATCH …/schedules/{id}`) also moves the
+publish's `publishAt` (the worker reads it at upload time); a publish that finishes flips its
+linked entries to `published`. The month view reads across projects by fanning out over the
+project list (no collection-group index needed). The documents sit under the project subtree,
+so project / account delete covers them.

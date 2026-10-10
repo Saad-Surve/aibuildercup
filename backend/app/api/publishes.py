@@ -10,6 +10,7 @@ from app.dependencies import (
     current_user,
     get_publish_scheduler,
     get_publish_service,
+    get_schedule_service,
 )
 from app.schemas.jobs import JobStatus
 from app.schemas.publishes import (
@@ -19,11 +20,13 @@ from app.schemas.publishes import (
     PublishRequest,
 )
 from app.services.publish_service import PublishService, accepted
+from app.services.schedule_service import ScheduleService
 
 router = APIRouter(tags=["publishes"])
 
 UserDep = Annotated[AuthenticatedUser, Depends(current_user)]
 ServiceDep = Annotated[PublishService, Depends(get_publish_service)]
+SchedulesDep = Annotated[ScheduleService, Depends(get_schedule_service)]
 SchedulerDep = Annotated[PublishScheduler, Depends(get_publish_scheduler)]
 
 
@@ -39,8 +42,22 @@ async def create_publish(
     service: ServiceDep,
     background_tasks: BackgroundTasks,
     scheduler: SchedulerDep,
+    schedules: SchedulesDep,
 ) -> PublishAccepted:
     publish, job = service.create(owner_uid=user.uid, project_id=projectId, payload=payload)
+    if payload.publishAt is not None:
+        # The upload carries a go-public time: mirror it onto the calendar so the
+        # schedule and the publish stay one thing, not two.
+        schedules.link_publish(
+            owner_uid=user.uid,
+            project_id=projectId,
+            publish_id=publish.publishId,
+            title=publish.title,
+            scheduled_at=payload.publishAt,
+            connection_id=publish.connectionId,
+            connection_display_name=publish.connectionDisplayName,
+            platform=publish.platform,
+        )
     if job.status not in (JobStatus.succeeded, JobStatus.running):
         scheduler(
             background_tasks,

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Analytics01Icon,
+  Calendar01Icon,
   DashboardSquare01Icon,
   FolderOpenIcon,
   Settings01Icon,
@@ -39,6 +40,7 @@ const NAV: NavItem[] = [
     ready: true,
   },
   { href: "/projects", label: "Projects", icon: FolderOpenIcon, ready: true },
+  { href: "/calendar", label: "Calendar", icon: Calendar01Icon, ready: true },
   {
     href: "/audience",
     label: "Audience insights",

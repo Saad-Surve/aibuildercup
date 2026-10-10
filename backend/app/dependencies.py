@@ -25,6 +25,7 @@ from app.services.persona_service import PersonaService
 from app.services.project_service import ProjectService
 from app.services.publish_service import PublishService
 from app.services.pubsub_service import PubSubClient, get_pubsub_client
+from app.services.schedule_service import ScheduleService
 from app.services.seed_service import SeedService
 from app.services.storage_service import get_storage_client
 from app.services.thumbnail_service import ThumbnailService
@@ -245,6 +246,11 @@ PublishScheduler = Callable[..., None]
 
 def get_publish_scheduler() -> PublishScheduler:
     return publish_after_response
+
+
+def get_schedule_service() -> ScheduleService:
+    client = get_firestore_client()
+    return ScheduleService(client, projects=ProjectService(client))
 
 
 # (background_tasks, *, owner_uid, project_id, job_id) -> None. Injected so tests can

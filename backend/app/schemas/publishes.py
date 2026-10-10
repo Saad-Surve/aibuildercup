@@ -110,6 +110,8 @@ class Publish(BaseModel):
     #: Short, ordered human-readable steps ("Uploading video", "Setting thumbnail", ...).
     steps: list[str] = Field(default_factory=list)
     jobId: str | None = None
+    #: Go-public time. Set at create; rescheduling a linked calendar slot moves it.
+    publishAt: datetime | None = None
     error: dict[str, Any] | None = None
     createdAt: datetime
     updatedAt: datetime

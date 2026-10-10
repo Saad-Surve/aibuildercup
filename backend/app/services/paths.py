@@ -154,6 +154,18 @@ def publish_path(uid: str, project_id: str, publish_id: str) -> str:
     )
 
 
+def schedules_collection_path(uid: str, project_id: str) -> str:
+    """One document per planned calendar slot for a project."""
+    return f"{project_path(uid, project_id)}/schedules"
+
+
+def schedule_path(uid: str, project_id: str, schedule_id: str) -> str:
+    return (
+        f"{schedules_collection_path(uid, project_id)}/"
+        f"{safe_segment(schedule_id, name='scheduleId')}"
+    )
+
+
 def transcripts_collection_path(uid: str, project_id: str) -> str:
     return f"{project_path(uid, project_id)}/transcripts"
 

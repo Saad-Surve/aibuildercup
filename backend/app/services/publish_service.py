@@ -106,6 +106,7 @@ def _to_publish(publish_id: str, data: dict[str, Any]) -> Publish:
         uploadProgress=int(data.get("uploadProgress", 0) or 0),
         steps=list(data.get("steps") or []),
         jobId=data.get("jobId"),
+        publishAt=data.get("publishAt"),
         error=data.get("error"),
         createdAt=data["createdAt"],
         updatedAt=data["updatedAt"],
@@ -490,6 +491,13 @@ class PublishService:
         if error is not None:
             changes["error"] = error
         self.client.update_document(publish_path(owner_uid, project_id, publish_id), changes)
+        if status == PublishStatus.published:
+            # The video is out: linked calendar entries stop being plans and become history.
+            from app.services.schedule_service import ScheduleService
+
+            ScheduleService(self.client, projects=self.projects).mark_linked_published(
+                owner_uid=owner_uid, project_id=project_id, publish_id=publish_id
+            )
 
     def _require(self, owner_uid: str, project_id: str, publish_id: str) -> dict[str, Any]:
         self.projects.get(owner_uid=owner_uid, project_id=project_id)
