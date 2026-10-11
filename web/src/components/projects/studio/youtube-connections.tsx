@@ -9,10 +9,10 @@ import {
   Loading03Icon,
   Refresh01Icon,
   SparklesIcon,
-  YoutubeIcon,
 } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 
+import { PlatformLogo } from "@/components/calendar/platform";
 import { Icon } from "@/components/common/icon";
 import { DisabledReason } from "@/components/common/disabled-reason";
 import { Badge } from "@/components/ui/badge";
@@ -198,7 +198,7 @@ export function YouTubeConnections({
     <div className={cn("space-y-3", className)}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Icon icon={YoutubeIcon} className="text-muted-foreground" />
+          <PlatformLogo platform="youtube" size={16} />
           <span className="text-sm font-medium">
             {connections.length === 0
               ? "No channels connected"
@@ -263,7 +263,7 @@ export function YouTubeConnections({
                     />
                   ) : (
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
-                      <Icon icon={YoutubeIcon} className="size-4" />
+                      <PlatformLogo platform="youtube" size={16} />
                     </span>
                   )}
                   <div className="min-w-0 flex-1">

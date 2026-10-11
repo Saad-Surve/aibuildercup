@@ -265,11 +265,12 @@ content calendar: what will be posted, from which project, and when.
 ```
 
 Two-way link with publishes: creating a publish with `publishAt` auto-creates a `scheduled`
-entry pointing at it; rescheduling a linked entry (`PATCH …/schedules/{id}`) also moves the
-publish's `publishAt` (the worker reads it at upload time); a publish that finishes flips its
-linked entries to `published`. The month view reads across projects by fanning out over the
-project list (no collection-group index needed). The documents sit under the project subtree,
-so project / account delete covers them.
+entry pointing at it; creating a schedule with `publishId` (wiring a slot to an existing
+upload) and rescheduling a linked entry (`PATCH …/schedules/{id}`) both move the
+publish's `publishAt` (the worker reads it at upload time; linking a finished publish is a
+409); a publish that finishes flips its linked entries to `published`. The month view reads
+across projects by fanning out over the project list (no collection-group index needed).
+The documents sit under the project subtree, so project / account delete covers them.
 
 ### Creator semantic library
 

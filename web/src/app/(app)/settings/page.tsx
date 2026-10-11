@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 
+import { Icon } from "@/components/common/icon";
 import { PageHeader } from "@/components/common/page-header";
 import { AccountConnections } from "@/components/accounts/account-connections";
 import {
@@ -54,8 +56,12 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Link href="/library" className="text-sm text-signal hover:underline">
-            Open your library →
+          <Link
+            href="/library"
+            className="inline-flex items-center gap-1 text-sm text-signal hover:underline"
+          >
+            Open your library
+            <Icon icon={ArrowRight01Icon} className="size-3.5" />
           </Link>
         </CardContent>
       </Card>

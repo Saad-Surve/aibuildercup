@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowUpRight01Icon } from "@hugeicons/core-free-icons";
+
+import { Icon } from "@/components/common/icon";
 import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -588,9 +591,10 @@ export default function LibraryPage() {
                         href={selected.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-4 inline-block text-xs text-signal hover:underline"
+                        className="mt-4 inline-flex items-center gap-1 text-xs text-signal hover:underline"
                       >
-                        Open original ↗
+                        Open original
+                        <Icon icon={ArrowUpRight01Icon} className="size-3" />
                       </a>
                     )}
                     {neighbors.length > 0 && (

@@ -98,9 +98,22 @@ function describe(error: unknown, fallback: string): string {
   return fallback;
 }
 
+function padDateTimePart(part: number): string {
+  return part.toString().padStart(2, "0");
+}
+
+function toDateTimeLocalInput(value: Date): string {
+  return (
+    `${value.getFullYear()}-${padDateTimePart(value.getMonth() + 1)}-${padDateTimePart(value.getDate())}` +
+    `T${padDateTimePart(value.getHours())}:${padDateTimePart(value.getMinutes())}`
+  );
+}
+
 function statusTone(status: Publish["status"]): string {
-  if (status === "published") return "border-sev-good/40 bg-sev-good/10 text-sev-good";
-  if (status === "failed") return "border-sev-high/40 bg-sev-high/10 text-sev-high";
+  if (status === "published")
+    return "border-sev-good/40 bg-sev-good/10 text-sev-good";
+  if (status === "failed")
+    return "border-sev-high/40 bg-sev-high/10 text-sev-high";
   return "border-border bg-muted text-muted-foreground";
 }
 
@@ -109,9 +122,7 @@ function PublishStatusBadge({ status }: { status: Publish["status"] }) {
     status === "processing"
       ? "YouTube processing"
       : status.charAt(0).toUpperCase() + status.slice(1);
-  return (
-    <Badge className={statusTone(status)}>{label}</Badge>
-  );
+  return <Badge className={statusTone(status)}>{label}</Badge>;
 }
 
 export function PublishingModule({
@@ -141,8 +152,12 @@ export function PublishingModule({
   const [notifySubscribers, setNotifySubscribers] = useState(true);
   const [captionFormat, setCaptionFormat] =
     useState<PublishCaptionFormat>("srt");
-  const [captionLanguage, setCaptionLanguage] = useState(primaryLanguage || "en");
+  const [captionLanguage, setCaptionLanguage] = useState(
+    primaryLanguage || "en",
+  );
   const [thumbnailId, setThumbnailId] = useState<string | null>(null);
+  const [scheduleLater, setScheduleLater] = useState(false);
+  const [goPublicAt, setGoPublicAt] = useState("");
 
   const assetsQuery = useQuery({
     queryKey: ["assets", projectId],
@@ -176,10 +191,7 @@ export function PublishingModule({
     refetchIntervalInBackground: true,
   });
 
-  const sourceAsset = pickSourceAsset(
-    assetsQuery.data?.items,
-    activeSourceId,
-  );
+  const sourceAsset = pickSourceAsset(assetsQuery.data?.items, activeSourceId);
   const readyRenders = useMemo(
     () =>
       (rendersQuery.data?.items ?? []).filter(
@@ -206,11 +218,26 @@ export function PublishingModule({
     (concept) => concept.thumbnailId === thumbnailId,
   );
 
+  function resolvePublishAt(): string | null {
+    if (!scheduleLater) return null;
+    if (!goPublicAt) throw new Error("Pick a go-public date and time.");
+    const when = new Date(goPublicAt).getTime();
+    if (Number.isNaN(when)) throw new Error("Pick a go-public date and time.");
+    if (when <= Date.now()) {
+      throw new Error("The go-public time must be in the future.");
+    }
+    return new Date(when).toISOString();
+  }
+
   const createMutation = useMutation({
     mutationFn: () => {
       if (!connectionId) throw new Error("Connect and choose a channel first.");
+      const publishAt = resolvePublishAt();
       const [kind, id] = videoValue.includes(":")
-        ? (videoValue.split(":", 2) as ["captionRender" | "localization", string])
+        ? (videoValue.split(":", 2) as [
+            "captionRender" | "localization",
+            string,
+          ])
         : (["source", null] as const);
       return createPublish(projectId, {
         connectionId,
@@ -222,19 +249,31 @@ export function PublishingModule({
           .map((tag) => tag.trim())
           .filter(Boolean),
         categoryId,
-        privacyStatus: privacy,
+        // YouTube only accepts a scheduled go-public time on a private video;
+        // the upload path forces private as well, so the listing matches it.
+        privacyStatus: publishAt ? "private" : privacy,
         madeForKids,
         notifySubscribers,
         captionFormat,
         captionLanguage,
         captionName: languageLabel(captionLanguage),
         thumbnail: thumbnailId ? { thumbnailId } : null,
+        publishAt,
       });
     },
     onSuccess: (accepted) => {
-      toast.success("Publishing to YouTube…");
+      toast.success(
+        scheduleLater ? "Upload scheduled" : "Publishing to YouTube…",
+        scheduleLater && goPublicAt
+          ? {
+              description: `Goes public ${format(new Date(goPublicAt), "d MMM, HH:mm")}.`,
+            }
+          : undefined,
+      );
       onJobId?.(accepted.jobId);
-      void queryClient.invalidateQueries({ queryKey: ["publishes", projectId] });
+      void queryClient.invalidateQueries({
+        queryKey: ["publishes", projectId],
+      });
       void queryClient.invalidateQueries({ queryKey: ["job", accepted.jobId] });
     },
     onError: (error) => toast.error(describe(error, "Publishing failed.")),
@@ -244,7 +283,9 @@ export function PublishingModule({
     mutationFn: (publishId: string) => retryPublish(projectId, publishId),
     onSuccess: (accepted) => {
       onJobId?.(accepted.jobId);
-      void queryClient.invalidateQueries({ queryKey: ["publishes", projectId] });
+      void queryClient.invalidateQueries({
+        queryKey: ["publishes", projectId],
+      });
     },
     onError: (error) => toast.error(describe(error, "Could not retry.")),
   });
@@ -252,7 +293,9 @@ export function PublishingModule({
   const deleteMutation = useMutation({
     mutationFn: (publishId: string) => deletePublish(projectId, publishId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["publishes", projectId] });
+      void queryClient.invalidateQueries({
+        queryKey: ["publishes", projectId],
+      });
     },
     onError: (error) => toast.error(describe(error, "Could not delete.")),
   });
@@ -272,15 +315,17 @@ export function PublishingModule({
             YouTube channel
           </CardTitle>
           <CardDescription>
-            Connect the Gmail account that owns the channel you publish to. Google
-            shows its account chooser, so you can pick a different account than the
-            one you signed in with.
+            Connect the Gmail account that owns the channel you publish to.
+            Google shows its account chooser, so you can pick a different
+            account than the one you signed in with.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <YouTubeConnections
             redirectPath={
-              typeof window === "undefined" ? undefined : window.location.pathname
+              typeof window === "undefined"
+                ? undefined
+                : window.location.pathname
             }
             selectable
             selectedId={connectionId}
@@ -296,8 +341,9 @@ export function PublishingModule({
             What to upload
           </CardTitle>
           <CardDescription>
-            Pick the cut, the thumbnail, and the caption track. Everything is resolved
-            now, so a later edit cannot change an upload that is already running.
+            Pick the cut, the thumbnail, and the caption track. Everything is
+            resolved now, so a later edit cannot change an upload that is
+            already running.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -359,7 +405,9 @@ export function PublishingModule({
                       }
                       className={cn(
                         "group relative overflow-hidden rounded-lg border text-left",
-                        selected ? "border-signal ring-2 ring-signal/40" : "border-border",
+                        selected
+                          ? "border-signal ring-2 ring-signal/40"
+                          : "border-border",
                       )}
                     >
                       {concept.previewUrl ? (
@@ -381,7 +429,9 @@ export function PublishingModule({
             {selectedThumbnail ? (
               <p className="text-xs text-muted-foreground">
                 Selected:{" "}
-                <span className="text-foreground">{selectedThumbnail.headline}</span>
+                <span className="text-foreground">
+                  {selectedThumbnail.headline}
+                </span>
               </p>
             ) : null}
           </div>
@@ -432,7 +482,10 @@ export function PublishingModule({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="publish-title" className="text-xs text-muted-foreground">
+            <Label
+              htmlFor="publish-title"
+              className="text-xs text-muted-foreground"
+            >
               Title
             </Label>
             <Input
@@ -457,7 +510,10 @@ export function PublishingModule({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="publish-tags" className="text-xs text-muted-foreground">
+            <Label
+              htmlFor="publish-tags"
+              className="text-xs text-muted-foreground"
+            >
               Tags (comma separated)
             </Label>
             <Input
@@ -470,7 +526,10 @@ export function PublishingModule({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Category</Label>
-              <Select value={categoryId} onValueChange={(value) => setCategoryId(value ?? "22")}>
+              <Select
+                value={categoryId}
+                onValueChange={(value) => setCategoryId(value ?? "22")}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -484,10 +543,14 @@ export function PublishingModule({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Visibility</Label>
+              <Label className="text-xs text-muted-foreground">
+                Visibility
+              </Label>
               <Select
                 value={privacy}
-                onValueChange={(value) => setPrivacy(value as PublishVisibility)}
+                onValueChange={(value) =>
+                  setPrivacy(value as PublishVisibility)
+                }
               >
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -519,24 +582,61 @@ export function PublishingModule({
             <label className="flex items-start gap-2">
               <Checkbox
                 checked={notifySubscribers}
-                onCheckedChange={(value) => setNotifySubscribers(Boolean(value))}
+                onCheckedChange={(value) =>
+                  setNotifySubscribers(Boolean(value))
+                }
               />
               <span>Notify subscribers when it publishes</span>
             </label>
+            <label className="flex items-start gap-2">
+              <Checkbox
+                checked={scheduleLater}
+                onCheckedChange={(value) => setScheduleLater(Boolean(value))}
+              />
+              <span>
+                Schedule for later
+                <span className="block text-xs text-muted-foreground">
+                  Uploads now as private, goes public at the chosen time.
+                </span>
+              </span>
+            </label>
+            {scheduleLater ? (
+              <div className="space-y-1.5 pl-6">
+                <Label
+                  htmlFor="publish-go-public"
+                  className="text-xs text-muted-foreground"
+                >
+                  Go-public time
+                </Label>
+                <Input
+                  id="publish-go-public"
+                  type="datetime-local"
+                  value={goPublicAt}
+                  min={toDateTimeLocalInput(new Date())}
+                  onChange={(event) => setGoPublicAt(event.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Scheduled videos stay private until then. The slot also
+                  appears on the calendar.
+                </p>
+              </div>
+            ) : null}
           </div>
 
           <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
             <Button
               type="button"
               onClick={() => createMutation.mutate()}
-              disabled={!canSubmit || readOnly}
+              disabled={
+                !canSubmit || readOnly || (scheduleLater && !goPublicAt)
+              }
             >
               {createMutation.isPending ? (
                 <Icon icon={Loading03Icon} className="animate-spin" />
               ) : (
                 <Icon icon={CloudUploadIcon} />
               )}
-              Publish to YouTube
+              {scheduleLater ? "Schedule upload" : "Publish to YouTube"}
             </Button>
           </DisabledReason>
           {!connectionId ? (
@@ -584,7 +684,8 @@ export function PublishingModule({
                       {format(new Date(publish.createdAt), "d MMM, HH:mm")}
                       {publish.publishAt ? (
                         <>
-                          {" "}· Goes public{" "}
+                          {" "}
+                          · Goes public{" "}
                           {format(new Date(publish.publishAt), "d MMM, HH:mm")}
                         </>
                       ) : null}
@@ -593,12 +694,16 @@ export function PublishingModule({
                   <div className="flex items-center gap-2">
                     <PublishStatusBadge status={publish.status} />
                     {publish.status === "failed" ? (
-                      <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                      <DisabledReason
+                        reason={readOnly ? READ_ONLY_REASON : null}
+                      >
                         <Button
                           type="button"
                           size="sm"
                           variant="outline"
-                          onClick={() => retryMutation.mutate(publish.publishId)}
+                          onClick={() =>
+                            retryMutation.mutate(publish.publishId)
+                          }
                           disabled={retryMutation.isPending || readOnly}
                         >
                           <Icon icon={Refresh01Icon} />

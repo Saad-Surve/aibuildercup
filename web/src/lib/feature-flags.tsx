@@ -11,7 +11,7 @@ import { useSyncExternalStore } from "react";
  * means a flag can later be backed by the user's server preferences without changing call sites.
  */
 
-export type FeatureFlagId = "headerTabs" | "copyAuthToken";
+export type FeatureFlagId = "headerTabs";
 
 export interface FeatureFlagDefinition {
   id: FeatureFlagId;
@@ -26,13 +26,6 @@ export const FEATURE_FLAGS: FeatureFlagDefinition[] = [
     label: "Header tabs",
     description:
       "Show the project module tabs (Transcript, Review, Burn Captions, …) as links in the top header and hide the in-page tab bar.",
-    defaultValue: true,
-  },
-  {
-    id: "copyAuthToken",
-    label: "Copy auth token",
-    description:
-      'Show a key button next to your avatar that copies the current Firebase ID token as a "Bearer …" header.',
     defaultValue: true,
   },
 ];

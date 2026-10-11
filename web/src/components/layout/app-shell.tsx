@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Analytics01Icon,
+  Bookshelf03Icon,
   Calendar01Icon,
   DashboardSquare01Icon,
   FolderOpenIcon,
@@ -17,11 +18,12 @@ import type { IconSvgElement } from "@hugeicons/react";
 
 import { Icon } from "@/components/common/icon";
 import { Logo, LogoMark } from "@/components/common/logo";
-import { CopyTokenButton } from "@/components/layout/copy-token-button";
+import {
+  NotificationCenter,
+  NotificationWatcher,
+} from "@/components/layout/notification-center";
 import { ReadOnlyBanner } from "@/components/layout/read-only-banner";
 import { UserMenu } from "@/components/layout/user-menu";
-import { useFeatureFlag } from "@/lib/feature-flags";
-import { useReadOnly } from "@/lib/read-only";
 import { HeaderNavProvider } from "@/lib/header-nav";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +45,7 @@ const NAV: NavItem[] = [
   {
     href: "/library",
     label: "Creator library",
-    icon: Analytics01Icon,
+    icon: Bookshelf03Icon,
     ready: true,
   },
   { href: "/calendar", label: "Calendar", icon: Calendar01Icon, ready: true },
@@ -183,8 +185,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const readyItems = NAV.filter((item) => item.ready);
   const [collapsed, setCollapsed] = useSidebarCollapsed();
-  const copyAuthToken = useFeatureFlag("copyAuthToken");
-  const readOnly = useReadOnly();
   // A page can put its own navigation in the sticky header (see `useSetHeaderNav`).
   const [headerNav, setHeaderNavState] = useState<ReactNode>(null);
   const setHeaderNav = useCallback((node: ReactNode) => {
@@ -202,6 +202,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <HeaderNavProvider setNav={setHeaderNav}>
+      <NotificationWatcher />
       <div className="flex min-h-[100dvh]">
         <motion.aside
           initial={false}
@@ -281,7 +282,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {headerNav}
             </div>
             <div className="flex shrink-0 items-center gap-1">
-              {copyAuthToken && !readOnly ? <CopyTokenButton /> : null}
+              <NotificationCenter />
               <UserMenu />
             </div>
           </header>

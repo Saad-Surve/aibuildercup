@@ -201,7 +201,8 @@ export function ScheduleDialog({
       toast.success("Slot removed");
       setOpen(false);
     },
-    onError: (caught) => setError(describe(caught, "Could not remove the slot.")),
+    onError: (caught) =>
+      setError(describe(caught, "Could not remove the slot.")),
   });
 
   const busy = saveMutation.isPending || deleteMutation.isPending;
@@ -215,6 +216,11 @@ export function ScheduleDialog({
         </DialogHeader>
         {editing && schedule ? (
           <p className="text-sm text-muted-foreground">{schedule.title}</p>
+        ) : null}
+        {!editing && initialTitle ? (
+          <p className="text-sm text-muted-foreground">
+            For upload: {initialTitle}
+          </p>
         ) : null}
 
         <FieldGroup>
@@ -339,6 +345,20 @@ export function ScheduleDialog({
                 ? ` · ${schedule.connectionDisplayName}`
                 : ""}
               . Moving the slot moves its go-public time.
+            </p>
+          ) : null}
+          {!editing && initialPublishId ? (
+            <p className="text-xs text-muted-foreground">
+              This wires the slot to the upload below — saving moves the
+              upload&apos;s go-public time to the chosen slot.
+            </p>
+          ) : null}
+          {!editing && !initialPublishId ? (
+            <p className="text-xs text-muted-foreground">
+              A slot alone is just a plan — nothing uploads from here. To put a
+              video on YouTube at this time, use “Schedule for later” in the
+              project&apos;s publishing studio, or link an existing upload from
+              the project&apos;s Posting schedule card.
             </p>
           ) : null}
 

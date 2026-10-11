@@ -6,9 +6,9 @@ projects through `list_for_owner`, which fans out over the caller's projects (ex
 no collection-group index to provision).
 
 Two-way link with publishes: a schedule may point at a publish attempt (`publishId`).
-Rescheduling a linked entry also moves the publish's `publishAt` (the worker reads it at
-upload time), and `PublishService.mark_status` flips linked schedules to `published` when
-the upload finishes.
+Creating a linked entry and rescheduling one both move the publish's `publishAt`
+(the worker reads it at upload time), and `PublishService.mark_status` flips linked
+schedules to `published` when the upload finishes.
 """
 
 import logging
@@ -103,7 +103,13 @@ class ScheduleService:
         self.client.set_document(
             schedule_path(owner_uid, project_id, schedule_id), document
         )
-        return _to_schedule(schedule_id, document)
+        created = _to_schedule(schedule_id, document)
+        if payload.publishId is not None:
+            # Wiring a slot to an existing upload moves that upload's go-public
+            # time, exactly like rescheduling a linked slot does. Without this
+            # the calendar entry and the upload silently disagree.
+            self._sync_linked_publish(owner_uid, project_id, created)
+        return created
 
     def link_publish(
         self,
