@@ -125,6 +125,10 @@ class FirestoreClient(Protocol):
 
     def set_document(self, path: str, data: dict[str, Any]) -> None: ...
 
+    def set_owned_child(
+        self, parent: str, path: str, uid: str, data: dict[str, Any], *, create_only: bool = False
+    ) -> bool: ...
+
     def create_document(self, path: str, data: dict[str, Any]) -> bool: ...
 
     def set_documents(self, documents: Iterable[tuple[str, dict[str, Any]]]) -> None: ...
@@ -168,6 +172,39 @@ class GoogleFirestoreClient:
 
     def set_document(self, path: str, data: dict[str, Any]) -> None:
         self._client.document(path).set(data)
+
+    def set_owned_child(
+        self, parent: str, path: str, uid: str, data: dict[str, Any], *, create_only: bool = False
+    ) -> bool:
+        """An in-flight inference must not resurrect a removed source or account."""
+        from google.api_core.exceptions import AlreadyExists
+        from google.cloud import firestore
+
+        if not path.startswith(parent + "/") or data.get("ownerUid") != uid:
+            raise ValueError("Child ownership mismatch")
+
+        @firestore.transactional
+        def write(transaction: Any) -> bool:
+            user = self._client.document(user_path(uid)).get(transaction=transaction)
+            source = self._client.document(parent).get(transaction=transaction)
+            if not user.exists or not source.exists:
+                return False
+            if (
+                user.to_dict().get("ownerUid", uid) != uid
+                or source.to_dict().get("ownerUid", uid if parent == user_path(uid) else None)
+                != uid
+            ):
+                return False
+            if create_only:
+                transaction.create(self._client.document(path), data)
+            else:
+                transaction.set(self._client.document(path), data)
+            return True
+
+        try:
+            return bool(write(self._client.transaction()))
+        except AlreadyExists:
+            return False
 
     def create_document(self, path: str, data: dict[str, Any]) -> bool:
         """Atomically create a document; return False if another writer won."""

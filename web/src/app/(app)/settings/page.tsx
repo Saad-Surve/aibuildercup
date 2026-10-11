@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { PageHeader } from "@/components/common/page-header";
 import { YouTubeConnections } from "@/components/projects/studio/youtube-connections";
 import {
@@ -40,6 +42,21 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <YouTubeConnections redirectPath="/settings" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Creator library</CardTitle>
+          <CardDescription>
+            Explore synced videos, imported writing and thumbnails. Find source
+            material by meaning and use it as context for your drafts.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/library" className="text-sm text-signal hover:underline">
+            Open your library →
+          </Link>
         </CardContent>
       </Card>
 

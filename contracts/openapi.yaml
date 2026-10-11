@@ -14,6 +14,48 @@ security:
   - FirebaseBearer: []
 
 paths:
+  /api/creator-library:
+    get:
+      summary: Read the active imported library or most recently synced channel
+      description: Returns bounded passages, thumbnail nodes, indexing coverage and an approximate PCA map. Never calls a model. Raw vectors are private.
+      responses:
+        "200":
+          description: Creator library
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CreatorLibrary" }
+  /api/creator-library/index:
+    post:
+      summary: Index the next bounded batch with Gemini Embedding 2
+      description: Explicit, resumable indexing; at most 16 model calls per request and 200 embedding calls per user per UTC day, including searches. Unchanged chunks reuse cached vectors. No automatic paid loop.
+      responses:
+        "200":
+          description: Updated coverage and map; errorMessage describes a partial provider failure
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CreatorLibrary" }
+        "429": { description: Daily embedding allowance exhausted }
+  /api/creator-library/search:
+    post:
+      summary: Search creator passages and thumbnails by meaning
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [query]
+              properties:
+                query: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        "200":
+          description: Ranked evidence; lexical fallback when indexing or model is unavailable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CreatorLibrarySearch" }
+        "429": { description: Daily embedding allowance exhausted }
+
   /api/healthz:
     get:
       security: []
@@ -1596,6 +1638,49 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
 
   schemas:
+    CreatorLibraryNode:
+      type: object
+      required: [id, itemId, title, kind, modality, excerpt, indexed]
+      properties:
+        id: { type: string }
+        itemId: { type: string }
+        title: { type: string }
+        kind: { type: string, enum: [video, article, post, profile] }
+        modality: { type: string, enum: [text, image] }
+        excerpt: { type: string }
+        url: { type: [string, "null"] }
+        thumbnailUrl: { type: [string, "null"] }
+        startSeconds: { type: [number, "null"] }
+        indexed: { type: boolean }
+        x: { type: [number, "null"], description: "Approximate PCA coordinate in [0,1]" }
+        y: { type: [number, "null"], description: "Approximate PCA coordinate in [0,1]" }
+        score: { type: [number, "null"], description: Cosine similarity or lexical overlap; never confidence }
+    CreatorLibrary:
+      type: object
+      required: [sourceType, displayName, model, dimensions, itemCount, totalNodes, indexedNodes, omittedPassages, nodes, projection]
+      properties:
+        sourceType: { type: [string, "null"], enum: [folder_import, youtube, null] }
+        displayName: { type: string }
+        model: { type: string }
+        dimensions: { type: integer }
+        itemCount: { type: integer }
+        totalNodes: { type: integer }
+        indexedNodes: { type: integer }
+        omittedPassages: { type: integer }
+        nodes:
+          type: array
+          items: { $ref: "#/components/schemas/CreatorLibraryNode" }
+        projection: { type: string, const: pca }
+        errorMessage: { type: [string, "null"] }
+    CreatorLibrarySearch:
+      type: object
+      required: [mode, matches]
+      properties:
+        mode: { type: string, enum: [semantic, lexical] }
+        matches:
+          type: array
+          items: { $ref: "#/components/schemas/CreatorLibraryNode" }
+
     Error:
       type: object
       required: [error]
@@ -2940,6 +3025,12 @@ components:
       type: object
       properties:
         available: { type: boolean }
+        sourceType: { type: string, enum: [youtube, folder_import], default: youtube }
+        creatorName: { type: [string, "null"] }
+        creatorBio: { type: [string, "null"] }
+        writtenExamples:
+          type: array
+          items: { $ref: "#/components/schemas/CreatorWrittenExample" }
         generatedAt: { type: [string, "null"], format: date-time }
         connectionId: { type: [string, "null"] }
         connectionDisplayName: { type: [string, "null"] }
@@ -2948,6 +3039,15 @@ components:
           type: array
           items: { $ref: "#/components/schemas/CreatorContextExample" }
         audience: { oneOf: [{ $ref: "#/components/schemas/CreatorContextAudience" }, { type: "null" }] }
+
+    CreatorWrittenExample:
+      type: object
+      required: [itemId, title, excerpt]
+      properties:
+        itemId: { type: string }
+        title: { type: string }
+        url: { type: [string, "null"] }
+        excerpt: { type: string }
 
     ConnectionPlatform:
       type: string

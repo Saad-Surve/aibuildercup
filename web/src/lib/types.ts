@@ -843,12 +843,23 @@ export interface CreatorContextAudience {
 
 export interface CreatorContext {
   available: boolean;
+  sourceType: "youtube" | "folder_import";
+  creatorName: string | null;
+  creatorBio: string | null;
+  writtenExamples: CreatorWrittenExample[];
   generatedAt: string | null;
   connectionId: string | null;
   connectionDisplayName: string | null;
   style: ContentStyleSummary | null;
   examples: CreatorContextExample[];
   audience: CreatorContextAudience | null;
+}
+
+export interface CreatorWrittenExample {
+  itemId: string;
+  title: string;
+  url: string | null;
+  excerpt: string;
 }
 
 /* ------------------------------------------------------------------ publishing */

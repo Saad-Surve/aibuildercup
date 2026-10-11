@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Annotated
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -90,6 +90,10 @@ class Settings(BaseSettings):
     #: Localization cultural-adaptation pass (the second translation stage). Flash-lite
     #: keeps a long transcript cheap; point it at a stronger Gemini for better prose.
     model_localization: str = "gemini-3.1-flash-lite"
+    model_embedding: str = "gemini-embedding-2"
+    embedding_dimensions: int = Field(default=768, ge=128, le=3072)
+    embedding_daily_call_limit: int = Field(default=200, ge=1, le=200)
+
     model_video: str = "veo-3.1-fast"
     model_stt: str = "chirp_3"
 

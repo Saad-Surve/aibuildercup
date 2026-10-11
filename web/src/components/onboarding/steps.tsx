@@ -7,6 +7,7 @@ import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import { ChipSelect, type ChipOption } from "@/components/common/chip-select";
 import { Icon } from "@/components/common/icon";
 import { PersonaText } from "@/components/common/persona-text";
+import { YouTubeConnections } from "@/components/projects/studio/youtube-connections";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -133,10 +134,7 @@ function ResearchSummary({ research }: { research: OnboardingResearch }) {
         {research.sources.length > 0 && (
           <ul className="space-y-0.5">
             {research.sources.map((source) => (
-              <li
-                key={source.url || source.title}
-                className="truncate text-xs"
-              >
+              <li key={source.url || source.title} className="truncate text-xs">
                 <a
                   href={source.url}
                   target="_blank"
@@ -167,6 +165,7 @@ export function ImportStep({
   researchError,
   busy,
   onResearch,
+  beforeConnect,
 }: {
   links: string[];
   onLinksChange: (links: string[]) => void;
@@ -174,11 +173,34 @@ export function ImportStep({
   researchError: string | null;
   busy: boolean;
   onResearch: () => void;
+  beforeConnect: () => Promise<void>;
 }) {
   const [text, setText] = useState(links.join("\n"));
 
   return (
     <div className="space-y-5">
+      <div className="rounded-xl border p-4 space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold">
+            Connect your YouTube channel
+          </h2>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            Choose the channel you create for, then read its content to bring
+            available videos, captions and thumbnails into your library. You can
+            skip this and connect later in Settings.
+          </p>
+        </div>
+        <YouTubeConnections
+          redirectPath="/onboarding"
+          beforeConnect={beforeConnect}
+        />
+      </div>
+      <p className="text-xs leading-5 text-muted-foreground">
+        Your library helps drafts follow your voice and gives thumbnail
+        generation visual references. You can inspect and index it in Creator
+        library after setup. A demo folder supplies the same source material
+        without connecting a channel.
+      </p>
       <Field>
         <FieldLabel htmlFor="creatorLinks">Creator profile links</FieldLabel>
         <Textarea
@@ -188,12 +210,15 @@ export function ImportStep({
             setText(event.target.value);
             onLinksChange(parseProfileLinks(event.target.value));
           }}
-          placeholder={"https://youtube.com/@yourchannel\nhttps://instagram.com/yourhandle"}
+          placeholder={
+            "https://youtube.com/@yourchannel\nhttps://instagram.com/yourhandle"
+          }
           className="min-h-28 font-mono text-sm"
         />
         <FieldDescription>
           One per line. YouTube, Instagram, X, Facebook, TikTok, or LinkedIn. We
-          read only public pages and cite what we find.
+          research public profiles and cite what we find. These links prefill
+          your profile; they do not connect an account or import full articles.
         </FieldDescription>
       </Field>
 
@@ -210,7 +235,12 @@ export function ImportStep({
       ) : null}
 
       {(research || researchError) && links.length > 0 ? (
-        <Button variant="outline" size="sm" onClick={onResearch} disabled={busy}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onResearch}
+          disabled={busy}
+        >
           {research ? "Research again" : "Try again"}
         </Button>
       ) : null}

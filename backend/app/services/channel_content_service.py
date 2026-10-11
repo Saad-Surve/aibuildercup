@@ -32,6 +32,8 @@ from app.schemas.connections import (
     MetricValue,
 )
 from app.services.connection_service import ConnectionService
+from app.services.creator_import_service import CreatorImportService
+from app.services.creator_library_service import CreatorLibraryService
 from app.services.firestore_service import (
     FirestoreClient,
     connection_path,
@@ -179,9 +181,7 @@ def build_style_summary(items: list[ContentItem]) -> ContentStyleSummary:
     with_emoji = sum(1 for item in items if _EMOJI.search(item.title))
     with_hashtag = sum(1 for item in items if _HASHTAG.search(item.description))
     openers = Counter(
-        _WORD.findall(item.title)[0].lower()
-        for item in items
-        if _WORD.findall(item.title)
+        _WORD.findall(item.title)[0].lower() for item in items if _WORD.findall(item.title)
     )
     tags = Counter(tag.lower() for item in items for tag in item.tags)
     dates = sorted(item.publishedAt for item in items if item.publishedAt)
@@ -202,9 +202,7 @@ def build_style_summary(items: list[ContentItem]) -> ContentStyleSummary:
     )
 
 
-def retrieve_examples(
-    items: list[ContentItem], query: str, *, k: int = 5
-) -> list[ContentItem]:
+def retrieve_examples(items: list[ContentItem], query: str, *, k: int = 5) -> list[ContentItem]:
     """Lexical retrieval: rank past videos by token overlap with the query (title weighted)."""
     query_tokens = set(_tokens(query))
     if not query_tokens:
@@ -237,9 +235,7 @@ def _srt_to_text(srt: str) -> str:
     return re.sub(r"\s+", " ", " ".join(lines)).strip()
 
 
-def _pick_caption_track(
-    tracks: list[CaptionTrack], language: str | None
-) -> CaptionTrack | None:
+def _pick_caption_track(tracks: list[CaptionTrack], language: str | None) -> CaptionTrack | None:
     """Prefer a creator-uploaded track in the video's language, then English, then any."""
     if not tracks:
         return None
@@ -267,11 +263,15 @@ class ChannelContentService:
         client: FirestoreClient,
         *,
         connections: ConnectionService,
+        imports: CreatorImportService | None = None,
+        library: CreatorLibraryService | None = None,
         connector_factory: Any | None = None,
         settings: Settings,
     ) -> None:
         self.client = client
         self.connections = connections
+        self.imports = imports
+        self.library = library
         self.settings = settings
         self._connector_factory = connector_factory
 
@@ -385,9 +385,7 @@ class ChannelContentService:
                 track = _pick_caption_track(tracks, video.language)
                 if track is None:
                     continue
-                raw = connector.download_caption(
-                    tokens, caption_id=track.caption_id, tfmt="srt"
-                )
+                raw = connector.download_caption(tokens, caption_id=track.caption_id, tfmt="srt")
             except Exception:  # noqa: BLE001 - one bad video must not fail the sync
                 logger.warning(
                     "content: transcript fetch failed for %s", video.video_id, exc_info=True
@@ -412,9 +410,7 @@ class ChannelContentService:
     def sync_audience(self, *, owner_uid: str, connection_id: str) -> AudienceProfile:
         """Read YouTube Analytics (summary, demographics, traffic, top videos) for the channel."""
         self.connections.get(owner_uid=owner_uid, connection_id=connection_id)
-        tokens = self.connections.tokens_for_use(
-            owner_uid=owner_uid, connection_id=connection_id
-        )
+        tokens = self.connections.tokens_for_use(owner_uid=owner_uid, connection_id=connection_id)
         connector = self._connector()
         days = self.settings.channel_analytics_days
         end = datetime.now(UTC).date()
@@ -458,9 +454,10 @@ class ChannelContentService:
             max_results=5,
         )
         top_ids = [str(row[0]) for row in top.rows]
-        items = {item.videoId: item for item in self.list_items(
-            owner_uid=owner_uid, connection_id=connection_id, limit=200
-        )}
+        items = {
+            item.videoId: item
+            for item in self.list_items(owner_uid=owner_uid, connection_id=connection_id, limit=200)
+        }
         profile.topVideos = [items[vid] for vid in top_ids if vid in items]
 
         now = datetime.now(UTC)
@@ -557,9 +554,7 @@ class ChannelContentService:
             return None
         candidates.sort(
             key=lambda connection: (
-                connection.contentSyncedAt.timestamp()
-                if connection.contentSyncedAt
-                else 0.0
+                connection.contentSyncedAt.timestamp() if connection.contentSyncedAt else 0.0
             ),
             reverse=True,
         )
@@ -568,26 +563,38 @@ class ChannelContentService:
     def _transcript_excerpt(
         self, owner_uid: str, connection_id: str, video_id: str, limit: int = 600
     ) -> str | None:
-        data = self.client.get_document(
-            content_item_path(owner_uid, connection_id, video_id)
-        )
+        data = self.client.get_document(content_item_path(owner_uid, connection_id, video_id))
         transcript = (data or {}).get("transcript")
         if not isinstance(transcript, str) or not transcript:
             return None
         return transcript[:limit]
 
     def creator_thumbnail_references(
-        self, owner_uid: str, *, limit: int = 3
+        self, owner_uid: str, *, limit: int = 3, query: str = ""
     ) -> list[MediaPart]:
         """Download a few of the creator's past thumbnails as image-model style references."""
         if limit <= 0:
             return []
+        if self.library is not None and query:
+            try:
+                semantic_references = self.library.thumbnail_references(
+                    owner_uid, query, limit=limit
+                )
+                if semantic_references:
+                    return semantic_references
+            except Exception:
+                logger.warning("content: semantic thumbnail references unavailable", exc_info=True)
+        if self.imports is not None:
+            try:
+                imported_references = self.imports.thumbnail_references(owner_uid, limit=limit)
+                if imported_references:
+                    return imported_references
+            except Exception:  # noqa: BLE001 - references are best-effort
+                logger.warning("content: imported thumbnail references unavailable", exc_info=True)
         connection_id = self.primary_connection_id(owner_uid)
         if connection_id is None:
             return []
-        items = self.list_items(
-            owner_uid=owner_uid, connection_id=connection_id, limit=50
-        )
+        items = self.list_items(owner_uid=owner_uid, connection_id=connection_id, limit=50)
         references: list[MediaPart] = []
         for item in items:
             if not item.thumbnailUrl:
@@ -618,9 +625,7 @@ class ChannelContentService:
         k: int = 5,
     ) -> dict[str, Any] | None:
         """Style summary + audience profile + the k most query-relevant past videos."""
-        connection = self.connections.get(
-            owner_uid=owner_uid, connection_id=connection_id
-        )
+        connection = self.connections.get(owner_uid=owner_uid, connection_id=connection_id)
         items = self.list_items(owner_uid=owner_uid, connection_id=connection_id, limit=200)
         if not items:
             return None
@@ -646,9 +651,7 @@ class ChannelContentService:
                     audience.demographics.model_dump() if audience.demographics else None
                 ),
                 "trafficSources": (
-                    audience.trafficSources.model_dump()
-                    if audience.trafficSources
-                    else None
+                    audience.trafficSources.model_dump() if audience.trafficSources else None
                 ),
             }
         return context
@@ -658,18 +661,40 @@ class ChannelContentService:
     ) -> dict[str, Any] | None:
         """Best-effort creator context for the user's most recently synced channel."""
         try:
+            if self.imports is not None:
+                imported = self.imports.build_context(owner_uid, query=query, k=100)
+                if imported is not None:
+                    return self._semantic_context(owner_uid, query, imported, k=k)
             connection_id = self.primary_connection_id(owner_uid)
             if connection_id is None:
                 return None
-            return self.build_context(
+            context = self.build_context(
                 owner_uid=owner_uid,
                 connection_id=connection_id,
                 query=query,
-                k=k,
+                k=100,
             )
+            return self._semantic_context(owner_uid, query, context, k=k) if context else None
         except Exception:  # noqa: BLE001 - context is an enhancement, never a blocker
             logger.warning("content: could not build creator context", exc_info=True)
             return None
+
+    def _semantic_context(
+        self, uid: str, query: str, context: dict[str, Any], *, k: int
+    ) -> dict[str, Any]:
+        if self.library is not None:
+            try:
+                return self.library.improve_context(uid, query, context, k=k)
+            except Exception:
+                logger.warning("content: semantic retrieval unavailable", exc_info=True)
+        context["examples"] = context.get("examples", [])[:k]
+        context["writtenExamples"] = context.get("writtenExamples", [])[:k]
+        return context
+
+    def hydrate_creator_context(self, owner_uid: str, context: dict[str, Any]) -> dict[str, Any]:
+        if self.imports is not None and context.get("sourceType") == "folder_import":
+            return self.imports.hydrate_context(owner_uid, context)
+        return context
 
 
 def _float(value: Any) -> float:

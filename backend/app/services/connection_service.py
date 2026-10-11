@@ -304,7 +304,7 @@ class ConnectionService:
         if tokens is not None:
             self._oauth_client().revoke(token=tokens.refresh_token or tokens.access_token)
         self.client.delete_document(connection_secret_path(owner_uid, connection_id))
-        self.client.delete_document(connection_path(owner_uid, connection_id))
+        self.client.delete_document_tree(connection_path(owner_uid, connection_id))
 
     def revoke_all(self, *, owner_uid: str) -> None:
         """Best-effort revoke of every connected account's token before account deletion.

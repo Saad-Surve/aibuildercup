@@ -170,6 +170,9 @@ export function DraftContextPanel({
 
         {context?.available ? (
           <>
+            {context.sourceType === "folder_import" ? (
+              <Badge variant="outline">Imported creator library</Badge>
+            ) : null}
             {context.style ? <StyleSignals style={context.style} /> : null}
 
             {context.examples.length ? (
@@ -180,6 +183,27 @@ export function DraftContextPanel({
                 <ul className="space-y-2">
                   {context.examples.map((example) => (
                     <ExampleRow key={example.videoId} example={example} />
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {context.writtenExamples?.length ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  Written examples ({context.writtenExamples.length})
+                </p>
+                <ul className="space-y-2">
+                  {context.writtenExamples.map((example) => (
+                    <li
+                      key={example.itemId}
+                      className="rounded-lg border p-2.5"
+                    >
+                      <p className="text-sm font-medium">{example.title}</p>
+                      <p className="mt-1 text-xs whitespace-pre-wrap text-muted-foreground">
+                        {example.excerpt}
+                      </p>
+                    </li>
                   ))}
                 </ul>
               </div>

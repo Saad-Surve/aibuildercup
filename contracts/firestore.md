@@ -7,6 +7,7 @@ the code must match.
 
 ```text
 users/{uid}
+├── creatorImports/{bundleId}/revisions/{revisionId}/items/{itemId}
 ├── connections/{connectionId}
 │   └── syncRuns/{syncRunId}
 ├── personaRevisions/{revisionId}
@@ -79,6 +80,13 @@ creator gave) and a sibling `research` object records the grounding provenance:
 
 It all sits on the user document, so account deletion removes it with the rest of
 `users/{uid}`.
+
+## Creator folder imports
+
+Operator-supplied creator libraries follow [creator-import.md](./creator-import.md).
+`users/{uid}.activeCreatorImportId` selects one imported bundle without creating an OAuth
+connection. Import documents carry `ownerUid`; original files use the user Storage prefix.
+Account deletion covers both trees. The operator import command supports removing a bundle.
 
 ## Draft document
 
@@ -262,3 +270,29 @@ publish's `publishAt` (the worker reads it at upload time); a publish that finis
 linked entries to `published`. The month view reads across projects by fanning out over the
 project list (no collection-group index needed). The documents sit under the project subtree,
 so project / account delete covers them.
+
+### Creator semantic library
+
+The active folder revision or latest synced connected channel is the retrieval scope.
+`semanticChunks/{hash}` lives beneath its revision or connection document. Each document
+contains `ownerUid`, `model`, `dimensions`, `promptVersion`, a normalized `vector`, and
+`createdAt`. Hashes include source identity, content/image fingerprint, model, dimensions,
+and chunking/prompt version. Only hashes regenerated from current source material are read;
+stale documents are excluded, then pruned during explicit indexing. No vectors leave the API.
+
+`users/{uid}/embeddingBudgets/{UTC-date}/calls/{slot}` atomically reserves one of 200 daily
+calls before any embedding request (including search and failures). Query vectors are cached
+under the source's `semanticQueries/{hash}` (bounded to 100 per source). Indexing makes at
+most 16 calls per request. GET library is model-free. Search/index POST respect read-only
+account enforcement. All content is bounded to 300 nodes, six passages per item, and ten
+thumbnail images; omitted passages are counted. Thumbnails use supplied Storage objects or
+allowlisted YouTube image hosts only. No full-video embedding or new scraping is implicit.
+
+Import removal deletes its revision indices with the bundle tree. Disconnect now recursively
+deletes the connection tree (including content, vectors and query cache). Account deletion
+recursively deletes budgets, all imports/connections, and supplied Storage originals. Removing
+a source does not erase already generated project evidence; project/account deletion does.
+
+Embedding cache writes transactionally require the owned source and user to still exist.
+Daily call-slot reservations use the same user-existence guard with create-only semantics;
+a removed source/account cannot be resurrected by an in-flight embedding response.

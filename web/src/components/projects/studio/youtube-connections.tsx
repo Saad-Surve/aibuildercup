@@ -78,12 +78,14 @@ function StatusBadge({ connection }: { connection: Connection }) {
  */
 export function YouTubeConnections({
   redirectPath,
+  beforeConnect,
   selectable = false,
   selectedId = null,
   onSelect,
   className,
 }: {
   redirectPath?: string;
+  beforeConnect?: () => Promise<void>;
   selectable?: boolean;
   selectedId?: string | null;
   onSelect?: (connectionId: string) => void;
@@ -126,7 +128,10 @@ export function YouTubeConnections({
   }, [queryClient]);
 
   const connectMutation = useMutation({
-    mutationFn: () => startYouTubeOAuth({ redirectPath }),
+    mutationFn: async () => {
+      await beforeConnect?.();
+      return startYouTubeOAuth({ redirectPath });
+    },
     onSuccess: (response) => {
       window.location.assign(response.authorizationUrl);
     },
@@ -152,6 +157,7 @@ export function YouTubeConnections({
           : "No public videos found on this channel yet.",
       );
       void queryClient.invalidateQueries({ queryKey: ["connections"] });
+      void queryClient.invalidateQueries({ queryKey: ["creator-library"] });
     },
     onError: (error) =>
       toast.error(describe(error, "Could not read the channel content.")),

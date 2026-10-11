@@ -10,10 +10,9 @@ cp .env.example .env
 uv run uvicorn app.main:app --reload --port 8080
 ```
 
-## Test / lint
+## Lint and types
 
 ```bash
-uv run pytest
 uv run ruff check .
 uv run mypy app
 ```
@@ -42,3 +41,8 @@ the runtime service account). There are two configs: `backend/.env.example` (loc
 `gemini-3.1-flash-lite`) and `backend/.env.deploy.example` (deployed, `gemini-3.8-flash`).
 Speech-to-Text does transcription, and Cloud Storage and Firestore hold data. Test uploads end
 to end with the sample videos in `../fixtures/media/`.
+
+## Creator folder demo import
+
+See [the import guide](../docs/creator-demo-import.md) for the local folder format and
+`uv run python scripts/import_creator.py` validation/import/removal commands.

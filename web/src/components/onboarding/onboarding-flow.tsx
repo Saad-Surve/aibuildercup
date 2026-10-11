@@ -148,10 +148,13 @@ export function OnboardingFlow({
     setResearchError(null);
     setBusy(true);
     try {
-      const result = await apiFetch<OnboardingResearch>("/onboarding/research", {
-        method: "POST",
-        body: JSON.stringify({ links }),
-      });
+      const result = await apiFetch<OnboardingResearch>(
+        "/onboarding/research",
+        {
+          method: "POST",
+          body: JSON.stringify({ links }),
+        },
+      );
       const { answers: merged } = mergeResearchAnswers(answers, result.answers);
       setAnswers(merged);
       // The API already persisted the merged answers and the links, so don't re-PUT them.
@@ -276,6 +279,15 @@ export function OnboardingFlow({
             researchError={researchError}
             busy={busy}
             onResearch={runResearch}
+            beforeConnect={async () => {
+              await apiFetch("/onboarding", {
+                method: "PUT",
+                body: JSON.stringify({
+                  step: "import",
+                  answers: answersForStep("import", answers),
+                }),
+              });
+            }}
           />
         );
       case "identity":

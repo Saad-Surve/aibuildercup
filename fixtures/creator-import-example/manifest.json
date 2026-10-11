@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "bundleId": "creator-demo",
+  "creator": {
+    "name": "Sample Creator",
+    "bio": "A fictional educator who explains practical creative habits.",
+    "language": "en",
+    "links": []
+  },
+  "items": [
+    {
+      "id": "small-projects",
+      "kind": "video",
+      "title": "Finish one small project",
+      "description": "A short explanation of choosing a concrete finish line.",
+      "tags": ["creativity", "projects"],
+      "textFile": "transcripts/small-projects.srt"
+    },
+    {
+      "id": "weekly-note",
+      "kind": "article",
+      "title": "My weekly creative routine",
+      "textFile": "writing/weekly-note.md"
+    }
+  ]
+}

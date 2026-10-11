@@ -30,10 +30,10 @@ export const ONBOARDING_STEPS: StepMeta[] = [
   },
   {
     id: "import",
-    label: "Import",
-    title: "Start from your profiles",
+    label: "Connect",
+    title: "Connect your accounts",
     description:
-      "Paste your creator links and we'll research them to prefill your persona. You can skip this.",
+      "Bring in your channel content and add public profile links to prefill your creator profile. This step is optional.",
   },
   {
     id: "identity",

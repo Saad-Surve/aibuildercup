@@ -36,6 +36,8 @@ from app.schemas.jobs import JobStatus
 from app.schemas.thumbnails import ThumbnailCritique, ThumbnailVersion
 from app.services.analysis_service import AnalysisService
 from app.services.channel_content_service import ChannelContentService
+from app.services.creator_import_service import CreatorImportService
+from app.services.creator_library_service import CreatorLibraryService
 from app.services.firestore_service import (
     FirestoreClient,
     asset_path,
@@ -265,8 +267,11 @@ async def _generate_batch(
     # The creator's own past thumbnails, as image-model style references (best-effort).
     creator_references: list[MediaPart] = []
     try:
-        creator_references = content.creator_thumbnail_references(
-            owner_uid, limit=settings.thumbnail_creator_references
+        creator_references = await asyncio.to_thread(
+            content.creator_thumbnail_references,
+            owner_uid,
+            limit=settings.thumbnail_creator_references,
+            query=f"{project.name} {payload.get('brief') or project.thumbnailConcept}",
         )
     except Exception:  # noqa: BLE001 - style references are a bonus, never a blocker
         logger.warning("thumbnail: creator thumbnail references unavailable", exc_info=True)
@@ -688,9 +693,7 @@ def _open_source(
         except Exception:  # noqa: BLE001 - fall back to streaming
             logger.warning("thumbnail: staging the source locally failed", exc_info=True)
     if source is None:
-        source = storage.signed_download_url(
-            storage_path, expires_seconds=_SOURCE_URL_TTL_SECONDS
-        )
+        source = storage.signed_download_url(storage_path, expires_seconds=_SOURCE_URL_TTL_SECONDS)
     return MediaToolkit(
         source=source,
         duration_ms=duration_ms,
@@ -793,9 +796,7 @@ def _critique_from(data: dict[str, Any]) -> ThumbnailCritique:
         platformFit=score(data.get("platformFit")),
         summary=str(data.get("summary") or "").strip(),
         suggestions=[
-            str(item).strip()
-            for item in (data.get("suggestions") or [])
-            if str(item).strip()
+            str(item).strip() for item in (data.get("suggestions") or []) if str(item).strip()
         ][:3],
     )
 
@@ -944,9 +945,7 @@ def _hook_text(transcript_view: list[dict[str, Any]]) -> str:
     return " ".join(str(item.get("text") or "") for item in transcript_view[:4]).strip()[:400]
 
 
-def _persona_markdown(
-    *, firestore: FirestoreClient, storage: StorageClient, owner_uid: str
-) -> str:
+def _persona_markdown(*, firestore: FirestoreClient, storage: StorageClient, owner_uid: str) -> str:
     user = firestore.get_document(f"users/{owner_uid}") or {}
     persona = user.get("persona") or {}
     storage_path = persona.get("storagePath")
@@ -1114,6 +1113,15 @@ def live_worker_dependencies() -> dict[str, Any]:
         firestore, cipher=build_token_cipher(settings), settings=settings
     )
     providers = get_providers()
+    imports = CreatorImportService(firestore, storage=storage)
+    library = CreatorLibraryService(
+        firestore,
+        storage=storage,
+        imports=imports,
+        connections=connections,
+        embeddings=providers.embeddings,
+        settings=settings,
+    )
     return build_worker_services(
         firestore=firestore,
         jobs=jobs,
@@ -1130,7 +1138,7 @@ def live_worker_dependencies() -> dict[str, Any]:
         transcripts=transcripts,
         analysis=AnalysisService(firestore, jobs=jobs, settings=settings),
         content=ChannelContentService(
-            firestore, connections=connections, settings=settings
+            firestore, connections=connections, imports=imports, library=library, settings=settings
         ),
         storage=storage,
         llm=providers.llm,

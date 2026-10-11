@@ -9,6 +9,7 @@ active versions.
 
 from datetime import datetime
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -190,10 +191,21 @@ class CreatorContextAudience(BaseModel):
     trafficSources: AudienceBreakdown | None = None
 
 
+class CreatorWrittenExample(BaseModel):
+    itemId: str
+    title: str
+    url: str | None = None
+    excerpt: str
+
+
 class CreatorContext(BaseModel):
     """What the last draft generation pulled from the creator's channel (for the UI)."""
 
     available: bool = False
+    sourceType: Literal["youtube", "folder_import"] = "youtube"
+    creatorName: str | None = None
+    creatorBio: str | None = None
+    writtenExamples: list[CreatorWrittenExample] = Field(default_factory=list)
     generatedAt: datetime | None = None
     connectionId: str | None = None
     connectionDisplayName: str | None = None

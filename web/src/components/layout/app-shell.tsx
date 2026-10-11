@@ -40,6 +40,12 @@ const NAV: NavItem[] = [
     ready: true,
   },
   { href: "/projects", label: "Projects", icon: FolderOpenIcon, ready: true },
+  {
+    href: "/library",
+    label: "Creator library",
+    icon: Analytics01Icon,
+    ready: true,
+  },
   { href: "/calendar", label: "Calendar", icon: Calendar01Icon, ready: true },
   {
     href: "/audience",

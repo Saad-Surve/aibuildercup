@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 from app.config import Settings, get_settings
+from app.providers.embeddings import GeminiEmbeddingProvider
 from app.providers.imagegen import ImageGenProvider
 from app.providers.llm import LlmProvider
 from app.providers.stt import SttProvider
@@ -11,6 +12,7 @@ from app.providers.tts import TtsProvider
 class Providers:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        self.embeddings = GeminiEmbeddingProvider(settings)
         self.llm = LlmProvider(settings)
         self.images = ImageGenProvider(settings)
         self.stt = SttProvider(settings)

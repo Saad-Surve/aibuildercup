@@ -442,6 +442,8 @@ class DraftService:
         if not isinstance(raw, dict):
             return CreatorContext()
         try:
+            if self.content is not None:
+                raw = self.content.hydrate_creator_context(owner_uid, raw)
             return CreatorContext.model_validate({"available": True, **raw})
         except Exception:  # noqa: BLE001 - a corrupt record must not break the draft
             logger.warning("draft: corrupt creator context", exc_info=True)

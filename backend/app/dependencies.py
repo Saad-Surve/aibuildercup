@@ -15,6 +15,8 @@ from app.services.asset_service import AssetService
 from app.services.caption_service import CaptionRenderService
 from app.services.channel_content_service import ChannelContentService
 from app.services.connection_service import ConnectionService
+from app.services.creator_import_service import CreatorImportService
+from app.services.creator_library_service import CreatorLibraryService
 from app.services.draft_service import DraftService
 from app.services.firestore_service import get_firestore_client
 from app.services.glossary_service import GlossaryService
@@ -164,9 +166,7 @@ def get_localization_service() -> LocalizationService:
 
 def get_glossary_service() -> GlossaryService:
     client = get_firestore_client()
-    return GlossaryService(
-        client, projects=ProjectService(client, storage=get_storage_client())
-    )
+    return GlossaryService(client, projects=ProjectService(client, storage=get_storage_client()))
 
 
 def get_connection_service() -> ConnectionService:
@@ -178,10 +178,25 @@ def get_connection_service() -> ConnectionService:
     )
 
 
+def get_creator_library_service() -> CreatorLibraryService:
+    client = get_firestore_client()
+    storage = get_storage_client()
+    return CreatorLibraryService(
+        client,
+        storage=storage,
+        imports=CreatorImportService(client, storage=storage),
+        connections=get_connection_service(),
+        embeddings=get_providers().embeddings,
+        settings=get_settings(),
+    )
+
+
 def get_channel_content_service() -> ChannelContentService:
     return ChannelContentService(
         get_firestore_client(),
         connections=get_connection_service(),
+        imports=CreatorImportService(get_firestore_client(), storage=get_storage_client()),
+        library=get_creator_library_service(),
         settings=get_settings(),
     )
 
