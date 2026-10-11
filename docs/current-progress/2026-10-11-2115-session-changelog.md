@@ -97,6 +97,23 @@ three coloured event dots and a project/platform/time detail square on hover.
   - Remaining arrows are all in code comments (not rendered) and were left.
   - Backend/contracts/corpus arrows are comments/docstrings/prose, not UI.
 
+## 7. Calendar demo: logo in the middle gap, hover-only loop (21:33)
+
+- **Brand logo moved off the start of the text.** It was inline before the
+  platform name (`[logo] YOUTUBE`). It now sits centered in the card's empty
+  middle gap, between the project name and the date line, in a slightly larger
+  white chip (`size-5`). The platform name, project, and date are plain text.
+- **The demo loop is hover-only**, matching the other landing demos: the effect
+  is gated on the `active` prop (card hover), so day 5 no longer opens on its
+  own while the card is idle. Open state is derived
+  (`hoverDay ?? (active ? demoDay : null)`) instead of clearing state in the
+  effect — oxlint's `react(set-state-in-effect)` rejects synchronous setState.
+
+Verified: `oxlint` + `tsc --noEmit` clean, dev server recompiled, `GET /` 200.
+Uncommitted (user didn't ask to commit this round).
+
+---
+
 ## Verification throughout
 
 `bun run lint` (oxlint) and `bunx tsc --noEmit` clean after every step; dev

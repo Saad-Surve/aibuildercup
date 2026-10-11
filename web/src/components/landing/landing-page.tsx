@@ -665,11 +665,12 @@ function CalendarDemo({ active }: { active: boolean }) {
   const [hoverDay, setHoverDay] = useState<number | null>(null);
   const [demoDay, setDemoDay] = useState<number | null>(null);
 
-  // Auto-play: one random scheduled day pops open on a loop so the card shows
-  // what a hover reveals on its own. A manual hover or focus always wins, and
-  // the loop idles under prefers-reduced-motion.
+  // Demo loop: while the card is hovered, one scheduled day pops open on a loop
+  // so the card shows what a hover reveals — the same trigger as the other
+  // demos. It stops and hides when the pointer leaves, and idles under reduced
+  // motion.
   useEffect(() => {
-    if (reduced) return;
+    if (!active || reduced) return;
     let openTimer = 0;
     let gapTimer = 0;
     const cycle = () => {
@@ -684,9 +685,10 @@ function CalendarDemo({ active }: { active: boolean }) {
       window.clearTimeout(openTimer);
       window.clearTimeout(gapTimer);
     };
-  }, [reduced]);
+  }, [active, reduced]);
 
-  const openDay = hoverDay ?? demoDay;
+  // Derived, not state: the demo day only counts while the card is hovered.
+  const openDay = hoverDay ?? (active ? demoDay : null);
 
   // Leading blanks + the month's days, padded to whole weeks so the grid keeps
   // its shape and event days never shift between renders.
@@ -757,22 +759,26 @@ function CalendarDemo({ active }: { active: boolean }) {
                         isOpen ? "opacity-100 delay-75" : "opacity-0"
                       }`}
                     >
-                      <span className="flex items-center gap-1">
-                        <span className="flex size-3 shrink-0 items-center justify-center rounded-full bg-white p-px">
-                          <Image
-                            src={post.logo}
-                            alt=""
-                            width={10}
-                            height={10}
-                            className="size-full object-contain"
-                          />
-                        </span>
-                        <span className="text-[0.5rem] font-semibold tracking-wide text-white/85 uppercase">
-                          {post.platform}
-                        </span>
+                      <span className="text-[0.5rem] font-semibold tracking-wide text-white/85 uppercase">
+                        {post.platform}
                       </span>
                       <span className="mt-0.5 line-clamp-2 text-[0.62rem] leading-tight font-medium">
                         {post.project}
+                      </span>
+                    </span>
+                    <span
+                      className={`flex items-center justify-center transition-opacity duration-100 ${
+                        isOpen ? "opacity-100 delay-75" : "opacity-0"
+                      }`}
+                    >
+                      <span className="flex size-5 items-center justify-center rounded-full bg-white p-0.5">
+                        <Image
+                          src={post.logo}
+                          alt=""
+                          width={16}
+                          height={16}
+                          className="size-full object-contain"
+                        />
                       </span>
                     </span>
                     <span
