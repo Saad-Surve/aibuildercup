@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "corpus": "arun-prabhudesai",
+  "label_type": "author-assigned source relevance, not independent human judgments",
+  "cases": [
+    {"id": "gratitude", "language": "en", "modality": "text", "query": "A personal thank-you to the team and community after reaching fifteen million subscribers", "relevant_items": ["writing-1"]},
+    {"id": "team-feedback", "language": "en", "modality": "text", "query": "How a leader makes quarterly employee meetings useful by listening and acting on feedback", "relevant_items": ["writing-2"]},
+    {"id": "learning-trust", "language": "en", "modality": "text", "query": "Learning from early mistakes while taking responsibility for viewers' buying decisions", "relevant_items": ["writing-3"]},
+    {"id": "creator-ai", "language": "en", "modality": "text", "query": "Why creators need to learn to control artificial intelligence instead of just producing more content", "relevant_items": ["writing-4"]},
+    {"id": "industry-discussion", "language": "en", "modality": "text", "query": "A three-hour discussion bringing technology industry leaders together", "relevant_items": ["writing-5"]},
+    {"id": "budget-laptop", "language": "en", "modality": "text", "query": "Laptop buying recommendations with a budget between fifty and sixty thousand rupees", "relevant_items": ["yFMnullCxK4"]},
+    {"id": "budget-phone", "language": "en", "modality": "text", "query": "Which smartphone should I buy under thirty thousand rupees?", "relevant_items": ["duBKXZrsKg8"]},
+    {"id": "old-tv", "language": "en", "modality": "text", "query": "Make an old television smart enough to stream Netflix without replacing the screen", "relevant_items": ["RbvPC53Xw_w"]},
+    {"id": "foldable-camera", "language": "en", "modality": "text", "query": "A folding phone review that focuses on camera quality", "relevant_items": ["51nWuBbf-5k"]},
+    {"id": "entry-phone", "language": "en", "modality": "text", "query": "Mivi One 5G review at around twelve thousand rupees", "relevant_items": ["MYxG3kPMiow"]},
+    {"id": "gaming-phone", "language": "en", "modality": "text", "query": "An iQOO phone with an 8400mAh battery and 165Hz display", "relevant_items": ["zcf9JFzZKTc"]},
+    {"id": "nothing-sale", "language": "en", "modality": "text", "query": "Nothing Phone discounts during the Flipkart Big Billion Days sale", "relevant_items": ["WVEMLZOCiNc"]},
+    {"id": "gratitude-hi", "language": "hi", "modality": "text", "query": "डेढ़ करोड़ सब्सक्राइबर होने पर अपनी टीम और दर्शकों को धन्यवाद", "relevant_items": ["writing-1"]},
+    {"id": "team-feedback-hi", "language": "hi", "modality": "text", "query": "कंपनी में कर्मचारियों की बात सुनना और उनकी समस्याओं पर कार्रवाई करना", "relevant_items": ["writing-2"]},
+    {"id": "budget-laptop-hi", "language": "hi", "modality": "text", "query": "पचास से साठ हजार रुपये में कौन सा लैपटॉप खरीदें", "relevant_items": ["yFMnullCxK4"]},
+    {"id": "old-tv-hi", "language": "hi", "modality": "text", "query": "पुराने टीवी पर नेटफ्लिक्स चलाने का सस्ता तरीका", "relevant_items": ["RbvPC53Xw_w"]},
+    {"id": "thumbnail-foldable", "language": "en", "modality": "image", "query": "Thumbnail reference for a vivo folding smartphone camera review", "relevant_items": ["51nWuBbf-5k"]},
+    {"id": "thumbnail-laptop", "language": "en", "modality": "image", "query": "Thumbnail reference for affordable laptop buying advice", "relevant_items": ["yFMnullCxK4"]},
+    {"id": "thumbnail-gaming", "language": "en", "modality": "image", "query": "Thumbnail reference for an iQOO gaming phone unboxing", "relevant_items": ["zcf9JFzZKTc"]},
+    {"id": "thumbnail-budget", "language": "en", "modality": "image", "query": "Thumbnail reference for the best smartphones under thirty thousand rupees", "relevant_items": ["duBKXZrsKg8"]}
+  ]
+}

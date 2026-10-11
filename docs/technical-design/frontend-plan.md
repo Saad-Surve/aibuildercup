@@ -1,502 +1,121 @@
-# Creator Helper Studio — Frontend Implementation Plan
+# Resonance frontend implementation
 
-Recommended frontend: Next.js App Router, TypeScript, Tailwind CSS, Firebase Web SDK, TanStack Query, and a timeline library or custom SVG heatmap layer.
+The current client is Next.js 16 App Router, React 19, TypeScript, TanStack Query,
+Tailwind and Base UI, installed/run with Bun. It exports static HTML/JS to Firebase Hosting.
+See [web/README.md](../../web/README.md) for setup and [architecture](../architecture.md)
+for the complete workflow.
 
-## 1. Initialize the application
+## 1. Setup
 
-~~~bash
-npx create-next-app@latest creator-studio-web \
-  --typescript \
-  --eslint \
-  --tailwind \
-  --app \
-  --src-dir \
-  --import-alias "@/*"
+Use `bun install`, `.env.example` → `.env.local`, then `bun dev`. Read this installed
+Next version's documentation in `web/node_modules/next/dist/docs/` before framework edits.
+Public Firebase identifiers can be exposed; OAuth client secrets/server credentials cannot.
 
-cd creator-studio-web
-npm install firebase @tanstack/react-query zod react-hook-form
-npm install lucide-react date-fns
-~~~
+## 2. Structure
 
-Environment variables:
+`src/app/` defines static routes; `components/projects/` houses player, transcript,
+review, source revisions, draft editor and studio modules. `components/calendar/`,
+`accounts/`, `auth/` and `layout/` hold shared flows. `lib/api-client.ts` owns HTTP auth/errors;
+`lib/types.ts` holds manually maintained contract-compatible types. Feature data adapters
+live beside it; hooks bind project events/transcripts/modules to the workspace.
 
-~~~text
-NEXT_PUBLIC_FIREBASE_API_KEY
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-NEXT_PUBLIC_FIREBASE_PROJECT_ID
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-NEXT_PUBLIC_FIREBASE_APP_ID
-NEXT_PUBLIC_API_BASE_URL
-~~~
+## 3. Shell
 
-Never place server secrets or OAuth client secrets in NEXT_PUBLIC variables.
-
-The API client and TypeScript types are derived from `contracts/openapi.yaml`, so the frontend
-and backend cannot drift. There is no MSW mock layer: the web app calls the real API. See
-[mock-and-seed.md](./mock-and-seed.md).
-
-## 2. Frontend directory structure
-
-~~~text
-src/
-├── app/
-│   ├── (auth)/login/page.tsx
-│   ├── (app)/layout.tsx
-│   ├── (app)/dashboard/page.tsx
-│   ├── (app)/onboarding/page.tsx
-│   ├── (app)/projects/page.tsx
-│   ├── (app)/projects/[projectId]/page.tsx
-│   ├── (app)/projects/[projectId]/chat/page.tsx
-│   ├── (app)/settings/connections/page.tsx
-│   └── api/health/route.ts
-├── components/
-│   ├── auth/
-│   ├── onboarding/
-│   ├── layout/
-│   ├── projects/
-│   ├── timeline/
-│   ├── analysis/
-│   ├── artifacts/
-│   ├── localization/
-│   ├── chat/
-│   └── common/
-├── lib/
-│   ├── firebase.ts
-│   ├── api-client.ts
-│   ├── auth.ts
-│   ├── query-client.ts
-│   ├── events.ts
-│   └── validators.ts
-├── generated/
-│   └── api/            types + client generated from contracts/openapi.yaml
-├── hooks/
-├── types/
-└── styles/
-~~~
-
-## 3. Application shell
-
-Create these shared components first:
-
-~~~text
-AppShell
-Sidebar
-TopBar
-UserMenu
-Breadcrumbs
-PageHeader
-LoadingState
-ErrorState
-EmptyState
-ToastProvider
-ConfirmDialog
-JobProgressBanner
-~~~
-
-Sidebar navigation:
-
-~~~text
-Dashboard
-Projects
-Audience Insights
-Connections
-Persona
-Settings
-~~~
+Dashboard/projects, calendar, creator library and settings/profile share `AppShell`.
+Notifications and avatar/user menu stay available. The public landing/policy routes and
+onboarding have separate shells. Theme, layout and module state follow existing patterns.
 
 ## 4. Authentication
 
-Create:
+Google sign-in uses Firebase Web SDK. Guards read `/me` and onboarding state before
+showing owned workspaces. Auth changes clear query caches and reject stale requests/socket
+messages. Passwordless demo login requests a custom token; shared demo controls are disabled
+and backend write middleware enforces the restriction.
 
-~~~text
-LoginPage
-GoogleSignInButton
-EmailSignInForm
-AuthLoadingScreen
-ProtectedRoute
-AuthProvider
-~~~
+## 5. Onboarding and persona
 
-Flow:
+Creators supply preferences, links, audience, language, formats and voice. Grounded public
+research can prefill the form. Persona generation is saved/versioned; creators can review
+and edit it. Connection setup can be skipped. An example library never silently relabels
+itself as the new user's history or becomes their persona.
 
-1. Initialize Firebase Auth.
-2. Subscribe to auth state changes.
-3. Obtain a Firebase ID token.
-4. Attach the token to every API request.
-5. Call GET /me after login.
-6. Redirect new users to onboarding.
-7. Redirect returning users to the dashboard.
+## 6. Projects
 
-The frontend should not use Firestore directly for sensitive data. Use the API for connections, jobs, analysis, and artifacts.
+Video projects use upload/processing/review; draft projects use the brief/writing editor.
+Cards show poster/duration or document preview/counts. A video can link its source script.
+Create, rename/edit and delete dialogs call owned APIs. Account deletion has its own control.
 
-## 5. Onboarding flow
+## 7. Workspace
 
-Route: /onboarding
+`ProjectWorkspace` branches into independently loaded video/draft workspaces. A video
+keeps its player visible while Overview, Transcript, Review, Captions, Packaging,
+Localization and Publishing modules change. `/projects/view/project/{id}/{module}` is
+served by a static project shell and parsed in the browser. Required-transcript modules
+show a prerequisite/action instead of an unexplained empty screen.
 
-Component tree:
+## 8. Upload and revisions
 
-~~~text
-OnboardingShell
-├── WelcomeStep
-├── ImportStep
-├── CreatorIdentityStep
-├── ContentTopicsStep
-├── AudienceStep
-├── StyleAndLanguageStep
-├── PlatformConnectionStep
-├── PersonaPreviewStep
-└── CompletionStep
-~~~
-
-### WelcomeStep
-
-- Explain the studio.
-- Explain what data will be accessed.
-- Link to privacy and consent information.
-
-### ImportStep
-
-- Paste public creator profile links (YouTube, Instagram, X, Facebook, TikTok, LinkedIn).
-- `POST /onboarding/research` runs one grounded Gemini call that prefills the form.
-- Show the grounding sources, queries, and Google Search Suggestions (required by Google's terms).
-- Optional: the creator can skip and fill everything manually.
-
-### CreatorIdentityStep
-
-- Creator name.
-- Location and timezone.
-- Preferred language.
-- Optional website or bio.
-
-### ContentTopicsStep
-
-- Main topics.
-- Content categories.
-- Content formats.
-- Typical video length.
-
-### AudienceStep
-
-- Intended audience.
-- Audience location.
-- Knowledge level.
-- Primary audience goal.
-
-### StyleAndLanguageStep
-
-- Tone.
-- Words to avoid.
-- Preferred hook style.
-- Caption preferences.
-- Regional/cultural preferences.
-
-### PlatformConnectionStep
-
-- Connect YouTube.
-- Optionally connect Instagram/Facebook.
-- Explain authentication versus analytics permissions.
-- Allow skip and connect later.
-
-### PersonaPreviewStep
-
-- Show generated persona summary.
-- Allow edits.
-- Require explicit confirmation before saving.
-
-Each step calls PUT /onboarding. The final step calls POST /onboarding/complete.
-
-## 6. Dashboard and project creation
-
-Create:
-
-~~~text
-DashboardPage
-ProjectCard
-ProjectGrid
-CreateProjectDialog
-RecentProjectList
-ConnectionStatusCard
-AudienceSummaryCard
-~~~
-
-Create project fields:
-
-- Project type: **video** (upload + pipeline) or **draft** (versioned writing studio).
-- Project name, description, primary language, target platforms.
-- Video only: thumbnail concept.
-- Draft only: format (written content or video script), topic, audience, tone, extra notes.
-
-A draft project seeds `draft/main` with the brief and, when it opens, generates the first
-draft. A video project keeps the current upload flow. Project cards branch on `kind`: video
-cards show the poster/duration/size, draft cards show a paper preview plus word and block
-counts from `draftSummary`. Demo project toggle binds the project to a pinned demo scenario
-(hidden in the live configuration).
-
-After creation, route to /projects/{projectId}.
-
-## 7. Project workspace
-
-The project page is a router, not a single wall of cards. It fetches the project and hands
-off by `kind`:
-
-~~~text
-ProjectWorkspace (project query + realtime socket)
-├── kind == "video"  -> VideoStudio
-│   ├── SourceVideoPanel (sticky, with VideoRevisions)
-│   └── right pane
-│       ├── ModuleNav (Overview / Transcript / Review + Findings /
-│       │              Burn Captions / Packaging / Localization)
-│       ├── ModuleGrid (overview landing: module cards + status)
-│       └── TranscriptGate (shadcn Marker step rail when a module needs
-│                            a transcript that does not exist yet)
-└── kind == "draft"  -> DraftWorkspace
-    ├── DraftDocument (versioned blocks, per-block version picker, export)
-    ├── DraftChat (writing partner; proposals become new versions)
-    └── DraftBriefDialog (edit the brief and regenerate)
-~~~
-
-The video studio keeps the source video pinned on the left while the right pane swaps
-between the overview grid and a focused module, so
-`/projects/view/project/{projectId}/{module}` is a shareable deep link. Because the web app
-is a static export, that path is served by the `/projects/view` shell via a rewrite (Next
-`rewrites()` in dev, the Firebase Hosting rewrite in production) and the client reads the
-id/module from the path; the module tab strip is hidden on the overview. Modules that need
-a transcript (review, captions, localization) render a `Marker`-based prerequisite rail
-with the inline **Generate transcript** action instead of being hidden. Burn Captions owns
-its own module (the export menu no longer offers it) and drives a live caption overlay on
-the source video through a small preview context. Packaging is a placeholder module with
-realistic hardcoded previews; Localization is implemented — a project glossary editor, the
-dubbing pipeline (translation → Gemini adaptation → Text-to-Speech → mux), localized SRT
-download, and the corpus/glossary versions each dub was built with.
-
-The draft studio treats the React Query cache as the document: edits write optimistically
-and a debounced save persists them. Each block keeps an immutable `versions[]` list, so an
-assistant rewrite, a set of alternatives, or the creator's first edit on an assistant
-version all become switchable versions rather than overwrites. Export offers Markdown,
-plain text, and a full all-versions Markdown dump.
-
-Mobile behavior:
-
-- Video first.
-- Modules as tabs.
-- The draft chat sits below the document.
-
-## 8. Upload experience
-
-Create:
-
-~~~text
-VideoDropzone
-VideoRevisions
-VideoFilePicker
-UploadProgress
-UploadValidationError
-UploadCompleteState
-ProcessingStatusCard
-~~~
-
-Flow:
-
-1. Validate file type and size locally.
-2. Create an upload session through the API.
-3. Upload directly to Cloud Storage.
-4. Display resumable progress.
-5. Confirm upload.
-6. Subscribe to job progress.
-7. Enable transcript/timeline when ready.
-
-A project keeps one video but may hold several revisions of it. After the first
-upload, `VideoRevisions` in the source-video card shows the active revision, lists the
-retained history, and opens the same dropzone to upload a new revision. A new revision
-becomes active and is transcribed automatically; once its transcript lands the review
-panel nudges the user to re-run the analysis, because the newest run was built from the
-previous revision's transcript. The history shows each revision's transcript version and
-review count, and can make an earlier revision active again (switching back is lossless).
-
-The browser must not upload the file through the API server.
-
-## 9. Transcript and timeline UI
-
-Create:
-
-~~~text
-VideoPlayer
-TimelineRuler
-TranscriptTrack
-TranscriptSegment
-WordHighlight
-HeatmapTrack
-HeatmapBin
-FindingPopover
-FindingDrawer
-JumpToTimestampButton
-~~~
-
-Interactions:
-
-- Clicking a transcript segment seeks the video.
-- Hovering a heatmap bin shows its score.
-- Clicking a bin opens findings.
-- Clicking evidence highlights the transcript span.
-- Selecting a range creates a clip candidate.
-
-## 10. Analysis controls
-
-Create:
-
-~~~text
-AnalysisToolbar
-DimensionFilter
-SeverityFilter
-AnalysisRunSelector
-ReviewerStatusList
-FlaggedMomentScore
-~~~
-
-Dimensions:
-
-~~~text
-Truth & Evidence
-Clarity
-Pacing & Retention
-Legal & Safety
-Cultural & Localization
-Platform Fit
-Audience & Brand
-Emotional Impact
-Conversion & CTA
-~~~
-
-If one reviewer fails, show a partial result instead of blocking the whole workspace.
-The studio requests all nine existing reviewers on new runs. Historical tracks follow the
-run's actual `requestedDimensions`. Empty tracks are visible; gaps carry no invented score.
-The score label is **Flagged moments**, with a tooltip explaining that it summarizes reported
-observations. Completed-reviewer counts exclude errors, and empty results distinguish a finished
-review from a failed/incomplete one and from a review that has not started.
-
-Finding rows show the explanation and concrete edit together, with exact quotes in the existing
-collapsed evidence section. Strengths use **Keep** and show their explanation without an edit.
-Shared sampled footage appears once in the existing collapsed footage checks, fetched lazily.
-
-## 11. Artifact gallery
-
-Create:
-
-~~~text
-ArtifactGallery
-ArtifactCard
-ArtifactTypeFilter
-ArtifactPreviewModal
-DownloadButton
-RegenerateDialog
-DeleteArtifactDialog
-~~~
-
-Artifact tabs:
-
-~~~text
-Shorts
-Captions
-Thumbnails
-Social Posts
-Blogs
-Localized Versions
-AI Intros/Outros
-~~~
-
-Every generation action shows queued, generating, ready, and failed states with retry.
-
-## 12. Localization UI
-
-Create:
-
-~~~text
-LanguageSelector
-LocalizationOptions
-GlossaryEditor
-CorpusVersionBadge
-CaptionPreview
-DubbedVideoPreview
-LocalizationComparisonView
-~~~
-
-The comparison view lets the user switch between source and localized captions and flag incorrect phrases.
-
-## 13. Connections and audience insights
-
-Create:
-
-~~~text
-ConnectionsPage
-PlatformConnectionCard
-OAuthRedirectHandler
-SyncNowButton
-SyncHistoryTable
-AudienceInsightsPage
-AudienceSummaryChart
-ContentPerformanceTable
-SentimentBreakdown
-~~~
-
-Communicate clearly that audience data is aggregated platform data, not a complete representation of every viewer.
-
-## 14. Project chat
-
-Create:
-
-~~~text
-ProjectAssistantPanel
-ChatThreadList
-ChatMessageList
-ChatComposer
-StreamingMessage
-SuggestedPromptChips
-ToolResultCard
-ArtifactAttachmentCard
-CitationList
-~~~
-
-Suggested prompts:
-
-~~~text
-Find the weakest section of this video.
-Give me three better hooks.
-Create a Hindi caption.
-Turn the strongest section into a Short.
-Explain the legal and safety concerns.
-Update my creator preferences based on this choice.
-~~~
-
-Show tool activity such as Finding transcript evidence or Creating clip candidate.
-
-## 15. Frontend implementation order
-
-1. Initialize Next.js and shared styling.
-2. Add Firebase Auth.
-3. Add API client and token interceptor.
-4. Build application shell and route guards.
-5. Build onboarding and persona preview.
-6. Build project list and project creation.
-7. Build direct video upload.
-8. Build processing status and realtime WebSocket updates.
-9. Build video player and transcript view.
-10. Build heatmap tracks and findings drawer.
-11. Add artifact gallery.
-12. Add project chat.
-13. Add connections and audience insights.
-14. Add localization UI.
-15. Add feedback, error states, loading states, and deletion flows.
-16. Add responsive layout and accessibility pass.
-
-## 16. Frontend acceptance checklist
-
-- New users cannot access project routes before onboarding.
-- Returning users resume at the dashboard.
-- Large videos upload directly to Cloud Storage.
-- Upload progress survives a temporary page refresh where possible.
-- The timeline remains usable for a 30-minute video.
-- Heatmap findings link to precise timestamps.
-- Failed reviewers do not hide successful reviewer results.
-- Every async action has progress, retry, and failure UI.
-- Signed download URLs are never persisted in local storage.
-- The user can delete a project and see deletion progress.
+The dropzone validates supported type/size, obtains a signed upload session, transfers
+directly to Storage, confirms completion and follows progress. Revisions retain the source
+history and allow earlier asset/transcript activation. Transcript/review changes show
+when a fresh analysis is needed. Local media caching avoids duplicate full-video blobs.
+
+## 9. Transcript and captions
+
+The transcript editor shows timestamped segments and speaker labels, supports find/replace,
+segment edits and version/export controls, and seeks the video from text. Caption styles
+preview directly on the player; burn-in submits a real render job and downloads its MP4.
+
+## 10. Review
+
+The client requests all nine dimensions. Five-second heatmap tracks are memoized; selecting
+one filters related findings and seeks the player. Findings show explanation and actionable
+suggestion; exact quotes and source/footage evidence can expand. Strengths use Keep.
+Severity filters reduce noise. Blank/incomplete tracks stay visible rather than implying
+unreported moments were graded. Flagged moments replaces a misleading overall-quality label.
+Historical runs retain their original dimensions/scores and stale-transcript warnings.
+
+## 11. Thumbnails and packaging
+
+Thumbnail concepts use the real pipeline, supporting batch generation, critique, version
+selection/revision, apply and downloads. Packaging supports editable/generated YouTube
+listings and source-linked chart/callout/illustrative insert suggestions in the current
+working tree. Optional footage generation is explicitly paid and bounded. Automatic source
+shorts remain separate future work; sample cards do not establish a working clip pipeline.
+
+## 12. Localization
+
+The project glossary, target-language/voice selectors, speaker assignment and original-audio
+choice drive a real dub job. Source/translated captions, corpus/glossary versions and
+SRT/audio/video downloads expose the result. A voice catalog does not establish measured
+translation/naturalness quality in every language.
+
+## 13. Connections, library and calendar
+
+Settings connects YouTube through OAuth, syncs channel content/audience and displays status.
+The creator library shows PCA-positioned passages/thumbnail tiles, keyboard-accessible
+source rows, semantic search, topic/modality filters, attribution and real cosine-related
+sources. Projection distance is approximate. The calendar offers month/week planning and
+links YouTube publish schedules; other platform labels are planning metadata.
+
+## 14. Draft writing
+
+The free-flow document uses optimistic edits and debounced persistence. Immutable block
+versions make rewrites/alternatives reversible. Chat/grounding and selected creator-context
+panels sit alongside the editor; Markdown/text and all-version exports preserve selected
+text. Draft writing chat exists; generic video-project chat does not.
+
+## 15. Realtime and hosting
+
+A shared WebSocket subscribes by project with snapshot/reconnect/unsubscribe behavior.
+Completion invalidations coalesce over 200 ms. Production connects directly to Cloud Run
+because Firebase Hosting does not proxy socket upgrades. HTTP remains the fetch layer.
+Firebase rewrites mirror the static project shell and `/api/**`; Next build warns that
+runtime rewrites are not applied by static export. Keep both configurations aligned.
+
+## 16. Verification
+
+Run `bun run lint`, `bun run lint:eslint`, `bun run build`; format changed files with oxfmt.
+The [evaluation report](../../evals/README.md) distinguishes initial-script payload estimates
+from browser/user outcomes. No test libraries/suites are added. Landing illustrations are
+not measured results; several historical marketing claims still exceed the current product.

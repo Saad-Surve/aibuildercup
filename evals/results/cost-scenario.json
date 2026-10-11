@@ -1,0 +1,114 @@
+{
+  "kind": "illustrative component estimate, not an invoice",
+  "price_checked_at": "2026-10-11",
+  "currency": "USD",
+  "scenario": "Five-minute video, nine reviewers, one draft, four thumbnail outputs, one English dub",
+  "components": [
+    {
+      "stage": "stt",
+      "unit": "audio_minute_single_billed_channel",
+      "quantity": 5,
+      "usd_per_unit": 0.016,
+      "estimated_usd": 0.08
+    },
+    {
+      "stage": "review_input",
+      "unit": "token",
+      "quantity": 45000,
+      "usd_per_unit": 7.5e-07,
+      "estimated_usd": 0.03375
+    },
+    {
+      "stage": "review_output_including_reasoning",
+      "unit": "token",
+      "quantity": 9000,
+      "usd_per_unit": 3.75e-06,
+      "estimated_usd": 0.03375
+    },
+    {
+      "stage": "cleanup_input",
+      "unit": "token",
+      "quantity": 4000,
+      "usd_per_unit": 7.5e-07,
+      "estimated_usd": 0.003
+    },
+    {
+      "stage": "cleanup_output_including_reasoning",
+      "unit": "token",
+      "quantity": 1000,
+      "usd_per_unit": 3.75e-06,
+      "estimated_usd": 0.00375
+    },
+    {
+      "stage": "draft_input",
+      "unit": "token",
+      "quantity": 8000,
+      "usd_per_unit": 7.5e-07,
+      "estimated_usd": 0.006
+    },
+    {
+      "stage": "draft_output_including_reasoning",
+      "unit": "token",
+      "quantity": 2000,
+      "usd_per_unit": 3.75e-06,
+      "estimated_usd": 0.0075
+    },
+    {
+      "stage": "thumbnail_output",
+      "unit": "1K_Flash_Image_output",
+      "quantity": 4,
+      "usd_per_unit": 0.067,
+      "estimated_usd": 0.268
+    },
+    {
+      "stage": "translation",
+      "unit": "source_character_one_target",
+      "quantity": 6000,
+      "usd_per_unit": 2e-05,
+      "estimated_usd": 0.12
+    },
+    {
+      "stage": "adaptation_input",
+      "unit": "token",
+      "quantity": 5000,
+      "usd_per_unit": 7.5e-07,
+      "estimated_usd": 0.00375
+    },
+    {
+      "stage": "adaptation_output_including_reasoning",
+      "unit": "token",
+      "quantity": 1000,
+      "usd_per_unit": 3.75e-06,
+      "estimated_usd": 0.00375
+    },
+    {
+      "stage": "tts",
+      "unit": "Neural2_character",
+      "quantity": 6000,
+      "usd_per_unit": 1.6e-05,
+      "estimated_usd": 0.096
+    }
+  ],
+  "excluded": [
+    "Search",
+    "thumbnail image/text inputs and text output",
+    "thumbnail planning/critique",
+    "persona research",
+    "packaging",
+    "embeddings",
+    "compute",
+    "storage",
+    "network",
+    "retries",
+    "taxes"
+  ],
+  "sources": [
+    "https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing",
+    "https://cloud.google.com/speech-to-text/pricing",
+    "https://cloud.google.com/translate/pricing",
+    "https://cloud.google.com/text-to-speech/pricing"
+  ],
+  "scenario_sha256": "b548d99d75b716107573029091339ebbf1fbe6cc5292f331b4e85a76525fa156",
+  "component_subtotal_usd": 0.65925,
+  "scope": "partial subtotal excluding every category listed in excluded"
+}

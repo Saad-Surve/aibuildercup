@@ -1,0 +1,27 @@
+{
+  "kind": "illustrative component estimate, not an invoice",
+  "price_checked_at": "2026-10-11",
+  "currency": "USD",
+  "scenario": "Five-minute video, nine reviewers, one draft, four thumbnail outputs, one English dub",
+  "components": [
+    {"stage": "stt", "unit": "audio_minute_single_billed_channel", "quantity": 5, "usd_per_unit": 0.016},
+    {"stage": "review_input", "unit": "token", "quantity": 45000, "usd_per_unit": 0.00000075},
+    {"stage": "review_output_including_reasoning", "unit": "token", "quantity": 9000, "usd_per_unit": 0.00000375},
+    {"stage": "cleanup_input", "unit": "token", "quantity": 4000, "usd_per_unit": 0.00000075},
+    {"stage": "cleanup_output_including_reasoning", "unit": "token", "quantity": 1000, "usd_per_unit": 0.00000375},
+    {"stage": "draft_input", "unit": "token", "quantity": 8000, "usd_per_unit": 0.00000075},
+    {"stage": "draft_output_including_reasoning", "unit": "token", "quantity": 2000, "usd_per_unit": 0.00000375},
+    {"stage": "thumbnail_output", "unit": "1K_Flash_Image_output", "quantity": 4, "usd_per_unit": 0.067},
+    {"stage": "translation", "unit": "source_character_one_target", "quantity": 6000, "usd_per_unit": 0.00002},
+    {"stage": "adaptation_input", "unit": "token", "quantity": 5000, "usd_per_unit": 0.00000075},
+    {"stage": "adaptation_output_including_reasoning", "unit": "token", "quantity": 1000, "usd_per_unit": 0.00000375},
+    {"stage": "tts", "unit": "Neural2_character", "quantity": 6000, "usd_per_unit": 0.000016}
+  ],
+  "excluded": ["Search", "thumbnail image/text inputs and text output", "thumbnail planning/critique", "persona research", "packaging", "embeddings", "compute", "storage", "network", "retries", "taxes"],
+  "sources": [
+    "https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing",
+    "https://cloud.google.com/speech-to-text/pricing",
+    "https://cloud.google.com/translate/pricing",
+    "https://cloud.google.com/text-to-speech/pricing"
+  ]
+}

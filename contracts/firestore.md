@@ -1,7 +1,8 @@
 # Firestore Contract
 
-The full schema is in `../docs/technical-design/db-design.md`. This file is the quick reference
-the code must match.
+This is the persisted-data contract. [The database reference](../docs/technical-design/db-design.md)
+explains current write paths and lifecycle. Planned collections are identified separately;
+they do not establish implemented features.
 
 Reviewer findings retain the existing document shape. `evidence.quote` may be empty for
 an omission or an inspected visual issue; `critique_and_reasoning` explains the observation
@@ -14,12 +15,18 @@ and are covered by project/account deletion.
 
 ```text
 users/{uid}
-├── creatorImports/{bundleId}/revisions/{revisionId}/items/{itemId}
+├── creatorImports/{bundleId}/revisions/{revisionId}
+│   ├── items/{itemId}
+│   ├── semanticChunks/{nodeId}
+│   └── semanticQueries/{queryHash}
+├── embeddingBudgets/{UTC-date}/calls/{slot}
+├── connectionSecrets/{connectionId}
+├── oauthStates/{stateId}
 ├── connections/{connectionId}
-│   └── syncRuns/{syncRunId}
+│   ├── contentItems/{videoId}
+│   ├── semanticChunks/{nodeId}
+│   └── semanticQueries/{queryHash}
 ├── personaRevisions/{revisionId}
-├── notifications/{notificationId}
-├── usagePeriods/{periodId}
 └── projects/{projectId}
     ├── assets/{assetId}
     ├── jobs/{jobId}/events/{eventId}
@@ -31,27 +38,28 @@ users/{uid}
     │   ├── reviewers/{reviewerRunId}
     │   ├── findings/{findingId}
     │   └── heatmapBins/{binId}
-    ├── clipCandidates/{candidateId}
-    ├── artifacts/{artifactId}/versions/{versionId}
     ├── localizations/{localizationId}
+    ├── glossary/main
+    ├── publishes/{publishId}
+    ├── schedules/{scheduleId}
     ├── packaging/{recordId}
     ├── visualInserts/{insertId}
-    ├── visualInsertReservations/{slotId}
-    ├── chatThreads/{threadId}/messages/{messageId}
-    ├── feedback/{feedbackId}
-    ├── exports/{exportId}
-    └── auditEvents/{auditEventId}
-
-glossaries/{glossaryId}       platform
-demoProfiles/{demoProfileId}  platform
+    └── visualInsertReservations/{slotId}
 ```
+
+Planned collection shapes from the broader design include connection `syncRuns`, user
+`notifications`/`usagePeriods`, project `clipCandidates`, generic artifact versions,
+video-chat messages, feedback, exports and audit events. Top-level `glossaries` and
+`demoProfiles` also remain proposals; the current global localization corpus is bundled
+JSON and demo login uses a configured Firebase UID.
 
 ## Rules
 
-- Every user-owned document carries `ownerUid`.
+- Owned child documents carry `ownerUid`; historical user-root ownership can be verified
+  by the authenticated UID path.
 - Store GCS object paths, never signed URLs.
 - Timestamps are Firestore Timestamps in UTC.
-- Only the backend reads `connections`, `glossaries`, `demoProfiles`.
+- Only the backend reads/writes Firestore; direct browser access is denied by rules.
 - Ownership is checked in the API, not only in Firestore rules.
 - Account deletion sets `users/{uid}.deletingAt`; project deletion sets the existing
   `projects/{projectId}.archivedAt` before deleting Storage objects. Ownership-checked

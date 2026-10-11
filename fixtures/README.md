@@ -1,13 +1,16 @@
 # Fixtures
 
-## Media
+`media/` and `seed/` are gitignored local originals. A fresh checkout does not include the
+existing workstation videos. Preserve those files; use normal upload/transcription for
+bounded live validation. Do not commit third-party media or private transcripts blindly.
 
-`fixtures/media/` holds sample videos for testing uploads end to end. They are kept in git so
-anyone can exercise the upload → transcription pipeline without hunting for a file. Do not
-delete them.
+| Tracked path | Purpose |
+|---|---|
+| `creator-import-example/` | Small manifest, subtitle and writing example for validating a supplied creator folder |
+| `creator-sources/arun-prabhudesai.json` | Public-source collection configuration and explicitly supplied persona preferences |
 
-## Seed
-
-`fixtures/seed/` is reserved for the demo seed bundle (`backend/scripts/seed.py --demo`, not
-built yet). The seed reads the same JSON shapes the API returns, so the frontend cannot tell
-the difference between seeded and live data.
+[Creator import](../docs/creator-demo-import.md) and
+[public corpus](../docs/creator-public-corpus.md) explain preparation/provenance.
+The public demo uses copied real workspace data; no generic `backend/scripts/seed.py`
+exists. [Evaluation cases/results](../evals/README.md) are separate from source originals
+and carry their own hashes, labels and measurement scope.

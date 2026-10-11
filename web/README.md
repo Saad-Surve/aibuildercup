@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Resonance web
 
-## Getting Started
+Next.js 16 App Router, React 19, TypeScript, TanStack Query, Tailwind and Base UI.
+Bun is the package manager. Production is a static export served by Firebase Hosting.
 
-First, run the development server:
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+bun install
+cp .env.example .env.local
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`; start the API on port 8080 using the
+[backend guide](../backend/README.md). The example includes public Firebase identifiers.
+Set `NEXT_PUBLIC_API_BASE_URL` to the API prefix, e.g. `http://localhost:8080/api`.
+Production WebSockets use the direct Cloud Run URL because Hosting API rewrites do not
+proxy WebSocket upgrades. Only public configuration belongs in `NEXT_PUBLIC_*` variables.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Workspace
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Route | Purpose |
+|---|---|
+| `/` | Landing page and Google/read-only demo sign-in |
+| `/onboarding`, `/persona` | Creator preferences, grounded profile research and persona review |
+| `/dashboard`, `/projects` | Video/draft projects and upload/create dialogs |
+| `/projects/view/project/{id}/{module}` | Shared project shell: review, transcript, captions, packaging, localization and publishing |
+| `/library` | Semantic source map, search, evidence inspector and related material |
+| `/calendar` | Month/week schedules |
+| `/settings`, `/profile` | Account connections, persona/account controls and avatar |
+| `/privacy`, `/terms`, `/data-deletion` | Product policy pages |
 
-## Learn More
+Video projects keep the player visible while modules change. Drafts have a versioned
+editor, writing chat and alternatives. Project events update React Query over a shared
+WebSocket; query caches are cleared when authentication changes. Video/draft workspaces
+and avatar artwork load separately.
 
-To learn more about Next.js, take a look at the following resources:
+All HTTP calls pass through `src/lib/api-client.ts`. Feature-specific TypeScript interfaces
+are maintained in `src/lib/types.ts` and must match [OpenAPI](../contracts/openapi.yaml);
+there is no code-generation command in the current package scripts.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Verify and build
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+bun run lint
+bun run lint:eslint
+bun run build
+bun run format:check
+```
 
-## Deploy on Vercel
+The build exports `out/`. Next rewrites do not apply to static hosting; matching project
+shell/API rewrites are in `../firebase.json`. The build's static-export rewrite warning
+is expected. Read the bundled Next docs under `node_modules/next/dist/docs/` before
+changing framework code; the repository's `AGENTS.md` explains the version-specific rules.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[Architecture](../docs/architecture.md), [benchmarks](../evals/README.md) and
+[frontend reference](../docs/technical-design/frontend-plan.md) describe implementation
+and limits. Landing-page illustrations are demonstrations, not benchmark results or proof
+of connectors beyond YouTube.

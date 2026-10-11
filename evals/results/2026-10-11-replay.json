@@ -1,0 +1,2058 @@
+{
+  "created_at": "2026-10-11T12:58:33.357919+00:00",
+  "git_revision": "5504e38dbd46f711bd06d2ac1515d6477a8a17fc",
+  "working_tree_dirty": true,
+  "implementation_sha256": {
+    "backend/scripts/benchmark.py": "36d0a85b1e763413677bf3e7be969d5294c8fd5eb2f0189795fed80101559b4d",
+    "backend/app/config.py": "5246e543f306fc993898c2e3bda12d47fd6d2f183ccd6cc921570e2ef050f72f",
+    "backend/app/providers/embeddings.py": "ae0fa188ad2e744d48f62ccd545fa33e59d22e83647bff38ca1f934a42b83a66",
+    "backend/app/services/creator_import_service.py": "1db6ebf4d5eb044997bd37889eac4f8308b7048d64ad78807a8b64fda4ae1324",
+    "backend/app/services/creator_library_service.py": "8eb29c82122becf14259daae9d842f9acd3345ca5535cfc6c4b6f0078e7c3498",
+    "backend/app/services/creator_preset_service.py": "88dc4d617ce911f31103c528f64ac59ccc29e7756674ecbac8bfbf18d27c5a3e",
+    "backend/app/services/video_tools.py": "78ca30d38a5d1a75e9b62e04ad3dc1622bc41dd5d3af46ff50e1026e91ab6113"
+  },
+  "machine": {
+    "os": "Darwin",
+    "architecture": "arm64",
+    "python": "3.12.14"
+  },
+  "retrieval": {
+    "model": "gemini-embedding-2",
+    "location": "global",
+    "dimensions": 768,
+    "prompt_version": "creator-passages-v1",
+    "manifest_sha256": "f147968eab1f809e622bc6eb4109ffd95980ad22ad0f63cac6dc437f73019164",
+    "vectors_sha256": "63d2d3792e77404857aa2f6cd3e3d6dc07ec638289cfcb9efe88ca063992ae25",
+    "cases_sha256": "b5c02e044fc15a6231239400ebbc4b4166b375228de9028275037238f47cc487",
+    "query_cache_sha256": "341a119bfd857a01053874f520998d8b9ea05820d7017d0dca67d3ea03f15d49",
+    "label_type": "author-assigned source relevance, not independent human judgments",
+    "item_count": 20,
+    "items_by_kind": {
+      "video": 14,
+      "article": 1,
+      "post": 5
+    },
+    "items_by_language": {
+      "hi": 14,
+      "en": 6
+    },
+    "nodes_by_modality": {
+      "text": 70,
+      "image": 10
+    },
+    "indexed_nodes": 80,
+    "omitted_passages": 15,
+    "max_unit_norm_error": 2.220446049250313e-16,
+    "vector_float32_bytes": 245760,
+    "new_embedding_calls": 0,
+    "groups": {
+      "all": {
+        "n": 20,
+        "semantic": {
+          "hit_at_1": 1.0,
+          "hit_at_3": 1.0,
+          "hit_at_8": 1.0,
+          "reciprocal_rank_at_8": 1.0
+        },
+        "lexical": {
+          "hit_at_1": 0.55,
+          "hit_at_3": 0.6,
+          "hit_at_8": 0.75,
+          "reciprocal_rank_at_8": 0.597917
+        }
+      },
+      "text_en": {
+        "n": 12,
+        "semantic": {
+          "hit_at_1": 1.0,
+          "hit_at_3": 1.0,
+          "hit_at_8": 1.0,
+          "reciprocal_rank_at_8": 1.0
+        },
+        "lexical": {
+          "hit_at_1": 0.666667,
+          "hit_at_3": 0.666667,
+          "hit_at_8": 0.833333,
+          "reciprocal_rank_at_8": 0.690972
+        }
+      },
+      "text_hi": {
+        "n": 4,
+        "semantic": {
+          "hit_at_1": 1.0,
+          "hit_at_3": 1.0,
+          "hit_at_8": 1.0,
+          "reciprocal_rank_at_8": 1.0
+        },
+        "lexical": {
+          "hit_at_1": 0.0,
+          "hit_at_3": 0.0,
+          "hit_at_8": 0.25,
+          "reciprocal_rank_at_8": 0.041667
+        }
+      },
+      "text_to_image": {
+        "n": 4,
+        "semantic": {
+          "hit_at_1": 1.0,
+          "hit_at_3": 1.0,
+          "hit_at_8": 1.0,
+          "reciprocal_rank_at_8": 1.0
+        },
+        "lexical": {
+          "hit_at_1": 0.75,
+          "hit_at_3": 1.0,
+          "hit_at_8": 1.0,
+          "reciprocal_rank_at_8": 0.875
+        }
+      }
+    },
+    "local_scoring": {
+      "n": 100,
+      "median_ms": 1.3315,
+      "p95_ms": 1.6004,
+      "samples_ms": [
+        1.3083,
+        1.3392,
+        1.329,
+        1.3131,
+        1.311,
+        1.5995,
+        1.2864,
+        1.3497,
+        1.3635,
+        1.3377,
+        1.3273,
+        1.3315,
+        1.3165,
+        1.3173,
+        1.3267,
+        1.3335,
+        1.3211,
+        1.4934,
+        1.5927,
+        1.3198,
+        1.3345,
+        1.3658,
+        1.3372,
+        1.3226,
+        1.3267,
+        1.3275,
+        1.3276,
+        1.3353,
+        1.3578,
+        1.3332,
+        1.6875,
+        1.3575,
+        1.3315,
+        1.3308,
+        1.3277,
+        1.3419,
+        1.3695,
+        1.3317,
+        1.3485,
+        1.3499,
+        1.3542,
+        1.3469,
+        1.6323,
+        1.3361,
+        1.3453,
+        1.3198,
+        1.3195,
+        1.3249,
+        1.34,
+        1.3212,
+        1.3215,
+        1.343,
+        1.3312,
+        1.3201,
+        1.5509,
+        1.3369,
+        1.3603,
+        1.3147,
+        1.3181,
+        1.3482,
+        1.4379,
+        1.2845,
+        1.3451,
+        1.319,
+        1.3356,
+        1.3221,
+        1.7395,
+        1.4508,
+        1.3437,
+        1.332,
+        1.3242,
+        1.3093,
+        1.3253,
+        1.3059,
+        1.3079,
+        1.309,
+        1.3411,
+        1.3568,
+        1.3356,
+        1.6548,
+        1.3013,
+        1.3199,
+        1.3587,
+        1.3385,
+        1.3219,
+        1.3043,
+        1.3182,
+        1.3168,
+        1.3449,
+        1.3549,
+        1.3192,
+        1.6181,
+        1.3238,
+        1.3222,
+        1.3066,
+        1.3043,
+        1.3593,
+        1.314,
+        1.3173,
+        1.3044
+      ]
+    },
+    "local_pca": {
+      "n": 7,
+      "median_ms": 3.6256,
+      "p95_ms": 3.9813,
+      "samples_ms": [
+        3.6987,
+        3.6256,
+        4.0155,
+        3.5967,
+        3.573,
+        3.5776,
+        3.9015
+      ]
+    },
+    "query_provider_latency": {
+      "n": 20,
+      "median_ms": 443.708,
+      "p95_ms": 702.5233,
+      "samples_ms": [
+        3678.84,
+        459.722,
+        449.097,
+        458.021,
+        509.399,
+        395.393,
+        475.394,
+        473.214,
+        427.403,
+        440.058,
+        427.733,
+        406.558,
+        407.028,
+        395.306,
+        478.03,
+        431.971,
+        545.875,
+        418.183,
+        408.628,
+        447.358
+      ]
+    },
+    "cases": [
+      {
+        "id": "gratitude",
+        "language": "en",
+        "modality": "text",
+        "query": "A personal thank-you to the team and community after reaching fifteen million subscribers",
+        "relevant_items": [
+          "writing-1"
+        ],
+        "embedding_latency_ms": 3678.84,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "writing-1",
+            "writing-0",
+            "writing-3",
+            "writing-2",
+            "writing-0",
+            "writing-5",
+            "writing-0",
+            "MYxG3kPMiow"
+          ],
+          "ranked_node_ids": [
+            "8174f92954a2ea15c6675d491bebd94d34139b0be1385af4c14a36b227366feb",
+            "eff29968329fa46ca747ff59cfcaa0f37e337231cc7fb35206503665ac4cf7fa",
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "6339262eb588ef7dedb8a7800698b2abf449261049456b9f99b7267dbc8ee7c3",
+            "ef7e99355217ea30d08a43149bac03387fbc0de0925588da459659bafa590d60",
+            "feb8f5f786a1e2751fe9b3ef8ccc32f2ba474acbda9983999a218e80b567ae8c",
+            "56c671b56235372b5ef43cbe5d65dc94f94977ad079f42669ea40e57809163a1",
+            "703bb800263a4839a568be0d7792428c6acc1dc386bd42ccf29c2b6a02af499f"
+          ],
+          "scores": [
+            0.77101,
+            0.6612,
+            0.64587,
+            0.64559,
+            0.62093,
+            0.59868,
+            0.59519,
+            0.59284
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "writing-1",
+            "writing-0",
+            "writing-0",
+            "writing-3",
+            "writing-0",
+            "writing-2",
+            "writing-4",
+            "writing-5"
+          ],
+          "ranked_node_ids": [
+            "8174f92954a2ea15c6675d491bebd94d34139b0be1385af4c14a36b227366feb",
+            "ef7e99355217ea30d08a43149bac03387fbc0de0925588da459659bafa590d60",
+            "eff29968329fa46ca747ff59cfcaa0f37e337231cc7fb35206503665ac4cf7fa",
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "56c671b56235372b5ef43cbe5d65dc94f94977ad079f42669ea40e57809163a1",
+            "6339262eb588ef7dedb8a7800698b2abf449261049456b9f99b7267dbc8ee7c3",
+            "70478c696792036ecd039c8c8df7224e15517f8d347a53caa0aef5f179848d98",
+            "feb8f5f786a1e2751fe9b3ef8ccc32f2ba474acbda9983999a218e80b567ae8c"
+          ],
+          "scores": [
+            0.64286,
+            0.42857,
+            0.42857,
+            0.35714,
+            0.35714,
+            0.35714,
+            0.28571,
+            0.28571
+          ]
+        }
+      },
+      {
+        "id": "team-feedback",
+        "language": "en",
+        "modality": "text",
+        "query": "How a leader makes quarterly employee meetings useful by listening and acting on feedback",
+        "relevant_items": [
+          "writing-2"
+        ],
+        "embedding_latency_ms": 459.722,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "writing-2",
+            "writing-3",
+            "writing-1",
+            "writing-0",
+            "writing-0",
+            "writing-0",
+            "creator-profile",
+            "writing-5"
+          ],
+          "ranked_node_ids": [
+            "6339262eb588ef7dedb8a7800698b2abf449261049456b9f99b7267dbc8ee7c3",
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "8174f92954a2ea15c6675d491bebd94d34139b0be1385af4c14a36b227366feb",
+            "eff29968329fa46ca747ff59cfcaa0f37e337231cc7fb35206503665ac4cf7fa",
+            "ef7e99355217ea30d08a43149bac03387fbc0de0925588da459659bafa590d60",
+            "56c671b56235372b5ef43cbe5d65dc94f94977ad079f42669ea40e57809163a1",
+            "a6ccdc807510f68f4b67fdcd432deba49d2d064cd9d2f47ab1aaf7c301ea8c5c",
+            "feb8f5f786a1e2751fe9b3ef8ccc32f2ba474acbda9983999a218e80b567ae8c"
+          ],
+          "scores": [
+            0.7375,
+            0.61051,
+            0.58536,
+            0.57208,
+            0.57011,
+            0.56216,
+            0.55763,
+            0.55744
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "writing-2",
+            "writing-0",
+            "writing-0",
+            "writing-0",
+            "writing-5",
+            "writing-3",
+            "51nWuBbf-5k",
+            "51nWuBbf-5k"
+          ],
+          "ranked_node_ids": [
+            "6339262eb588ef7dedb8a7800698b2abf449261049456b9f99b7267dbc8ee7c3",
+            "56c671b56235372b5ef43cbe5d65dc94f94977ad079f42669ea40e57809163a1",
+            "ef7e99355217ea30d08a43149bac03387fbc0de0925588da459659bafa590d60",
+            "eff29968329fa46ca747ff59cfcaa0f37e337231cc7fb35206503665ac4cf7fa",
+            "feb8f5f786a1e2751fe9b3ef8ccc32f2ba474acbda9983999a218e80b567ae8c",
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "1ad38496389f41442c6f3c8f4955a44529a527d931b9f7f5fe2dd4aebf10d612",
+            "30eca0d5d12bf642821270d6486af8a371c14277cc803886210229910af2911a"
+          ],
+          "scores": [
+            0.5,
+            0.28571,
+            0.28571,
+            0.28571,
+            0.28571,
+            0.21429,
+            0.14286,
+            0.14286
+          ]
+        }
+      },
+      {
+        "id": "learning-trust",
+        "language": "en",
+        "modality": "text",
+        "query": "Learning from early mistakes while taking responsibility for viewers' buying decisions",
+        "relevant_items": [
+          "writing-3"
+        ],
+        "embedding_latency_ms": 449.097,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "writing-3",
+            "creator-profile",
+            "O4b5fETdo-M",
+            "WVEMLZOCiNc",
+            "writing-0",
+            "writing-0",
+            "yDgmNs4I1BE",
+            "writing-1"
+          ],
+          "ranked_node_ids": [
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "a6ccdc807510f68f4b67fdcd432deba49d2d064cd9d2f47ab1aaf7c301ea8c5c",
+            "b7372d104a424e7eecec35e5c186b20f152f23d5dfe308b2bbcdffc26d8c8e65",
+            "7ed3be4ecfc1ab07cc762948e7b9ae3344e20195925d4066be419ada41ffcb59",
+            "ef7e99355217ea30d08a43149bac03387fbc0de0925588da459659bafa590d60",
+            "eff29968329fa46ca747ff59cfcaa0f37e337231cc7fb35206503665ac4cf7fa",
+            "df83c85271c4fd2e217e66e564d1d7fe9177ad0c11043e204a6520dcb94c0824",
+            "8174f92954a2ea15c6675d491bebd94d34139b0be1385af4c14a36b227366feb"
+          ],
+          "scores": [
+            0.73696,
+            0.67193,
+            0.6579,
+            0.6384,
+            0.63473,
+            0.63391,
+            0.63037,
+            0.63035
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "writing-3",
+            "writing-0",
+            "writing-2",
+            "writing-0",
+            "writing-5",
+            "WVEMLZOCiNc",
+            "WVEMLZOCiNc",
+            "writing-4"
+          ],
+          "ranked_node_ids": [
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "56c671b56235372b5ef43cbe5d65dc94f94977ad079f42669ea40e57809163a1",
+            "6339262eb588ef7dedb8a7800698b2abf449261049456b9f99b7267dbc8ee7c3",
+            "ef7e99355217ea30d08a43149bac03387fbc0de0925588da459659bafa590d60",
+            "feb8f5f786a1e2751fe9b3ef8ccc32f2ba474acbda9983999a218e80b567ae8c",
+            "4b31c650de1292d324f48b5a1c34e764f948553c5384abba7b8feafc654afdb0",
+            "6b167a0fc05f897779ece8789d25998084c489d041f9901c18e6f10d0456d760",
+            "70478c696792036ecd039c8c8df7224e15517f8d347a53caa0aef5f179848d98"
+          ],
+          "scores": [
+            0.45455,
+            0.18182,
+            0.18182,
+            0.18182,
+            0.18182,
+            0.09091,
+            0.09091,
+            0.09091
+          ]
+        }
+      },
+      {
+        "id": "creator-ai",
+        "language": "en",
+        "modality": "text",
+        "query": "Why creators need to learn to control artificial intelligence instead of just producing more content",
+        "relevant_items": [
+          "writing-4"
+        ],
+        "embedding_latency_ms": 458.021,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "writing-4",
+            "creator-profile",
+            "writing-3",
+            "mJnEsQbqnS4",
+            "Ag_XxhzOxXo",
+            "Ag_XxhzOxXo",
+            "Ag_XxhzOxXo",
+            "writing-0"
+          ],
+          "ranked_node_ids": [
+            "70478c696792036ecd039c8c8df7224e15517f8d347a53caa0aef5f179848d98",
+            "a6ccdc807510f68f4b67fdcd432deba49d2d064cd9d2f47ab1aaf7c301ea8c5c",
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "6438f2a36bcba61297a340a55bdb9e1f71c7f63a5ee42977036acdf87935c4ba",
+            "5cb2213eb3f9ad41fd4dbdfb9e835e3c15b9a60f3d575a35ed6e1760f19b80b7",
+            "f29139228034baba5daed18adf4a231aab91042b8124a4d8eb0cca200dc20c59",
+            "c79f902653746185bb0ce983055d20c655996d06ade53921e3e9c20d87ba745a",
+            "eff29968329fa46ca747ff59cfcaa0f37e337231cc7fb35206503665ac4cf7fa"
+          ],
+          "scores": [
+            0.73753,
+            0.62719,
+            0.62704,
+            0.60867,
+            0.6078,
+            0.60271,
+            0.59694,
+            0.58822
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "writing-4",
+            "writing-3",
+            "writing-0",
+            "writing-0",
+            "writing-1",
+            "mJnEsQbqnS4",
+            "writing-0",
+            "writing-5"
+          ],
+          "ranked_node_ids": [
+            "70478c696792036ecd039c8c8df7224e15517f8d347a53caa0aef5f179848d98",
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "eff29968329fa46ca747ff59cfcaa0f37e337231cc7fb35206503665ac4cf7fa",
+            "56c671b56235372b5ef43cbe5d65dc94f94977ad079f42669ea40e57809163a1",
+            "8174f92954a2ea15c6675d491bebd94d34139b0be1385af4c14a36b227366feb",
+            "ce051a3acd8cb95d58c0275c80fd456ed14425633db4e2ced963c4b3db2f47ee",
+            "ef7e99355217ea30d08a43149bac03387fbc0de0925588da459659bafa590d60",
+            "feb8f5f786a1e2751fe9b3ef8ccc32f2ba474acbda9983999a218e80b567ae8c"
+          ],
+          "scores": [
+            0.42857,
+            0.35714,
+            0.35714,
+            0.28571,
+            0.21429,
+            0.21429,
+            0.21429,
+            0.21429
+          ]
+        }
+      },
+      {
+        "id": "industry-discussion",
+        "language": "en",
+        "modality": "text",
+        "query": "A three-hour discussion bringing technology industry leaders together",
+        "relevant_items": [
+          "writing-5"
+        ],
+        "embedding_latency_ms": 509.399,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "writing-5",
+            "mJnEsQbqnS4",
+            "writing-2",
+            "mJnEsQbqnS4",
+            "creator-profile",
+            "writing-0",
+            "writing-0",
+            "writing-3"
+          ],
+          "ranked_node_ids": [
+            "feb8f5f786a1e2751fe9b3ef8ccc32f2ba474acbda9983999a218e80b567ae8c",
+            "6438f2a36bcba61297a340a55bdb9e1f71c7f63a5ee42977036acdf87935c4ba",
+            "6339262eb588ef7dedb8a7800698b2abf449261049456b9f99b7267dbc8ee7c3",
+            "ce051a3acd8cb95d58c0275c80fd456ed14425633db4e2ced963c4b3db2f47ee",
+            "a6ccdc807510f68f4b67fdcd432deba49d2d064cd9d2f47ab1aaf7c301ea8c5c",
+            "56c671b56235372b5ef43cbe5d65dc94f94977ad079f42669ea40e57809163a1",
+            "ef7e99355217ea30d08a43149bac03387fbc0de0925588da459659bafa590d60",
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52"
+          ],
+          "scores": [
+            0.73586,
+            0.67874,
+            0.66517,
+            0.64786,
+            0.62853,
+            0.62472,
+            0.61651,
+            0.61133
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "writing-5",
+            "writing-2",
+            "creator-profile",
+            "51nWuBbf-5k",
+            "51nWuBbf-5k",
+            "writing-3",
+            "51nWuBbf-5k",
+            "writing-0"
+          ],
+          "ranked_node_ids": [
+            "feb8f5f786a1e2751fe9b3ef8ccc32f2ba474acbda9983999a218e80b567ae8c",
+            "6339262eb588ef7dedb8a7800698b2abf449261049456b9f99b7267dbc8ee7c3",
+            "a6ccdc807510f68f4b67fdcd432deba49d2d064cd9d2f47ab1aaf7c301ea8c5c",
+            "1ad38496389f41442c6f3c8f4955a44529a527d931b9f7f5fe2dd4aebf10d612",
+            "30eca0d5d12bf642821270d6486af8a371c14277cc803886210229910af2911a",
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "45a5d41424dadadf2f6fe3a8747eb400daaa7dbb898186d4d9d6505a959850be",
+            "56c671b56235372b5ef43cbe5d65dc94f94977ad079f42669ea40e57809163a1"
+          ],
+          "scores": [
+            0.77778,
+            0.22222,
+            0.22222,
+            0.11111,
+            0.11111,
+            0.11111,
+            0.11111,
+            0.11111
+          ]
+        }
+      },
+      {
+        "id": "budget-laptop",
+        "language": "en",
+        "modality": "text",
+        "query": "Laptop buying recommendations with a budget between fifty and sixty thousand rupees",
+        "relevant_items": [
+          "yFMnullCxK4"
+        ],
+        "embedding_latency_ms": 395.393,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "yFMnullCxK4",
+            "yFMnullCxK4",
+            "5pOQey52sx4",
+            "duBKXZrsKg8",
+            "duBKXZrsKg8",
+            "duBKXZrsKg8",
+            "O4b5fETdo-M",
+            "5pOQey52sx4"
+          ],
+          "ranked_node_ids": [
+            "2edffb69247ed165fa092f400889b0e2c9ef6a100cb99b936d69505243fd49bf",
+            "2491f8366d71e37c2db25b2805a977a5ac25f990d56e8c9c9f3c2fcbfd5bc506",
+            "4eadb6c4ee1cb114629a23457599a46dfcbbd6d6f3efcea96604c7cd8754875d",
+            "59d8bf5f9bde9bdeae70c8bbdcc8e5e0db8ba7c3150bd75152f9a4f1817377b7",
+            "59073b3b421338a465006ca49b544157256cbb7312f39df9010061a616ba2b21",
+            "b1e2c70bbcbf53fc55a169b42f0fd06b7c5e052f7baa0fb7591ae9a9fc7ec74b",
+            "8a6d1611de46715f12cef090d0d92aef63613437289ea34e277c47f2a1179466",
+            "59e0d3c5ffe60de5c31863f443779382e1375e9d87d9191ebdc9fe1204185054"
+          ],
+          "scores": [
+            0.80525,
+            0.79777,
+            0.66442,
+            0.66438,
+            0.65387,
+            0.6464,
+            0.64126,
+            0.63881
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 0,
+          "hit_at_3": 0,
+          "hit_at_8": 0,
+          "reciprocal_rank_at_8": 0,
+          "ranked_item_ids": [
+            "writing-3",
+            "writing-2",
+            "writing-4",
+            "writing-0",
+            "writing-0",
+            "writing-0",
+            "writing-1",
+            "creator-profile"
+          ],
+          "ranked_node_ids": [
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "6339262eb588ef7dedb8a7800698b2abf449261049456b9f99b7267dbc8ee7c3",
+            "70478c696792036ecd039c8c8df7224e15517f8d347a53caa0aef5f179848d98",
+            "ef7e99355217ea30d08a43149bac03387fbc0de0925588da459659bafa590d60",
+            "eff29968329fa46ca747ff59cfcaa0f37e337231cc7fb35206503665ac4cf7fa",
+            "56c671b56235372b5ef43cbe5d65dc94f94977ad079f42669ea40e57809163a1",
+            "8174f92954a2ea15c6675d491bebd94d34139b0be1385af4c14a36b227366feb",
+            "a6ccdc807510f68f4b67fdcd432deba49d2d064cd9d2f47ab1aaf7c301ea8c5c"
+          ],
+          "scores": [
+            0.33333,
+            0.25,
+            0.25,
+            0.25,
+            0.25,
+            0.16667,
+            0.16667,
+            0.16667
+          ]
+        }
+      },
+      {
+        "id": "budget-phone",
+        "language": "en",
+        "modality": "text",
+        "query": "Which smartphone should I buy under thirty thousand rupees?",
+        "relevant_items": [
+          "duBKXZrsKg8"
+        ],
+        "embedding_latency_ms": 475.394,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "duBKXZrsKg8",
+            "duBKXZrsKg8",
+            "duBKXZrsKg8",
+            "duBKXZrsKg8",
+            "byBIxkIl5pU",
+            "5sNR1WUgFnE",
+            "5sNR1WUgFnE",
+            "O4b5fETdo-M"
+          ],
+          "ranked_node_ids": [
+            "b1e2c70bbcbf53fc55a169b42f0fd06b7c5e052f7baa0fb7591ae9a9fc7ec74b",
+            "59d8bf5f9bde9bdeae70c8bbdcc8e5e0db8ba7c3150bd75152f9a4f1817377b7",
+            "59073b3b421338a465006ca49b544157256cbb7312f39df9010061a616ba2b21",
+            "6491fe31fc75dd86db2a2436f97b640e88a40d80f55697aa0fd5d6ed9965a39b",
+            "d166cb29b9bf3bedc60c3ceabd2293f9203d9106cb9716ee8addbbc99d35391e",
+            "9e91ea168ad32d418db0efed51a278ab81f45a90c9e9fa174b4cd1c6c872be3e",
+            "abe6297e52585a017d514491aaa29c2e7aeace19104737d13d3dad2ceb37722a",
+            "5099098e690b921c6c7c11c2ebb5131e3d6d3a35bc7dcbd20825243e50c3128f"
+          ],
+          "scores": [
+            0.79477,
+            0.79459,
+            0.78519,
+            0.78338,
+            0.70438,
+            0.70345,
+            0.69395,
+            0.69162
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 0,
+          "hit_at_3": 0,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 0.125,
+          "ranked_item_ids": [
+            "writing-3",
+            "writing-1",
+            "creator-profile",
+            "yFMnullCxK4",
+            "yFMnullCxK4",
+            "O4b5fETdo-M",
+            "writing-0",
+            "duBKXZrsKg8"
+          ],
+          "ranked_node_ids": [
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "8174f92954a2ea15c6675d491bebd94d34139b0be1385af4c14a36b227366feb",
+            "a6ccdc807510f68f4b67fdcd432deba49d2d064cd9d2f47ab1aaf7c301ea8c5c",
+            "2491f8366d71e37c2db25b2805a977a5ac25f990d56e8c9c9f3c2fcbfd5bc506",
+            "2edffb69247ed165fa092f400889b0e2c9ef6a100cb99b936d69505243fd49bf",
+            "5099098e690b921c6c7c11c2ebb5131e3d6d3a35bc7dcbd20825243e50c3128f",
+            "56c671b56235372b5ef43cbe5d65dc94f94977ad079f42669ea40e57809163a1",
+            "59073b3b421338a465006ca49b544157256cbb7312f39df9010061a616ba2b21"
+          ],
+          "scores": [
+            0.33333,
+            0.22222,
+            0.22222,
+            0.11111,
+            0.11111,
+            0.11111,
+            0.11111,
+            0.11111
+          ]
+        }
+      },
+      {
+        "id": "old-tv",
+        "language": "en",
+        "modality": "text",
+        "query": "Make an old television smart enough to stream Netflix without replacing the screen",
+        "relevant_items": [
+          "RbvPC53Xw_w"
+        ],
+        "embedding_latency_ms": 473.214,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "RbvPC53Xw_w",
+            "RbvPC53Xw_w",
+            "Ag_XxhzOxXo",
+            "Ag_XxhzOxXo",
+            "Ag_XxhzOxXo",
+            "Ag_XxhzOxXo",
+            "creator-profile",
+            "Ag_XxhzOxXo"
+          ],
+          "ranked_node_ids": [
+            "d16602f95d46765d1bd32f280ea21263779881a948a74a8f3e47d6a9ff9b1a39",
+            "fa7fa8c8e1965c43946cf08b6efa594a0367cf9d4ed642f2a9176697414d028c",
+            "4ff60a99def3175abdf28bf27b688f89e8dfda5aaccc077265ed849a88292d24",
+            "c79f902653746185bb0ce983055d20c655996d06ade53921e3e9c20d87ba745a",
+            "7e4cb4f2e82e9fbadfb7a4fd19bb18ff0701f70ef54557ae8aa959f6795489b2",
+            "5cb2213eb3f9ad41fd4dbdfb9e835e3c15b9a60f3d575a35ed6e1760f19b80b7",
+            "a6ccdc807510f68f4b67fdcd432deba49d2d064cd9d2f47ab1aaf7c301ea8c5c",
+            "f29139228034baba5daed18adf4a231aab91042b8124a4d8eb0cca200dc20c59"
+          ],
+          "scores": [
+            0.70621,
+            0.67858,
+            0.59912,
+            0.59272,
+            0.59028,
+            0.58397,
+            0.58015,
+            0.57846
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 0,
+          "hit_at_3": 0,
+          "hit_at_8": 0,
+          "reciprocal_rank_at_8": 0,
+          "ranked_item_ids": [
+            "writing-0",
+            "writing-0",
+            "writing-0",
+            "writing-1",
+            "writing-5",
+            "writing-3",
+            "writing-2",
+            "writing-4"
+          ],
+          "ranked_node_ids": [
+            "ef7e99355217ea30d08a43149bac03387fbc0de0925588da459659bafa590d60",
+            "eff29968329fa46ca747ff59cfcaa0f37e337231cc7fb35206503665ac4cf7fa",
+            "56c671b56235372b5ef43cbe5d65dc94f94977ad079f42669ea40e57809163a1",
+            "8174f92954a2ea15c6675d491bebd94d34139b0be1385af4c14a36b227366feb",
+            "feb8f5f786a1e2751fe9b3ef8ccc32f2ba474acbda9983999a218e80b567ae8c",
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "6339262eb588ef7dedb8a7800698b2abf449261049456b9f99b7267dbc8ee7c3",
+            "70478c696792036ecd039c8c8df7224e15517f8d347a53caa0aef5f179848d98"
+          ],
+          "scores": [
+            0.30769,
+            0.30769,
+            0.23077,
+            0.23077,
+            0.23077,
+            0.15385,
+            0.15385,
+            0.15385
+          ]
+        }
+      },
+      {
+        "id": "foldable-camera",
+        "language": "en",
+        "modality": "text",
+        "query": "A folding phone review that focuses on camera quality",
+        "relevant_items": [
+          "51nWuBbf-5k"
+        ],
+        "embedding_latency_ms": 427.403,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "51nWuBbf-5k",
+            "51nWuBbf-5k",
+            "51nWuBbf-5k",
+            "51nWuBbf-5k",
+            "yDgmNs4I1BE",
+            "51nWuBbf-5k",
+            "51nWuBbf-5k",
+            "yDgmNs4I1BE"
+          ],
+          "ranked_node_ids": [
+            "30eca0d5d12bf642821270d6486af8a371c14277cc803886210229910af2911a",
+            "f339dfb52b2b27a409ac12cd5540d095043fdd6ffc09b108ba2a936cd1d802d6",
+            "1ad38496389f41442c6f3c8f4955a44529a527d931b9f7f5fe2dd4aebf10d612",
+            "d629eed589e5b4cfaf9935ff678053bee66542a48b7fca9376e2712efa184625",
+            "b516cba52b8148daed5101c119eeeb17041db6bb3ed57b8112a5d64ae9600df9",
+            "45a5d41424dadadf2f6fe3a8747eb400daaa7dbb898186d4d9d6505a959850be",
+            "8d43ffdcca3c3020717a6d8281af65927c17a840320634a222ce20bb69dae79d",
+            "f41c6bfc84e9ee62d81d95897fab537c3fd4a5d591457a2b4d705a8c69c17d70"
+          ],
+          "scores": [
+            0.74352,
+            0.69598,
+            0.69314,
+            0.69014,
+            0.67911,
+            0.6769,
+            0.67636,
+            0.65902
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "51nWuBbf-5k",
+            "51nWuBbf-5k",
+            "51nWuBbf-5k",
+            "writing-0",
+            "51nWuBbf-5k",
+            "51nWuBbf-5k",
+            "writing-0",
+            "writing-0"
+          ],
+          "ranked_node_ids": [
+            "1ad38496389f41442c6f3c8f4955a44529a527d931b9f7f5fe2dd4aebf10d612",
+            "30eca0d5d12bf642821270d6486af8a371c14277cc803886210229910af2911a",
+            "45a5d41424dadadf2f6fe3a8747eb400daaa7dbb898186d4d9d6505a959850be",
+            "56c671b56235372b5ef43cbe5d65dc94f94977ad079f42669ea40e57809163a1",
+            "8d43ffdcca3c3020717a6d8281af65927c17a840320634a222ce20bb69dae79d",
+            "d629eed589e5b4cfaf9935ff678053bee66542a48b7fca9376e2712efa184625",
+            "ef7e99355217ea30d08a43149bac03387fbc0de0925588da459659bafa590d60",
+            "eff29968329fa46ca747ff59cfcaa0f37e337231cc7fb35206503665ac4cf7fa"
+          ],
+          "scores": [
+            0.33333,
+            0.33333,
+            0.33333,
+            0.33333,
+            0.33333,
+            0.33333,
+            0.33333,
+            0.33333
+          ]
+        }
+      },
+      {
+        "id": "entry-phone",
+        "language": "en",
+        "modality": "text",
+        "query": "Mivi One 5G review at around twelve thousand rupees",
+        "relevant_items": [
+          "MYxG3kPMiow"
+        ],
+        "embedding_latency_ms": 440.058,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "MYxG3kPMiow",
+            "MYxG3kPMiow",
+            "MYxG3kPMiow",
+            "MYxG3kPMiow",
+            "MYxG3kPMiow",
+            "MYxG3kPMiow",
+            "yDgmNs4I1BE",
+            "yDgmNs4I1BE"
+          ],
+          "ranked_node_ids": [
+            "3ad1d21c0bcc846b5354f2ebe4cc9f5d4f030077c4d5bafcf1dc9fcc676ad142",
+            "8381b12fada389f4e426ea82461a4d5e31cb9aa1df768b5c4d2ef6f4c161ea33",
+            "f87ffad71674390b984c6b58ee420e61e98d811de8fca87fba5964c4f6da72f4",
+            "ef5733f45bcfb95f12d872aff3aedad42764bbb5cee30a9099da121532a97449",
+            "48920f8d2568cd8fbcdb377971e1e8cec865e025902f0947703473c0418ed143",
+            "703bb800263a4839a568be0d7792428c6acc1dc386bd42ccf29c2b6a02af499f",
+            "df83c85271c4fd2e217e66e564d1d7fe9177ad0c11043e204a6520dcb94c0824",
+            "51558474787d1aead25bc08fdd72a4fd65f042d39bd422d2583c6af7d14225d4"
+          ],
+          "scores": [
+            0.81864,
+            0.81087,
+            0.79941,
+            0.79193,
+            0.78969,
+            0.78933,
+            0.68203,
+            0.68141
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "MYxG3kPMiow",
+            "MYxG3kPMiow",
+            "MYxG3kPMiow",
+            "MYxG3kPMiow",
+            "MYxG3kPMiow",
+            "MYxG3kPMiow",
+            "writing-3",
+            "writing-2"
+          ],
+          "ranked_node_ids": [
+            "3ad1d21c0bcc846b5354f2ebe4cc9f5d4f030077c4d5bafcf1dc9fcc676ad142",
+            "48920f8d2568cd8fbcdb377971e1e8cec865e025902f0947703473c0418ed143",
+            "703bb800263a4839a568be0d7792428c6acc1dc386bd42ccf29c2b6a02af499f",
+            "8381b12fada389f4e426ea82461a4d5e31cb9aa1df768b5c4d2ef6f4c161ea33",
+            "ef5733f45bcfb95f12d872aff3aedad42764bbb5cee30a9099da121532a97449",
+            "f87ffad71674390b984c6b58ee420e61e98d811de8fca87fba5964c4f6da72f4",
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "6339262eb588ef7dedb8a7800698b2abf449261049456b9f99b7267dbc8ee7c3"
+          ],
+          "scores": [
+            0.33333,
+            0.33333,
+            0.33333,
+            0.33333,
+            0.33333,
+            0.33333,
+            0.22222,
+            0.22222
+          ]
+        }
+      },
+      {
+        "id": "gaming-phone",
+        "language": "en",
+        "modality": "text",
+        "query": "An iQOO phone with an 8400mAh battery and 165Hz display",
+        "relevant_items": [
+          "zcf9JFzZKTc"
+        ],
+        "embedding_latency_ms": 427.733,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "zcf9JFzZKTc",
+            "zcf9JFzZKTc",
+            "zcf9JFzZKTc",
+            "zcf9JFzZKTc",
+            "zcf9JFzZKTc",
+            "zcf9JFzZKTc",
+            "yDgmNs4I1BE",
+            "yDgmNs4I1BE"
+          ],
+          "ranked_node_ids": [
+            "981b95f08d5316742cba96a255f046495fc910d83b7a2b1d04402218d132414a",
+            "23e8881345fb5342affcf2e9cca01e3cfdecd0d654e4b344db98d0a40822abf7",
+            "5a7f8ff53e814a15c390a87ca90df1de5796c8bd6feb5667fc5a0048d88bbf2c",
+            "9e71c50d4693fb857a390d7139c02ee16abf4fb1f6450dd5a1430b98da2b60c2",
+            "18574b0f42688e6c3e2af837b6ffa63cedea7cb20f5cafe69576aa84bb5111d9",
+            "1730d024380a4d56faa2a730c5fbcf022dc63df6caa1f1c6be0df145cbdac936",
+            "51558474787d1aead25bc08fdd72a4fd65f042d39bd422d2583c6af7d14225d4",
+            "fb2b00f8f8545776519c8a007a81f362a81e80629b202e5365a9540595b3dda8"
+          ],
+          "scores": [
+            0.77317,
+            0.76474,
+            0.76383,
+            0.73615,
+            0.73304,
+            0.72447,
+            0.71903,
+            0.69404
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "zcf9JFzZKTc",
+            "zcf9JFzZKTc",
+            "zcf9JFzZKTc",
+            "zcf9JFzZKTc",
+            "zcf9JFzZKTc",
+            "zcf9JFzZKTc",
+            "writing-0",
+            "writing-0"
+          ],
+          "ranked_node_ids": [
+            "1730d024380a4d56faa2a730c5fbcf022dc63df6caa1f1c6be0df145cbdac936",
+            "18574b0f42688e6c3e2af837b6ffa63cedea7cb20f5cafe69576aa84bb5111d9",
+            "23e8881345fb5342affcf2e9cca01e3cfdecd0d654e4b344db98d0a40822abf7",
+            "5a7f8ff53e814a15c390a87ca90df1de5796c8bd6feb5667fc5a0048d88bbf2c",
+            "981b95f08d5316742cba96a255f046495fc910d83b7a2b1d04402218d132414a",
+            "9e71c50d4693fb857a390d7139c02ee16abf4fb1f6450dd5a1430b98da2b60c2",
+            "ef7e99355217ea30d08a43149bac03387fbc0de0925588da459659bafa590d60",
+            "eff29968329fa46ca747ff59cfcaa0f37e337231cc7fb35206503665ac4cf7fa"
+          ],
+          "scores": [
+            0.33333,
+            0.33333,
+            0.33333,
+            0.33333,
+            0.33333,
+            0.33333,
+            0.33333,
+            0.33333
+          ]
+        }
+      },
+      {
+        "id": "nothing-sale",
+        "language": "en",
+        "modality": "text",
+        "query": "Nothing Phone discounts during the Flipkart Big Billion Days sale",
+        "relevant_items": [
+          "WVEMLZOCiNc"
+        ],
+        "embedding_latency_ms": 406.558,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "WVEMLZOCiNc",
+            "WVEMLZOCiNc",
+            "WVEMLZOCiNc",
+            "WVEMLZOCiNc",
+            "WVEMLZOCiNc",
+            "5pOQey52sx4",
+            "5pOQey52sx4",
+            "5pOQey52sx4"
+          ],
+          "ranked_node_ids": [
+            "4b31c650de1292d324f48b5a1c34e764f948553c5384abba7b8feafc654afdb0",
+            "6b167a0fc05f897779ece8789d25998084c489d041f9901c18e6f10d0456d760",
+            "f2a728af8f8c4f49ccdf25b228f131c5b9b682265aaf20770b2a88e617784161",
+            "ff204848d147e9ebeff145218da080c5677118ef97bb3830b7b89c3d90ac61fc",
+            "7ed3be4ecfc1ab07cc762948e7b9ae3344e20195925d4066be419ada41ffcb59",
+            "59e0d3c5ffe60de5c31863f443779382e1375e9d87d9191ebdc9fe1204185054",
+            "9d4da22e0d9acc19acc32d52f5ff8a01b3124992e47d6942c671ddde43bdb95f",
+            "4eadb6c4ee1cb114629a23457599a46dfcbbd6d6f3efcea96604c7cd8754875d"
+          ],
+          "scores": [
+            0.81577,
+            0.79821,
+            0.79153,
+            0.78419,
+            0.75939,
+            0.74629,
+            0.74507,
+            0.735
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 0,
+          "hit_at_3": 0,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 0.16666666666666666,
+          "ranked_item_ids": [
+            "5pOQey52sx4",
+            "5pOQey52sx4",
+            "5pOQey52sx4",
+            "5pOQey52sx4",
+            "5pOQey52sx4",
+            "WVEMLZOCiNc",
+            "WVEMLZOCiNc",
+            "WVEMLZOCiNc"
+          ],
+          "ranked_node_ids": [
+            "4eadb6c4ee1cb114629a23457599a46dfcbbd6d6f3efcea96604c7cd8754875d",
+            "59e0d3c5ffe60de5c31863f443779382e1375e9d87d9191ebdc9fe1204185054",
+            "6c85d7888ce4d87c8d2e7f3c4130963867b9ba5b59109c51b92f916d316c898f",
+            "9d4da22e0d9acc19acc32d52f5ff8a01b3124992e47d6942c671ddde43bdb95f",
+            "b6bb74c6c180b825eb868d135eb0d73f2ed4607694624f82fd4c021af28bc796",
+            "4b31c650de1292d324f48b5a1c34e764f948553c5384abba7b8feafc654afdb0",
+            "6b167a0fc05f897779ece8789d25998084c489d041f9901c18e6f10d0456d760",
+            "7ed3be4ecfc1ab07cc762948e7b9ae3344e20195925d4066be419ada41ffcb59"
+          ],
+          "scores": [
+            0.4,
+            0.4,
+            0.4,
+            0.4,
+            0.4,
+            0.3,
+            0.3,
+            0.3
+          ]
+        }
+      },
+      {
+        "id": "gratitude-hi",
+        "language": "hi",
+        "modality": "text",
+        "query": "डेढ़ करोड़ सब्सक्राइबर होने पर अपनी टीम और दर्शकों को धन्यवाद",
+        "relevant_items": [
+          "writing-1"
+        ],
+        "embedding_latency_ms": 407.028,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "writing-1",
+            "writing-0",
+            "writing-3",
+            "writing-2",
+            "51nWuBbf-5k",
+            "writing-0",
+            "MYxG3kPMiow",
+            "yDgmNs4I1BE"
+          ],
+          "ranked_node_ids": [
+            "8174f92954a2ea15c6675d491bebd94d34139b0be1385af4c14a36b227366feb",
+            "eff29968329fa46ca747ff59cfcaa0f37e337231cc7fb35206503665ac4cf7fa",
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "6339262eb588ef7dedb8a7800698b2abf449261049456b9f99b7267dbc8ee7c3",
+            "1ad38496389f41442c6f3c8f4955a44529a527d931b9f7f5fe2dd4aebf10d612",
+            "ef7e99355217ea30d08a43149bac03387fbc0de0925588da459659bafa590d60",
+            "703bb800263a4839a568be0d7792428c6acc1dc386bd42ccf29c2b6a02af499f",
+            "df83c85271c4fd2e217e66e564d1d7fe9177ad0c11043e204a6520dcb94c0824"
+          ],
+          "scores": [
+            0.75951,
+            0.67571,
+            0.63744,
+            0.6355,
+            0.62439,
+            0.62352,
+            0.61993,
+            0.60756
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 0,
+          "hit_at_3": 0,
+          "hit_at_8": 0,
+          "reciprocal_rank_at_8": 0,
+          "ranked_item_ids": [
+            "Ag_XxhzOxXo",
+            "MYxG3kPMiow",
+            "MYxG3kPMiow",
+            "O4b5fETdo-M",
+            "zcf9JFzZKTc",
+            "yDgmNs4I1BE",
+            "51nWuBbf-5k",
+            "WVEMLZOCiNc"
+          ],
+          "ranked_node_ids": [
+            "5cb2213eb3f9ad41fd4dbdfb9e835e3c15b9a60f3d575a35ed6e1760f19b80b7",
+            "3ad1d21c0bcc846b5354f2ebe4cc9f5d4f030077c4d5bafcf1dc9fcc676ad142",
+            "48920f8d2568cd8fbcdb377971e1e8cec865e025902f0947703473c0418ed143",
+            "fcda0e6a7d6bf472d32add078723a0266424030bf13dc47db6e91254fdce201a",
+            "18574b0f42688e6c3e2af837b6ffa63cedea7cb20f5cafe69576aa84bb5111d9",
+            "1b3022219bdfd35158fe27a95ece6cbf667e17af4665f341bbed4a3ac0f65a83",
+            "45a5d41424dadadf2f6fe3a8747eb400daaa7dbb898186d4d9d6505a959850be",
+            "4b31c650de1292d324f48b5a1c34e764f948553c5384abba7b8feafc654afdb0"
+          ],
+          "scores": [
+            0.7,
+            0.65,
+            0.65,
+            0.65,
+            0.6,
+            0.6,
+            0.6,
+            0.6
+          ]
+        }
+      },
+      {
+        "id": "team-feedback-hi",
+        "language": "hi",
+        "modality": "text",
+        "query": "कंपनी में कर्मचारियों की बात सुनना और उनकी समस्याओं पर कार्रवाई करना",
+        "relevant_items": [
+          "writing-2"
+        ],
+        "embedding_latency_ms": 395.306,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "writing-2",
+            "writing-3",
+            "writing-0",
+            "Ag_XxhzOxXo",
+            "writing-0",
+            "WVEMLZOCiNc",
+            "Ag_XxhzOxXo",
+            "MYxG3kPMiow"
+          ],
+          "ranked_node_ids": [
+            "6339262eb588ef7dedb8a7800698b2abf449261049456b9f99b7267dbc8ee7c3",
+            "3d7d543495adc8ce437ad8d4008ccf0aa490ed24c2a3597ab06ff59aa10f5b52",
+            "eff29968329fa46ca747ff59cfcaa0f37e337231cc7fb35206503665ac4cf7fa",
+            "5cb2213eb3f9ad41fd4dbdfb9e835e3c15b9a60f3d575a35ed6e1760f19b80b7",
+            "ef7e99355217ea30d08a43149bac03387fbc0de0925588da459659bafa590d60",
+            "7ed3be4ecfc1ab07cc762948e7b9ae3344e20195925d4066be419ada41ffcb59",
+            "f29139228034baba5daed18adf4a231aab91042b8124a4d8eb0cca200dc20c59",
+            "703bb800263a4839a568be0d7792428c6acc1dc386bd42ccf29c2b6a02af499f"
+          ],
+          "scores": [
+            0.70133,
+            0.59045,
+            0.58581,
+            0.5803,
+            0.56863,
+            0.55872,
+            0.55837,
+            0.55674
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 0,
+          "hit_at_3": 0,
+          "hit_at_8": 0,
+          "reciprocal_rank_at_8": 0,
+          "ranked_item_ids": [
+            "Ag_XxhzOxXo",
+            "Ag_XxhzOxXo",
+            "MYxG3kPMiow",
+            "WVEMLZOCiNc",
+            "Ag_XxhzOxXo",
+            "zcf9JFzZKTc",
+            "O4b5fETdo-M",
+            "zcf9JFzZKTc"
+          ],
+          "ranked_node_ids": [
+            "5cb2213eb3f9ad41fd4dbdfb9e835e3c15b9a60f3d575a35ed6e1760f19b80b7",
+            "f29139228034baba5daed18adf4a231aab91042b8124a4d8eb0cca200dc20c59",
+            "48920f8d2568cd8fbcdb377971e1e8cec865e025902f0947703473c0418ed143",
+            "4b31c650de1292d324f48b5a1c34e764f948553c5384abba7b8feafc654afdb0",
+            "4ff60a99def3175abdf28bf27b688f89e8dfda5aaccc077265ed849a88292d24",
+            "981b95f08d5316742cba96a255f046495fc910d83b7a2b1d04402218d132414a",
+            "fcda0e6a7d6bf472d32add078723a0266424030bf13dc47db6e91254fdce201a",
+            "1730d024380a4d56faa2a730c5fbcf022dc63df6caa1f1c6be0df145cbdac936"
+          ],
+          "scores": [
+            0.68421,
+            0.68421,
+            0.63158,
+            0.63158,
+            0.63158,
+            0.63158,
+            0.63158,
+            0.57895
+          ]
+        }
+      },
+      {
+        "id": "budget-laptop-hi",
+        "language": "hi",
+        "modality": "text",
+        "query": "पचास से साठ हजार रुपये में कौन सा लैपटॉप खरीदें",
+        "relevant_items": [
+          "yFMnullCxK4"
+        ],
+        "embedding_latency_ms": 478.03,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "yFMnullCxK4",
+            "yFMnullCxK4",
+            "duBKXZrsKg8",
+            "duBKXZrsKg8",
+            "5pOQey52sx4",
+            "byBIxkIl5pU",
+            "duBKXZrsKg8",
+            "duBKXZrsKg8"
+          ],
+          "ranked_node_ids": [
+            "2edffb69247ed165fa092f400889b0e2c9ef6a100cb99b936d69505243fd49bf",
+            "2491f8366d71e37c2db25b2805a977a5ac25f990d56e8c9c9f3c2fcbfd5bc506",
+            "59d8bf5f9bde9bdeae70c8bbdcc8e5e0db8ba7c3150bd75152f9a4f1817377b7",
+            "59073b3b421338a465006ca49b544157256cbb7312f39df9010061a616ba2b21",
+            "4eadb6c4ee1cb114629a23457599a46dfcbbd6d6f3efcea96604c7cd8754875d",
+            "1c38c3493b9ce54d1c97d8b5a47d8372018b0f04d251cb29e9cfd49021d42dfb",
+            "b1e2c70bbcbf53fc55a169b42f0fd06b7c5e052f7baa0fb7591ae9a9fc7ec74b",
+            "6491fe31fc75dd86db2a2436f97b640e88a40d80f55697aa0fd5d6ed9965a39b"
+          ],
+          "scores": [
+            0.78872,
+            0.77941,
+            0.67329,
+            0.65324,
+            0.6526,
+            0.64423,
+            0.64095,
+            0.63472
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 0,
+          "hit_at_3": 0,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 0.16666666666666666,
+          "ranked_item_ids": [
+            "5pOQey52sx4",
+            "zcf9JFzZKTc",
+            "yDgmNs4I1BE",
+            "byBIxkIl5pU",
+            "zcf9JFzZKTc",
+            "yFMnullCxK4",
+            "duBKXZrsKg8",
+            "Ag_XxhzOxXo"
+          ],
+          "ranked_node_ids": [
+            "4eadb6c4ee1cb114629a23457599a46dfcbbd6d6f3efcea96604c7cd8754875d",
+            "1730d024380a4d56faa2a730c5fbcf022dc63df6caa1f1c6be0df145cbdac936",
+            "1b3022219bdfd35158fe27a95ece6cbf667e17af4665f341bbed4a3ac0f65a83",
+            "1c38c3493b9ce54d1c97d8b5a47d8372018b0f04d251cb29e9cfd49021d42dfb",
+            "23e8881345fb5342affcf2e9cca01e3cfdecd0d654e4b344db98d0a40822abf7",
+            "2edffb69247ed165fa092f400889b0e2c9ef6a100cb99b936d69505243fd49bf",
+            "59073b3b421338a465006ca49b544157256cbb7312f39df9010061a616ba2b21",
+            "5cb2213eb3f9ad41fd4dbdfb9e835e3c15b9a60f3d575a35ed6e1760f19b80b7"
+          ],
+          "scores": [
+            0.71429,
+            0.64286,
+            0.64286,
+            0.64286,
+            0.64286,
+            0.64286,
+            0.64286,
+            0.64286
+          ]
+        }
+      },
+      {
+        "id": "old-tv-hi",
+        "language": "hi",
+        "modality": "text",
+        "query": "पुराने टीवी पर नेटफ्लिक्स चलाने का सस्ता तरीका",
+        "relevant_items": [
+          "RbvPC53Xw_w"
+        ],
+        "embedding_latency_ms": 431.971,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "RbvPC53Xw_w",
+            "RbvPC53Xw_w",
+            "byBIxkIl5pU",
+            "Ag_XxhzOxXo",
+            "Ag_XxhzOxXo",
+            "Ag_XxhzOxXo",
+            "Ag_XxhzOxXo",
+            "WVEMLZOCiNc"
+          ],
+          "ranked_node_ids": [
+            "d16602f95d46765d1bd32f280ea21263779881a948a74a8f3e47d6a9ff9b1a39",
+            "fa7fa8c8e1965c43946cf08b6efa594a0367cf9d4ed642f2a9176697414d028c",
+            "1c38c3493b9ce54d1c97d8b5a47d8372018b0f04d251cb29e9cfd49021d42dfb",
+            "5cb2213eb3f9ad41fd4dbdfb9e835e3c15b9a60f3d575a35ed6e1760f19b80b7",
+            "7e4cb4f2e82e9fbadfb7a4fd19bb18ff0701f70ef54557ae8aa959f6795489b2",
+            "f29139228034baba5daed18adf4a231aab91042b8124a4d8eb0cca200dc20c59",
+            "c79f902653746185bb0ce983055d20c655996d06ade53921e3e9c20d87ba745a",
+            "7ed3be4ecfc1ab07cc762948e7b9ae3344e20195925d4066be419ada41ffcb59"
+          ],
+          "scores": [
+            0.72143,
+            0.69508,
+            0.61054,
+            0.60462,
+            0.60068,
+            0.59764,
+            0.59437,
+            0.59345
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 0,
+          "hit_at_3": 0,
+          "hit_at_8": 0,
+          "reciprocal_rank_at_8": 0,
+          "ranked_item_ids": [
+            "5pOQey52sx4",
+            "Ag_XxhzOxXo",
+            "Ag_XxhzOxXo",
+            "zcf9JFzZKTc",
+            "51nWuBbf-5k",
+            "MYxG3kPMiow",
+            "zcf9JFzZKTc",
+            "5pOQey52sx4"
+          ],
+          "ranked_node_ids": [
+            "59e0d3c5ffe60de5c31863f443779382e1375e9d87d9191ebdc9fe1204185054",
+            "5cb2213eb3f9ad41fd4dbdfb9e835e3c15b9a60f3d575a35ed6e1760f19b80b7",
+            "f29139228034baba5daed18adf4a231aab91042b8124a4d8eb0cca200dc20c59",
+            "18574b0f42688e6c3e2af837b6ffa63cedea7cb20f5cafe69576aa84bb5111d9",
+            "30eca0d5d12bf642821270d6486af8a371c14277cc803886210229910af2911a",
+            "48920f8d2568cd8fbcdb377971e1e8cec865e025902f0947703473c0418ed143",
+            "5a7f8ff53e814a15c390a87ca90df1de5796c8bd6feb5667fc5a0048d88bbf2c",
+            "6c85d7888ce4d87c8d2e7f3c4130963867b9ba5b59109c51b92f916d316c898f"
+          ],
+          "scores": [
+            0.85714,
+            0.85714,
+            0.85714,
+            0.78571,
+            0.78571,
+            0.78571,
+            0.78571,
+            0.78571
+          ]
+        }
+      },
+      {
+        "id": "thumbnail-foldable",
+        "language": "en",
+        "modality": "image",
+        "query": "Thumbnail reference for a vivo folding smartphone camera review",
+        "relevant_items": [
+          "51nWuBbf-5k"
+        ],
+        "embedding_latency_ms": 545.875,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "51nWuBbf-5k",
+            "yDgmNs4I1BE",
+            "zcf9JFzZKTc",
+            "duBKXZrsKg8",
+            "Ag_XxhzOxXo",
+            "5pOQey52sx4",
+            "mJnEsQbqnS4",
+            "O4b5fETdo-M"
+          ],
+          "ranked_node_ids": [
+            "e688df2dc6700e44dd9aab3fde0fb4d46b16b4722a2d295e151c287ac2ea9753",
+            "3b5ced89c24bb196fcc65040a0dc9203a8e79c875e10300b7109e71b7eccc637",
+            "037eabc951995812e2165be21e0a0be409494fb32ed102a7493e7d1abbf975f4",
+            "a6b5221334743b4cbe3cfaaf88795ade3734d9f63e0af6f3e9f2d5c2f37632e5",
+            "1696ff63f2b897829fa41c1462a42d456b1705dac2159d0a3784351c8d99a857",
+            "cb86d2681394bdc89f2b7c57d8b8239ee00d794ae66a091d34a151dcc712ef17",
+            "7f1377235a818a83ae3086914f615aca9a68cb2b671396645fd152ebe1314bbb",
+            "2d88cd1c1df600d983b0cb9232c9626a6af2083750d51446c9f2128565049b75"
+          ],
+          "scores": [
+            0.66659,
+            0.62536,
+            0.58344,
+            0.56367,
+            0.56304,
+            0.54255,
+            0.53944,
+            0.53379
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "51nWuBbf-5k",
+            "yDgmNs4I1BE",
+            "zcf9JFzZKTc",
+            "yFMnullCxK4",
+            "Ag_XxhzOxXo",
+            "O4b5fETdo-M",
+            "byBIxkIl5pU",
+            "mJnEsQbqnS4"
+          ],
+          "ranked_node_ids": [
+            "e688df2dc6700e44dd9aab3fde0fb4d46b16b4722a2d295e151c287ac2ea9753",
+            "3b5ced89c24bb196fcc65040a0dc9203a8e79c875e10300b7109e71b7eccc637",
+            "037eabc951995812e2165be21e0a0be409494fb32ed102a7493e7d1abbf975f4",
+            "0decfc2d4d2a1899f7b1f49033109e72cde3b173ce885f06360bb997a43b6b83",
+            "1696ff63f2b897829fa41c1462a42d456b1705dac2159d0a3784351c8d99a857",
+            "2d88cd1c1df600d983b0cb9232c9626a6af2083750d51446c9f2128565049b75",
+            "743657efff4430dfae9ef5ad4c5de44ac9e4797a84f305c011a092ec9d573e5e",
+            "7f1377235a818a83ae3086914f615aca9a68cb2b671396645fd152ebe1314bbb"
+          ],
+          "scores": [
+            0.44444,
+            0.33333,
+            0.11111,
+            0.11111,
+            0.11111,
+            0.11111,
+            0.11111,
+            0.11111
+          ]
+        }
+      },
+      {
+        "id": "thumbnail-laptop",
+        "language": "en",
+        "modality": "image",
+        "query": "Thumbnail reference for affordable laptop buying advice",
+        "relevant_items": [
+          "yFMnullCxK4"
+        ],
+        "embedding_latency_ms": 418.183,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "yFMnullCxK4",
+            "Ag_XxhzOxXo",
+            "byBIxkIl5pU",
+            "duBKXZrsKg8",
+            "mJnEsQbqnS4",
+            "O4b5fETdo-M",
+            "5pOQey52sx4",
+            "51nWuBbf-5k"
+          ],
+          "ranked_node_ids": [
+            "0decfc2d4d2a1899f7b1f49033109e72cde3b173ce885f06360bb997a43b6b83",
+            "1696ff63f2b897829fa41c1462a42d456b1705dac2159d0a3784351c8d99a857",
+            "743657efff4430dfae9ef5ad4c5de44ac9e4797a84f305c011a092ec9d573e5e",
+            "a6b5221334743b4cbe3cfaaf88795ade3734d9f63e0af6f3e9f2d5c2f37632e5",
+            "7f1377235a818a83ae3086914f615aca9a68cb2b671396645fd152ebe1314bbb",
+            "2d88cd1c1df600d983b0cb9232c9626a6af2083750d51446c9f2128565049b75",
+            "cb86d2681394bdc89f2b7c57d8b8239ee00d794ae66a091d34a151dcc712ef17",
+            "e688df2dc6700e44dd9aab3fde0fb4d46b16b4722a2d295e151c287ac2ea9753"
+          ],
+          "scores": [
+            0.65374,
+            0.57618,
+            0.57186,
+            0.56098,
+            0.55834,
+            0.55437,
+            0.5539,
+            0.53694
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 0,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 0.5,
+          "ranked_item_ids": [
+            "zcf9JFzZKTc",
+            "yFMnullCxK4",
+            "Ag_XxhzOxXo",
+            "O4b5fETdo-M",
+            "yDgmNs4I1BE",
+            "byBIxkIl5pU",
+            "mJnEsQbqnS4",
+            "duBKXZrsKg8"
+          ],
+          "ranked_node_ids": [
+            "037eabc951995812e2165be21e0a0be409494fb32ed102a7493e7d1abbf975f4",
+            "0decfc2d4d2a1899f7b1f49033109e72cde3b173ce885f06360bb997a43b6b83",
+            "1696ff63f2b897829fa41c1462a42d456b1705dac2159d0a3784351c8d99a857",
+            "2d88cd1c1df600d983b0cb9232c9626a6af2083750d51446c9f2128565049b75",
+            "3b5ced89c24bb196fcc65040a0dc9203a8e79c875e10300b7109e71b7eccc637",
+            "743657efff4430dfae9ef5ad4c5de44ac9e4797a84f305c011a092ec9d573e5e",
+            "7f1377235a818a83ae3086914f615aca9a68cb2b671396645fd152ebe1314bbb",
+            "a6b5221334743b4cbe3cfaaf88795ade3734d9f63e0af6f3e9f2d5c2f37632e5"
+          ],
+          "scores": [
+            0.14286,
+            0.14286,
+            0.14286,
+            0.14286,
+            0.14286,
+            0.14286,
+            0.14286,
+            0.14286
+          ]
+        }
+      },
+      {
+        "id": "thumbnail-gaming",
+        "language": "en",
+        "modality": "image",
+        "query": "Thumbnail reference for an iQOO gaming phone unboxing",
+        "relevant_items": [
+          "zcf9JFzZKTc"
+        ],
+        "embedding_latency_ms": 408.628,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "zcf9JFzZKTc",
+            "yDgmNs4I1BE",
+            "51nWuBbf-5k",
+            "Ag_XxhzOxXo",
+            "duBKXZrsKg8",
+            "5pOQey52sx4",
+            "mJnEsQbqnS4",
+            "byBIxkIl5pU"
+          ],
+          "ranked_node_ids": [
+            "037eabc951995812e2165be21e0a0be409494fb32ed102a7493e7d1abbf975f4",
+            "3b5ced89c24bb196fcc65040a0dc9203a8e79c875e10300b7109e71b7eccc637",
+            "e688df2dc6700e44dd9aab3fde0fb4d46b16b4722a2d295e151c287ac2ea9753",
+            "1696ff63f2b897829fa41c1462a42d456b1705dac2159d0a3784351c8d99a857",
+            "a6b5221334743b4cbe3cfaaf88795ade3734d9f63e0af6f3e9f2d5c2f37632e5",
+            "cb86d2681394bdc89f2b7c57d8b8239ee00d794ae66a091d34a151dcc712ef17",
+            "7f1377235a818a83ae3086914f615aca9a68cb2b671396645fd152ebe1314bbb",
+            "743657efff4430dfae9ef5ad4c5de44ac9e4797a84f305c011a092ec9d573e5e"
+          ],
+          "scores": [
+            0.68044,
+            0.63403,
+            0.60532,
+            0.59594,
+            0.59311,
+            0.56684,
+            0.5657,
+            0.56128
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "zcf9JFzZKTc",
+            "Ag_XxhzOxXo",
+            "yDgmNs4I1BE",
+            "51nWuBbf-5k",
+            "yFMnullCxK4",
+            "O4b5fETdo-M",
+            "byBIxkIl5pU",
+            "mJnEsQbqnS4"
+          ],
+          "ranked_node_ids": [
+            "037eabc951995812e2165be21e0a0be409494fb32ed102a7493e7d1abbf975f4",
+            "1696ff63f2b897829fa41c1462a42d456b1705dac2159d0a3784351c8d99a857",
+            "3b5ced89c24bb196fcc65040a0dc9203a8e79c875e10300b7109e71b7eccc637",
+            "e688df2dc6700e44dd9aab3fde0fb4d46b16b4722a2d295e151c287ac2ea9753",
+            "0decfc2d4d2a1899f7b1f49033109e72cde3b173ce885f06360bb997a43b6b83",
+            "2d88cd1c1df600d983b0cb9232c9626a6af2083750d51446c9f2128565049b75",
+            "743657efff4430dfae9ef5ad4c5de44ac9e4797a84f305c011a092ec9d573e5e",
+            "7f1377235a818a83ae3086914f615aca9a68cb2b671396645fd152ebe1314bbb"
+          ],
+          "scores": [
+            0.375,
+            0.25,
+            0.25,
+            0.25,
+            0.125,
+            0.125,
+            0.125,
+            0.125
+          ]
+        }
+      },
+      {
+        "id": "thumbnail-budget",
+        "language": "en",
+        "modality": "image",
+        "query": "Thumbnail reference for the best smartphones under thirty thousand rupees",
+        "relevant_items": [
+          "duBKXZrsKg8"
+        ],
+        "embedding_latency_ms": 447.358,
+        "semantic": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "duBKXZrsKg8",
+            "O4b5fETdo-M",
+            "5pOQey52sx4",
+            "yFMnullCxK4",
+            "mJnEsQbqnS4",
+            "byBIxkIl5pU",
+            "yDgmNs4I1BE",
+            "zcf9JFzZKTc"
+          ],
+          "ranked_node_ids": [
+            "a6b5221334743b4cbe3cfaaf88795ade3734d9f63e0af6f3e9f2d5c2f37632e5",
+            "2d88cd1c1df600d983b0cb9232c9626a6af2083750d51446c9f2128565049b75",
+            "cb86d2681394bdc89f2b7c57d8b8239ee00d794ae66a091d34a151dcc712ef17",
+            "0decfc2d4d2a1899f7b1f49033109e72cde3b173ce885f06360bb997a43b6b83",
+            "7f1377235a818a83ae3086914f615aca9a68cb2b671396645fd152ebe1314bbb",
+            "743657efff4430dfae9ef5ad4c5de44ac9e4797a84f305c011a092ec9d573e5e",
+            "3b5ced89c24bb196fcc65040a0dc9203a8e79c875e10300b7109e71b7eccc637",
+            "037eabc951995812e2165be21e0a0be409494fb32ed102a7493e7d1abbf975f4"
+          ],
+          "scores": [
+            0.7055,
+            0.62503,
+            0.61959,
+            0.61632,
+            0.61377,
+            0.60604,
+            0.60329,
+            0.60246
+          ]
+        },
+        "lexical": {
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "hit_at_8": 1,
+          "reciprocal_rank_at_8": 1.0,
+          "ranked_item_ids": [
+            "duBKXZrsKg8",
+            "yFMnullCxK4",
+            "51nWuBbf-5k",
+            "zcf9JFzZKTc",
+            "Ag_XxhzOxXo",
+            "O4b5fETdo-M",
+            "yDgmNs4I1BE",
+            "byBIxkIl5pU"
+          ],
+          "ranked_node_ids": [
+            "a6b5221334743b4cbe3cfaaf88795ade3734d9f63e0af6f3e9f2d5c2f37632e5",
+            "0decfc2d4d2a1899f7b1f49033109e72cde3b173ce885f06360bb997a43b6b83",
+            "e688df2dc6700e44dd9aab3fde0fb4d46b16b4722a2d295e151c287ac2ea9753",
+            "037eabc951995812e2165be21e0a0be409494fb32ed102a7493e7d1abbf975f4",
+            "1696ff63f2b897829fa41c1462a42d456b1705dac2159d0a3784351c8d99a857",
+            "2d88cd1c1df600d983b0cb9232c9626a6af2083750d51446c9f2128565049b75",
+            "3b5ced89c24bb196fcc65040a0dc9203a8e79c875e10300b7109e71b7eccc637",
+            "743657efff4430dfae9ef5ad4c5de44ac9e4797a84f305c011a092ec9d573e5e"
+          ],
+          "scores": [
+            0.4,
+            0.3,
+            0.2,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1
+          ]
+        }
+      }
+    ]
+  },
+  "media": [
+    {
+      "file": "tech_review.mp4",
+      "sha256": "2c9b7631418c80a8c84d29bdb878a2434a1c608b3787f645fcbfd977ee634e01",
+      "bytes": 26348363,
+      "metadata": [
+        1280,
+        640,
+        318252
+      ],
+      "two_probes": {
+        "n": 7,
+        "median_ms": 108.8787,
+        "p95_ms": 109.3371,
+        "samples_ms": [
+          106.7096,
+          107.4375,
+          108.8787,
+          109.5039,
+          108.9043,
+          107.4019,
+          108.948
+        ]
+      },
+      "one_probe": {
+        "n": 7,
+        "median_ms": 54.1484,
+        "p95_ms": 55.8937,
+        "samples_ms": [
+          54.8994,
+          53.8166,
+          56.3054,
+          54.9332,
+          54.1484,
+          53.8747,
+          53.7041
+        ]
+      },
+      "median_reduction_fraction": 0.502672
+    },
+    {
+      "file": "explainer.mp4",
+      "sha256": "925ff4b22fced0902f58801127cb8ec5b17a9e6d5d0ced2ec7cfc7f0df39ec96",
+      "bytes": 40415006,
+      "metadata": [
+        1280,
+        720,
+        538122
+      ],
+      "two_probes": {
+        "n": 7,
+        "median_ms": 110.1273,
+        "p95_ms": 110.3746,
+        "samples_ms": [
+          110.1373,
+          109.7729,
+          110.3769,
+          110.1273,
+          109.8982,
+          110.3692,
+          109.1852
+        ]
+      },
+      "one_probe": {
+        "n": 7,
+        "median_ms": 55.1843,
+        "p95_ms": 56.3701,
+        "samples_ms": [
+          54.579,
+          55.2347,
+          54.5225,
+          54.4576,
+          55.6649,
+          55.1843,
+          56.6723
+        ]
+      },
+      "median_reduction_fraction": 0.498904
+    },
+    {
+      "file": "hindi_education.mp4",
+      "sha256": "c0b339c1374c9ef5f98e388b279adbbc0dd628f3b7c5d0d530dde9b7b2cd153d",
+      "bytes": 12330227,
+      "metadata": [
+        1280,
+        720,
+        242927
+      ],
+      "two_probes": {
+        "n": 7,
+        "median_ms": 109.9416,
+        "p95_ms": 113.5409,
+        "samples_ms": [
+          109.8702,
+          111.6554,
+          114.3489,
+          109.4562,
+          110.453,
+          109.5401,
+          109.9416
+        ]
+      },
+      "one_probe": {
+        "n": 7,
+        "median_ms": 55.4011,
+        "p95_ms": 59.0084,
+        "samples_ms": [
+          55.4011,
+          54.819,
+          59.2634,
+          58.4133,
+          54.9286,
+          55.7331,
+          55.0859
+        ]
+      },
+      "median_reduction_fraction": 0.496086
+    }
+  ],
+  "web_initial_scripts": [
+    {
+      "route_html": "index.html",
+      "script_count": 17,
+      "raw_bytes": 984730,
+      "gzip_bytes": 307126,
+      "scope": "scripts referenced by route HTML; excludes subsequently loaded chunks"
+    },
+    {
+      "route_html": "dashboard.html",
+      "script_count": 26,
+      "raw_bytes": 1340128,
+      "gzip_bytes": 427466,
+      "scope": "scripts referenced by route HTML; excludes subsequently loaded chunks"
+    },
+    {
+      "route_html": "projects.html",
+      "script_count": 26,
+      "raw_bytes": 1339762,
+      "gzip_bytes": 427299,
+      "scope": "scripts referenced by route HTML; excludes subsequently loaded chunks"
+    },
+    {
+      "route_html": "projects/view.html",
+      "script_count": 24,
+      "raw_bytes": 1291328,
+      "gzip_bytes": 410222,
+      "scope": "scripts referenced by route HTML; excludes subsequently loaded chunks"
+    },
+    {
+      "route_html": "onboarding.html",
+      "script_count": 22,
+      "raw_bytes": 1137898,
+      "gzip_bytes": 360206,
+      "scope": "scripts referenced by route HTML; excludes subsequently loaded chunks"
+    }
+  ],
+  "web_bundler": "turbopack"
+}

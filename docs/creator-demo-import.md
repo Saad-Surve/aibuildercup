@@ -1,10 +1,15 @@
 # Import a creator folder for the demo
 
-This operator command feeds supplied content into draft generation and thumbnail references
-without a creator's OAuth login. It writes to real Firestore and Cloud Storage using your
-normal Application Default Credentials. It does not create a publishing connection or run
-paid models. The demo user still signs into the app normally (or through the existing demo
-session); its read-only restrictions remain enforced.
+This operator command validates and stores supplied creator material without an OAuth
+login. Applying an import writes to real Firestore and Cloud Storage using Application
+Default Credentials; validation/dry runs do not. Import does not run models or create a
+publishing connection. The demo's API write restrictions remain enforced.
+
+**Current source selection:** the runtime uses synced YouTube content when
+`CREATOR_PRESET_ENABLED=false`. When true, it installs the configured precomputed preset,
+which takes precedence over a manually imported folder. To serve a new supplied corpus,
+publish/configure it using [the preset workflow](creator-public-corpus.md#collect-and-publish).
+The commands below manage owned import records; importing alone does not switch runtime retrieval.
 
 ## Folder
 
@@ -46,7 +51,7 @@ Preview an import for an existing app account:
 uv run python scripts/import_creator.py import /absolute/path/to/creator-folder --uid DEMO_UID
 ```
 
-Import and select this library for the account:
+Import and record its active revision for the account:
 
 ```bash
 uv run python scripts/import_creator.py import /absolute/path/to/creator-folder --uid DEMO_UID --apply
@@ -58,8 +63,9 @@ account can be populated by this operator command; API write restrictions do not
 
 Reimporting unchanged material reuses its content revision. Changed content becomes a new
 revision; only the selected revision is retrieved. Previous revisions remain until removal.
-Different bundles can coexist; the last successfully imported bundle is active. No real
-connections are changed. Clear/remove the active import to use live channel examples again.
+Different bundles can coexist; the last successfully imported bundle is marked active.
+No real connections are changed. The configured preset can replace that selection on the
+next library read. Disable the preset flag to return to synced channel examples.
 
 Preview removal, then explicitly delete it:
 
@@ -68,28 +74,31 @@ uv run python scripts/import_creator.py remove --uid DEMO_UID --bundle-id creato
 uv run python scripts/import_creator.py remove --uid DEMO_UID --bundle-id creator-demo --apply
 ```
 
-Removal covers all revisions and uploaded originals and clears active selection. Account
-deletion also covers everything. Generated project/draft history remains until that project
-is deleted; old thumbnail previews disappear gracefully when their original was removed.
+Removal covers all Firestore revisions and current uploaded objects and clears active
+selection. Account deletion covers the owned tree/prefix too. Noncurrent Storage generations
+follow bucket lifecycle retention. Generated project/draft history remains until that
+project is deleted; old thumbnail previews disappear gracefully when the original is removed.
 
-## What this enables now
+## How imported material is used
 
-- Draft generation receives creator bio, video transcript examples and authored writing.
-- Thumbnail generation can read imported creator thumbnails as image references.
+- When selected by the preset workflow, draft generation receives creator bio, video
+  transcript examples and authored writing.
+- Thumbnail generation can retrieve imported creator thumbnails as image references.
 - Draft context API identifies `sourceType: folder_import`; it returns written examples and
   short-lived image URLs without persisting signed URLs in Firestore.
 - It does not require a public seed endpoint or pretend that supplied data came from OAuth.
 
-The onboarding connection/research flow and embedding index remain separate subsequent work.
-This command supplies their future collection input; it does not claim to scrape or infer a
-complete persona yet. Source selection is bounded lexical retrieval until embeddings land.
+Onboarding research and semantic indexing are implemented separate flows. Import neither
+scrapes public sources nor infers a persona. Indexed retrieval uses cosine similarity;
+the lexical fallback remains available when semantic retrieval cannot run.
 
 ## Semantic library and demo walkthrough
 
-After applying a folder, sign in to its account and open **Creator library** (`/library`)
+With the prepared preset enabled, sign in and open **Creator library** (`/library`)
 from the sidebar or Settings. The import is clearly labeled; it does not become an OAuth
-connection. **Index library** creates the next batch of up to 16 Gemini embeddings. Continue
-until the coverage reads ready. The map plots actual text and thumbnail vectors; click a
+connection. The preset already supplies validated vectors. For synced-channel content,
+**Index library** creates the next batch of up to 16 Gemini embeddings; continue until
+coverage reads ready. The map plots actual text and thumbnail vectors; click a
 point or row to inspect its source passage. Search with a phrase to retrieve matching writing,
 transcripts and images. Draft generation automatically retrieves matching passages from an
 indexed library, with word matching as a fallback. Original videos are still uploaded through
@@ -100,8 +109,8 @@ endpoint. No video/audio embeddings or crawler calls run during import. Index an
 calls share a 200-call per-user daily allowance, including failed attempts. GET/map browsing
 never calls a model. Six text passages per source, up to ten thumbnails and 300 total nodes
 enter the demo index; the page reports omitted passages. Unchanged content/model settings
-reuse the saved vectors. Reimport changed material, sync a channel, or remove a bundle to
-change the active sources; old revisions never enter current retrieval.
+reuse the saved vectors. Republish/reconfigure a changed preset, or disable it and sync
+a channel to change current retrieval; old revisions never enter current retrieval.
 
 Account setup now offers the same YouTube connection controls before the profile questions,
 with public links alongside them. OAuth returns to that step with the links saved. Public-link

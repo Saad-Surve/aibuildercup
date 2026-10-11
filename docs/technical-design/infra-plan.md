@@ -1,513 +1,90 @@
-# Creator Helper Studio — Infrastructure, Terraform, Users, and IAM Plan
+# Resonance infrastructure reference
 
-## 1. Environment model
+The project is **`habeas-codus`**. [infra/RESOURCES.md](../../infra/RESOURCES.md) records
+resource names/configuration; Terraform definitions live in `infra/`. This document
+separates provisioned resources from the actual deployed runtime.
 
-Use one GCP project and one hackathon environment:
+## Regions and authentication
 
-~~~text
-creator-studio-hackathon
-~~~
+Infrastructure/Storage/Firestore/KMS/Veo use `us-central1`. STT Chirp 3 uses the `us`
+multi-region; Gemini uses configurable `VERTEX_LOCATION=global` by default. Global model
+routing is distinct from regional data storage and must not be described as all requests
+running in one regional endpoint. Services use ADC; the Cloud Run runtime service account
+supplies identity, and developers use `gcloud auth application-default login`.
 
-Use `us-central1` for every regional service:
+## Deployment
 
-~~~text
-REGION=us-central1
-~~~
+`.github/workflows/deploy.yml` filters web/backend changes. API builds publish to Artifact
+Registry and deploy `creator-studio-api`; web builds with Bun and deploys the static
+export to Firebase Hosting. GitHub Workload Identity Federation authenticates deployment
+without a long-lived service-account key. Optional YouTube OAuth secrets are attached only
+when versions exist. Repository variables can override models, demo and corpus settings.
 
-Why central1 and not east1: it is the default for Veo, Imagen, and Text-to-Speech. Speech-to-Text
-is the exception: the multilingual Chirp 3 model is GA on the `us` multi-region, not in
-`us-central1` or `us-east1`, so STT uses `us`. One region (plus that one STT exception) keeps
-Terraform and latency simple.
+The API currently uses max-instances **one**, min-instances zero, **1 GiB** memory,
+CPU available outside requests, and a 3,600-second request timeout. Transcription,
+analysis, captions, dubbing, thumbnails, packaging and publishing run within that service.
+Separate worker service accounts/subscriptions are provisioned expansion paths; they are
+not proof of independently deployed Cloud Run workers or Jobs.
 
-Do not create separate dev/prod projects or Terraform workspaces for the hackathon. Local development can use emulators, but deployed resources all belong to this single environment.
+Firebase Hosting rewrites `/api/**` to the regional API and project deep links to the
+static project shell. WebSockets use the direct Cloud Run origin. `next.config.ts` rewrites
+alone do not apply to production static hosting.
 
-## 2. Terraform repository
+## Data and events
 
-~~~text
-infra/
-├── bootstrap/
-│   ├── state-bucket.tf
-│   ├── terraform-service-account.tf
-│   └── outputs.tf
-├── modules/
-│   ├── project-services/
-│   ├── storage/
-│   ├── firestore/
-│   ├── pubsub/
-│   ├── bigquery/
-│   ├── iam/
-│   ├── secrets/
-│   ├── cloud-run/
-│   ├── cloud-run-job/
-│   ├── monitoring/
-│   └── budgets/
-├── backend.tf
-├── providers.tf
-├── main.tf
-├── variables.tf
-├── outputs.tf
-└── README.md
-~~~
-
-## 3. Bootstrap Terraform state
-
-Create the state bucket once before applying the main configuration:
-
-~~~hcl
-resource "google_storage_bucket" "terraform_state" {
-  name                        = "creator-studio-terraform-state"
-  location                    = "US-CENTRAL1"
-  uniform_bucket_level_access = true
-
-  versioning {
-    enabled = true
-  }
-
-  lifecycle_rule {
-    condition {
-      num_newer_versions = 10
-    }
-    action {
-      type = "Delete"
-    }
-  }
-}
-~~~
-
-Then configure:
-
-~~~hcl
-terraform {
-  backend "gcs" {
-    bucket = "creator-studio-terraform-state"
-    prefix = "creator-studio/hackathon"
-  }
-}
-~~~
-
-Use this single state prefix for the hackathon environment.
-
-## 4. APIs to enable
-
-~~~text
-serviceusage.googleapis.com
-iam.googleapis.com
-iamcredentials.googleapis.com
-cloudresourcemanager.googleapis.com
-run.googleapis.com
-artifactregistry.googleapis.com
-cloudbuild.googleapis.com
-storage.googleapis.com
-firestore.googleapis.com
-pubsub.googleapis.com
-bigquery.googleapis.com
-aiplatform.googleapis.com
-speech.googleapis.com
-translate.googleapis.com
-texttospeech.googleapis.com
-secretmanager.googleapis.com
-cloudkms.googleapis.com
-cloudscheduler.googleapis.com
-youtube.googleapis.com
-youtubeanalytics.googleapis.com
-~~~
-
-Enable Transcoder API only if the team chooses it instead of FFmpeg Cloud Run Jobs.
-
-## 5. Storage buckets
-
-Create separate buckets in us-central1:
-
-~~~text
-creator-studio-hackathon-media
-creator-studio-hackathon-raw-social
-creator-studio-hackathon-temp
-creator-studio-hackathon-exports
-creator-studio-hackathon-corpus
-~~~
-
-Bucket policies:
-
-- Uniform bucket-level access.
-- Public access prevention.
-- Object versioning for persona files and editable artifacts.
-- Lifecycle deletion for temporary media.
-- Retention rules based on product policy.
-- CORS policy allowing only web application origins.
-
-Object prefixes:
-
-~~~text
-users/{uid}/projects/{projectId}/source/
-users/{uid}/projects/{projectId}/transcripts/
-users/{uid}/projects/{projectId}/analysis/
-users/{uid}/projects/{projectId}/artifacts/
-users/{uid}/profile/
-corpus/global/{sourceLang}-{targetLang}/
-corpus/trap-list/{sourceLang}-{targetLang}/
-~~~
-
-## 6. Pub/Sub resources
-
-Create topics:
-
-~~~text
-video-events
-transcription-events
-analysis-events
-social-sync-events
-artifact-events
-localization-events
-~~~
-
-Create subscriptions:
-
-~~~text
-transcribe-worker-sub
-analysis-worker-sub
-social-sync-worker-sub
-media-worker-sub
-localization-worker-sub
-~~~
-
-Create dead-letter topics:
-
-~~~text
-video-events-dlq
-analysis-events-dlq
-social-sync-events-dlq
-artifact-events-dlq
-~~~
-
-Set retry policies and maximum delivery attempts. Workers must be idempotent because Pub/Sub delivery can repeat.
-
-## 7. BigQuery resources
-
-Create datasets:
-
-~~~text
-creator_studio_social
-creator_studio_ai
-creator_studio_audit
-~~~
-
-Tables:
-
-~~~text
-creator_studio_social.posts
-creator_studio_social.metrics
-creator_studio_social.comments
-creator_studio_social.audience_aggregates
-creator_studio_ai.comment_sentiment
-creator_studio_ai.agent_runs
-creator_studio_ai.glossary_terms
-creator_studio_ai.translation_traps
-creator_studio_audit.data_access_events
-~~~
-
-Configure partitioning by observation or ingestion date, clustering by owner_uid and platform, expiration for raw staging tables, and backend-only query access.
-
-## 8. Firestore setup
-
-Create a Firestore Native database in the selected region. Deploy:
-
-- Firestore security rules.
-- Composite indexes.
-- Emulator configuration for local development.
-
-Client-readable data:
-
-~~~text
-users/{uid}
-users/{uid}/projects/{projectId}
-selected transcript, analysis, artifact, and chat documents
-~~~
-
-Client-denied data:
-
-~~~text
-connections
-token references
-raw sync data
-internal job events
-~~~
-
-The API uses the Admin SDK and still performs explicit ownership checks.
-
-## 9. Human users and groups
-
-Do not grant each engineer permanent project Owner access.
-
-The owner should first collect the Google account email for each engineer. GCP IAM does not create ordinary personal Google accounts; engineers must already have Google accounts, or the owner must provision them through Google Workspace or Cloud Identity.
-
-Create Google Groups:
-
-~~~text
-creator-studio-engineers@example.com
-creator-studio-admins@example.com
-creator-studio-viewers@example.com
-~~~
-
-Add each engineer to the engineering group. Grant access through groups so membership changes do not require editing project IAM repeatedly.
-
-Suggested human access:
-
-| Group | Roles |
+| Resource | Current role |
 |---|---|
-| Engineers | Viewer, Cloud Run Developer, Artifact Registry Writer, Logs Viewer, Firebase development access |
-| Admins | Project IAM Admin or carefully scoped equivalent, Service Usage Admin, Terraform state access |
-| Viewers | Viewer, Logs Viewer |
+| `habeas-codus-media` | Browser source uploads, project outputs/evidence, personas, user imports and shared preset archive |
+| `habeas-codus-corpus` | Provisioned corpus bucket; runtime localization currently reads bundled JSON |
+| Raw-social/temp/exports buckets | Provisioned broader design; do not assume every current media path uses them |
+| Terraform state bucket | Remote state, prefix `creator-studio` |
+| Firestore Native | Owned workflow/evidence data and current channel analytics; deny-all direct client rules |
+| Pub/Sub `video-events` | Storage-finalized push to the authenticated API transcription handler |
+| Other topics/subscriptions/DLQs | Pipeline announcements and provisioned expansion infrastructure |
+| BigQuery social/AI/audit datasets | Provisioned tables; no current end-to-end analytics/audit product established |
 
-For a short hackathon, the owner may temporarily grant roles/editor in this hackathon project, but this access should be removed after the event.
+Buckets enforce uniform access/public-access prevention. Media/corpus versioning retains
+noncurrent generations, with a default 30-day lifecycle; temporary-bucket objects expire
+after seven days. The Firebase default bucket is not the app media bucket.
 
-For a small team without Google Groups, direct user bindings can be applied temporarily:
+## Security
 
-~~~bash
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="user:engineer-one@example.com" \
-  --role="roles/viewer"
+Firebase authenticates clients; the backend validates ownership and signs short-lived
+Storage URLs. Pub/Sub push verifies Google OIDC against configured audience/service account.
+Firestore rules block direct client data access. Account/project deletion uses recursive
+Firestore trees and current object-prefix deletion; noncurrent versions are not explicitly
+purged by the current adapter.
 
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="user:engineer-one@example.com" \
-  --role="roles/run.developer"
+OAuth client secrets are in Secret Manager, and persisted OAuth tokens are encrypted with
+Cloud KMS. Local development can use the configured local cipher, which is refused in
+production. Separate named service accounts document least-privilege intended lanes, while
+the current consolidated runtime necessarily needs the roles used by its in-process workers.
+No secrets belong in Git, public web variables or Terraform variable files.
 
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="user:engineer-two@example.com" \
-  --role="roles/artifactregistry.writer"
-~~~
+## Budget and scale
 
-Use the group-based approach where available. Direct bindings are acceptable for quickly onboarding the three hackathon engineers. Record each engineer's responsibility in the access register:
+`infra/budget.tf` configures a ₹8,500 budget and Pub/Sub-triggered Cloud Function that can
+detach billing at the threshold. Notification/billing latency means it is not a real-time
+hard cap. Analysis/image estimates, embedding call slots and Veo reservations provide more
+local bounds with different coverage. [Cost documentation](../costs.md) describes actual
+rates, guard limits and gaps.
 
-| Engineer | Primary responsibility | GCP access |
-|---|---|---|
-| Engineer 1 | Frontend, Firebase, project UI | Viewer, Cloud Run Developer, Firebase development access |
-| Engineer 2 | FastAPI, ADK, AI workers | Viewer, Cloud Run Developer, Vertex AI user, Logs Viewer |
-| Engineer 3 | Connectors, BigQuery, media workers | Viewer, Cloud Run Developer, BigQuery Data Editor on the hackathon dataset, Logs Viewer |
+Before increasing instances, add durable worker dispatch, distributed execution leases and
+shared realtime fan-out. Atomic job creation alone does not supply these. Before quoting
+scale, measure concurrent real uploads/reviews and backlog recovery. Managed vector indexing
+and more efficient calendar reads are subsequent changes when bounded scans no longer fit.
 
-After the event, remove temporary direct bindings and keep only group-based or role-specific access.
+## Operations
 
-## 10. Service accounts
+```bash
+cd infra
+terraform init
+terraform plan
+```
 
-Create one service account per runtime responsibility:
-
-~~~text
-creator-studio-api@project.iam.gserviceaccount.com
-creator-studio-transcribe@project.iam.gserviceaccount.com
-creator-studio-analysis@project.iam.gserviceaccount.com
-creator-studio-social-sync@project.iam.gserviceaccount.com
-creator-studio-media@project.iam.gserviceaccount.com
-creator-studio-localization@project.iam.gserviceaccount.com
-creator-studio-deployer@project.iam.gserviceaccount.com
-creator-studio-terraform@project.iam.gserviceaccount.com
-~~~
-
-## 11. IAM matrix
-
-| Service account | Required access |
-|---|---|
-| API | Firestore read/write, Storage object create/read, Pub/Sub publish, Secret Manager accessor, Vertex AI user, KMS encrypt/decrypt |
-| Transcribe | Storage read/write, Speech client, Firestore write, Pub/Sub publish/subscribe |
-| Analysis | Storage read, Firestore read/write, Vertex AI user, Pub/Sub publish/subscribe |
-| Social sync | Secret Manager accessor, KMS decrypt, BigQuery data editor, Storage object creator, Firestore connection read |
-| Media | Storage read/write, Firestore write, Pub/Sub publish/subscribe |
-| Localization | Storage read/write, Translation user, Text-to-Speech user, Vertex AI user, Firestore write |
-| Deployer | Artifact Registry writer, Cloud Run admin/developer, Service Account User on runtime accounts |
-| Terraform | Service Usage Admin, Storage admin for managed buckets, Firestore admin, Pub/Sub admin, BigQuery admin, Secret Manager admin, IAM service account admin |
-
-Use resource-level IAM wherever possible instead of project-wide roles.
-
-## 12. Secrets and encryption
-
-Create Secret Manager entries:
-
-~~~text
-youtube-oauth-client-id
-youtube-oauth-client-secret
-meta-app-id
-meta-app-secret
-session-signing-secret
-~~~
-
-Create a Cloud KMS key ring and key for user OAuth token encryption:
-
-~~~text
-creator-studio-keyring
-└── user-token-key
-~~~
-
-Do not put user refresh tokens directly into source code. Store encrypted token material in Firestore and use KMS for envelope encryption.
-
-## 13. Cloud Run services and jobs
-
-Services:
-
-~~~text
-creator-studio-web
-creator-studio-api
-~~~
-
-Jobs or workers:
-
-~~~text
-creator-studio-transcribe-job
-creator-studio-analysis-worker
-creator-studio-social-sync-job
-creator-studio-media-job
-creator-studio-localization-job
-~~~
-
-Configure minimum/maximum instances, job-specific service accounts, Secret Manager references, and strict concurrency limits for AI spend.
-
-The API must never perform long transcription or video rendering synchronously.
-
-## 14. Artifact Registry and CI/CD
-
-Create repository:
-
-~~~text
-creator-studio-containers
-~~~
-
-Pipeline:
-
-~~~text
-Pull request
-  -> lint
-  -> type check
-  -> unit tests
-  -> frontend build
-  -> backend container build
-
-main branch
-  -> build images
-  -> push Artifact Registry
-  -> terraform plan
-  -> terraform apply
-  -> deploy hackathon environment
-~~~
-
-Use the deployer service account in CI instead of a personal credential, and authenticate through
-Workload Identity Federation rather than a downloaded key (see section 18).
-
-## 15. OAuth owner setup
-
-### Firebase
-
-- Create Firebase web application.
-- Enable Google provider.
-- Add local and hackathon authorized domains.
-- Configure Firebase project access for the team.
-
-### YouTube
-
-- Configure OAuth consent screen.
-- Enable YouTube Data API and YouTube Analytics API.
-- Create a web OAuth client.
-- Add exact callback URLs.
-- Add test users.
-- Store client credentials in Secret Manager.
-
-### Meta
-
-- Create Meta developer application.
-- Add Instagram/Facebook products.
-- Create test professional accounts.
-- Configure callback URLs.
-- Request analytics/comment permissions.
-- Prepare privacy policy and data deletion callback.
-- Complete App Review only if the app is opened beyond test accounts.
-
-## 16. Observability and budgets
-
-Create alerts for:
-
-~~~text
-Cloud Run 5xx rate
-Pub/Sub dead-letter messages
-Failed Cloud Run Jobs
-Vertex AI quota errors
-Speech-to-Text failures
-BigQuery query cost
-Storage growth
-OAuth refresh failures
-~~~
-
-Create budget alerts at 50%, 80%, and 100%.
-
-Log these fields consistently:
-
-~~~text
-request_id
-owner_uid_hash
-project_id
-job_id
-event_id
-model
-prompt_version
-input_tokens
-output_tokens
-latency_ms
-error_code
-~~~
-
-Never log access tokens, refresh tokens, signed URLs, raw private video content, or full private comments.
-
-## 17. Owner execution checklist
-
-1. Collect both engineers' Google account emails (they need real accounts; Cloud Identity or Workspace if you want to create them).
-2. Create one GCP project for the hackathon and attach billing.
-3. Create the engineering and admin Google Groups, or plan temporary direct bindings.
-4. Create the Terraform state bucket and the Terraform service account.
-5. Enable the required APIs.
-6. Apply Storage, Firestore (Native, us-central1), Pub/Sub, BigQuery, KMS, Secret Manager, and IAM Terraform in us-central1.
-7. Create the Firebase application and enable Google sign-in; add localhost and the demo domain as authorized domains.
-8. **Request Veo / Imagen / GPU quota on day zero.** Approval can take days.
-9. Create the YouTube OAuth consent screen, a test channel, and test users.
-10. Create the Meta developer app and test accounts. Assume App Review will not clear in time; plan on fixtures.
-11. Add all OAuth credentials and the session secret to Secret Manager.
-12. Configure Artifact Registry and CI/CD using Workload Identity Federation (no key files).
-13. Deploy the hello-world API and web app.
-14. Verify direct Cloud Storage upload, Pub/Sub delivery, and Cloud Run worker execution.
-15. Verify Vertex AI, Speech-to-Text, Translation, and Text-to-Speech access.
-16. Run `seed.py --demo` and confirm a full demo workspace renders.
-17. Configure budgets, logs, alerts, dead-letter topics, and Cloud Run max-instance caps.
-18. Add privacy policy, terms, and deletion flow before external testing.
-
-## 18. Workload Identity Federation for CI
-
-Do not create long-lived service account keys for CI. Set up Workload Identity Federation so the
-CI provider federates into `creator-studio-deployer`:
-
-~~~text
-CI provider OIDC  ->  Workload Identity Pool  ->  creator-studio-deployer
-~~~
-
-Grant the deployer `roles/iam.workloadIdentityUser` on its own service account and nothing more.
-This removes the most common hackathon secret-leak failure mode.
-
-## 19. Quotas to request on day zero
-
-These have lead time and will silently block the demo if ignored:
-
-~~~text
-Veo video generation access / quota
-Imagen image generation quota
-Vertex AI Gemini per-region quota
-Speech-to-Text batch quota
-Cloud Run CPU / GPU quota in us-central1
-YouTube Data API daily quota (default 10,000 units is small for a full channel sync)
-~~~
-
-For YouTube specifically, cap the connector's page size and sync window, or the default quota
-will be exhausted in a single run.
-
-## 20. Cost and demo-safety controls
-
-- Budget alerts at 50%, 80%, and 100%.
-- Cloud Run max instances capped on the API and every AI worker.
-- A per-project cost meter in Firestore (`usagePeriods`) and a hard concurrency semaphore in the
-  analysis coordinator.
-- Reject an analysis run whose projected cost exceeds the project cap.
-- Veo is the most expensive feature by far (roughly $0.15 to $0.40 per second). Keep it on
-  the cost cap and enable it live only for the demo.
-- The demo runs against `seed.py --demo` data, never a real creator's private content.
+Inspect the plan before applying an authorized infrastructure change. This documentation
+work did not change Terraform, deploy services or run `apply`. Cloud Run/Firebase deployment
+configuration lives in GitHub Actions rather than a Terraform Cloud Run service resource.
+Monitor accepted model operations/retries, job errors, instance lifetime, data operations,
+output storage/egress and billing SKUs. Configured budgets/quotas are not measurements of
+actual cost, throughput or model admission reliability.

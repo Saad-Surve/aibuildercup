@@ -1,7 +1,14 @@
 # Pub/Sub Event Contract
 
-Internal only — these are not HTTP endpoints. Full detail in
-`../docs/technical-design/api-design.md` (section 16).
+Internal pipeline messages are distinct from browser WebSocket frames. See the
+[API reference](../docs/technical-design/api-design.md#internal-push-and-future-routes)
+and [runtime architecture](../docs/architecture.md#reliability-and-scale).
+
+The active transcription trigger is Cloud Storage's native `JSON_API_V1`
+`OBJECT_FINALIZE` notification, delivered through `video-events` to
+`POST /api/internal/pubsub/video-events`. It carries Storage metadata such as `name`,
+rather than the application envelope below. The handler derives ownership/project/asset
+from the validated source-object path and converges on the asset-completion job.
 
 ## Envelope
 
@@ -18,7 +25,13 @@ Internal only — these are not HTTP endpoints. Full detail in
 }
 ```
 
-## Types
+## Application types and current use
+
+The code currently publishes `analysis.requested`, `reviewer.completed`,
+`analysis.ready` and `transcript.ready`. These are best-effort announcements;
+current analysis runs through API background tasks, not a separate Pub/Sub consumer.
+The remaining mapped types below reserve the broader pipeline vocabulary. A topic or
+subscription does not establish a deployed worker.
 
 ```text
 video.uploaded
@@ -33,14 +46,19 @@ artifact.requested
 artifact.ready
 localization.requested
 localization.ready
-job.failed
 ```
+
+`job.failed` is a proposed application event with no current Pub/Sub topic mapping.
+Browser job failures are sent through `job.progress` with error/status fields.
 
 ## Rules
 
-- Every handler is idempotent. Pub/Sub delivery can repeat.
+- Handlers must tolerate repeated delivery. Atomic job creation and the current
+  process-local execution guard handle duplicate source notifications; this does not
+  guarantee exactly-once upstream model operations or billing.
 - Every event carries `ownerUid` and `projectId` when applicable.
-- Failures after max attempts go to the matching dead-letter topic.
+- Subscriptions with a configured dead-letter policy can forward messages after the
+  configured attempts. Not every provisioned subscription has that policy.
 - Never put secrets or raw private media in a payload.
 
 ---

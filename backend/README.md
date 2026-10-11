@@ -1,48 +1,60 @@
-# Creator Helper Studio — Backend
+# Resonance backend
 
-FastAPI + Google ADK backend. See `../docs/technical-design/backend-plan.md`.
+FastAPI API, bounded Gemini reviewers, creator retrieval and media workers. The current
+runtime uses Python async orchestration and Gemini function calling. Google ADK is an
+installed dependency; no ADK Runner is used in the inspected request/worker paths.
+
+[Architecture](../docs/architecture.md) · [API](../contracts/openapi.yaml) ·
+[Firestore](../contracts/firestore.md) · [Cost model](../docs/costs.md)
 
 ## Run
 
+Prerequisites: uv/Python 3.12+, Google Cloud access/ADC and FFmpeg with ffprobe.
+
 ```bash
+gcloud auth application-default login
+gcloud auth application-default set-quota-project habeas-codus
 uv sync
 cp .env.example .env
 uv run uvicorn app.main:app --reload --port 8080
 ```
 
-## Lint and types
+Local Swagger: `http://localhost:8080/docs`. API prefix: `/api`.
+Development calls live services and can incur charges. Gemini uses ADC, not a Gemini API
+key. `.env.example` is the local model configuration; `.env.deploy.example` records
+production defaults. Confirm model availability at the configured endpoint before a run.
+YouTube OAuth is optional for editing/reviewing; publishing requires a connected account.
+
+## Layout
+
+| Path | Responsibility |
+|---|---|
+| `app/api/`, `app/schemas/` | Authenticated routes, validation and typed response shapes |
+| `app/providers/` | Gemini text/image/video/embeddings, STT, TTS, translation and public-source acquisition |
+| `app/services/` | Ownership, persistence, workflow logic, retrieval and media helpers |
+| `app/agents/` | Nine specialist reviewer prompts, normalization and bounded coordinator |
+| `app/workers/` | Transcription, analysis, captions, dubbing, thumbnails, packaging and publication |
+| `app/connectors/` | YouTube Data/Analytics adapter |
+| `app/realtime/` | Project progress, subscriptions and process-local WebSocket hub |
+| `app/assets/` | Caption fonts and bundled localization corpus |
+| `scripts/` | Corpus collection/import/preset publication, user-content copying and quantitative benchmarks |
+
+Synchronous cloud I/O runs off the event loop. Job IDs are atomically created; worker
+execution locks are process-local. Keep the current one-instance deployment until durable
+dispatch/leases and shared realtime delivery are implemented. There are no mock providers.
+
+## Verify and evaluate
 
 ```bash
 uv run ruff check .
 uv run mypy app
+uv run python scripts/estimate_cost.py
 ```
 
-## Layout
+[Evaluation instructions](../evals/README.md) cover bounded live query embedding and
+cached offline replay. No test suite/testing libraries are used in this repository.
 
-```
-app/
-├── main.py          FastAPI app, middleware, error envelope
-├── config.py        Settings (pydantic-settings)
-├── dependencies.py  Auth dependency
-├── api/             Routers (health first, more to come)
-├── auth/            Firebase Admin token verification
-├── providers/       Provider interfaces (all Google SDK usage lives here)
-├── services/        Firestore, Storage, Pub/Sub wrappers
-├── agents/          ADK agents and reviewers
-└── workers/         Pub/Sub handlers and Cloud Run jobs
-```
-
-## External services
-
-Every external call goes through a provider in `app/providers/` and hits the real service.
-LLM calls run on Gemini Enterprise Agent Platform (formerly Vertex AI), authenticated with
-Application Default Credentials (locally `gcloud auth application-default login`; on Cloud Run
-the runtime service account). There are two configs: `backend/.env.example` (local, cheap
-`gemini-3.1-flash-lite`) and `backend/.env.deploy.example` (deployed, `gemini-3.8-flash`).
-Speech-to-Text does transcription, and Cloud Storage and Firestore hold data. Test uploads end
-to end with the sample videos in `../fixtures/media/`.
-
-## Creator folder demo import
-
-See [the import guide](../docs/creator-demo-import.md) for the local folder format and
-`uv run python scripts/import_creator.py` validation/import/removal commands.
+[Creator import](../docs/creator-demo-import.md) and
+[public corpus](../docs/creator-public-corpus.md) document collection, validation,
+installation and deletion. Project outputs stay under project-owned paths; account-owned
+library data stays under the user prefix. Secrets and local originals remain ignored.

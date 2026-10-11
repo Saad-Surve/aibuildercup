@@ -1,70 +1,46 @@
-# Creator Helper Studio — Fixtures, Development, and Seed Design
+# Resonance fixtures and demo
 
-Goal: develop and demo the product without burning paid AI credits, while keeping every
-integration real. Development calls the **live free-tier GCP services** (Gemini flash,
-Speech-to-Text) against the sample videos in `fixtures/media/`.
+Development uses live Google APIs through providers, with local media/import fixtures.
+There is no cassette/mock mode. Free allowances depend on service/model/account; real calls
+can be billed. [Costs](../costs.md) and [evals](../../evals/README.md) describe bounds.
 
-## 1. Why
+## Local media
 
-- Paid calls (Veo, Imagen, Gemini Pro) are expensive and must stay behind the cost cap.
-- A demo must always render a full workspace even if a live dependency is slow.
+`fixtures/media/` is **gitignored**, not a bundle of committed videos. The existing local
+folder includes explainers, Hindi education, technology, finance, workout and travel videos.
+Use normal upload/transcription to exercise media; do not claim a fresh clone includes these
+originals. Preserve existing files. AAC-in-video inputs use explicit STT decoding.
 
-## 2. Provider layer (no mock mode)
+Constructed chart variants in the local folder are diagnostics, not natural creator mistakes
+or viewer-study results. Their README references a preparation script absent from the current
+tracked tree; verify provenance/media before using them as evidence.
 
-Every external dependency sits behind an interface in `backend/app/providers/` with a real
-implementation. Feature code never imports a Google SDK directly.
+## Public read-only demo
 
-The earlier cassette / `MOCK_MODE` layer (`off`/`auto`/`on`, `fixtures/cassettes/`) was
-**removed**. There are no mock or cassette branches in the code; see
-[backend-plan.md](./backend-plan.md) section 16. Providers today: `llm.py`, `stt.py`; the rest are
-added as their features land.
+`POST /api/demo/session` mints a Firebase custom token for the configured shared UID.
+Visitors sign in without a published password; backend middleware blocks writes and the web
+shows disabled controls. Existing content was copied from a real workspace with
+`backend/scripts/copy_user_content.py`. Historical analyses retain old prompts/dimensions;
+a good demo needs fresh compatible results, not fabricated score changes.
 
-## 3. Media fixtures
+There is no generic `seed.py`, `/demo/scenarios` API or complete fake analytics world.
+Do not describe those old designs as implemented.
 
-`fixtures/media/` holds committed sample videos used to exercise the upload -> transcription
-pipeline end to end without hunting for a file:
+## Creator corpus
 
-```text
-career_advice.mp4   explainer.mp4        hindi_education.mp4
-cooking_recipe.mp4  home_workout.mp4     personal_finance.mp4
-tech_review.mp4     travel_vlog.mp4
-```
+[Folder import](../creator-demo-import.md) validates supplied transcripts, writing and
+thumbnails before installing an owned revision in Firestore/Storage. It does not grant
+OAuth publishing access or automatically transcribe original videos into projects.
+[Public corpus collection](../creator-public-corpus.md) retains attributed real material,
+availability reports and precomputed vectors. Server-controlled preset installation reuses
+that index with no new model calls, clearly naming the example creator.
 
-They are MP4/AAC 44.1 kHz stereo, which is why the STT provider uses an explicit AAC decoding
-config (STT V2 cannot auto-detect AAC in a video container).
+Shared immutable presets survive account deletion; user copies follow the owned lifecycle.
+Local source originals and embedding caches stay ignored. No private credentials, generated
+replacement captions or invented audience measurements belong in evidence fixtures.
 
-## 4. Seed script (planned, not built)
+## Verification
 
-`backend/scripts/seed.py --demo` will create a reproducible demo world:
-
-```text
-2-3 demo users (Firebase Auth) with completed onboarding
-3 projects, each with one uploaded demo video in GCS
-transcripts with word timestamps + VTT/SRT
-analysis runs with findings + heatmap bins
-clip candidates + one rendered short
-one localized (Hindi) captioned + dubbed version
-a couple of chat threads with messages
-BigQuery rows for posts, metrics, comments, sentiment, audience aggregates
-```
-
-It will be idempotent and read the same JSON shapes the API returns, so the frontend cannot tell
-the difference between seeded and live data. `fixtures/seed/` is reserved for that bundle.
-
-## 5. Demo scenarios (planned, not built)
-
-`GET /demo/scenarios` will list named scenarios pinned for the stage (good video, controversial,
-regional, empty/mid-processing). The project creation dialog's `projects.isDemo` flag will bind a
-project to a scenario.
-
-## 6. Frontend
-
-- Types and the API client are generated/derived from `contracts/openapi.yaml`.
-- There is no MSW mock layer; the web app calls the real API.
-
-## 7. Acceptance
-
-- Development runs end to end against real free-tier services with `fixtures/media/`.
-- Paid calls (Veo, Imagen, Gemini Pro) never run outside the cost cap.
-- The seed script reproduces an identical demo workspace on a clean project.
-- No secret or token appears in any fixture.
+Use Ruff/mypy, web lint/build and bounded real-data scripts. The repository does not add test
+suites/testing libraries. Explicitly state which live workflows ran, what was only inspected,
+and whether a demo record predates the current implementation.

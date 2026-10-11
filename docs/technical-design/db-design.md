@@ -1,840 +1,163 @@
-# Creator Helper Studio — Firestore Database Design
+# Resonance persistence reference
 
-Status: proposed MVP schema
+Firestore is the control plane; Cloud Storage holds large media and source artifacts.
+Current channel analytics also live in Firestore. BigQuery datasets are provisioned expansion
+infrastructure, not the current audience-data path. [Contracts](../../contracts/firestore.md),
+Pydantic schemas and service write paths define fields; the tree below shows implemented roles.
 
-Firestore is the application control plane. Store large media and analytics elsewhere:
+## Conventions
 
-- Cloud Storage: videos, audio, transcripts, captions, thumbnails, clips, exports, and persona files.
-- BigQuery: platform analytics, comments, sentiment results, and audience aggregates.
-- Firestore: user/project metadata, workflow state, UI-ready records, and references to external artifacts.
+User identity is the Firebase UID. Owned child records carry `ownerUid`; all paths are
+validated and checked against the requester. The historical user root can identify its
+owner by its UID path. Firestore timestamps use UTC. Persist Storage object paths, not
+expiring signed URLs. UUID/content hashes identify records; jobs use deterministic
+owner/project/idempotency hashes and atomic creation.
 
-## 1. Conventions
+## User and project hierarchy
 
-| Field | Convention |
-|---|---|
-| Document IDs | Random UUID or Firestore auto-ID; never sequential |
-| User ID | Firebase Authentication UID |
-| Timestamps | Firestore Timestamp in UTC |
-| Storage paths | gs:// object paths, never signed URLs |
-| Ownership | Every user-owned document includes ownerUid |
-| Large content | Stored in Cloud Storage; Firestore stores metadata and references |
-
-Common statuses:
-
-~~~text
-ProjectStatus    = draft | uploading | processing | ready | partial_failure | failed | archived
-JobStatus        = queued | running | succeeded | failed | cancelled
-ConnectionStatus = pending | connected | needs_reauth | revoked | error
-AssetStatus      = pending | uploading | uploaded | processing | ready | failed | deleted
-ArtifactStatus   = queued | generating | ready | failed | deleted
-Severity         = none | low | medium | high | critical
-~~~
-
-All mutable documents should include ownerUid, createdAt, and updatedAt.
-
-## 2. Complete Firestore hierarchy
-
-~~~text
+```text
 users/{uid}
-├── connections/{connectionId}
-│   └── syncRuns/{syncRunId}
 ├── personaRevisions/{revisionId}
-├── notifications/{notificationId}
-├── usagePeriods/{periodId}
-├── projects/{projectId}
-│   ├── assets/{assetId}
-│   ├── jobs/{jobId}
-│   │   └── events/{eventId}
-│   ├── transcripts/{transcriptId}
-│   │   └── segments/{segmentId}
-│   ├── captionRenders/{captionRenderId}
-│   ├── draft/main
-│   ├── analysisRuns/{analysisRunId}
-│   │   ├── reviewers/{reviewerRunId}
-│   │   ├── findings/{findingId}
-│   │   └── heatmapBins/{binId}
-│   ├── clipCandidates/{candidateId}
-│   ├── artifacts/{artifactId}
-│   │   └── versions/{versionId}
-│   ├── localizations/{localizationId}
-│   ├── chatThreads/{threadId}
-│   │   └── messages/{messageId}
-│   ├── feedback/{feedbackId}
-│   ├── exports/{exportId}
-│   └── auditEvents/{auditEventId}
-
-glossaries/{glossaryId}          platform-level, versioned terminology corpus
-demoProfiles/{demoProfileId}     platform-level, stage demo scenarios
-~~~
-
-## 3. User documents
-
-### users/{uid}
-
-~~~json
-{
-  "displayName": "Priya Sharma",
-  "email": "creator@example.com",
-  "photoUrl": "https://...",
-  "onboarding": {
-    "status": "completed",
-    "currentStep": "platforms",
-    "completedAt": "timestamp",
-    "schemaVersion": 1
-  },
-  "persona": {
-    "storagePath": "users/uid/profile/persona.md",
-    "version": 3,
-    "language": "en-IN",
-    "lastApprovedAt": "timestamp"
-  },
-  "preferences": {
-    "timezone": "Asia/Kolkata",
-    "defaultLanguage": "en",
-    "defaultPlatforms": ["youtube", "instagram"],
-    "notificationsEnabled": true
-  },
-  "limits": {
-    "maxVideoDurationMs": 1800000,
-    "maxVideoSizeBytes": 524288000
-  },
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-~~~
-
-Do not store OAuth tokens in this document.
-
-### users/{uid}/connections/{connectionId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "platform": "youtube",
-  "accountType": "channel",
-  "displayName": "Priya Creates",
-  "externalAccountId": "UC...",
-  "externalHandle": "@priyacreates",
-  "status": "connected",
-  "scopes": ["yt-analytics.readonly", "youtube.readonly"],
-  "tokenSecretRef": "secret-reference",
-  "tokenKeyVersion": "kms-key-version",
-  "lastSyncAt": "timestamp",
-  "nextSyncAt": "timestamp",
-  "lastSyncStatus": "succeeded",
-  "lastErrorCode": null,
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-~~~
-
-Only the backend can read this collection. Firestore client rules must deny direct access.
-
-### users/{uid}/connections/{connectionId}/syncRuns/{syncRunId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "platform": "youtube",
-  "status": "succeeded",
-  "startedAt": "timestamp",
-  "finishedAt": "timestamp",
-  "dateRange": {
-    "from": "2026-01-01",
-    "to": "2026-09-19"
-  },
-  "counts": {
-    "posts": 42,
-    "metrics": 450,
-    "comments": 1200,
-    "sentiments": 1200
-  },
-  "rawStoragePrefix": "users/uid/social/youtube/syncRuns/run-id/",
-  "error": null
-}
-~~~
-
-### users/{uid}/personaRevisions/{revisionId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "version": 4,
-  "storagePath": "users/uid/profile/revisions/persona-v4.md",
-  "changeType": "approved_update",
-  "changeSummary": "Added preference for concise Hindi hooks.",
-  "source": "onboarding | user_edit | chat | inferred_preference",
-  "approvalStatus": "pending_approval | approved | rejected",
-  "approvedBy": "user",
-  "createdAt": "timestamp"
-}
-~~~
-
-AI-inferred changes remain pending until the user explicitly approves them.
-
-## 4. Project documents
-
-### users/{uid}/projects/{projectId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "name": "Career Advice Video",
-  "description": "A video about interview preparation.",
-  "status": "processing",
-  "visibility": "private",
-  "sourceAssetId": "asset-id",
-  "sourceRevision": 2,
-  "sourceRevisionCounter": 2,
-  "kind": "video",
-  "draftFormat": "written",
-  "draftSummary": null,
-  "activeTranscriptId": "transcript-id",
-  "activeAnalysisRunId": "analysis-run-id",
-  "personaVersionUsed": 3,
-  "primaryLanguage": "en",
-  "targetLanguages": ["hi", "mr"],
-  "targetPlatforms": ["youtube", "instagram", "linkedin"],
-  "progress": {
-    "stage": "analysis",
-    "percent": 72,
-    "message": "Running pacing reviewer"
-  },
-  "summary": {
-    "durationMs": 485000,
-    "transcriptWordCount": 1020,
-    "overallScore": 3.7,
-    "criticalFindingCount": 0,
-    "highFindingCount": 2
-  },
-  "isDemo": false,
-  "demoProfileId": null,
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp",
-  "archivedAt": null
-}
-~~~
-
-### users/{uid}/projects/{projectId}/assets/{assetId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "projectId": "project-id",
-  "type": "source_video | audio | frame | clip | thumbnail | caption | export",
-  "status": "uploaded",
-  "storagePath": "users/uid/projects/project-id/source/video.mp4",
-  "mimeType": "video/mp4",
-  "sizeBytes": 184000000,
-  "checksum": "sha256:...",
-  "durationMs": 485000,
-  "width": 1920,
-  "height": 1080,
-  "frameRate": 30,
-  "language": "en",
-  "derivedFromAssetId": null,
-  "revision": 2,
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp",
-  "deletedAt": null
-}
-~~~
-
-`revision` is set only on `source_video` assets: each upload to a project is a new
-revision of the project's single video. Assets uploaded before revisions existed have no
-`revision` and are numbered by upload order for display. Revisions are retained, never
-overwritten, so a transcript or analysis run stays attributable to the cut it graded.
-
-### users/{uid}/projects/{projectId}/draft/main
-
-One versioned draft document per draft project (`kind: "draft"`). It lives under the
-project subtree, so the recursive project/account delete covers it with no extra wiring.
-
-~~~json
-{
-  "projectId": "project-id",
-  "title": "Why side projects stall",
-  "status": "ready",
-  "brief": {
-    "topic": "Why most side projects stall in week three",
-    "format": "written",
-    "audience": "first-time founders",
-    "tone": "direct",
-    "platform": "newsletter",
-    "language": "en",
-    "instructions": "",
-    "targetWords": 0
-  },
-  "blocks": [
-    {
-      "blockId": "block-a1",
-      "type": "heading | paragraph",
-      "versions": [
-        {
-          "versionId": "v1",
-          "text": "Why side projects stall",
-          "label": "Draft",
-          "origin": "assistant | user",
-          "createdAt": "timestamp"
-        }
-      ],
-      "activeVersionId": "v1"
-    }
-  ],
-  "messages": [
-    {
-      "messageId": "m1",
-      "role": "user | assistant",
-      "content": "Sharpen the opening line",
-      "createdAt": "timestamp"
-    }
-  ],
-  "error": null,
-  "summary": {
-    "title": "Why side projects stall",
-    "preview": "Here is the shortest version…",
-    "wordCount": 612,
-    "blockCount": 8,
-    "versionCount": 14
-  },
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-~~~
-
-Blocks are the unit of versioning: every assistant rewrite (or a creator's first edit on an
-assistant version) appends an immutable `versions[]` entry and points `activeVersionId` at
-it, so a word, phrase, or paragraph can always be compared and swapped back. The project
-document keeps a denormalised `draftSummary` so list cards render without loading the draft.
-
-### users/{uid}/projects/{projectId}/jobs/{jobId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "projectId": "project-id",
-  "type": "upload | transcribe | analyze | sync_social | sentiment | clip | thumbnail | localize | dub | text_content | veo | export | caption_render",
-  "status": "running",
-  "idempotencyKey": "transcribe-project-id-asset-id-v1",
-  "requestedBy": "user | system | chat",
-  "input": {
-    "assetId": "asset-id",
-    "transcriptId": null,
-    "analysisRunId": null,
-    "language": "hi"
-  },
-  "output": {
-    "artifactIds": [],
-    "storagePaths": []
-  },
-  "progress": {
-    "currentStep": "speech_to_text",
-    "percent": 40,
-    "message": "Generating word timestamps"
-  },
-  "attempt": 1,
-  "maxAttempts": 3,
-  "error": null,
-  "startedAt": "timestamp",
-  "finishedAt": null,
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-~~~
-
-### users/{uid}/projects/{projectId}/jobs/{jobId}/events/{eventId}
-
-~~~json
-{
-  "type": "job.started | job.progress | job.retrying | job.succeeded | job.failed",
-  "message": "Pacing reviewer completed",
-  "metadata": {
-    "reviewer": "pacing_retention",
-    "count": 14
-  },
-  "createdAt": "timestamp"
-}
-~~~
-
-## 5. Transcript and analysis documents
-
-### users/{uid}/projects/{projectId}/transcripts/{transcriptId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "projectId": "project-id",
-  "sourceAssetId": "asset-id",
-  "version": 1,
-  "status": "ready",
-  "language": "en-IN",
-  "storagePath": "users/uid/projects/project-id/transcripts/v1.json",
-  "vttStoragePath": "users/uid/projects/project-id/captions/en.vtt",
-  "srtStoragePath": "users/uid/projects/project-id/captions/en.srt",
-  "durationMs": 485000,
-  "wordCount": 1020,
-  "segmentCount": 85,
-  "speakerCount": 1,
-  "speakerLabels": { "0": "Host", "1": "Guest" },
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-~~~
-
-### users/{uid}/projects/{projectId}/transcripts/{transcriptId}/segments/{segmentId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "index": 12,
-  "startMs": 42000,
-  "endMs": 58000,
-  "text": "The second concept is...",
-  "speaker": 2,
-  "paragraphIndex": 4,
-  "topic": "interview preparation",
-  "wordCount": 28,
-  "createdAt": "timestamp"
-}
-~~~
-
-Keep word-level data in the canonical Cloud Storage JSON unless word-level editing is required.
-
-### users/{uid}/projects/{projectId}/captionRenders/{captionRenderId}
-
-One request to burn a transcript onto the source video with a chosen caption style. Media lives
-under the project prefix (`renders/captions/{captionRenderId}.mp4` and `.ass`), so recursive
-project/account deletion covers it.
-
-~~~json
-{
-  "ownerUid": "uid",
-  "projectId": "project-id",
-  "status": "queued | rendering | ready | failed",
-  "style": {
-    "preset": "karaoke",
-    "fontFamily": "Poppins",
-    "fontSize": 56,
-    "bold": true,
-    "uppercase": false,
-    "textColor": "#FFFFFF",
-    "outlineColor": "#000000",
-    "outlineWidth": 4,
-    "shadow": 2,
-    "background": "outline",
-    "backgroundColor": "#000000",
-    "backgroundOpacity": 60,
-    "position": "bottom",
-    "marginV": 72,
-    "maxCharsPerLine": 32,
-    "maxLines": 2,
-    "highlightEnabled": true,
-    "highlightColor": "#7CFF6B",
-    "speakerLabels": true
-  },
-  "sourceAssetId": "asset-id",
-  "sourceTranscriptId": "transcript-id",
-  "transcriptVersion": null,
-  "fileName": "avengers doomsday analysis",
-  "storagePath": "users/uid/projects/project-id/renders/captions/render-id.mp4",
-  "assStoragePath": "users/uid/projects/project-id/renders/captions/render-id.ass",
-  "mimeType": "video/mp4",
-  "sizeBytes": 106800000,
-  "durationMs": 784950,
-  "width": 1280,
-  "height": 720,
-  "jobId": "job-id",
-  "error": null,
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-~~~
-
-### users/{uid}/projects/{projectId}/analysisRuns/{analysisRunId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "projectId": "project-id",
-  "transcriptId": "transcript-id",
-  "sourceAssetId": "asset-id",
-  "personaVersion": 3,
-  "status": "ready",
-  "fanoutStrategy": "two_tier",
-  "chunkCount": 4,
-  "requestedDimensions": ["truth_evidence", "clarity", "pacing_retention", "legal_safety"],
-  "completedDimensions": ["truth_evidence", "clarity", "pacing_retention", "legal_safety"],
-  "overallScore": 3.7,
-  "scoreByDimension": {
-    "truth_evidence": 4.1,
-    "clarity": 3.5,
-    "pacing_retention": 3.2,
-    "legal_safety": 4.6
-  },
-  "findingCounts": {
-    "low": 10,
-    "medium": 5,
-    "high": 2,
-    "critical": 0
-  },
-  "modelConfigVersion": "analysis-v5",
-  "promptVersion": "reviewers-v5",
-  "costEstimateUsd": 0.42,
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-~~~
-
-### users/{uid}/projects/{projectId}/analysisRuns/{analysisRunId}/reviewers/{reviewerRunId}
-
-The document shape is unchanged. Shared stills use existing `toolCalls` entries, with a
-`Shared sample:` label and one shared object path beneath
-`users/{uid}/projects/{projectId}/review-context/{analysisRunId}/shared/`. Multiple reviewer
-documents can reference that same object; project/account deletion covers it. Per-reviewer
-requested media uses distinct object indexes across transcript chunks to avoid overwrites.
-An error can coexist with `status: succeeded` when some chunks succeeded; the parent run is
-`partial_failure` and the UI does not count that reviewer as fully complete.
-
-~~~json
-{
-  "ownerUid": "uid",
-  "dimension": "clarity",
-  "status": "succeeded",
-  "model": "configured-gemini-model",
-  "inputSegmentCount": 85,
-  "toolCalls": [
-    {
-      "tool": "cut_clip",
-      "timestampMs": 26000,
-      "label": "Clip 00:21.0-00:31.0 (around 00:26.0)",
-      "mimeType": "video/mp4",
-      "contentPath": "users/uid/projects/project-id/review-context/{analysisRunId}/{reviewerRunId}/00-cut_clip.mp4",
-      "ok": true
-    }
-  ],
-  "groundingQueries": [],
-  "groundingSources": [],
-  "groundingSearchSuggestions": "",
-  "findingCount": 4,
-  "tokenUsage": {
-    "input": 12000,
-    "output": 1800
-  },
-  "error": null,
-  "startedAt": "timestamp",
-  "finishedAt": "timestamp"
-}
-~~~
-
-### users/{uid}/projects/{projectId}/analysisRuns/{analysisRunId}/findings/{findingId}
-
-For speech critiques, `evidence.quote` is a matching transcript excerpt. It may be empty
-for an omission or inspected visual issue. Explanations and concrete suggestions remain
-in the existing fields; strengths have an empty suggestion. `overallScore` on the parent
-summarizes reported moments only, excluding unreported time and empty dimensions.
-
-~~~json
-{
-  "ownerUid": "uid",
-  "dimension": "clarity",
-  "reviewerRunId": "reviewer-run-id",
-  "segmentId": "seg-12",
-  "startMs": 42000,
-  "endMs": 58000,
-  "score": 3,
-  "confidence": 0.86,
-  "severity": "medium",
-  "findingType": "ambiguous_referent",
-  "evidence": {
-    "quote": "The second concept...",
-    "critique_and_reasoning": "The concept is introduced without definition."
-  },
-  "suggestion": "Add a one-sentence definition before continuing.",
-  "citations": [],
-  "model": "configured-gemini-model",
-  "createdAt": "timestamp"
-}
-~~~
-
-### users/{uid}/projects/{projectId}/analysisRuns/{analysisRunId}/heatmapBins/{binId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "dimension": "clarity",
-  "startMs": 40000,
-  "endMs": 45000,
-  "score": 3.5,
-  "severity": "medium",
-  "findingIds": ["finding-1", "finding-2"],
-  "color": "yellow",
-  "createdAt": "timestamp"
-}
-~~~
-
-## 6. Candidate and artifact documents
-
-### users/{uid}/projects/{projectId}/clipCandidates/{candidateId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "transcriptId": "transcript-id",
-  "startMs": 92000,
-  "endMs": 131000,
-  "hook": "The surprising reason most people fail interviews",
-  "reason": "Self-contained idea with a clear payoff",
-  "platform": "youtube_shorts",
-  "score": 8.5,
-  "status": "suggested | selected | rendered | rejected",
-  "artifactId": null,
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-~~~
-
-### users/{uid}/projects/{projectId}/artifacts/{artifactId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "projectId": "project-id",
-  "type": "short_clip | thumbnail | social_post | blog | caption | localized_video | dubbed_video | veo_intro | veo_outro | export",
-  "status": "ready",
-  "platform": "youtube_shorts",
-  "language": "en",
-  "title": "The interview mistake most people make",
-  "storagePath": "users/uid/projects/project-id/clips/artifact-id.mp4",
-  "mimeType": "video/mp4",
-  "sizeBytes": 24000000,
-  "durationMs": 39000,
-  "sourceTranscriptId": "transcript-id",
-  "sourceAssetIds": ["asset-id"],
-  "generationJobId": "job-id",
-  "metadata": {
-    "startMs": 92000,
-    "endMs": 131000,
-    "hook": "...",
-    "reason": "Self-contained idea"
-  },
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp",
-  "deletedAt": null
-}
-~~~
-
-### users/{uid}/projects/{projectId}/artifacts/{artifactId}/versions/{versionId}
-
-~~~json
-{
-  "version": 2,
-  "storagePath": "users/uid/projects/project-id/clips/artifact-id/v2.mp4",
-  "prompt": "Make the hook less clickbait-oriented.",
-  "createdBy": "user | agent",
-  "createdAt": "timestamp"
-}
-~~~
-
-## 7. Localization, chat, and operational documents
-
-### users/{uid}/projects/{projectId}/localizations/{localizationId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "sourceAssetId": "asset-id",
-  "sourceTranscriptId": "transcript-id",
-  "sourceLanguage": "en",
-  "targetLanguage": "hi",
-  "status": "requested | translating | synthesizing | muxing | ready | failed",
-  "captionArtifactId": "artifact-id",
-  "audioArtifactId": "artifact-id",
-  "videoArtifactId": "artifact-id",
-  "corpusVersion": 1,
-  "glossaryVersion": 2,
-  "voice": "hi-IN-standard-A",
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-~~~
-
-### users/{uid}/projects/{projectId}/chatThreads/{threadId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "projectId": "project-id",
-  "title": "Improve the hook",
-  "status": "active | archived",
-  "lastMessagePreview": "Here are three stronger hooks...",
-  "messageCount": 6,
-  "context": {
-    "transcriptId": "transcript-id",
-    "analysisRunId": "analysis-id",
-    "personaVersion": 3,
-    "artifactIds": ["artifact-1"]
-  },
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-~~~
-
-### users/{uid}/projects/{projectId}/chatThreads/{threadId}/messages/{messageId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "role": "user | assistant | tool",
-  "content": "Rewrite the opening for a Hindi-speaking audience.",
-  "parts": [],
-  "status": "complete | streaming | failed",
-  "citations": [],
-  "toolCalls": [],
-  "artifactIds": [],
-  "tokenUsage": {
-    "input": 0,
-    "output": 0
-  },
-  "createdAt": "timestamp"
-}
-~~~
-
-### users/{uid}/projects/{projectId}/feedback/{feedbackId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "targetType": "finding | artifact | chat_message",
-  "targetId": "id",
-  "rating": "helpful | not_helpful",
-  "comment": "This suggestion was useful.",
-  "createdAt": "timestamp"
-}
-~~~
-
-### users/{uid}/projects/{projectId}/exports/{exportId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "status": "queued | generating | ready | failed",
-  "artifactIds": ["artifact-1", "artifact-2"],
-  "storagePath": "users/uid/projects/project-id/exports/export.zip",
-  "expiresAt": "timestamp",
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-~~~
-
-### users/{uid}/notifications/{notificationId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "type": "job_ready | job_failed | connection_expiring | persona_update",
-  "title": "Your analysis is ready",
-  "body": "The video review has completed.",
-  "resourceType": "project",
-  "resourceId": "project-id",
-  "read": false,
-  "createdAt": "timestamp"
-}
-~~~
-
-### users/{uid}/projects/{projectId}/auditEvents/{auditEventId}
-
-~~~json
-{
-  "ownerUid": "uid",
-  "actorType": "user | service | agent",
-  "actorId": "uid-or-service-account",
-  "action": "project.created | connection.connected | artifact.deleted",
-  "resourceType": "project",
-  "resourceId": "project-id",
-  "metadata": {},
-  "createdAt": "timestamp"
-}
-~~~
-
-## 8. Platform-level collections
-
-### glossaries/{glossaryId}
-
-Versioned terminology corpus. The actual term files live in Cloud Storage; Firestore stores the
-metadata and the active version.
-
-~~~json
-{
-  "scope": "global | project",
-  "ownerUid": null,
-  "sourceLanguage": "en",
-  "targetLanguage": "hi",
-  "category": "general | legal | education | healthcare | automobile | news | trap_list",
-  "version": 1,
-  "storagePath": "corpus/global/en-hi/v1.tsv",
-  "termCount": 4200,
-  "translationGlossaryId": "projects/.../glossaries/...",
-  "status": "active | archived",
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-~~~
-
-### demoProfiles/{demoProfileId}
-
-Pinned scenarios for the stage. See [mock-and-seed.md](./mock-and-seed.md).
-
-~~~json
-{
-  "name": "controversial",
-  "description": "A video that trips the truth and legal reviewers.",
-  "projectIdTemplate": "project-id",
-  "seedBundlePath": "fixtures/seed/controversial/",
-  "createdAt": "timestamp"
-}
-~~~
-
-## 9. Firestore indexes
-
-Create composite indexes for:
-
-~~~text
-projects: ownerUid ASC, updatedAt DESC
-projects: ownerUid ASC, status ASC, updatedAt DESC
-jobs: ownerUid ASC, status ASC, createdAt DESC
-analysisRuns: ownerUid ASC, createdAt DESC
-findings: ownerUid ASC, dimension ASC, startMs ASC
-artifacts: ownerUid ASC, type ASC, createdAt DESC
-chatThreads: ownerUid ASC, updatedAt DESC
-notifications: ownerUid ASC, read ASC, createdAt DESC
-glossaries: scope ASC, sourceLanguage ASC, targetLanguage ASC, category ASC, version DESC
-~~~
-
-## 10. Security model
-
-The browser may read/write only user-owned, non-sensitive project data. The browser must never directly read:
-
-- OAuth connection tokens.
-- BigQuery data.
-- Raw social API payloads.
-- Internal reviewer prompts.
-- Worker job events containing secrets or stack traces.
-- Platform collections: `glossaries` and `demoProfiles` are backend-only.
-
-The backend must authorize using both the Firebase UID and the document ownerUid. Firestore rules are a second boundary, not a replacement for backend authorization.
-
-## 11. Deletion
-
-Deletion is **real, not soft**. Two reference implementations define the contract:
-
-- `ProjectService.delete` — deletes every Cloud Storage object under `project_object_prefix`
-  (`users/{uid}/projects/{projectId}/`) and recursively deletes the project Firestore subtree
-  (the project doc plus every subcollection, including nested `transcripts/{id}/segments`).
-- `UserService.delete_account` — deletes every object under `users/{uid}/` and recursively
-  deletes the user subtree.
-
-Because deletion is by **GCS prefix** and **Firestore recursive tree**, any new project-scoped
-data is covered automatically **as long as it lives under the project's Firestore path or object
-prefix**. Anything stored elsewhere (a top-level collection, a different bucket, a third-party
-record) is not covered and must be added to the delete path explicitly, with a test. Treat
-"where does this get deleted?" as a required design question for every new feature.
+├── oauthStates/{stateId}
+├── connectionSecrets/{connectionId}
+├── connections/{connectionId}
+│   ├── contentItems/{videoId}
+│   ├── semanticChunks/{nodeId}
+│   └── semanticQueries/{queryHash}
+├── creatorImports/{bundleId}
+│   └── revisions/{revisionId}
+│       ├── items/{itemId}
+│       ├── semanticChunks/{nodeId}
+│       └── semanticQueries/{queryHash}
+├── embeddingBudgets/{UTC-date}/calls/{slot}
+└── projects/{projectId}
+    ├── assets/{assetId}
+    ├── jobs/{jobId}/events/{eventId}
+    ├── transcripts/{transcriptId}/segments/{segmentId}
+    ├── analysisRuns/{analysisRunId}
+    │   ├── reviewers/{reviewerRunId}
+    │   ├── findings/{findingId}
+    │   └── heatmapBins/{binId}
+    ├── draft/main
+    ├── captionRenders/{captionRenderId}
+    ├── thumbnailConcepts/{thumbnailId}
+    ├── localizations/{localizationId}
+    ├── glossary/main
+    ├── publishes/{publishId}
+    ├── schedules/{scheduleId}
+    ├── packaging/{recordId}
+    ├── visualInserts/{insertId}
+    └── visualInsertReservations/{slotId}
+```
+
+Exact helpers, including fixed record IDs and the connection secret layout, are in
+`backend/app/services/paths.py`, `creator_import_service.py`, `creator_library_service.py`
+and `packaging_service.py`. Not every designed collection in the original quick contract
+has a writer: generic artifacts/clip candidates, video chat, feedback, exports, audit events,
+platform glossaries and demo profiles remain broader proposals.
+
+## User and connector records
+
+The user root stores onboarding answers/progress/research, current persona metadata,
+preferences and avatar. Persona Markdown/revisions live under owned Storage paths.
+Connections store channel identity/status and sync references. OAuth access/refresh
+secrets are encrypted with KMS in production; OAuth states expire and carry the PKCE
+flow data. Content items retain titles/descriptions, selected captions, metrics and style
+metadata. Audience aggregates are connector-owned records, not supplied persona facts.
+
+Creator imports keep immutable validated revisions, originals, item attribution/language/
+collection method and an active-library reference. Semantic chunks contain owner/model/
+dimensions/prompt version/vector/time; their IDs bind to source content. Queries cache a
+normalized vector/time under the active source. Daily embedding slots atomically bound
+interactive calls. Preset installation rechecks ownership across bounded write batches.
+
+## Projects, assets and jobs
+
+Projects distinguish `video` and `draft`, keep source/active-transcript/current-analysis
+references, processing metadata and denormalized card summaries. A linked draft is a
+script reference, not copied automatically into the video's transcript. Assets retain
+Storage paths and source media metadata across revisions.
+
+Jobs record type, input/output, state/progress/error and idempotency key. Their event children
+support progress history. Atomic creation converges duplicate upload notifications; process-local
+execution locks do not supply distributed leases or upstream-operation exactly-once behavior.
+
+## Transcripts and analysis
+
+A transcript retains source asset, version, language, duration and export paths; child
+segments carry IDs, times, text, speaker and word data. Edits/retranscription create
+versions; activating an old source can restore its corresponding transcript.
+
+An analysis run pins asset/transcript/persona versions and requested dimensions, records
+chunk/reviewer IDs, model/prompt configuration, status and cost estimate. Reviewer children
+retain status, token usage, grounding/source metadata and shared/requested footage references.
+Findings retain dimension, span, score/severity/confidence, quote/reasoning, concrete suggestion
+and citations. A blank quote is permitted for omission/inspected visual evidence.
+
+Heatmap bins use deterministic dimension/start IDs, five-second spans, overlap-weighted
+scores, worst severity/color and referenced finding IDs. The run summary describes reported
+moments; missing bins are not invented positive scores. Partial errors stay visible.
+
+## Drafts and generated media
+
+`draft/main` stores the brief, blocks with immutable versions/active pointers, chat messages,
+grounding and last selected creator context. Project `draftSummary` supplies list-card
+counts/preview. Current state is versioned, but final prose quality still needs evaluation.
+
+Caption renders keep source/transcript, style, job/status/progress and MP4 output metadata.
+Thumbnail concepts retain the plan, critique, image versions and applied packaging promise.
+Localizations snapshot corpus/project-glossary terms/versions, speaker voices, language,
+source/transcript and caption/audio/video paths. Project glossary changes increment their
+version; an in-flight localization uses its saved snapshot.
+
+Publish records store connection, source/output selection, listing, job/progress, optional
+captions/thumbnail/schedule and external YouTube identifiers. Calendar entries are project-owned
+and can link to a publication. Packaging records/visual ideas retain source/transcript and
+evidence; changed references make them stale. Paid visual insert reservations persist even
+if a render is deleted or uncertain, preventing deletion from resetting the allowance.
+
+## Storage
+
+Project outputs use `users/{uid}/projects/{projectId}/...`: source media, transcript exports,
+caption MP4, thumbnails/references, localized outputs, review context and visual inserts.
+Persona/import originals use their matching user prefixes. Paths come from validated helpers;
+short-lived download URLs are minted on read.
+
+Shared `creator-presets/{bundleId}/{archiveHash}/bundle.zip` is an immutable operator artifact
+outside user prefixes. It is deliberately shared and separately removed by the operator.
+The runtime localization corpus is bundled JSON in the container, not user-owned media.
+
+## Indexes, reads and updates
+
+Firestore indexes support project ordering and contract-defined queries. Bulk writes use
+up to 400 documents per RPC; billed operations are unchanged. Ownership-safe transactional
+child writes are used where reservations/installation need create-only behavior. Semantic
+retrieval reads bounded vectors into Python; large-library managed indexing is future work.
+Calendar aggregation currently reads across owned projects rather than a dedicated global
+schedule index.
+
+## Security
+
+Firestore client rules deny direct browser data access. The backend verifies Firebase
+identity and checks owned documents. No secret is a public client field. Shared demo
+mutations are rejected by middleware. Signed URLs and Storage object references follow
+ownership/expiry checks; explicit user prefixes are essential to lifecycle coverage.
+
+## Deletion
+
+`ProjectService.delete` recursively removes the owned Firestore subtree and current Storage
+objects under the project prefix. `UserService.delete_account` revokes OAuth grants
+best-effort, removes current user-prefix objects and the Firestore user tree. These are
+real deletes, not archive flags. User-owned creator imports, vector/query caches and
+embedding budgets are covered by account deletion.
+
+Deletion first marks project `archivedAt` or user `deletingAt`; ownership-checked child
+writes reject these markers. Packaging workers recheck ownership after uploading and
+clean up abandoned output. These guards reduce races; they are not a measured guarantee
+that every external operation stops immediately.
+
+**Storage generation boundary:** `delete_prefix` currently lists/deletes live blobs; versioned
+media/corpus buckets can retain noncurrent generations, with a default 30-day lifecycle.
+Explicitly purging all generations is not implemented. A Storage retention claim must reflect
+that boundary. Shared presets survive account deletion and need explicit operator removal.
+Remote YouTube publications also survive deletion of local project/publish records.
