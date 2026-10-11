@@ -203,7 +203,7 @@ class ImageGenProvider(Protocol):
 
 @runtime_checkable
 class VideoGenProvider(Protocol):
-    async def generate(
+    async def start(
         self,
         *,
         model: str,
@@ -211,6 +211,8 @@ class VideoGenProvider(Protocol):
         duration_seconds: int,
         aspect_ratio: str,
     ) -> str: ...
+
+    async def wait(self, operation_name: str) -> bytes: ...
 
 
 @runtime_checkable

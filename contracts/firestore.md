@@ -34,6 +34,9 @@ users/{uid}
     ├── clipCandidates/{candidateId}
     ├── artifacts/{artifactId}/versions/{versionId}
     ├── localizations/{localizationId}
+    ├── packaging/{recordId}
+    ├── visualInserts/{insertId}
+    ├── visualInsertReservations/{slotId}
     ├── chatThreads/{threadId}/messages/{messageId}
     ├── feedback/{feedbackId}
     ├── exports/{exportId}
@@ -50,6 +53,11 @@ demoProfiles/{demoProfileId}  platform
 - Timestamps are Firestore Timestamps in UTC.
 - Only the backend reads `connections`, `glossaries`, `demoProfiles`.
 - Ownership is checked in the API, not only in Firestore rules.
+- Account deletion sets `users/{uid}.deletingAt`; project deletion sets the existing
+  `projects/{projectId}.archivedAt` before deleting Storage objects. Ownership-checked
+  child writes reject those records, so packaging workers clean up late uploads.
+  These UTC markers exist only during deletion (or after a failed cleanup that can be retried);
+  the final operation still removes the document trees rather than soft-deleting them.
 
 ## Job idempotency
 
@@ -321,3 +329,12 @@ Imported items retain platform, source language, attribution, content type, fetc
 collection method. API node `related` contains three actual cosine neighbors from other
 items plus the closest other modality when absent (explicit `cross_modal` relation), computed
 from current model vectors; these are not stored confidence or quality scores.
+
+## Packaging metadata and visual inserts
+
+- `users/{uid}/projects/{projectId}/packaging/listing`: editable title/description/tags, alternative titles, rationale, bounded creator evidence, ownerUid, sourceAssetId, transcriptId, status, jobId, updatedAt. Staleness is computed against the active source/transcript. Only ready, current listings may prefill YouTube.
+- `.../packaging/insertSuggestions`: latest suggestion jobId and ownerUid.
+- `.../visualInserts/{insertId}`: grounded suggestion, chart values with server-derived transcript quotes and sourceTimestampMs per value, server-derived source offsets, sourceAssetId/transcriptId, six-second duration, render status/job, aspect, storagePath, operationName, submissionStarted, paidSlot, timestamps and errors.
+- `.../visualInsertReservations/{slot}`: immutable paid attempt reservation. Atomic create, at most configured project limit and conservative max_project_cost_usd / six-second estimate. Never refunded or deleted with individual inserts, including provider failure. Project/account recursive deletion removes reservations.
+- Media: `project_object_prefix(uid, projectId) + visual-inserts/{insertId}/...`. FFmpeg charts/callouts render exact text/numbers. Veo returns inline video bytes; the worker uploads only after checking the project still exists. No new bucket, index or external persistent record. Deletion rejects running renders to prevent late output recreating an individual insert. Workers verify parent ownership and active source before persisting output.
+- Generation jobs reuse `text_content` (listing), `clip` (suggestions/graphics), and `veo` (illustrative footage). Video operation names are persisted immediately; polling retries reuse that operation and never submit paid work again. Ambiguous submission failures cannot be retried automatically.

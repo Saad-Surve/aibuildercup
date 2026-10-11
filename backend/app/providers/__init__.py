@@ -7,6 +7,7 @@ from app.providers.llm import LlmProvider
 from app.providers.stt import SttProvider
 from app.providers.translate import TranslateProvider
 from app.providers.tts import TtsProvider
+from app.providers.videogen import VideoGenProvider
 
 
 class Providers:
@@ -18,6 +19,7 @@ class Providers:
         self.stt = SttProvider(settings)
         self.tts = TtsProvider(settings)
         self.translate = TranslateProvider(settings)
+        self.videos = VideoGenProvider(settings)
 
 
 def build_providers(settings: Settings) -> Providers:

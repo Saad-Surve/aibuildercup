@@ -226,6 +226,8 @@ class UserService:
         of the encrypted tokens. `revoke_all` is best-effort and never raises, so a provider
         failure cannot leave the account half-deleted.
         """
+        if self.client.get_document(user_path(owner_uid)) is not None:
+            self.client.update_document(user_path(owner_uid), {"deletingAt": datetime.now(UTC)})
         if self.connections is not None:
             self.connections.revoke_all(owner_uid=owner_uid)
         if self.storage is not None:

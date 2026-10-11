@@ -98,7 +98,12 @@ class Settings(BaseSettings):
     embedding_dimensions: int = Field(default=768, ge=128, le=3072)
     embedding_daily_call_limit: int = Field(default=200, ge=1, le=200)
 
-    model_video: str = "veo-3.1-fast"
+    model_video: str = "veo-3.1-fast-generate-001"
+    model_packaging: str = "gemini-3.1-flash-lite"
+    visual_insert_max_paid_renders: int = Field(default=2, ge=0, le=2)
+    # Conservative reservation; includes room for sound-enabled Veo pricing changes.
+    videogen_price_per_second_usd: float = Field(default=0.40, gt=0, le=1)
+    videogen_poll_timeout_seconds: int = Field(default=480, ge=30, le=480)
     model_stt: str = "chirp_3"
 
     # Thumbnail studio. `imagegen_max_concepts` bounds one generation batch, and the

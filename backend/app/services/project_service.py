@@ -364,6 +364,11 @@ class ProjectService:
             raise NotFoundError("Project not found", details={"projectId": project_id})
         if self.storage is None:
             raise RuntimeError("ProjectService.delete requires a storage client.")
+        # Stop workers before listing objects: an upload already in flight will
+        # fail its post-upload ownership check and clean up its output.
+        self.client.update_document(
+            project_path(owner_uid, project_id), {"archivedAt": datetime.now(UTC)}
+        )
         self.storage.delete_prefix(project_object_prefix(owner_uid, project_id))
         self.client.delete_document_tree(project_path(owner_uid, project_id))
 

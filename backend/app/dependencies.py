@@ -22,6 +22,7 @@ from app.services.firestore_service import get_firestore_client
 from app.services.glossary_service import GlossaryService
 from app.services.job_service import JobService
 from app.services.localization_service import LocalizationService
+from app.services.packaging_service import PackagingService
 from app.services.persona_research import PersonaResearchService
 from app.services.persona_service import PersonaService
 from app.services.project_service import ProjectService
@@ -127,6 +128,19 @@ def get_thumbnail_service() -> ThumbnailService:
         url_ttl_seconds=settings.upload_url_ttl_seconds,
         price_per_image_usd=settings.imagegen_price_per_image_usd,
         max_project_cost_usd=settings.max_project_cost_usd,
+    )
+
+
+def get_packaging_service() -> PackagingService:
+    client = get_firestore_client()
+    storage = get_storage_client()
+    return PackagingService(
+        client,
+        projects=ProjectService(client, storage=storage),
+        jobs=JobService(client),
+        transcripts=TranscriptService(client, storage=storage),
+        storage=storage,
+        settings=get_settings(),
     )
 
 

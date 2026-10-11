@@ -14,6 +14,104 @@ security:
   - FirebaseBearer: []
 
 paths:
+  /api/projects/{projectId}/packaging/listing:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: Read saved editable YouTube metadata
+      responses:
+        "200":
+          description: Listing or null; stale indicates a different active video/transcript
+          content:
+            application/json:
+              schema: { anyOf: [{ $ref: "#/components/schemas/PackagingListing" }, { type: "null" }] }
+    put:
+      summary: Save edited title, description and tags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingFields" }
+      responses:
+        "200":
+          description: Saved listing
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PackagingListing" }
+        "409": { description: Generation is running or source changed }
+  /api/projects/{projectId}/packaging/listing/generate:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    post:
+      summary: Generate grounded metadata with optional creator-library style evidence
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PackagingBrief" }
+      responses:
+        "202":
+          description: Generation job accepted; poll listing and job
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PackagingAccepted" }
+  /api/projects/{projectId}/visual-inserts:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: Read contextual visual insert suggestions and their renders
+      responses:
+        "200":
+          description: Suggestions with short-lived preview URLs and render allowance
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VisualInsertList" }
+  /api/projects/{projectId}/visual-inserts/suggest:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    post:
+      summary: Suggest up to three chart, callout or illustrative footage inserts
+      description: Reads the active timestamped transcript, sampled footage and creator context. No video generation occurs here.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PackagingBrief" }
+      responses:
+        "202":
+          description: Suggestion job accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PackagingAccepted" }
+  /api/projects/{projectId}/visual-inserts/{insertId}:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { name: insertId, in: path, required: true, schema: { type: string } }
+    delete:
+      summary: Delete a suggestion and its project-scoped media
+      description: Does not refund reserved paid render slots.
+      responses:
+        "204": { description: Deleted }
+        "409": { description: Render is running }
+  /api/projects/{projectId}/visual-inserts/{insertId}/render:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { name: insertId, in: path, required: true, schema: { type: string } }
+    post:
+      summary: Render one six-second visual insert
+      description: Charts/callouts use exact typography with FFmpeg; illustrative footage uses one Veo 3.1 Fast request in us-central1. Paid attempts are atomically capped per project and reservations survive failure/deletion. Existing renders are reused. A saved upstream operation is polled on retry, never resubmitted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RenderVisualInsertRequest" }
+      responses:
+        "202":
+          description: Render job accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PackagingAccepted" }
+        "409": { description: Source changed, paid allowance exhausted or ambiguous upstream submission }
   /api/creator-library:
     get:
       summary: Read the active imported library or most recently synced channel
@@ -1644,6 +1742,492 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
 
   schemas:
+    PackagingBrief:
+      {
+        "properties": {
+          "brief": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Brief",
+            "default": ""
+          },
+          "useCreatorHistory": {
+            "type": "boolean",
+            "title": "Usecreatorhistory",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PackagingBrief"
+      }
+    PackagingAccepted:
+      {
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "title": "Jobid"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "jobId",
+          "status"
+        ],
+        "title": "PackagingAccepted"
+      }
+    ListingFields:
+      {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Description",
+            "default": ""
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Tags",
+            "description": "YouTube tags: at most 100 characters per tag and 500 total, including separators and quotes around tags containing spaces."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "ListingFields"
+      }
+    PackagingEvidence:
+      {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "PackagingEvidence"
+      }
+    PackagingListing:
+      {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Description",
+            "default": ""
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Tags",
+            "description": "YouTube tags: at most 100 characters per tag and 500 total, including separators and quotes around tags containing spaces."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "generating",
+              "ready",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "sourceAssetId": {
+            "type": "string",
+            "title": "Sourceassetid"
+          },
+          "transcriptId": {
+            "type": "string",
+            "title": "Transcriptid"
+          },
+          "titleOptions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Titleoptions"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale",
+            "default": ""
+          },
+          "creatorHistoryUsed": {
+            "type": "boolean",
+            "title": "Creatorhistoryused",
+            "default": false
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/PackagingEvidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "jobId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jobid"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updatedat"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "status",
+          "sourceAssetId",
+          "transcriptId",
+          "updatedAt"
+        ],
+        "title": "PackagingListing"
+      }
+    ChartDatum:
+      {
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Label"
+          },
+          "value": {
+            "type": "number",
+            "maximum": 1000000000.0,
+            "minimum": 0.0,
+            "title": "Value"
+          },
+          "sourceQuote": {
+            "type": "string",
+            "maxLength": 600,
+            "minLength": 1,
+            "title": "Sourcequote"
+          },
+          "sourceTimestampMs": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Sourcetimestampms",
+            "description": "Source segment start for this value; derived by the server.",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "value",
+          "sourceQuote"
+        ],
+        "title": "ChartDatum"
+      }
+    VisualInsert:
+      {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "chart",
+              "callout",
+              "broll"
+            ],
+            "title": "Kind"
+          },
+          "headline": {
+            "type": "string",
+            "maxLength": 90,
+            "minLength": 1,
+            "title": "Headline"
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 250,
+            "title": "Body",
+            "default": ""
+          },
+          "rationale": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Rationale"
+          },
+          "sourceStartMs": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Sourcestartms"
+          },
+          "sourceEndMs": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Sourceendms"
+          },
+          "sourceQuote": {
+            "type": "string",
+            "maxLength": 600,
+            "minLength": 1,
+            "title": "Sourcequote"
+          },
+          "prompt": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Prompt",
+            "default": ""
+          },
+          "chart": {
+            "items": {
+              "$ref": "#/components/schemas/ChartDatum"
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Chart"
+          },
+          "chartUnit": {
+            "type": "string",
+            "maxLength": 35,
+            "title": "Chartunit",
+            "default": ""
+          },
+          "insertId": {
+            "type": "string",
+            "title": "Insertid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "suggested",
+              "queued",
+              "rendering",
+              "ready",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "sourceAssetId": {
+            "type": "string",
+            "title": "Sourceassetid"
+          },
+          "transcriptId": {
+            "type": "string",
+            "title": "Transcriptid"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "const": 6,
+            "title": "Durationseconds",
+            "default": 6
+          },
+          "aspectRatio": {
+            "type": "string",
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "title": "Aspectratio",
+            "default": "16:9"
+          },
+          "canRetry": {
+            "type": "boolean",
+            "title": "Canretry",
+            "description": "False for terminal or ambiguous video failures. Resumable operations reuse the submitted prompt and aspect.",
+            "default": true
+          },
+          "estimatedCostUsd": {
+            "type": "number",
+            "title": "Estimatedcostusd",
+            "default": 0
+          },
+          "jobId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jobid"
+          },
+          "previewUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previewurl"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale",
+            "default": false
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "headline",
+          "rationale",
+          "sourceStartMs",
+          "sourceEndMs",
+          "sourceQuote",
+          "insertId",
+          "status",
+          "sourceAssetId",
+          "transcriptId",
+          "createdAt"
+        ],
+        "title": "VisualInsert"
+      }
+    VisualInsertList:
+      {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/VisualInsert"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "suggestionJobId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggestionjobid"
+          },
+          "paidRendersRemaining": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Paidrendersremaining"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "paidRendersRemaining"
+        ],
+        "title": "VisualInsertList"
+      }
+    RenderVisualInsertRequest:
+      {
+        "properties": {
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt"
+          },
+          "aspectRatio": {
+            "type": "string",
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "title": "Aspectratio",
+            "default": "16:9"
+          },
+          "allowPaidGeneration": {
+            "type": "boolean",
+            "title": "Allowpaidgeneration",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RenderVisualInsertRequest"
+      }
     CreatorLibraryNode:
       type: object
       required: [id, itemId, title, kind, modality, excerpt, indexed]

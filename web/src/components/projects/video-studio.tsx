@@ -317,6 +317,7 @@ export function VideoStudio({
       case "packaging":
         return (
           <PackagingModule
+            key={projectId}
             projectId={projectId}
             projectName={project.name}
             thumbnailConcept={project.thumbnailConcept}
@@ -333,6 +334,7 @@ export function VideoStudio({
       case "publishing":
         return (
           <PublishingModule
+            key={projectId}
             projectId={projectId}
             projectName={project.name}
             primaryLanguage={project.primaryLanguage}

@@ -62,7 +62,7 @@ export const STUDIO_MODULES: StudioModule[] = [
     id: "packaging",
     label: "Thumbnail, Clips & SEO",
     description:
-      "Generate grounded thumbnail concepts from the video, then iterate and apply the winner.",
+      "Create thumbnails, contextual visual inserts, and an editable YouTube listing.",
     icon: ImageAdd01Icon,
     needsTranscript: false,
     ready: true,

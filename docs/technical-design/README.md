@@ -45,6 +45,9 @@ This directory contains the implementation-ready design for the Creator Helper S
    - Global corpus and per-project glossary.
    - Sources, storage, runtime pipeline, and versioning.
 
+10. [Video packaging](./packaging-plan.md)
+    - Saved editable YouTube listings, grounded visual inserts, rendering and paid reservations.
+
 ## Key decisions
 
 - Region is **`us-central1`** for all services except Speech-to-Text, which uses the **`us` multi-region** (the multilingual Chirp 3 model is GA there but not in `us-central1`); Veo, Imagen, and Text-to-Speech use `us-central1`.

@@ -64,6 +64,8 @@ import type {
 import { cn } from "@/lib/utils";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { WORKSPACE_SNAP_TARGET } from "@/lib/workspace";
+import { usePackagingListing } from "@/hooks/use-packaging-listing";
+import { parseListingTags, youtubeTagsSize } from "@/lib/packaging";
 
 const CATEGORY_OPTIONS = [
   { value: "22", label: "People & Blogs" },
@@ -143,9 +145,24 @@ export function PublishingModule({
 
   const [connectionId, setConnectionId] = useState<string | null>(null);
   const [videoValue, setVideoValue] = useState("source");
-  const [title, setTitle] = useState(projectName);
-  const [description, setDescription] = useState("");
-  const [tagsInput, setTagsInput] = useState("");
+  const {
+    listing,
+    generate: generateListing,
+    busy: listingBusy,
+  } = usePackagingListing(projectId);
+  const savedListing =
+    listing.data?.status === "ready" &&
+    !listing.data.stale &&
+    listing.data.sourceAssetId === activeSourceId
+      ? listing.data
+      : null;
+  const [editedTitle, setTitle] = useState<string | null>(null);
+  const [editedDescription, setDescription] = useState<string | null>(null);
+  const [editedTags, setTagsInput] = useState<string | null>(null);
+  const title = editedTitle ?? savedListing?.title ?? projectName;
+  const description = editedDescription ?? savedListing?.description ?? "";
+  const tagsInput = editedTags ?? savedListing?.tags.join(", ") ?? "";
+  const tagSize = youtubeTagsSize(parseListingTags(tagsInput));
   const [categoryId, setCategoryId] = useState("22");
   const [privacy, setPrivacy] = useState<PublishVisibility>("private");
   const [madeForKids, setMadeForKids] = useState(false);
@@ -244,10 +261,7 @@ export function PublishingModule({
         video: { kind, id },
         title: title.trim(),
         description,
-        tags: tagsInput
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean),
+        tags: parseListingTags(tagsInput),
         categoryId,
         // YouTube only accepts a scheduled go-public time on a private video;
         // the upload path forces private as well, so the listing matches it.
@@ -304,6 +318,11 @@ export function PublishingModule({
   const canSubmit =
     Boolean(connectionId) &&
     title.trim().length > 0 &&
+    title.length <= 100 &&
+    tagSize <= 500 &&
+    !listingBusy &&
+    !listing.isPending &&
+    !listing.isFetching &&
     !createMutation.isPending;
 
   return (
@@ -476,11 +495,58 @@ export function PublishingModule({
         <CardHeader>
           <CardTitle>Listing</CardTitle>
           <CardDescription>
-            How the video appears on YouTube. You can change all of it later in
-            Studio.
+            Saved packaging fills fields you have not edited. Review the listing
+            before uploading; every field stays editable.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              disabled={readOnly || listingBusy || listing.isPending}
+              onClick={() =>
+                generateListing.mutate({ useCreatorHistory: true })
+              }
+            >
+              {listingBusy ? "Writing listing…" : "Generate listing"}
+            </Button>
+            {savedListing ? (
+              <Button
+                variant="ghost"
+                disabled={readOnly}
+                onClick={() => {
+                  setTitle(savedListing.title);
+                  setDescription(savedListing.description);
+                  setTagsInput(savedListing.tags.join(", "));
+                }}
+              >
+                Replace fields with saved listing
+              </Button>
+            ) : null}
+          </div>
+          {listing.error ? (
+            <p role="alert" className="text-xs text-destructive">
+              {listing.error.message}
+            </p>
+          ) : null}
+          {listing.data?.error ? (
+            <p role="alert" className="text-xs text-destructive">
+              {listing.data.error}
+            </p>
+          ) : null}
+          {listing.data?.stale ? (
+            <p className="text-xs text-sev-medium">
+              Saved metadata belongs to an earlier video or transcript. Generate
+              a fresh listing.
+            </p>
+          ) : null}
+          {savedListing ? (
+            <p className="text-xs text-muted-foreground">
+              {savedListing.creatorHistoryUsed
+                ? "Listing informed by your video and creator library."
+                : "Listing grounded in this video."}
+            </p>
+          ) : null}
           <div className="space-y-1.5">
             <Label
               htmlFor="publish-title"
@@ -505,6 +571,7 @@ export function PublishingModule({
             <Textarea
               id="publish-description"
               value={description}
+              maxLength={5000}
               rows={4}
               onChange={(event) => setDescription(event.target.value)}
             />
@@ -514,7 +581,7 @@ export function PublishingModule({
               htmlFor="publish-tags"
               className="text-xs text-muted-foreground"
             >
-              Tags (comma separated)
+              Tags (comma separated) · {tagSize}/500
             </Label>
             <Input
               id="publish-tags"
@@ -523,6 +590,11 @@ export function PublishingModule({
               placeholder="side projects, productivity, founders"
             />
           </div>
+          {tagSize > 500 ? (
+            <p role="alert" className="text-xs text-destructive">
+              Shorten the tags to fit YouTube’s 500-character limit.
+            </p>
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Category</Label>

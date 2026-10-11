@@ -194,6 +194,11 @@ class GoogleFirestoreClient:
             if not user.exists or not source.exists:
                 return False
             if (
+                user.to_dict().get("deletingAt") is not None
+                or source.to_dict().get("archivedAt") is not None
+            ):
+                return False
+            if (
                 user.to_dict().get("ownerUid", uid) != uid
                 or source.to_dict().get("ownerUid", uid if parent == user_path(uid) else None)
                 != uid
@@ -234,6 +239,8 @@ class GoogleFirestoreClient:
             if (
                 not user.exists
                 or not source.exists
+                or user.to_dict().get("deletingAt") is not None
+                or source.to_dict().get("archivedAt") is not None
                 or user.to_dict().get("ownerUid", uid) != uid
                 or source.to_dict().get("ownerUid") != uid
             ):

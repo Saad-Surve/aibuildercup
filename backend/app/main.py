@@ -21,6 +21,7 @@ from app.api import (
     jobs,
     localizations,
     onboarding,
+    packaging,
     projects,
     publishes,
     schedules,
@@ -173,6 +174,7 @@ def create_app() -> FastAPI:
     app.include_router(demo.router, prefix="/api")
     app.include_router(users.router, prefix="/api")
     app.include_router(onboarding.router, prefix="/api")
+    app.include_router(packaging.router, prefix="/api")
     app.include_router(connections.router, prefix="/api")
     app.include_router(creator_library.router, prefix="/api")
     app.include_router(projects.router, prefix="/api")
