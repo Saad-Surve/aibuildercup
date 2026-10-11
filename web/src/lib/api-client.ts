@@ -6,6 +6,7 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "ApiError";
@@ -39,6 +40,7 @@ export async function apiFetch<T>(
       response.status,
       body?.error?.code ?? "UNKNOWN",
       body?.error?.message ?? response.statusText,
+      body?.error?.details,
     );
   }
 
@@ -67,6 +69,7 @@ export async function apiFetchBlob(
       response.status,
       body?.error?.code ?? "UNKNOWN",
       body?.error?.message ?? response.statusText,
+      body?.error?.details,
     );
   }
   return await response.blob();

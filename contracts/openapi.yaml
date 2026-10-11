@@ -3925,14 +3925,14 @@ components:
 
     SubstackConnectRequest:
       type: object
-      required: [sid, subdomain]
+      required: [sid]
       properties:
         sid:
           type: string
-          description: The `substack.sid` session cookie from a logged-in browser session.
+          description: The `substack.sid` session cookie. A bare value, a `substack.sid=…` pair, or the whole cookie header all work.
         subdomain:
-          type: string
-          description: Publication subdomain — `name`, `name.substack.com`, or a full URL.
+          type: [string, "null"]
+          description: Publication subdomain — `name`, `name.substack.com`, or a full URL. Omit to auto-detect; only needed when the account has more than one publication.
 
     CrosspostRequest:
       type: object

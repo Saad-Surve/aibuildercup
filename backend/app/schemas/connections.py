@@ -90,10 +90,12 @@ class MediumConnectRequest(BaseModel):
 
 
 class SubstackConnectRequest(BaseModel):
-    #: The `substack.sid` session cookie from a logged-in browser session.
-    sid: str = Field(min_length=10, max_length=2000)
-    #: Publication subdomain: `name`, `name.substack.com`, or a full URL.
-    subdomain: str = Field(min_length=1, max_length=200)
+    #: The `substack.sid` session cookie. A bare value, a `substack.sid=…` pair,
+    #: or the whole cookie header (devtools → Copy all) all work.
+    sid: str = Field(min_length=1, max_length=4000)
+    #: Publication subdomain; omit to auto-detect. Only needed when the account
+    #: has more than one publication.
+    subdomain: str | None = Field(default=None, max_length=200)
 
 
 class CrosspostRequest(BaseModel):

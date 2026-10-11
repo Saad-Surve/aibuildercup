@@ -68,11 +68,11 @@ export function connectMedium(token: string): Promise<Connection> {
  */
 export function connectSubstack(
   sid: string,
-  subdomain: string,
+  subdomain?: string,
 ): Promise<Connection> {
   return apiFetch<Connection>("/connections/substack/connect", {
     method: "POST",
-    body: JSON.stringify({ sid, subdomain }),
+    body: JSON.stringify({ sid, subdomain: subdomain ?? null }),
   });
 }
 

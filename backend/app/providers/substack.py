@@ -109,6 +109,52 @@ class SubstackProvider:
             "Referer": f"{origin}/publish",
         }
 
+    #: `substack.sid` inside a pasted cookie header (the browser's "Copy all").
+    _SID_IN_COOKIE = re.compile(r"(?:^|[;\s])substack\.sid=([^;]+)")
+
+    def extract_sid(self, raw: str) -> str:
+        """Pull the session id out of whatever the user pasted.
+
+        Accepts a bare `substack.sid` value, a `substack.sid=…` pair, or the
+        whole cookie header (devtools → Copy all), so nobody has to hunt for the
+        exact field.
+        """
+        value = raw.strip().strip('"').strip()
+        if not value:
+            raise ConnectorError(
+                "Paste your Substack session cookie.", code="SUBSTACK_BAD_COOKIE"
+            )
+        match = self._SID_IN_COOKIE.search(value)
+        if match:
+            value = match.group(1).strip()
+        elif ";" in value or "=" in value:
+            raise ConnectorError(
+                "Could not find `substack.sid` in that cookie. Paste the whole "
+                "cookie header, or just the substack.sid value.",
+                code="SUBSTACK_BAD_COOKIE",
+            )
+        return value
+
+    def list_publications(
+        self, profile: dict[str, Any]
+    ) -> list[SubstackPublication]:
+        publications: list[SubstackPublication] = []
+        for entry in profile.get("publicationUsers") or []:
+            publication = entry.get("publication") or {}
+            raw_id = publication.get("id")
+            sub = str(publication.get("subdomain") or "")
+            if raw_id is None or not sub:
+                continue
+            publications.append(
+                SubstackPublication(
+                    publication_id=int(raw_id),
+                    name=str(publication.get("name") or sub),
+                    subdomain=sub,
+                    url=f"https://{sub}.substack.com",
+                )
+            )
+        return publications
+
     def normalize_subdomain(self, value: str) -> str:
         """Accept `name`, `name.substack.com`, or a full URL; return `name`."""
         cleaned = value.strip().lower()
@@ -149,22 +195,9 @@ class SubstackProvider:
     def pick_publication(
         self, profile: dict[str, Any], subdomain: str
     ) -> SubstackPublication:
-        for entry in profile.get("publicationUsers") or []:
-            publication = entry.get("publication") or {}
-            sub = str(publication.get("subdomain") or "")
-            if sub.lower() == subdomain:
-                raw_id = publication.get("id")
-                if raw_id is None:
-                    raise ConnectorError(
-                        "Substack returned a publication without an id.",
-                        code="SUBSTACK_BAD_RESPONSE",
-                    )
-                return SubstackPublication(
-                    publication_id=int(raw_id),
-                    name=str(publication.get("name") or subdomain),
-                    subdomain=sub,
-                    url=f"https://{sub}.substack.com",
-                )
+        for publication in self.list_publications(profile):
+            if publication.subdomain.lower() == subdomain:
+                return publication
         raise ConnectorError(
             f"This Substack account has no publication at {subdomain}.substack.com.",
             code="SUBSTACK_NO_PUBLICATION",

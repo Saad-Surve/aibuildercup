@@ -55,7 +55,7 @@ const PLATFORMS: {
     name: "Substack",
     detail: "Newsletters and posts",
     connectHint:
-      "Needs your publication subdomain plus a browser session cookie (it expires, so expect to reconnect).",
+      "Connect with one pasted session cookie — your publication is detected automatically (the cookie expires, so expect to reconnect).",
   },
   {
     platform: "reddit",
@@ -104,6 +104,9 @@ export function TextPlatformConnections({
   const [token, setToken] = useState("");
   const [sid, setSid] = useState("");
   const [subdomain, setSubdomain] = useState("");
+  const [publications, setPublications] = useState<
+    { subdomain: string; name: string }[]
+  >([]);
   const [error, setError] = useState<string | null>(null);
 
   const connectionsQuery = useQuery({
@@ -141,16 +144,31 @@ export function TextPlatformConnections({
   });
 
   const substackMutation = useMutation({
-    mutationFn: () => connectSubstack(sid.trim(), subdomain.trim()),
+    mutationFn: () => connectSubstack(sid.trim(), subdomain.trim() || undefined),
     onSuccess: () => {
       toast.success("Substack connected");
       setSid("");
       setSubdomain("");
+      setPublications([]);
       setError(null);
       setDialog(null);
       refresh();
     },
-    onError: (caught) => setError(describe(caught, "Could not connect Substack.")),
+    onError: (caught) => {
+      if (
+        caught instanceof ApiError &&
+        caught.code === "SUBSTACK_MULTIPLE_PUBLICATIONS"
+      ) {
+        const options =
+          (caught.details?.publications as
+            | { subdomain: string; name: string }[]
+            | undefined) ?? [];
+        setPublications(options);
+        setError("Pick your publication below, then Connect.");
+        return;
+      }
+      setError(describe(caught, "Could not connect Substack."));
+    },
   });
 
   const redditMutation = useMutation({
@@ -302,33 +320,64 @@ export function TextPlatformConnections({
             ) : (
               <>
                 <Field>
-                  <FieldLabel htmlFor="substack-subdomain" required>
-                    Publication subdomain
-                  </FieldLabel>
-                  <Input
-                    id="substack-subdomain"
-                    value={subdomain}
-                    autoComplete="off"
-                    placeholder="yourname"
-                    onChange={(event) => setSubdomain(event.target.value)}
-                  />
-                </Field>
-                <Field>
                   <FieldLabel htmlFor="substack-sid" required>
-                    Session cookie (substack.sid)
+                    Substack session cookie
                   </FieldLabel>
                   <Input
                     id="substack-sid"
                     type="password"
                     value={sid}
                     autoComplete="off"
-                    placeholder="Paste the cookies value from browser devtools"
-                    onChange={(event) => setSid(event.target.value)}
+                    placeholder="substack.sid=… (or just the value)"
+                    onChange={(event) => {
+                      setSid(event.target.value);
+                      setPublications([]);
+                      setError(null);
+                    }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    While logged into Substack, open devtools <InlineArrow />{" "}
-                    Application <InlineArrow /> Cookies <InlineArrow /> copy the{" "}
-                    <code>substack.sid</code> value.
+                    Log into Substack, open devtools <InlineArrow /> Application{" "}
+                    <InlineArrow /> Cookies <InlineArrow /> <code>substack.sid</code>.
+                    Paste the value, the <code>substack.sid=…</code> pair, or the
+                    whole cookie header — we find it. Your publication is
+                    detected for you.
+                  </p>
+                </Field>
+                {publications.length > 0 ? (
+                  <Field>
+                    <FieldLabel>Publication</FieldLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {publications.map((publication) => (
+                        <button
+                          key={publication.subdomain}
+                          type="button"
+                          onClick={() => setSubdomain(publication.subdomain)}
+                          className={`rounded-full border px-3 py-1 text-xs ${
+                            subdomain === publication.subdomain
+                              ? "border-signal bg-signal/10 text-foreground"
+                              : "border-border text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {publication.name}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+                ) : null}
+                <Field>
+                  <FieldLabel htmlFor="substack-subdomain">
+                    Publication subdomain (optional)
+                  </FieldLabel>
+                  <Input
+                    id="substack-subdomain"
+                    value={subdomain}
+                    autoComplete="off"
+                    placeholder="Auto-detected"
+                    onChange={(event) => setSubdomain(event.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave blank — the cookie finds your publication. Only fill it
+                    in if your account has several.
                   </p>
                 </Field>
               </>
@@ -341,7 +390,7 @@ export function TextPlatformConnections({
               disabled={
                 busy ||
                 readOnly ||
-                (dialog === "medium" ? !token.trim() : !sid.trim() || !subdomain.trim())
+                (dialog === "medium" ? !token.trim() : !sid.trim())
               }
               onClick={() => {
                 if (dialog === "medium") mediumMutation.mutate();

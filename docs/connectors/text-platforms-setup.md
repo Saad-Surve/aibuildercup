@@ -27,21 +27,26 @@ Posting: title + Markdown body, visibility **Draft** (default, only you),
 straight to your profile. Optional: `canonicalUrl` if the piece first lived
 elsewhere (avoids duplicate-content penalties), up to 3 tags.
 
-## Substack — publication subdomain + session cookie
+## Substack — one pasted session cookie
 
-**The one thing to know:** Substack has no official write API. The connector
-drives the same cookie-authenticated endpoints the Substack editor uses, so it
-works (draft → publish → schedule, email sends included) but is inherently
-fragile: the cookie expires and internal endpoints can move. When posting
-starts failing, reconnect with a fresh cookie.
+**The one thing to know:** Substack has no official write API and no OAuth for
+posting. (It does run an OAuth server —
+`substack.com/.well-known/oauth-authorization-server` — but the dynamic client
+registration only ever grants read-only `mcp:read` for Substack's MCP, and the
+password login is gated behind a captcha.) So the connector drives the same
+cookie-authenticated endpoints the editor uses — it works (draft → publish →
+schedule, email sends included) but is inherently fragile: the cookie expires
+and internal endpoints can move. When posting fails, reconnect with a fresh
+cookie.
 
-1. You need a publication (e.g. `yourname.substack.com`) where you can post.
-2. In Chrome/Edge, log into Substack, then open devtools (**F12**) →
-   **Application** → **Cookies** → `https://substack.com` → copy the value of
-   the `substack.sid` cookie (very long string).
+1. In Chrome/Edge, log into Substack.
+2. Copy the session cookie — either the `substack.sid` **value**, or, more
+   easily, devtools (**F12**) → **Network** → any request → **Headers** →
+   **Cookie** → Copy (the whole cookie header works too).
 3. In the studio: **Settings → Writing platforms → Substack → Connect
-   Substack**, enter the subdomain (`yourname` — bare name, full domain, or URL
-   all work) and paste the cookie, Connect.
+   Substack**, paste it into the single field. You do **not** type a subdomain —
+   the cookie finds your publication. If the account has more than one, a picker
+   appears (or use the optional subdomain field).
 4. The card shows your publication name; Disconnect deletes the cookie.
 
 Posting: title, Markdown body (headings/bold/italic/links convert; anything

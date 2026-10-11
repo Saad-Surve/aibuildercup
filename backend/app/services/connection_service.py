@@ -372,12 +372,41 @@ class ConnectionService:
         )
         return self.get(owner_uid=owner_uid, connection_id=connection_id)
 
-    def connect_substack(self, *, owner_uid: str, sid: str, subdomain: str) -> Connection:
-        """Connect a Substack publication with a browser session cookie."""
+    def connect_substack(
+        self, *, owner_uid: str, sid: str, subdomain: str | None = None
+    ) -> Connection:
+        """Connect a Substack publication with a browser session cookie.
+
+        The publication is auto-detected — one publication connects straight
+        away, several ask the caller to pick — so the user never has to type a
+        subdomain.
+        """
         provider = SubstackProvider()
-        clean_sub = provider.normalize_subdomain(subdomain)
-        profile = provider.get_profile(sid.strip())
-        publication = provider.pick_publication(profile, clean_sub)
+        clean_sid = provider.extract_sid(sid)
+        profile = provider.get_profile(clean_sid)
+        if subdomain and subdomain.strip():
+            publication = provider.pick_publication(
+                profile, provider.normalize_subdomain(subdomain)
+            )
+        else:
+            publications = provider.list_publications(profile)
+            if not publications:
+                raise BadRequestError(
+                    "This Substack account has no publication.",
+                    code="SUBSTACK_NO_PUBLICATION",
+                )
+            if len(publications) > 1:
+                raise BadRequestError(
+                    "This Substack account has more than one publication — pick one.",
+                    code="SUBSTACK_MULTIPLE_PUBLICATIONS",
+                    details={
+                        "publications": [
+                            {"subdomain": pub.subdomain, "name": pub.name}
+                            for pub in publications
+                        ]
+                    },
+                )
+            publication = publications[0]
         connection_id = self._upsert_text_connection(
             owner_uid,
             platform=ConnectionPlatform.substack.value,
@@ -389,7 +418,7 @@ class ConnectionService:
             avatar_url=None,
             secret={
                 "authKind": "cookie",
-                "sid": sid.strip(),
+                "sid": clean_sid,
                 "subdomain": publication.subdomain,
             },
             scopes=["post"],
