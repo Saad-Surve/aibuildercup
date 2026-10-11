@@ -1,6 +1,7 @@
 """Validated operator corpus installation; every user copy follows account deletion."""
 
 import json
+import logging
 import math
 import stat
 import zipfile
@@ -32,6 +33,7 @@ from app.services.paths import user_path
 from app.services.storage_service import StorageClient, validate_object_path
 
 _INSTALL_LOCK = Lock()
+logger = logging.getLogger(__name__)
 _ARCHIVE_CAP = 100 * 1024**2
 _EXPANDED_CAP = 150 * 1024**2
 
@@ -185,6 +187,7 @@ class CreatorPresetService:
                             )
                         raise
         except Exception as exc:
+            logger.exception("Configured creator corpus installation failed")
             raise AppError(
                 "Your creator library could not be loaded. Try again shortly.",
                 code="CREATOR_LIBRARY_UNAVAILABLE",
