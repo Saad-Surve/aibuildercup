@@ -11,7 +11,7 @@ Rate limit is ~1 request/second; calls here are single-shot, never looped.
 Feature code calls this provider, never `requests` against Substack directly.
 """
 
-import html
+import json
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -48,33 +48,113 @@ def _translate(status: int, action: str) -> ConnectorError:
     )
 
 
-def markdown_to_substack_html(markdown: str) -> str:
-    """Minimal Markdown → HTML for draft bodies: headings, bold, italic, links,
-    paragraphs. Anything fancier stays literal text — safe, never broken HTML."""
-    blocks: list[str] = []
+def markdown_to_substack_doc(markdown: str) -> str:
+    """Minimal Markdown → Substack `draft_body`: a TipTap JSON document string.
+
+    The drafts endpoint stores `draft_body` verbatim and the dashboard renders it
+    as TipTap — raw HTML shows up as literal tags, so headings, bold, italic,
+    links, and line breaks map to doc nodes instead. Anything fancier stays
+    literal text — safe, never broken markup.
+    """
+    content: list[dict[str, Any]] = []
     for chunk in re.split(r"\n{2,}", markdown.strip()):
         chunk = chunk.strip()
         if not chunk:
             continue
         heading = re.match(r"^(#{1,3})\s+(.*)$", chunk, re.DOTALL)
         if heading:
-            level = len(heading.group(1)) + 1
-            blocks.append(f"<h{level}>{_inline(heading.group(2))}</h{level}>")
+            inlines = _parse_rich(re.sub(r"\s+", " ", heading.group(2)).strip())
+            node: dict[str, Any] = {
+                "type": "heading",
+                "attrs": {"level": len(heading.group(1))},
+            }
+            if inlines:
+                node["content"] = inlines
+            content.append(node)
             continue
-        lines = [_inline(line) for line in chunk.split("\n") if line.strip()]
-        if lines:
-            blocks.append(f"<p>{'<br>'.join(lines)}</p>")
-    return "".join(blocks) or "<p></p>"
+        if chunk.startswith(">"):
+            quote = re.sub(r"^>\s?", "", chunk, flags=re.MULTILINE).strip()
+            inlines = _parse_rich_block(quote)
+            quote_paragraph: dict[str, Any] = {"type": "paragraph"}
+            if inlines:
+                quote_paragraph["content"] = inlines
+            content.append({"type": "blockquote", "content": [quote_paragraph]})
+            continue
+        inlines = _parse_rich_block(chunk)
+        paragraph: dict[str, Any] = {"type": "paragraph"}
+        if inlines:
+            paragraph["content"] = inlines
+        content.append(paragraph)
+    if not content:
+        content.append({"type": "paragraph"})
+    return json.dumps({"type": "doc", "content": content})
 
 
-def _inline(text: str) -> str:
-    escaped = html.escape(text)
-    escaped = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", escaped)
-    escaped = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<em>\1</em>", escaped)
-    escaped = re.sub(
-        r"\[([^\]]+)\]\((https?://[^)]+)\)", r'<a href="\2">\1</a>', escaped
-    )
-    return escaped
+def _text_node(text: str, marks: list[dict[str, Any]]) -> dict[str, Any]:
+    node: dict[str, Any] = {"type": "text", "text": text}
+    if marks:
+        node["marks"] = marks
+    return node
+
+
+def _parse_rich(text: str, marks: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    """Inline Markdown (`[text](url)`, `**bold**`, `*italic*`) → TipTap nodes."""
+    active = list(marks or [])
+    nodes: list[dict[str, Any]] = []
+    position = 0
+    for match in re.finditer(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", text):
+        if match.start() > position:
+            nodes.extend(_parse_emphasis(text[position : match.start()], active))
+        link_marks = [
+            *active,
+            {"type": "link", "attrs": {"href": match.group(2), "target": "_blank"}},
+        ]
+        nodes.extend(_parse_emphasis(match.group(1), link_marks))
+        position = match.end()
+    if position < len(text):
+        nodes.extend(_parse_emphasis(text[position:], active))
+    return [node for node in nodes if node.get("text") != ""]
+
+
+def _parse_emphasis(text: str, marks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    nodes: list[dict[str, Any]] = []
+    position = 0
+    for match in re.finditer(r"\*\*(.+?)\*\*", text, re.DOTALL):
+        if match.start() > position:
+            nodes.extend(_parse_italic(text[position : match.start()], marks))
+        nodes.extend(_parse_italic(match.group(1), [*marks, {"type": "strong"}]))
+        position = match.end()
+    if position < len(text):
+        nodes.extend(_parse_italic(text[position:], marks))
+    return nodes
+
+
+def _parse_italic(text: str, marks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    nodes: list[dict[str, Any]] = []
+    position = 0
+    for match in re.finditer(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", text):
+        if match.start() > position:
+            plain = text[position : match.start()]
+            if plain:
+                nodes.append(_text_node(plain, marks))
+        nodes.extend(_parse_rich(match.group(1), [*marks, {"type": "em"}]))
+        position = match.end()
+    if position < len(text):
+        tail = text[position:]
+        if tail:
+            nodes.append(_text_node(tail, marks))
+    return nodes
+
+
+def _parse_rich_block(chunk: str) -> list[dict[str, Any]]:
+    """One blank-line-separated block → paragraph content (hard breaks kept)."""
+    inlines: list[dict[str, Any]] = []
+    lines = [line for line in chunk.split("\n")]
+    for index, line in enumerate(lines):
+        if index:
+            inlines.append({"type": "hardBreak"})
+        inlines.extend(_parse_rich(line))
+    return inlines
 
 
 @dataclass(frozen=True)
@@ -221,11 +301,22 @@ class SubstackProvider:
                 code="SUBSTACK_BAD_AUDIENCE",
                 details={"audience": audience},
             )
+        # The drafts endpoint rejects posts without an author line (400
+        # `draft_bylines: Invalid value`), so resolve the session's own user id
+        # first and sign the draft with it.
+        profile = self.get_profile(sid)
+        byline_id = profile.get("id")
+        if byline_id is None:
+            raise ConnectorError(
+                "Substack did not return a profile id for this session.",
+                code="SUBSTACK_BAD_RESPONSE",
+            )
         origin = f"https://{subdomain}.substack.com"
         payload: dict[str, Any] = {
             "draft_title": title,
             "draft_subtitle": subtitle,
-            "draft_body": markdown_to_substack_html(body_markdown),
+            "draft_body": markdown_to_substack_doc(body_markdown),
+            "draft_bylines": [{"id": byline_id}],
             "type": "newsletter",
             "audience": audience,
         }
@@ -265,6 +356,58 @@ class SubstackProvider:
             dashboard_url=f"{origin}/publish/post/{draft_id}",
             post_url=data.get("post_url") or data.get("url"),
         )
+
+    def update_draft(
+        self,
+        sid: str,
+        *,
+        subdomain: str,
+        draft_id: int,
+        title: str,
+        body_markdown: str,
+        subtitle: str = "",
+    ) -> None:
+        """Overwrite an existing draft's title/body in place.
+
+        Same shape as creation (TipTap doc body + author byline). A draft that
+        was deleted on Substack surfaces as a 404, which the caller maps to
+        "post again" instead of "reconnect".
+        """
+        profile = self.get_profile(sid)
+        byline_id = profile.get("id")
+        if byline_id is None:
+            raise ConnectorError(
+                "Substack did not return a profile id for this session.",
+                code="SUBSTACK_BAD_RESPONSE",
+            )
+        origin = f"https://{subdomain}.substack.com"
+        try:
+            response = requests.put(
+                f"{origin}/api/v1/drafts/{draft_id}",
+                cookies=self._cookies(sid),
+                headers=self._headers(origin),
+                json={
+                    "draft_title": title,
+                    "draft_subtitle": subtitle,
+                    "draft_body": markdown_to_substack_doc(body_markdown),
+                    "draft_bylines": [{"id": byline_id}],
+                },
+                timeout=self.timeout_seconds,
+            )
+        except requests.RequestException as exc:
+            raise ConnectorError(
+                "Could not reach Substack. Check your connection and retry.",
+                code="SUBSTACK_UNREACHABLE",
+                retryable=True,
+            ) from exc
+        if response.status_code == 404:
+            raise ConnectorError(
+                "That draft no longer exists on Substack — post it again.",
+                code="SUBSTACK_DRAFT_GONE",
+                details={"draftId": draft_id},
+            )
+        if response.status_code != 200:
+            raise _translate(response.status_code, "update the draft")
 
     def publish_draft(
         self,

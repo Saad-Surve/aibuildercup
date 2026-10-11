@@ -101,6 +101,22 @@ class DraftSummary(BaseModel):
     versionCount: int = 0
 
 
+class LinkedExternalPost(BaseModel):
+    """A platform draft/post this draft was sent to, so later edits can sync.
+
+    One entry per platform: re-posting replaces the link. Only Substack drafts
+    are updatable today (`draft`/`scheduled` modes); published posts and other
+    platforms keep the link as a record with no sync action.
+    """
+
+    platform: str = ""
+    connectionId: str = ""
+    externalId: str = ""
+    url: str | None = None
+    status: str = ""
+    updatedAt: datetime | None = None
+
+
 class Draft(BaseModel):
     projectId: str
     title: str = ""
@@ -112,6 +128,8 @@ class Draft(BaseModel):
     summary: DraftSummary = Field(default_factory=DraftSummary)
     #: Latest grounded research (generation or assist), for the studio's sources panel.
     grounding: DraftGrounding | None = None
+    #: Platform drafts posted from here, keyed by platform upstream (one each).
+    linkedPosts: list[LinkedExternalPost] = Field(default_factory=list)
     createdAt: datetime | None = None
     updatedAt: datetime | None = None
 

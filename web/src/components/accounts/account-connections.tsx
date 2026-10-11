@@ -7,6 +7,7 @@ import { PlatformLogo } from "@/components/calendar/platform";
 import { Icon } from "@/components/common/icon";
 import { TextPlatformConnections } from "@/components/accounts/text-platform-connections";
 import { YouTubeConnections } from "@/components/projects/studio/youtube-connections";
+import { Separator } from "@/components/ui/separator";
 
 /** One connection surface shared by onboarding and Settings; OAuth remains provider-specific. */
 export function AccountConnections({
@@ -17,9 +18,9 @@ export function AccountConnections({
   beforeConnect?: () => Promise<void>;
 }) {
   return (
-    <div className="space-y-5">
-      <section className="overflow-hidden rounded-xl border">
-        <div className="flex items-start gap-3 border-b bg-muted/20 px-4 py-3">
+    <div className="space-y-6">
+      <section className="space-y-3">
+        <div className="flex items-start gap-3">
           <PlatformLogo platform="youtube" size={18} className="mt-0.5" />
           <div>
             <h2 className="text-sm font-semibold">YouTube</h2>
@@ -28,24 +29,22 @@ export function AccountConnections({
             </p>
           </div>
         </div>
-        <div className="p-4">
-          <YouTubeConnections
-            redirectPath={redirectPath}
-            beforeConnect={beforeConnect}
-          />
-        </div>
+        <YouTubeConnections
+          redirectPath={redirectPath}
+          beforeConnect={beforeConnect}
+        />
       </section>
-      <section className="overflow-hidden rounded-xl border">
-        <div className="border-b bg-muted/20 px-4 py-3">
+      <Separator />
+      <section className="space-y-3">
+        <div>
           <h2 className="text-sm font-semibold">Writing platforms</h2>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
             Cross-post drafts and essays to Medium, Substack, and Reddit.
           </p>
         </div>
-        <div className="p-4">
-          <TextPlatformConnections redirectPath={redirectPath} />
-        </div>
+        <TextPlatformConnections redirectPath={redirectPath} />
       </section>
+      <Separator />
       <div className="grid gap-3 sm:grid-cols-2">
         {[
           {

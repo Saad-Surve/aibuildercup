@@ -199,6 +199,7 @@ def get_crosspost_service() -> CrosspostService:
     return CrosspostService(
         connections=get_connection_service(),
         projects=ProjectService(client, storage=storage),
+        drafts=get_draft_service(),
     )
 
 

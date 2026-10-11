@@ -129,6 +129,11 @@ back by `GET /projects/{id}/draft/context` for the studio's "Style evidence" pan
 also keeps `grounding` (the newest grounded call's `queries`, `sources`, and
 `searchSuggestions`), read back with the draft for the studio's "Grounded with Google Search"
 panel. It sits under the project subtree, so project / account delete covers it.
+Posting a Substack draft/schedule from the studio records one `linkedPosts[]`
+entry `{platform, connectionId, externalId, url, status, updatedAt}` on the
+draft document — the two-way link the crosspost sync endpoint pushes later edits
+into. Re-posting replaces the platform's entry; deleting the remote draft clears
+it on the next sync attempt.
 
 ## Thumbnail concept documents
 

@@ -34,6 +34,7 @@ from app.schemas.draft import (
     DraftSummary,
     DraftVersion,
     GenerateDraftRequest,
+    LinkedExternalPost,
     SaveDraftRequest,
     SuggestDraftRequest,
     SuggestMode,
@@ -483,6 +484,63 @@ class DraftService:
         )
         self._persist(owner_uid=owner_uid, draft=draft, status=status)
         return draft
+
+    # ------------------------------------------------------- external posting
+
+    def record_external_post(
+        self, *, owner_uid: str, project_id: str, link: LinkedExternalPost
+    ) -> None:
+        """Remember a platform draft posted from here (one link per platform).
+
+        Targeted write: the draft content and project status are untouched, so
+        recording a link never flips the project state. A failed write only
+        logs — the platform post already happened and must not report failure.
+        """
+        try:
+            draft = self.get(owner_uid=owner_uid, project_id=project_id)
+        except Exception:  # noqa: BLE001 - the post succeeded; keep it that way
+            logger.warning(
+                "draft: could not load %s to record %s link",
+                project_id,
+                link.platform,
+            )
+            return
+        links = [item for item in draft.linkedPosts if item.platform != link.platform]
+        links.append(link)
+        try:
+            self.client.update_document(
+                draft_path(owner_uid, project_id),
+                {
+                    "linkedPosts": [item.model_dump(mode="json") for item in links],
+                    "updatedAt": datetime.now(UTC),
+                },
+            )
+        except Exception:  # noqa: BLE001 - see above
+            logger.warning(
+                "draft: could not record %s link for %s", link.platform, project_id
+            )
+
+    def clear_external_post(self, *, owner_uid: str, project_id: str, platform: str) -> None:
+        """Drop a platform link (its remote draft was deleted). Best-effort."""
+        try:
+            draft = self.get(owner_uid=owner_uid, project_id=project_id)
+        except Exception:  # noqa: BLE001 - nothing to clear against
+            return
+        links = [item for item in draft.linkedPosts if item.platform != platform]
+        if len(links) == len(draft.linkedPosts):
+            return
+        try:
+            self.client.update_document(
+                draft_path(owner_uid, project_id),
+                {
+                    "linkedPosts": [item.model_dump(mode="json") for item in links],
+                    "updatedAt": datetime.now(UTC),
+                },
+            )
+        except Exception:  # noqa: BLE001 - stale link is harmless
+            logger.warning(
+                "draft: could not clear %s link for %s", platform, project_id
+            )
 
     async def generate(
         self,

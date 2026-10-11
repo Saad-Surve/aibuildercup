@@ -9,10 +9,11 @@ Feature code never touches a platform SDK/HTTP API; all calls go through the
 providers in `app/providers/`.
 """
 
+from datetime import UTC, datetime
 from typing import Any
 
 from app.connectors.base import ConnectorError
-from app.errors import BadRequestError, ConflictError
+from app.errors import BadRequestError, ConflictError, NotFoundError
 from app.providers.medium import MediumProvider
 from app.providers.reddit import RedditOAuthClient
 from app.providers.substack import SubstackProvider
@@ -22,7 +23,9 @@ from app.schemas.connections import (
     CrosspostRequest,
     CrosspostResult,
 )
+from app.schemas.draft import LinkedExternalPost
 from app.services.connection_service import ConnectionService
+from app.services.draft_service import DraftService
 from app.services.project_service import ProjectService
 
 _MEDIUM_STATUSES = ("draft", "public", "unlisted")
@@ -36,9 +39,11 @@ class CrosspostService:
         *,
         connections: ConnectionService,
         projects: ProjectService,
+        drafts: DraftService,
     ) -> None:
         self.connections = connections
         self.projects = projects
+        self.drafts = drafts
 
     def post(
         self, *, owner_uid: str, project_id: str, payload: CrosspostRequest
@@ -72,13 +77,13 @@ class CrosspostService:
         options = payload.options or {}
         try:
             if payload.platform == ConnectionPlatform.medium.value:
-                return self._post_medium(owner_uid, connection.connectionId, title, body, options)
-            if payload.platform == ConnectionPlatform.substack.value:
-                return self._post_substack(
+                result = self._post_medium(owner_uid, connection.connectionId, title, body, options)
+            elif payload.platform == ConnectionPlatform.substack.value:
+                result = self._post_substack(
                     owner_uid, connection.connectionId, title, body, options
                 )
-            if payload.platform == ConnectionPlatform.reddit.value:
-                return self._post_reddit(
+            elif payload.platform == ConnectionPlatform.reddit.value:
+                result = self._post_reddit(
                     owner_uid,
                     connection.connectionId,
                     connection.externalHandle,
@@ -86,6 +91,12 @@ class CrosspostService:
                     title,
                     body,
                     options,
+                )
+            else:
+                raise BadRequestError(
+                    "Unsupported platform for crossposting.",
+                    code="UNSUPPORTED_PLATFORM",
+                    details={"platform": payload.platform},
                 )
         except ConnectorError as exc:
             if exc.code in (
@@ -104,10 +115,134 @@ class CrosspostService:
             raise BadRequestError(
                 exc.message, code=exc.code, details={"connectionId": connection.connectionId}
             ) from exc
-        raise BadRequestError(
-            "Unsupported platform for crossposting.",
-            code="UNSUPPORTED_PLATFORM",
-            details={"platform": payload.platform},
+        if (
+            result.platform == ConnectionPlatform.substack.value
+            and result.status in ("draft", "scheduled")
+        ):
+            # A Substack draft/schedule stays editable: remember it on the draft
+            # so later edits here can sync into it (see `sync`).
+            self.drafts.record_external_post(
+                owner_uid=owner_uid,
+                project_id=project_id,
+                link=LinkedExternalPost(
+                    platform=result.platform,
+                    connectionId=result.connectionId,
+                    externalId=result.externalId,
+                    url=result.url,
+                    status=result.status,
+                    updatedAt=datetime.now(UTC),
+                ),
+            )
+        return result
+
+    def sync(
+        self, *, owner_uid: str, project_id: str, platform: str, title: str, body: str
+    ) -> CrosspostResult:
+        """Push the current title/body into the linked platform draft.
+
+        The two-way link for Substack: posting records the remote draft id on
+        the draft, and syncing overwrites that draft in place — edits here land
+        there. Only Substack drafts are updatable; anything else is a 400.
+        """
+        self.projects.get(owner_uid=owner_uid, project_id=project_id)
+        draft = self.drafts.get(owner_uid=owner_uid, project_id=project_id)
+        link = next(
+            (item for item in draft.linkedPosts if item.platform == platform), None
+        )
+        if link is None:
+            raise ConflictError(
+                "Post to the platform first — there is no linked draft to update.",
+                code="CROSSPOST_NOT_LINKED",
+                details={"platform": platform},
+            )
+        if platform != ConnectionPlatform.substack.value:
+            raise BadRequestError(
+                "Only Substack drafts can be synced back.",
+                code="CROSSPOST_SYNC_UNSUPPORTED",
+                details={"platform": platform},
+            )
+        try:
+            connection = self.connections.get(
+                owner_uid=owner_uid, connection_id=link.connectionId
+            )
+        except NotFoundError:
+            self.drafts.clear_external_post(
+                owner_uid=owner_uid, project_id=project_id, platform=platform
+            )
+            raise ConflictError(
+                "That connection is gone — post again to link a fresh draft.",
+                code="CROSSPOST_NOT_LINKED",
+                details={"platform": platform},
+            ) from None
+        if connection.status != ConnectionStatus.connected:
+            raise ConflictError(
+                "Reconnect this account before syncing.",
+                code="CONNECTION_NEEDS_REAUTH",
+                details={"connectionId": link.connectionId},
+            )
+        final_title = title.strip()
+        final_body = body.strip()
+        if not final_title or not final_body:
+            raise BadRequestError(
+                "A crosspost needs a title and a body.",
+                code="CROSSPOST_EMPTY",
+            )
+        try:
+            draft_id = int(link.externalId)
+        except ValueError:
+            draft_id = -1
+        secret = self.connections._load_secret(
+            owner_uid=owner_uid, connection_id=link.connectionId
+        )
+        sid = (secret or {}).get("sid")
+        subdomain = (secret or {}).get("subdomain")
+        if not sid or not subdomain or draft_id < 0:
+            raise BadRequestError(
+                "This connection needs to be reconnected.",
+                code="CONNECTION_NEEDS_REAUTH",
+                details={"connectionId": link.connectionId},
+            )
+        try:
+            SubstackProvider().update_draft(
+                str(sid),
+                subdomain=str(subdomain),
+                draft_id=draft_id,
+                title=final_title,
+                body_markdown=final_body,
+            )
+        except ConnectorError as exc:
+            if exc.code == "SUBSTACK_UNAUTHORIZED":
+                self.connections._mark_needs_reauth(
+                    owner_uid, link.connectionId, exc.code
+                )
+                raise BadRequestError(
+                    "This connection needs to be reconnected.",
+                    code="CONNECTION_NEEDS_REAUTH",
+                    details={"connectionId": link.connectionId},
+                ) from exc
+            if exc.code == "SUBSTACK_DRAFT_GONE":
+                self.drafts.clear_external_post(
+                    owner_uid=owner_uid, project_id=project_id, platform=platform
+                )
+                raise ConflictError(
+                    "That draft was deleted on Substack — post again to link a fresh one.",
+                    code="CROSSPOST_REMOTE_DELETED",
+                    details={"platform": platform},
+                ) from exc
+            raise BadRequestError(
+                exc.message, code=exc.code, details={"connectionId": link.connectionId}
+            ) from exc
+        link.updatedAt = datetime.now(UTC)
+        self.drafts.record_external_post(
+            owner_uid=owner_uid, project_id=project_id, link=link
+        )
+        return CrosspostResult(
+            platform=platform,
+            connectionId=link.connectionId,
+            externalId=link.externalId,
+            url=link.url or "",
+            status=link.status or "draft",
+            title=final_title,
         )
 
     # ------------------------------------------------------------------ medium

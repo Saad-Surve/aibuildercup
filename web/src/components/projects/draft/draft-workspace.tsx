@@ -238,6 +238,28 @@ export function DraftWorkspace({
     });
   }, [projectId, queryClient, saveBlockAsync]);
 
+  // Ctrl/Cmd+S (with or without Shift) saves the draft in place instead of
+  // opening the browser's save-page dialog. Scoped to this workspace, so it
+  // only applies while a draft is open.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (!event.ctrlKey && !event.metaKey) return;
+      if (event.key.toLowerCase() !== "s") return;
+      event.preventDefault();
+      if (readOnly) return;
+      void (async () => {
+        try {
+          await flushSave();
+          toast.success("Draft saved");
+        } catch {
+          // The save mutation already toasts the failure.
+        }
+      })();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [flushSave, readOnly]);
+
   // Generate the first draft automatically when a project opens empty with a
   // brief already captured at creation.
   const runGenerate = generateMutation.mutate;
@@ -432,10 +454,9 @@ export function DraftWorkspace({
               Edit brief
             </Button>
           </DisabledReason>
+          <CrosspostCard projectId={projectId} />
         </span>
       </div>
-
-      <CrosspostCard projectId={projectId} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
         {generating ? (

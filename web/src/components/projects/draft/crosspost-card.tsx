@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpRight01Icon, Loading03Icon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
@@ -10,12 +11,14 @@ import { Icon } from "@/components/common/icon";
 import { DisabledReason } from "@/components/common/disabled-reason";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -26,13 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api-client";
 import {
   crosspost,
   listConnections,
+  syncCrosspost,
 } from "@/lib/connections";
 import { draftToText } from "@/lib/draft-export";
+import { getDraft } from "@/lib/drafts";
 import type {
   CrosspostPlatform,
   CrosspostResult,
@@ -56,8 +60,11 @@ const PLATFORM_LABEL: Record<CrosspostPlatform, string> = {
 /**
  * Cross-post the draft's text to a connected writing platform. Synchronous —
  * the result carries the live URL (or the Substack draft URL) directly.
- * Prefills from the draft cache; safe defaults (Medium/Substack drafts, your
- * own Reddit profile) unless the creator opts into public.
+ * The editor pane is the body: this dialog only edits the title and the
+ * platform settings, and posts whatever the draft currently holds. A posted
+ * Substack draft links back here, so later edits can sync into it.
+ * Prefills the title from the draft cache; safe defaults (Medium/Substack
+ * drafts, your own Reddit profile) unless the creator opts into public.
  */
 export function CrosspostCard({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
@@ -66,7 +73,6 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
   const [platform, setPlatform] = useState<CrosspostPlatform>("medium");
   const [connectionId, setConnectionId] = useState("");
   const [title, setTitle] = useState<string | null>(null);
-  const [body, setBody] = useState<string | null>(null);
   const [publishStatus, setPublishStatus] = useState("draft");
   const [substackMode, setSubstackMode] = useState("draft");
   const [audience, setAudience] = useState("everyone");
@@ -82,28 +88,69 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
     queryFn: listConnections,
     enabled: open,
   });
-  const options = (connectionsQuery.data?.items ?? []).filter(
-    (connection) => connection.platform === platform,
+  const connected = (connectionsQuery.data?.items ?? []).filter(
+    (connection) => connection.status === "connected",
   );
+  // Only destinations the creator actually connected — never the full platform
+  // list. Derived during render (not an effect) so a disconnect mid-session
+  // immediately narrows the choices without extra state.
+  const connectedPlatforms = (
+    Object.keys(PLATFORM_LABEL) as CrosspostPlatform[]
+  ).filter((value) =>
+    connected.some((connection) => connection.platform === value),
+  );
+  const effectivePlatform = connectedPlatforms.includes(platform)
+    ? platform
+    : (connectedPlatforms[0] ?? "medium");
+  const options = connected.filter(
+    (connection) => connection.platform === effectivePlatform,
+  );
+  const effectiveConnectionId =
+    options.length === 1
+      ? // Only one account to pick — choose it instead of an empty dropdown.
+        options[0].connectionId
+      : options.some((item) => item.connectionId === connectionId)
+        ? connectionId
+        : "";
+
+  // The linked platform draft, if this draft was posted before. Shares the
+  // workspace's draft query, so it re-renders when a post records a link.
+  const draftQuery = useQuery({
+    queryKey: ["draft", projectId],
+    queryFn: () => getDraft(projectId),
+    enabled: open,
+  });
+  const linked =
+    (draftQuery.data?.linkedPosts ?? []).find(
+      (item) => item.platform === effectivePlatform,
+    ) ?? null;
+  const syncable = linked !== null && effectivePlatform === "substack";
+
+  function content(): { title: string; body: string } {
+    const cached = queryClient.getQueryData<Draft>(["draft", projectId]);
+    return {
+      title: (title ?? cached?.title ?? "").trim(),
+      body: cached ? draftToText(cached).trim() : "",
+    };
+  }
 
   function prefill() {
     const cached = queryClient.getQueryData<Draft>(["draft", projectId]);
     if (title === null && cached) setTitle(cached.title);
-    if (body === null && cached) setBody(draftToText(cached).trim());
   }
 
   const postMutation = useMutation({
     mutationFn: () => {
-      if (!connectionId) throw new Error("Pick a connected account first.");
-      const finalTitle = (title ?? "").trim();
-      const finalBody = (body ?? "").trim();
+      if (!effectiveConnectionId)
+        throw new Error("Pick a connected account first.");
+      const { title: finalTitle, body: finalBody } = content();
       if (!finalTitle || !finalBody) {
-        throw new Error("The post needs a title and a body.");
+        throw new Error("Write the draft first — it needs a title and a body.");
       }
       const extra: Record<string, unknown> =
-        platform === "medium"
+        effectivePlatform === "medium"
           ? { publishStatus }
-          : platform === "substack"
+          : effectivePlatform === "substack"
             ? {
                 mode: substackMode,
                 audience,
@@ -116,8 +163,8 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
                 url: linkUrl.trim() || undefined,
               };
       return crosspost(projectId, {
-        platform,
-        connectionId,
+        platform: effectivePlatform,
+        connectionId: effectiveConnectionId,
         title: finalTitle,
         body: finalBody,
         options: extra,
@@ -126,6 +173,9 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
     onSuccess: (posted) => {
       setError(null);
       setResult(posted);
+      // A Substack draft/schedule records its link on the draft — refetch so
+      // the dialog flips to the linked "Sync changes" state.
+      void queryClient.invalidateQueries({ queryKey: ["draft", projectId] });
       toast.success(
         posted.status === "draft"
           ? "Saved as a draft on the platform"
@@ -137,73 +187,136 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
     onError: (caught) => setError(describe(caught, "Could not post.")),
   });
 
+  const syncMutation = useMutation({
+    mutationFn: () => {
+      const { title: finalTitle, body: finalBody } = content();
+      if (!finalTitle || !finalBody) {
+        throw new Error("Write the draft first — it needs a title and a body.");
+      }
+      return syncCrosspost(projectId, {
+        platform: effectivePlatform,
+        title: finalTitle,
+        body: finalBody,
+      });
+    },
+    onSuccess: (synced) => {
+      setError(null);
+      setResult(synced);
+      void queryClient.invalidateQueries({ queryKey: ["draft", projectId] });
+      toast.success("Substack draft updated");
+    },
+    onError: (caught) => {
+      // A deleted remote draft clears the link server-side — refetch so the
+      // dialog falls back to posting fresh.
+      void queryClient.invalidateQueries({ queryKey: ["draft", projectId] });
+      setError(describe(caught, "Could not sync."));
+    },
+  });
+
   if (!open) {
     return (
-      <div>
-        <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={readOnly}
-            onClick={() => {
-              setOpen(true);
-              prefill();
-            }}
-          >
-            Post to Medium / Substack / Reddit
-          </Button>
-        </DisabledReason>
-      </div>
+      <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          disabled={readOnly}
+          onClick={() => {
+            setOpen(true);
+            prefill();
+          }}
+        >
+          Post this draft
+        </Button>
+      </DisabledReason>
     );
   }
 
-  const busy = postMutation.isPending;
+  const busy = postMutation.isPending || syncMutation.isPending;
+  // Linked + staying a draft → push edits into it. Picking publish/schedule
+  // (or any unlinked platform) posts fresh through the normal flow instead.
+  const showSync = syncable && substackMode === "draft";
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Cross-post this draft</CardTitle>
-        <CardDescription>
-          Sends the text above to a connected writing platform. Defaults are
-          safe: platform drafts and your own Reddit profile.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-1.5">
-          {(Object.keys(PLATFORM_LABEL) as CrosspostPlatform[]).map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => {
-                setPlatform(value);
-                setConnectionId("");
-                setResult(null);
-              }}
-              aria-pressed={platform === value}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors",
-                platform === value
-                  ? "border-signal/50 bg-signal/10 font-medium text-foreground"
-                  : "border-border text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <PlatformLogo platform={value} size={14} />
-              {PLATFORM_LABEL[value]}
-            </button>
-          ))}
-        </div>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) {
+          setOpen(false);
+          setError(null);
+        }
+      }}
+    >
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Cross-post this draft</DialogTitle>
+          <DialogDescription>
+            Sends the text to one of your connected writing platforms. Defaults
+            are safe: platform drafts and your own Reddit profile.
+          </DialogDescription>
+        </DialogHeader>
+
+        {connectionsQuery.isLoading ? (
+          <p className="text-sm text-muted-foreground">
+            Loading your connected accounts…
+          </p>
+        ) : connectedPlatforms.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No writing platforms connected yet.{" "}
+            <Link href="/settings" className="text-signal hover:underline">
+              Connect one in Settings
+            </Link>{" "}
+            to post this draft.
+          </p>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-1.5">
+              {connectedPlatforms.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    setPlatform(value);
+                    setConnectionId("");
+                    setResult(null);
+                  }}
+                  aria-pressed={effectivePlatform === value}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors",
+                    effectivePlatform === value
+                      ? "border-signal/50 bg-signal/10 font-medium text-foreground"
+                      : "border-border text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <PlatformLogo platform={value} size={14} />
+                  {PLATFORM_LABEL[value]}
+                </button>
+              ))}
+            </div>
+            {syncable && linked?.url ? (
+              <p className="text-xs text-muted-foreground">
+                Linked to your Substack draft — edits here sync into it.{" "}
+                <a
+                  href={linked.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-signal hover:underline"
+                >
+                  Open draft
+                </a>
+              </p>
+            ) : null}
 
         <FieldGroup>
           <Field>
             <FieldLabel required>Account</FieldLabel>
-            <Select value={connectionId} onValueChange={(value) => setConnectionId(value ?? "")}>
+            <Select value={effectiveConnectionId} onValueChange={(value) => setConnectionId(value ?? "")}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder={`Pick a connected ${PLATFORM_LABEL[platform]} account`}>
+                <SelectValue placeholder={`Pick your ${PLATFORM_LABEL[effectivePlatform]} account`}>
                   {(value: unknown) =>
                     typeof value === "string" && value.length > 0
                       ? (options.find((item) => item.connectionId === value)?.displayName ?? value)
-                      : `Pick a connected ${PLATFORM_LABEL[platform]} account`
+                      : `Pick your ${PLATFORM_LABEL[effectivePlatform]} account`
                   }
                 </SelectValue>
               </SelectTrigger>
@@ -211,7 +324,6 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
                 {options.map((item) => (
                   <SelectItem key={item.connectionId} value={item.connectionId}>
                     {item.displayName}
-                    {item.status !== "connected" ? " (needs reconnect)" : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -228,21 +340,13 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
               maxLength={300}
               onChange={(event) => setTitle(event.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              The body always comes from the editor pane — whatever it holds is
+              what gets {syncable ? "synced" : "posted"}.
+            </p>
           </Field>
 
-          <Field>
-            <FieldLabel htmlFor="crosspost-body" required>
-              Body (Markdown)
-            </FieldLabel>
-            <Textarea
-              id="crosspost-body"
-              value={body ?? ""}
-              rows={6}
-              onChange={(event) => setBody(event.target.value)}
-            />
-          </Field>
-
-          {platform === "medium" ? (
+          {effectivePlatform === "medium" ? (
             <Field>
               <FieldLabel>Visibility</FieldLabel>
               <Select value={publishStatus} onValueChange={(value) => setPublishStatus(value ?? "draft")}>
@@ -258,7 +362,7 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
             </Field>
           ) : null}
 
-          {platform === "substack" ? (
+          {effectivePlatform === "substack" ? (
             <>
               <div className="grid grid-cols-2 gap-4">
                 <Field>
@@ -318,7 +422,7 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
             </>
           ) : null}
 
-          {platform === "reddit" ? (
+          {effectivePlatform === "reddit" ? (
             <div className="grid grid-cols-2 gap-4">
               <Field>
                 <FieldLabel htmlFor="crosspost-subreddit">Subreddit</FieldLabel>
@@ -353,40 +457,48 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs text-signal hover:underline"
               >
-                Open on {PLATFORM_LABEL[platform]}
+                Open on {PLATFORM_LABEL[effectivePlatform]}
                 <Icon icon={ArrowUpRight01Icon} className="size-3" />
               </a>
             </p>
           ) : null}
         </FieldGroup>
 
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>
+        <DialogFooter className="mt-5 flex-wrap gap-2">
+          <DialogClose
+            render={<Button type="button" variant="outline" disabled={busy} />}
+          >
             Close
-          </Button>
+          </DialogClose>
           <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
             <Button
               type="button"
-              disabled={busy || readOnly || !connectionId}
-              onClick={() => postMutation.mutate()}
+              disabled={busy || readOnly || (!showSync && !effectiveConnectionId)}
+              onClick={() =>
+                showSync ? syncMutation.mutate() : postMutation.mutate()
+              }
               className={cn(busy && "opacity-70")}
             >
               {busy ? (
                 <Icon icon={Loading03Icon} className="animate-spin" />
               ) : (
-                <PlatformLogo platform={platform} size={14} />
+                <PlatformLogo platform={effectivePlatform} size={14} />
               )}
-              {postMutation.isPending
+              {postMutation.isPending || syncMutation.isPending
                 ? "Posting…"
-                : platform === "substack" && substackMode !== "draft"
-                  ? substackMode === "schedule"
-                    ? "Schedule post"
-                    : "Publish post"
-                  : "Post"}
+                : showSync
+                  ? "Sync changes"
+                  : effectivePlatform === "substack" && substackMode !== "draft"
+                    ? substackMode === "schedule"
+                      ? "Schedule post"
+                      : "Publish post"
+                    : "Post"}
             </Button>
           </DisabledReason>
-        </div>
-      </CardContent>
-    </Card>
+        </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -2,13 +2,7 @@
 
 import { PageHeader } from "@/components/common/page-header";
 import { AccountConnections } from "@/components/accounts/account-connections";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 /**
  * Connectors: every external account (YouTube channels, writing platforms)
@@ -24,13 +18,6 @@ export default function SettingsPage() {
       />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Connections</CardTitle>
-          <CardDescription>
-            Bring your published work into the studio. Manage your accounts here
-            and choose which content to share.
-          </CardDescription>
-        </CardHeader>
         <CardContent>
           <AccountConnections redirectPath="/settings" />
         </CardContent>

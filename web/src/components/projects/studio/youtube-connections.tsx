@@ -190,7 +190,12 @@ export function YouTubeConnections({
     onError: (error) => toast.error(describe(error, "Could not disconnect.")),
   });
 
-  const connections = connectionsQuery.data?.items ?? [];
+  const connections = (connectionsQuery.data?.items ?? []).filter(
+    // The shared connections list holds every platform; only YouTube channels
+    // belong in this picker (a Substack publication with the same owner name
+    // once showed up here as a second "channel").
+    (connection) => connection.platform === "youtube",
+  );
   const needsReauth = connections.some(
     (connection) => connection.status === "needs_reauth",
   );

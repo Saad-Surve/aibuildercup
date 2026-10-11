@@ -105,7 +105,8 @@ class CrosspostRequest(BaseModel):
     connectionId: str = Field(max_length=200)
     title: str = Field(min_length=1, max_length=300)
     #: Markdown body. Medium posts it as markdown; Substack converts a subset
-    #: (headings, bold, italic, links) to HTML; Reddit posts it as text.
+    #: (headings, bold, italic, links, quotes) to its TipTap document; Reddit
+    #: posts it as text.
     body: str = Field(min_length=1, max_length=60000)
     #: Per-platform options:
     #: - medium: `publishStatus` (draft | public | unlisted, default draft),
@@ -130,6 +131,19 @@ class CrosspostResult(BaseModel):
     #: `draft` (Medium/Substack draft), `published` (live), `scheduled`.
     status: str
     title: str
+
+
+class SyncCrosspostRequest(BaseModel):
+    """Push the current title/body into the linked platform draft.
+
+    The connection comes from the stored link (recorded when the draft was
+    posted), so only platform + content are sent. Today only Substack drafts
+    (`draft`/`scheduled`) are updatable.
+    """
+
+    platform: str = Field(max_length=40)
+    title: str = Field(min_length=1, max_length=300)
+    body: str = Field(min_length=1, max_length=60000)
 
 
 class ContentItem(BaseModel):

@@ -1478,7 +1478,8 @@ paths:
       summary: Cross-post a written piece to a connected text platform
       description: |
         Synchronous — text posts complete in one provider call, so the response carries
-        the live URL (or the Substack draft dashboard URL) directly. Nothing is persisted.
+        the live URL (or the Substack draft dashboard URL) directly. Posting a Substack
+        draft/schedule records the remote draft on the local draft for later syncing.
       parameters:
         - { $ref: "#/components/parameters/ProjectId" }
       requestBody:
@@ -1489,6 +1490,32 @@ paths:
       responses:
         "201":
           description: Posted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CrosspostResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /api/projects/{projectId}/crossposts/sync:
+    post:
+      summary: Push the current title/body into the linked platform draft
+      description: |
+        The two-way link for Substack: the connection comes from the link recorded
+        at post time, so only platform + content are sent. 409 when nothing is
+        linked (post first) or the remote draft is gone (post again); 400 for
+        platforms without draft updates.
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SyncCrosspostRequest" }
+      responses:
+        "200":
+          description: Synced
           content:
             application/json:
               schema: { $ref: "#/components/schemas/CrosspostResult" }
@@ -3744,7 +3771,23 @@ components:
         error: { type: [string, "null"] }
         summary: { $ref: "#/components/schemas/DraftSummary" }
         grounding: { oneOf: [{ $ref: "#/components/schemas/DraftGrounding" }, { type: "null" }] }
+        linkedPosts:
+          type: array
+          items: { $ref: "#/components/schemas/LinkedExternalPost" }
+          description: |
+            Platform drafts posted from here, one per platform. A Substack
+            draft/schedule link is what the sync endpoint pushes edits into.
         createdAt: { type: [string, "null"], format: date-time }
+        updatedAt: { type: [string, "null"], format: date-time }
+
+    LinkedExternalPost:
+      type: object
+      properties:
+        platform: { type: string }
+        connectionId: { type: string }
+        externalId: { type: string, description: Substack draft id }
+        url: { type: [string, "null"] }
+        status: { type: string, enum: [draft, scheduled] }
         updatedAt: { type: [string, "null"], format: date-time }
 
     DraftGroundingSource:
@@ -3962,7 +4005,7 @@ components:
         body:
           type: string
           maxLength: 60000
-          description: Markdown body. Medium posts it as markdown; Substack converts a subset to HTML; Reddit posts it as text.
+          description: Markdown body. Medium posts it as markdown; Substack converts a subset to its TipTap document; Reddit posts it as text.
         options:
           type: object
           additionalProperties: true
@@ -3982,6 +4025,20 @@ components:
         url: { type: string, description: Canonical URL, or the Substack draft dashboard URL for drafts }
         status: { type: string, enum: [draft, published, scheduled] }
         title: { type: string }
+
+    SyncCrosspostRequest:
+      type: object
+      required: [platform, title, body]
+      description: |
+        The connection comes from the link recorded at post time, so only
+        platform + content are sent. Only Substack drafts are updatable.
+      properties:
+        platform: { type: string, enum: [substack] }
+        title: { type: string, maxLength: 300 }
+        body:
+          type: string
+          maxLength: 60000
+          description: Markdown body, converted to the Substack TipTap document.
 
     ContentItem:
       type: object

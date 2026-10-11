@@ -194,6 +194,8 @@ export interface Draft {
   summary: DraftSummary;
   /** Latest grounded research (generation or assist); null when the draft used none. */
   grounding: DraftGrounding | null;
+  /** Platform drafts posted from here, one per platform (Substack links are syncable). */
+  linkedPosts: LinkedExternalPost[];
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -783,6 +785,21 @@ export interface CrosspostResult {
   url: string;
   status: "draft" | "published" | "scheduled";
   title: string;
+}
+
+export interface SyncCrosspostInput {
+  platform: CrosspostPlatform;
+  title: string;
+  body: string;
+}
+
+export interface LinkedExternalPost {
+  platform: string;
+  connectionId: string;
+  externalId: string;
+  url: string | null;
+  status: string;
+  updatedAt: string | null;
 }
 
 export interface ContentItem {

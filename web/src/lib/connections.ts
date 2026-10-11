@@ -8,6 +8,7 @@ import type {
   CrosspostResult,
   OAuthStartRequest,
   OAuthStartResponse,
+  SyncCrosspostInput,
 } from "@/lib/types";
 
 export function listConnections(): Promise<ConnectionList> {
@@ -82,6 +83,17 @@ export function crosspost(
   input: CrosspostInput,
 ): Promise<CrosspostResult> {
   return apiFetch<CrosspostResult>(`/projects/${projectId}/crossposts`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+/** Push the current title/body into the linked platform draft (Substack only). */
+export function syncCrosspost(
+  projectId: string,
+  input: SyncCrosspostInput,
+): Promise<CrosspostResult> {
+  return apiFetch<CrosspostResult>(`/projects/${projectId}/crossposts/sync`, {
     method: "POST",
     body: JSON.stringify(input),
   });
