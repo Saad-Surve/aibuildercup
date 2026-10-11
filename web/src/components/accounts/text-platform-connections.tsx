@@ -37,6 +37,14 @@ function describe(error: unknown, fallback: string): string {
   return fallback;
 }
 
+/*
+ * Bookmarklet: the `substack.sid` cookie only exists on substack.com, so a page
+ * on our origin can't read it. The creator drags this to their bookmarks bar,
+ * opens Substack, and clicks it there — it copies the cookie to the clipboard.
+ */
+const SUBSTACK_COOKIE_BOOKMARKLET =
+  "javascript:(()=>{const m=document.cookie.match(/(?:^|;\\s*)substack\\.sid=([^;]+)/);if(!m){alert('Not signed in to Substack in this tab.');return;}const v=decodeURIComponent(m[1]);navigator.clipboard.writeText(v).then(()=>alert('Substack cookie copied. Paste it into Creator Studio.')).catch(()=>prompt('Copy this value:',v));})()";
+
 const PLATFORMS: {
   platform: CrosspostPlatform;
   name: string;
@@ -336,11 +344,22 @@ export function TextPlatformConnections({
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Log into Substack, open devtools <InlineArrow /> Application{" "}
-                    <InlineArrow /> Cookies <InlineArrow /> <code>substack.sid</code>.
-                    Paste the value, the <code>substack.sid=…</code> pair, or the
-                    whole cookie header — we find it. Your publication is
-                    detected for you.
+                    Fastest: drag{" "}
+                    <a
+                      href={SUBSTACK_COOKIE_BOOKMARKLET}
+                      draggable
+                      onClick={(event) => event.preventDefault()}
+                      title="Drag me to your bookmarks bar, then click me on Substack"
+                      className="cursor-grab font-medium text-signal underline-offset-4 hover:underline"
+                    >
+                      Copy Substack cookie
+                    </a>{" "}
+                    to your bookmarks bar, open Substack, click it, then paste
+                    here. Or copy <code>substack.sid</code> from devtools{" "}
+                    <InlineArrow /> Application <InlineArrow /> Cookies. Paste the
+                    value, the <code>substack.sid=…</code> pair, or the whole
+                    cookie header — we find it. Your publication is detected for
+                    you.
                   </p>
                 </Field>
                 {publications.length > 0 ? (

@@ -40,9 +40,11 @@ and internal endpoints can move. When posting fails, reconnect with a fresh
 cookie.
 
 1. In Chrome/Edge, log into Substack.
-2. Copy the session cookie — either the `substack.sid` **value**, or, more
-   easily, devtools (**F12**) → **Network** → any request → **Headers** →
-   **Cookie** → Copy (the whole cookie header works too).
+2. In the studio's Substack dialog, drag the **Copy Substack cookie**
+   bookmarklet to your bookmarks bar. Open Substack, click it — it copies
+   `substack.sid` to your clipboard. (Or copy the value / whole cookie header
+   from devtools (**F12**) → **Network** → any request → **Headers** →
+   **Cookie**.)
 3. In the studio: **Settings → Writing platforms → Substack → Connect
    Substack**, paste it into the single field. You do **not** type a subdomain —
    the cookie finds your publication. If the account has more than one, a picker
