@@ -233,7 +233,7 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
   }
 
   const busy = postMutation.isPending || syncMutation.isPending;
-  // Linked + staying a draft → push edits into it. Picking publish/schedule
+  // Linked + staying a draft -> push edits into it. Picking publish/schedule
   // (or any unlinked platform) posts fresh through the normal flow instead.
   const showSync = syncable && substackMode === "draft";
 

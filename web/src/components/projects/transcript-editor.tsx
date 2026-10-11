@@ -45,6 +45,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useProjectTranscript } from "@/hooks/use-project-transcript";
 import { ApiError } from "@/lib/api-client";
+import { languageLabel } from "@/lib/onboarding";
 import {
   formatTimestamp,
   getProject,
@@ -674,7 +675,7 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
                 {segments.length}{" "}
                 {segments.length === 1 ? "segment" : "segments"}
                 {" · "}
-                {transcript.language}
+                {languageLabel(transcript.language)}
               </span>
             </div>
           </CardHeader>

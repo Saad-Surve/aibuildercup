@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 /*
  * Long-form marketing page. Hero keeps the centred serif composition on the
  * static peripheral backdrop; below it sit a capability strip, a platforms
- * flow section (derivatives → studio → brand destinations, original SVGs),
+ * flow section (derivatives -> studio -> brand destinations, original SVGs),
  * an asymmetric feature bento with hands-on mini demos, a dotted three-step
  * workflow, a gradient CTA panel, and a footer with a force-fit SVG wordmark.
  *
@@ -98,7 +98,7 @@ const DERIVS: { title: string; meta: ReactNode; color: string }[] = [
 /* ——— flow orchestration: one master rAF timeline ———
  *
  * A single loop drives the whole platforms stage: input packets arrive
- * Short clip → Captions → Blog draft, the centre pulses while processing,
+ * Short clip -> Captions -> Blog draft, the centre pulses while processing,
  * then output packets distribute top to bottom, then a calm settle before
  * the loop restarts. Packets are HTML dots positioned each frame with
  * path.getPointAtLength(), so they follow the true elbow geometry around
@@ -759,7 +759,14 @@ function CalendarDemo({ active }: { active: boolean }) {
                         isOpen ? "opacity-100 delay-75" : "opacity-0"
                       }`}
                     >
-                      <span className="text-[0.5rem] font-semibold tracking-wide text-white/85 uppercase">
+                      <span className="flex items-center gap-1 text-[0.5rem] font-semibold tracking-wide text-white/85 uppercase">
+                        <Image
+                          src={post.logo}
+                          alt=""
+                          width={10}
+                          height={10}
+                          className="size-2.5 object-contain brightness-0 invert"
+                        />
                         {post.platform}
                       </span>
                       <span className="mt-0.5 line-clamp-2 text-[0.62rem] leading-tight font-medium">
@@ -799,7 +806,7 @@ function CalendarDemo({ active }: { active: boolean }) {
   );
 }
 
-/* ——— demo 6: draft → edit → final ——— */
+/* ——— demo 6: draft -> edit -> final ——— */
 
 function PostsDemo({ active }: { active: boolean }) {
   const pages = [
@@ -1108,7 +1115,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ——— platforms: derivatives → studio → destinations ——— */}
+      {/* ——— platforms: derivatives -> studio -> destinations ——— */}
       <section id="platforms" className="scroll-mt-28">
         <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
           <h2 className="max-w-xl font-heading text-3xl font-semibold tracking-tight text-balance sm:text-4xl">

@@ -710,7 +710,7 @@ export function sentenceAtOffset(
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
- * DOM → Markdown
+ * DOM -> Markdown
  *
  * The live editor is a contenteditable surface, so the DOM is the source of
  * truth while typing. These helpers walk it back into the stored Markdown and

@@ -332,31 +332,35 @@ export function ScheduleDialog({
           <div>
             <Field>
               <FieldLabel>Platform</FieldLabel>
-              <div className="flex items-center gap-2">
-                <PlatformLogo platform={platform} />
-                <Select
-                  value={platform}
-                  onValueChange={(value) => setPlatform(value ?? "youtube")}
-                >
-                  <SelectTrigger className="w-full flex-1">
-                    <SelectValue>
-                      {(value: unknown) =>
-                        typeof value === "string" ? platformLabel(value) : ""
-                      }
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PLATFORM_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
+              <Select
+                value={platform}
+                onValueChange={(value) => setPlatform(value ?? "youtube")}
+              >
+                <SelectTrigger className="w-full flex-1">
+                  <SelectValue>
+                    {(value: unknown) =>
+                      typeof value === "string" && value.length > 0 ? (
                         <span className="flex items-center gap-2">
-                          <PlatformLogo platform={option.value} size={14} />
-                          {option.label}
+                          <PlatformLogo platform={value} size={14} />
+                          {platformLabel(value)}
                         </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                      ) : (
+                        ""
+                      )
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {PLATFORM_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <span className="flex items-center gap-2">
+                        <PlatformLogo platform={option.value} size={14} />
+                        {option.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
           </div>
 

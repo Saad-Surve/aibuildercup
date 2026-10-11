@@ -337,7 +337,7 @@ export interface PosterRef {
 const inflightPosters = new Map<string, Promise<string | null>>();
 
 /**
- * Best-effort poster for an asset: memory cache → local upload copy → a
+ * Best-effort poster for an asset: memory cache -> local upload copy -> a
  * bounded fetch of the playback bytes (works for uploads that predate the
  * local cache). Never throws; returns null when nothing works.
  */

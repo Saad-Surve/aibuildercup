@@ -7,9 +7,14 @@ import { ArrowUpRight01Icon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
 import { PageHeader } from "@/components/common/page-header";
+import {
+  PlatformLogo,
+  platformLabel,
+} from "@/components/calendar/platform";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/lib/api-client";
+import { languageLabel } from "@/lib/onboarding";
 import type { CreatorLibrary, LibrarySearch } from "@/lib/creator-library";
 import { useReadOnly, READ_ONLY_REASON } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
@@ -450,7 +455,7 @@ export default function LibraryPage() {
                       onClick={() => setSelectedId(n.id)}
                       aria-label={`${n.modality === "image" ? "Thumbnail" : "Passage"}: ${n.title}`}
                       aria-pressed={selected?.id === n.id}
-                      title={`${n.title} · ${n.language} · ${n.contentType}`}
+                      title={`${n.title} · ${languageLabel(n.language)} · ${n.contentType}`}
                       className={cn(
                         "absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-signal shadow-sm outline-offset-4 focus-visible:outline-2 focus-visible:outline-signal",
                         n.modality === "image"
@@ -564,15 +569,12 @@ export default function LibraryPage() {
                       />
                     )}
                     <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
-                      <span className="rounded border px-2 py-0.5">
-                        {selected.platform}
+                      <span className="inline-flex items-center gap-1 rounded border px-2 py-0.5">
+                        <PlatformLogo platform={selected.platform} size={12} />
+                        {platformLabel(selected.platform)}
                       </span>
                       <span className="rounded border px-2 py-0.5">
-                        {selected.language === "hi"
-                          ? "Hindi"
-                          : selected.language === "en"
-                            ? "English"
-                            : selected.language}
+                        {languageLabel(selected.language)}
                       </span>
                       <span className="rounded border px-2 py-0.5">
                         {selected.contentType}

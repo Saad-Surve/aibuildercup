@@ -22,6 +22,7 @@ export const PLATFORM_OPTIONS: { value: string; label: string }[] = [
 
 const LOGO_BY_PLATFORM: Record<string, string> = {
   youtube: "/youtube.svg",
+  youtube_shorts: "/youtube.svg",
   instagram: "/instagram.svg",
   tiktok: "/tiktok-mono.svg",
   x: "/x.svg",
@@ -32,9 +33,27 @@ const LOGO_BY_PLATFORM: Record<string, string> = {
   reddit: "/reddit.svg",
 };
 
+/*
+ * Labels for values that live outside PLATFORM_OPTIONS (the onboarding
+ * vocabulary has `youtube_shorts`; stored slots may hold any casing).
+ * Keys are lower-cased values.
+ */
+const LABEL_ALIASES: Record<string, string> = {
+  youtube_shorts: "YouTube Shorts",
+  youtube_shorts_video: "YouTube Shorts",
+  twitter: "X",
+};
+
 export function platformLabel(value: string): string {
+  const key = value.trim().toLowerCase();
   return (
-    PLATFORM_OPTIONS.find((option) => option.value === value)?.label ?? value
+    PLATFORM_OPTIONS.find((option) => option.value === key)?.label ??
+    PLATFORM_OPTIONS.find(
+      (option) => option.value.toLowerCase() === key,
+    )?.label ??
+    LABEL_ALIASES[key] ??
+    PLATFORM_OPTIONS.find((option) => option.value === value)?.label ??
+    value
   );
 }
 
@@ -63,5 +82,26 @@ export function PlatformLogo({
       height={size}
       className={cn("shrink-0 object-contain", className)}
     />
+  );
+}
+
+/*
+ * Logo + label together, so a platform is never shown as bare text.
+ * Use this wherever a platform name appears outside the platform dropdown.
+ */
+export function PlatformBadge({
+  platform,
+  size = 14,
+  className,
+}: {
+  platform: string;
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <span className={cn("inline-flex items-center gap-1.5", className)}>
+      <PlatformLogo platform={platform} size={size} />
+      {platformLabel(platform)}
+    </span>
   );
 }

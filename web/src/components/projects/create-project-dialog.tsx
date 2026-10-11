@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Icon } from "@/components/common/icon";
 import { DisabledReason } from "@/components/common/disabled-reason";
 import { ChipSelect } from "@/components/common/chip-select";
+import { platformLogoSrc } from "@/components/calendar/platform";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -366,7 +367,10 @@ export function CreateProjectDialog() {
                   : "Target platforms"}
               </FieldLabel>
               <ChipSelect
-                options={PLATFORM_OPTIONS}
+                options={PLATFORM_OPTIONS.map((option) => ({
+                  ...option,
+                  logoSrc: platformLogoSrc(option.value),
+                }))}
                 value={platforms}
                 onChange={setPlatforms}
               />

@@ -7,6 +7,7 @@ import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import { ChipSelect, type ChipOption } from "@/components/common/chip-select";
 import { Icon } from "@/components/common/icon";
 import { PersonaText } from "@/components/common/persona-text";
+import { platformLogoSrc } from "@/components/calendar/platform";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -449,7 +450,10 @@ export function PlatformsStep({ answers, update }: DataStepProps) {
       <ChipField
         label="Publishing platforms"
         hint="Account connections for analytics come later. For now, just tell us where you post."
-        options={PLATFORM_OPTIONS}
+        options={PLATFORM_OPTIONS.map((option) => ({
+          ...option,
+          logoSrc: platformLogoSrc(option.value),
+        }))}
         value={answers.platforms ?? []}
         onChange={(value) => update({ platforms: value })}
       />

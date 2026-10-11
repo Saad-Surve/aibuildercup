@@ -153,7 +153,7 @@ function VideoFlow({ project }: { project: Project }) {
 }
 
 /**
- * The draft → video → upload lineage as one quiet flow line, not cards.
+ * The draft -> video -> upload lineage as one quiet flow line, not cards.
  * Rendered on video projects only: the script title jumps straight to its
  * draft, the upload state jumps to this workspace. Renders nothing when the
  * video has no linked draft. Drafts navigate via Go to video instead.
