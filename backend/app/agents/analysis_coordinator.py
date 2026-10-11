@@ -25,7 +25,13 @@ from app.agents.cultural_agent import CulturalLocalizationReviewer
 from app.agents.emotion_agent import EmotionalImpactReviewer
 from app.agents.pacing_agent import PacingRetentionReviewer
 from app.agents.platform_agent import PlatformFitReviewer
-from app.agents.reviewer_base import LlmReviewer, ReviewContext, SegmentRef, ToolCallRecord
+from app.agents.reviewer_base import (
+    LlmReviewer,
+    ReviewContext,
+    SegmentRef,
+    ToolCallRecord,
+    deduplicate_findings,
+)
 from app.agents.safety_agent import LegalSafetyReviewer
 from app.agents.truth_agent import TruthEvidenceReviewer
 from app.providers.base import LlmProvider, LlmUsage
@@ -186,7 +192,9 @@ def build_review_contexts(
     duration_ms: int,
     video_title: str = "",
     thumbnail_concept: str = "",
+    project_brief: str = "",
 ) -> list[ReviewContext]:
+    continuity = _video_continuity(chunks) if len(chunks) > 1 else ""
     return [
         ReviewContext(
             persona=persona,
@@ -198,9 +206,33 @@ def build_review_contexts(
             context_segments=chunk.context_segments,
             video_title=video_title,
             thumbnail_concept=thumbnail_concept,
+            project_brief=project_brief,
+            video_context=continuity,
+            chunk_index=index,
+            window_start_ms=0 if index == 0 else chunk.start_ms,
+            window_end_ms=(chunks[index + 1].start_ms if index + 1 < len(chunks) else duration_ms),
         )
-        for chunk in chunks
+        for index, chunk in enumerate(chunks)
     ]
+
+
+def _video_continuity(chunks: Sequence[TranscriptChunk]) -> str:
+    """Bounded real excerpts keep distant hooks/payoffs in view without another LLM call."""
+    segments = [segment for chunk in chunks for segment in chunk.segments]
+    indexes = set(range(min(4, len(segments))))
+    indexes.update(range(max(0, len(segments) - 4), len(segments)))
+    indexes.update(round(i * (len(segments) - 1) / 15) for i in range(16))
+    lines = [
+        "Opening, ending, and selected excerpts across the video, not the full transcript. "
+        "Use them to connect ideas; omitted text may contain a payoff or explanation. "
+        "Do not claim something is absent from the entire video based on these excerpts."
+    ]
+    for index in sorted(indexes):
+        segment = segments[index]
+        text = segment.text[:280]
+        suffix = " [excerpt truncated]" if len(segment.text) > 280 else ""
+        lines.append(f"{segment.start_ms} -> {segment.end_ms}: {text}{suffix}")
+    return "\n".join(lines)
 
 
 def clip_findings_to_window(
@@ -249,9 +281,7 @@ async def run_dimension(
     for context in contexts:
         async with semaphore:
             try:
-                result = await reviewer.review(
-                    context, reviewer_run_id=reviewer_run_id
-                )
+                result = await reviewer.review(context, reviewer_run_id=reviewer_run_id)
             except Exception as exc:  # noqa: BLE001 - one reviewer must not sink the run
                 logger.exception("%s: chunk failed", reviewer.dimension.value)
                 failures.append(f"{type(exc).__name__}: {exc}")
@@ -276,17 +306,15 @@ async def run_dimension(
                     }
                 )
                 seen_urls.add(url)
-            grounding_html = (
-                grounding_html or result.grounding.search_suggestions_html
-            )
+            grounding_html = grounding_html or result.grounding.search_suggestions_html
         usage = add_usage(usage, result.usage)
-        window_start = context.segments[0].start_ms
-        window_end = context.segments[-1].end_ms
+        window_start = context.review_start_ms
+        window_end = context.review_end_ms
         findings.extend(
-            clip_findings_to_window(
-                result.findings, start_ms=window_start, end_ms=window_end
-            )
+            clip_findings_to_window(result.findings, start_ms=window_start, end_ms=window_end)
         )
+
+    findings = deduplicate_findings(findings)
 
     # Grounding metadata can come back empty in JSON mode, so fold the sources the model
     # cited on its findings into the aggregate list the UI shows.
@@ -339,9 +367,7 @@ async def run_dimension(
         started_at=started_at,
         finished_at=finished_at,
         error=(
-            {"code": "REVIEWER_PARTIAL", "message": "; ".join(failures)[:500]}
-            if failures
-            else None
+            {"code": "REVIEWER_PARTIAL", "message": "; ".join(failures)[:500]} if failures else None
         ),
     )
 

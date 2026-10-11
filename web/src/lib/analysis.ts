@@ -143,7 +143,7 @@ export const SEVERITY_LABELS: Record<Severity, string> = {
   high: "High",
   medium: "Medium",
   low: "Low",
-  none: "Fine",
+  none: "Keep",
 };
 
 /** Tailwind token for a severity chip. Colour is the review signal, by design. */

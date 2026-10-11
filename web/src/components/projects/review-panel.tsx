@@ -41,7 +41,7 @@ import {
   startAnalysis,
 } from "@/lib/analysis";
 import type { AnalysisDimension, AnalysisRun, Severity } from "@/lib/types";
-import { CORE_DIMENSIONS } from "@/lib/types";
+import { ANALYSIS_DIMENSIONS } from "@/lib/types";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { WORKSPACE_PANE_SNAP } from "@/lib/workspace";
 import { cn } from "@/lib/utils";
@@ -171,7 +171,11 @@ export function ReviewPanel({
   }, [activeRunId, runStatus, isRunning, projectId, queryClient]);
 
   const startMutation = useMutation({
-    mutationFn: () => startAnalysis(projectId, { platform }),
+    mutationFn: () =>
+      startAnalysis(projectId, {
+        platform,
+        dimensions: [...ANALYSIS_DIMENSIONS],
+      }),
     onSuccess: (response) => {
       setStartError(null);
       setSelectedBinId(null);
@@ -193,6 +197,10 @@ export function ReviewPanel({
   const reviewers = reviewersQuery.data?.items ?? [];
   const bins = heatmapQuery.data?.bins ?? [];
   const findings = findingsQuery.data?.items ?? [];
+  const reviewIncomplete =
+    run?.status === "partial_failure" ||
+    run?.status === "failed" ||
+    reviewers.some((reviewer) => Boolean(reviewer.error));
 
   // Derived, never reset: a bin id from another run simply is not in these bins,
   // so switching runs drops the selection without any effect or state cleanup.
@@ -200,7 +208,7 @@ export function ReviewPanel({
 
   const laneDimensions: AnalysisDimension[] = run?.requestedDimensions?.length
     ? run.requestedDimensions
-    : CORE_DIMENSIONS;
+    : [...ANALYSIS_DIMENSIONS];
 
   const scores = run?.scoreByDimension ?? {};
   const findingCounts = run?.findingCounts ?? {};
@@ -231,7 +239,9 @@ export function ReviewPanel({
                 <CardTitle>Review</CardTitle>
                 <span className="h-4 w-px bg-border" aria-hidden="true" />
                 <span className="text-sm text-muted-foreground">
-                  {statusLabel(run, hasTranscript)}
+                  {run?.status === "ready" && reviewIncomplete
+                    ? "Finished with gaps"
+                    : statusLabel(run, hasTranscript)}
                 </span>
               </div>
             </div>
@@ -273,7 +283,10 @@ export function ReviewPanel({
                   size="sm"
                   onClick={() => startMutation.mutate()}
                   disabled={
-                    startMutation.isPending || isRunning || !hasTranscript || readOnly
+                    startMutation.isPending ||
+                    isRunning ||
+                    !hasTranscript ||
+                    readOnly
                   }
                   title={
                     hasTranscript
@@ -323,10 +336,10 @@ export function ReviewPanel({
             </div>
           )}
 
-          {/* Instrument readout: overall score, severity census, spend. */}
+          {/* Instrument readout: flagged-moment score, severity census, spend. */}
           <div className="tabular flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-            <span>
-              Overall{" "}
+            <span title="Average quality of reported moments; unmarked time is not graded.">
+              Flagged moments{" "}
               <span className="text-foreground">
                 {formatScore(run?.overallScore ?? null)}
               </span>
@@ -334,7 +347,11 @@ export function ReviewPanel({
             <span>
               Reviewers{" "}
               <span className="text-foreground">
-                {reviewers.filter((item) => item.status === "succeeded").length}
+                {
+                  reviewers.filter(
+                    (item) => item.status === "succeeded" && !item.error,
+                  ).length
+                }
                 /{reviewers.length || laneDimensions.length}
               </span>
             </span>
@@ -395,6 +412,15 @@ export function ReviewPanel({
               selectedBinId={selectedBin?.binId ?? null}
               onSelectBin={(bin) => setSelectedBinId(bin?.binId ?? null)}
               severityFilter={severityFilter}
+              reviewState={
+                !run
+                  ? "not_started"
+                  : isRunning
+                    ? "running"
+                    : run.status === "ready" && !reviewIncomplete
+                      ? "complete"
+                      : "incomplete"
+              }
             />
           )}
 
@@ -414,6 +440,8 @@ export function ReviewPanel({
       <FindingsPanel
         findings={findings}
         loading={Boolean(activeRunId) && findingsQuery.isLoading}
+        reviewed={Boolean(run && !isRunning)}
+        incomplete={reviewIncomplete}
         running={
           isRunning ||
           startMutation.isPending ||

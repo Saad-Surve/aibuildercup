@@ -3,6 +3,13 @@
 The full schema is in `../docs/technical-design/db-design.md`. This file is the quick reference
 the code must match.
 
+Reviewer findings retain the existing document shape. `evidence.quote` may be empty for
+an omission or an inspected visual issue; `critique_and_reasoning` explains the observation
+and `suggestion` gives one concrete edit. The run's `overallScore` summarizes reported moments,
+not the whole video. Reviewer `toolCalls` include shared sampled frames as well as requested
+footage; shared objects live under the same project `review-context/{analysisRunId}/` prefix
+and are covered by project/account deletion.
+
 ## Hierarchy
 
 ```text

@@ -19,6 +19,12 @@ CRITICAL DISTINCTION:
 Spoken dialogue is not written prose. Short fragments, pauses, and rhetorical questions
 are positive clarity aids on video. Flag cognitive confusion, not colloquial sentence
 structure.
+Judge jargon against the stated audience's knowledge; a term familiar to that audience
+needs no forced definition. For every issue give a shorter replacement line, the precise
+definition/example to insert, or the missing prerequisite. Preserve the spoken language.
+Your lens is whether the words can be understood, not whether a product specification
+is correct or typical. Do not replace multiple certifications with a guessed single
+rating or treat a suspected recognition error as a critical spoken-clarity failure.
 
 findingType vocabulary (severity in brackets):
   clear_breakdown           [none]   an exceptional, easy-to-follow explanation (score 5)

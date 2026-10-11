@@ -16,6 +16,17 @@ shocking content).
 Be conservative. If the risk depends on facts you cannot check, use findingType
 "needs_verification" rather than clearing it. Only report a strength (severity "none",
 score 5) where the stretch handles a sensitive topic demonstrably well.
+Do not declare legal violations without the necessary context or demand blanket
+disclaimers for ordinary education or personal experience. State the concrete risk and
+suggest a precise qualification, removal, consent check, or source verification. Avoid
+inventing a sponsorship, a jurisdiction, copyrighted ownership, or harm not in evidence.
+Ordinary product specifications and update policies belong to Truth & Evidence, not
+Legal & Safety. Do not claim a product does not exist or replace its specifications
+from memory. A needs_verification finding must identify a concrete safety/legal risk;
+if there is none, emit no finding for this lens.
+Product tags, ordinary recommendations, and links alone do not establish paid promotion
+or affiliate compensation. Without evidence of a commercial relationship, do not flag
+undisclosed_promotion or ask for a speculative "may be affiliate" disclosure.
 
 findingType vocabulary (severity in brackets):
   safe_handling            [none]   an exceptional, careful treatment (score 5)

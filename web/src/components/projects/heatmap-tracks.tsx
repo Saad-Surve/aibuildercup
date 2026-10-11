@@ -39,7 +39,7 @@ const EMPTY_SEVERITIES: Severity[] = [];
  * findings.
  *
  * Keyboard access uses a roving tabindex: Tab lands on each reviewer track once,
- * then the arrow keys walk the bins on that track. That keeps a six-stop tab order
+ * then the arrow keys walk the bins on that track. That keeps one stop per reviewer
  * instead of one stop per five-second bin, while still reaching every moment.
  */
 
@@ -52,6 +52,7 @@ export function HeatmapTracks({
   selectedBinId,
   onSelectBin,
   severityFilter = EMPTY_SEVERITIES,
+  reviewState = "not_started",
 }: {
   bins: HeatmapBin[];
   durationMs: number;
@@ -62,6 +63,7 @@ export function HeatmapTracks({
   onSelectBin: (bin: HeatmapBin | null) => void;
   /** Severities the review panel is currently filtering to; others are dimmed. */
   severityFilter?: Severity[];
+  reviewState?: "not_started" | "running" | "complete" | "incomplete";
 }) {
   const [hovered, setHovered] = useState<HeatmapBin | null>(null);
 
@@ -110,37 +112,40 @@ export function HeatmapTracks({
         <TimeRuler ticks={rulerTicks} />
 
         <div className="space-y-[6px] p-1">
-          {bins.length === 0 ? (
+          {bins.length === 0 && (
             <p className="px-2 py-6 text-center text-sm text-muted-foreground">
-              No reviewer has marked this timeline yet.
+              {reviewState === "complete"
+                ? "No moments flagged."
+                : reviewState === "incomplete"
+                  ? "Review incomplete. No findings available."
+                  : reviewState === "running"
+                    ? "Findings will appear as reviewers finish."
+                    : "Run a review to find moments worth editing."}
             </p>
-          ) : (
-            dimensions.map((dimension) => {
-              const dimensionBins = byDimension.get(dimension) ?? EMPTY_BINS;
-              return (
-                <TrackRow
-                  key={dimension}
-                  dimension={dimension}
-                  bins={dimensionBins}
-                  durationMs={durationMs}
-                  score={scores[dimension]}
-                  hoveredBinId={
-                    hoveredBin?.dimension === dimension
-                      ? hoveredBin.binId
-                      : null
-                  }
-                  selectedBinId={
-                    selectedBin?.dimension === dimension
-                      ? selectedBin.binId
-                      : null
-                  }
-                  severityFilter={severityFilter}
-                  onHover={setHovered}
-                  onSelect={select}
-                />
-              );
-            })
           )}
+          {dimensions.map((dimension) => {
+            const dimensionBins = byDimension.get(dimension) ?? EMPTY_BINS;
+            return (
+              <TrackRow
+                key={dimension}
+                dimension={dimension}
+                bins={dimensionBins}
+                durationMs={durationMs}
+                score={scores[dimension]}
+                hoveredBinId={
+                  hoveredBin?.dimension === dimension ? hoveredBin.binId : null
+                }
+                selectedBinId={
+                  selectedBin?.dimension === dimension
+                    ? selectedBin.binId
+                    : null
+                }
+                severityFilter={severityFilter}
+                onHover={setHovered}
+                onSelect={select}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
@@ -352,7 +357,7 @@ function ReadoutStrip({
       ) : (
         <span>
           {dimensions} reviewer {dimensions === 1 ? "track" : "tracks"} · hover
-          a segment to inspect it
+          a segment to inspect it. Gaps have no score.
         </span>
       )}
     </div>

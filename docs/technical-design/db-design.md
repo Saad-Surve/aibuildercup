@@ -477,8 +477,8 @@ project/account deletion covers it.
     "high": 2,
     "critical": 0
   },
-  "modelConfigVersion": "analysis-v1",
-  "promptVersion": "reviewers-v1",
+  "modelConfigVersion": "analysis-v5",
+  "promptVersion": "reviewers-v5",
   "costEstimateUsd": 0.42,
   "createdAt": "timestamp",
   "updatedAt": "timestamp"
@@ -486,6 +486,14 @@ project/account deletion covers it.
 ~~~
 
 ### users/{uid}/projects/{projectId}/analysisRuns/{analysisRunId}/reviewers/{reviewerRunId}
+
+The document shape is unchanged. Shared stills use existing `toolCalls` entries, with a
+`Shared sample:` label and one shared object path beneath
+`users/{uid}/projects/{projectId}/review-context/{analysisRunId}/shared/`. Multiple reviewer
+documents can reference that same object; project/account deletion covers it. Per-reviewer
+requested media uses distinct object indexes across transcript chunks to avoid overwrites.
+An error can coexist with `status: succeeded` when some chunks succeeded; the parent run is
+`partial_failure` and the UI does not count that reviewer as fully complete.
 
 ~~~json
 {
@@ -519,6 +527,11 @@ project/account deletion covers it.
 ~~~
 
 ### users/{uid}/projects/{projectId}/analysisRuns/{analysisRunId}/findings/{findingId}
+
+For speech critiques, `evidence.quote` is a matching transcript excerpt. It may be empty
+for an omission or inspected visual issue. Explanations and concrete suggestions remain
+in the existing fields; strengths have an empty suggestion. `overallScore` on the parent
+summarizes reported moments only, excluding unreported time and empty dimensions.
 
 ~~~json
 {

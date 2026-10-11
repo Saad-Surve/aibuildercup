@@ -336,7 +336,7 @@ export const ANALYSIS_DIMENSIONS = [
 
 export type AnalysisDimension = (typeof ANALYSIS_DIMENSIONS)[number];
 
-/** The first six dimensions always run; the rest are opt-in. */
+/** API minimum; the studio requests all nine ANALYSIS_DIMENSIONS. */
 export const CORE_DIMENSIONS: AnalysisDimension[] = [
   "truth_evidence",
   "clarity",

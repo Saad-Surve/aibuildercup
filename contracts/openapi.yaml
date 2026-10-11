@@ -2499,7 +2499,9 @@ components:
       properties:
         dimensions:
           type: array
-          description: Extended dimensions to add. Core dimensions always run.
+          description: |
+            Extended dimensions to add. Core dimensions always run. The studio requests
+            all nine active dimensions; an omitted list retains the six-core API default.
           items: { $ref: "#/components/schemas/AnalysisDimension" }
         platform: { type: string }
         includeVisualReview:
@@ -2538,7 +2540,9 @@ components:
         completedDimensions:
           type: array
           items: { $ref: "#/components/schemas/AnalysisDimension" }
-        overallScore: { type: [number, "null"] }
+        overallScore:
+          type: [number, "null"]
+          description: Average quality of reported moments, not a whole-video grade.
         scoreByDimension:
           type: object
           additionalProperties: { type: number }
@@ -2610,9 +2614,9 @@ components:
         toolCalls:
           type: array
           description: |
-            Footage the reviewer pulled in through the function-calling tools
-            (extract_frame / cut_clip) before finalising. Empty when it graded from the
-            transcript alone.
+            Footage supplied to the reviewer: shared sampled frames and any frames/clips
+            requested through its function-calling tools. Shared samples may reference
+            the same project-scoped object across reviewers. Empty for transcript-only review.
           items: { $ref: "#/components/schemas/ReviewerToolCall" }
         groundingQueries:
           type: array
@@ -2651,9 +2655,15 @@ components:
         evidence:
           type: object
           properties:
-            quote: { type: string }
-            critique_and_reasoning: { type: string }
-        suggestion: { type: string }
+            quote:
+              type: string
+              description: Exact transcript excerpt, or empty for a grounded visual issue or omission.
+            critique_and_reasoning:
+              type: string
+              description: Concise explanation of the observed problem or strength and its effect on the viewer.
+        suggestion:
+          type: string
+          description: Specific edit or rewrite in the creator's voice. Empty only for a strength.
         citations:
           type: array
           items: { type: object, additionalProperties: true }

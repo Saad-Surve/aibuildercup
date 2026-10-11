@@ -11,17 +11,11 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   dimensionLabel,
   formatDurationMs,
-  formatFindingType,
   formatScore,
   SEVERITY_DOT_CLASS,
   SEVERITY_LABELS,
@@ -56,6 +50,8 @@ export function FindingsPanel({
   findings,
   loading,
   running,
+  reviewed,
+  incomplete,
   severityFilter,
   onToggleSeverity,
   selectedFindingIds,
@@ -65,6 +61,8 @@ export function FindingsPanel({
   findings: Finding[];
   loading: boolean;
   running: boolean;
+  reviewed: boolean;
+  incomplete: boolean;
   severityFilter: Severity[];
   onToggleSeverity: (severity: Severity) => void;
   selectedFindingIds: string[] | null;
@@ -142,6 +140,8 @@ export function FindingsPanel({
         ) : visible.length === 0 ? (
           <EmptyState
             running={running}
+            reviewed={reviewed}
+            incomplete={incomplete}
             filtered={severityFilter.length > 0 || Boolean(selectedSet)}
             onClear={() => {
               onClearSelection();
@@ -180,9 +180,7 @@ function FindingRow({
   onDismiss: () => void;
   onSeek: (startMs: number) => void;
 }) {
-  const hasEvidence = Boolean(
-    finding.evidence.quote || finding.evidence.critique_and_reasoning,
-  );
+  const hasEvidence = Boolean(finding.evidence.quote);
   return (
     <li
       className={cn(
@@ -214,9 +212,6 @@ function FindingRow({
           <span className="text-xs text-muted-foreground">
             {dimensionLabel(finding.dimension)}
           </span>
-          <span className="tabular rounded-4xl bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-            {formatFindingType(finding.findingType)}
-          </span>
           <span className="tabular ml-auto text-xs text-muted-foreground">
             {formatScore(finding.score)}
           </span>
@@ -228,6 +223,12 @@ function FindingRow({
             Ignored
           </span>
         ) : null}
+
+        {finding.evidence.critique_and_reasoning && (
+          <p className="mt-1.5 text-sm text-foreground/90">
+            {finding.evidence.critique_and_reasoning}
+          </p>
+        )}
 
         {finding.suggestion && (
           <p className="mt-1.5 flex items-start gap-1.5 text-sm text-foreground/90">
@@ -283,7 +284,10 @@ function FindingRow({
         <details className="group border-t border-border/60">
           <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
             <Icon icon={ViewIcon} className="size-3.5 group-open:hidden" />
-            <Icon icon={ViewOffIcon} className="hidden size-3.5 group-open:inline" />
+            <Icon
+              icon={ViewOffIcon}
+              className="hidden size-3.5 group-open:inline"
+            />
             <span className="group-open:hidden">Show evidence</span>
             <span className="hidden group-open:inline">Hide evidence</span>
           </summary>
@@ -295,11 +299,6 @@ function FindingRow({
                 <span className="text-muted-foreground">”</span>
               </p>
             )}
-            {finding.evidence.critique_and_reasoning && (
-              <p className="text-xs text-muted-foreground">
-                {finding.evidence.critique_and_reasoning}
-              </p>
-            )}
           </div>
         </details>
       )}
@@ -309,10 +308,14 @@ function FindingRow({
 
 function EmptyState({
   running,
+  reviewed,
+  incomplete,
   filtered,
   onClear,
 }: {
   running: boolean;
+  reviewed: boolean;
+  incomplete: boolean;
   filtered: boolean;
   onClear: () => void;
 }) {
@@ -330,7 +333,9 @@ function EmptyState({
         </>
       ) : filtered ? (
         <>
-          <p className="text-sm text-foreground">Nothing matches this filter.</p>
+          <p className="text-sm text-foreground">
+            Nothing matches this filter.
+          </p>
           <button
             type="button"
             onClick={onClear}
@@ -339,11 +344,25 @@ function EmptyState({
             Clear the filters
           </button>
         </>
+      ) : reviewed ? (
+        <>
+          <p className="text-sm text-foreground">
+            {incomplete
+              ? "The review could not check everything."
+              : "No changes flagged."}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {incomplete
+              ? "Run the analysis again to check the remaining parts."
+              : "The reviewers found no specific edits to suggest. Unmarked time has no score."}
+          </p>
+        </>
       ) : (
         <>
           <p className="text-sm text-foreground">No findings yet.</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Run an analysis and the reviewers will mark what works and what breaks.
+            Run an analysis and the reviewers will mark what works and what
+            breaks.
           </p>
         </>
       )}

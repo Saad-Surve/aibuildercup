@@ -14,6 +14,7 @@ completed reviewers found.
 
 import asyncio
 import logging
+from dataclasses import replace
 from typing import Any
 
 from fastapi import BackgroundTasks
@@ -26,7 +27,7 @@ from app.agents.analysis_coordinator import (
     chunk_segments,
     run_reviewers,
 )
-from app.agents.reviewer_base import SegmentRef
+from app.agents.reviewer_base import ReviewContext, ReviewFrame, SegmentRef
 from app.config import Settings, get_settings
 from app.errors import NotFoundError
 from app.events import build_event, topic_for_event
@@ -214,7 +215,7 @@ async def run_analysis(
         _load_persona, users, storage, owner_uid
     )
     audience = await asyncio.to_thread(_load_audience, users, owner_uid)
-    video_title, thumbnail_concept = await asyncio.to_thread(
+    video_title, thumbnail_concept, project_brief = await asyncio.to_thread(
         _load_packaging, analyses, owner_uid, project_id
     )
     platform = str(run.get("platform") or "youtube")
@@ -232,6 +233,7 @@ async def run_analysis(
         duration_ms=transcript.durationMs,
         video_title=video_title,
         thumbnail_concept=thumbnail_concept,
+        project_brief=project_brief,
     )
     await asyncio.to_thread(
         analyses.mark_running,
@@ -262,6 +264,17 @@ async def run_analysis(
         if visual_tools is not None
         else None
     )
+    if visual_tools is not None:
+        await asyncio.to_thread(
+            jobs.update_progress,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            job_id=job_id,
+            percent=_REVIEW_START_PERCENT,
+            step="inspecting_video",
+            message="Inspecting the opening, middle, and ending",
+        )
+        contexts = await _add_sampled_frames(contexts, visual_tools, context_store)
     reviewers = build_reviewers(
         llm,
         model=settings.model_reviewer,
@@ -365,7 +378,7 @@ async def run_analysis(
         ),
         6,
     )
-    failed_count = len(outcomes) - len(succeeded)
+    failed_count = sum(o.status.value == "failed" or o.error is not None for o in outcomes)
     if not succeeded:
         status = AnalysisRunStatus.failed
     elif failed_count:
@@ -375,7 +388,7 @@ async def run_analysis(
     error = (
         {
             "code": "SOME_REVIEWERS_FAILED",
-            "message": f"{failed_count} reviewer(s) failed.",
+            "message": f"{failed_count} reviewer(s) could not review the entire video.",
         }
         if failed_count
         else None
@@ -542,18 +555,76 @@ def _load_audience(users: UserService, owner_uid: str) -> str:
 
 def _load_packaging(
     analyses: AnalysisService, owner_uid: str, project_id: str
-) -> tuple[str, str]:
-    """(video title, thumbnail concept) for the packaging-aware reviewers.
+) -> tuple[str, str, str]:
+    """(video title, thumbnail concept, creator brief) for the reviewers.
 
     The project name doubles as the video title. Never a hard dependency.
     """
     try:
         project = analyses.client.get_document(project_path(owner_uid, project_id)) or {}
     except Exception:  # noqa: BLE001
-        return "", ""
+        return "", "", ""
+    if project.get("ownerUid") != owner_uid:
+        return "", "", ""
     title = str(project.get("name") or "").strip()[:200]
     thumbnail = str(project.get("thumbnailConcept") or "").strip()[:500]
-    return title, thumbnail
+    brief = str(project.get("description") or "").strip()[:2000]
+    return title, thumbnail, brief
+
+
+async def _add_sampled_frames(
+    contexts: list[ReviewContext],
+    toolkit: MediaToolkit,
+    store: GcsContextArtifactStore | None,
+) -> list[ReviewContext]:
+    """Extract at most six shared stills; failures retain a usable transcript review.
+
+    No extra model call. Each frame is stored once under this run's project prefix,
+    and attached only to reviewers of the interval that contains its timestamp.
+    """
+    if not contexts or toolkit.duration_ms <= 0:
+        return contexts
+    duration = toolkit.duration_ms
+    last = max(0, duration - 1)
+    timestamps = {min(1000, last), duration // 2, max(0, duration - 1000)}
+    if duration > 60_000:
+        timestamps.update({12_000, duration // 3, duration * 2 // 3})
+    semaphore = asyncio.Semaphore(2)
+
+    async def sample(index: int, timestamp: int) -> ReviewFrame | None:
+        async with semaphore:
+            try:
+                part = await toolkit.extract_frame(timestamp)
+            except Exception:  # noqa: BLE001 - evidence never gates the review
+                logger.warning("shared review frame at %d ms unavailable", timestamp)
+                return None
+            path = ""
+            if store is not None:
+                try:
+                    path = await asyncio.to_thread(
+                        store.save,
+                        part,
+                        reviewer_run_id="shared",
+                        tool="extract_frame",
+                        index=index,
+                    )
+                except Exception:  # noqa: BLE001 - model can still inspect the frame
+                    logger.warning("shared review frame at %d ms could not be stored", timestamp)
+            return ReviewFrame(timestamp_ms=timestamp, media=part, content_path=path)
+
+    sampled = await asyncio.gather(*(sample(i, t) for i, t in enumerate(sorted(timestamps))))
+    frames = [frame for frame in sampled if frame is not None]
+    return [
+        replace(
+            context,
+            sampled_frames=tuple(
+                frame
+                for frame in frames
+                if context.review_start_ms <= frame.timestamp_ms < context.review_end_ms
+            ),
+        )
+        for context in contexts
+    ]
 
 
 def _build_visual_tools(
@@ -583,9 +654,7 @@ def _build_visual_tools(
     if not asset_id:
         return None
     try:
-        asset = analyses.client.get_document(
-            asset_path(owner_uid, project_id, str(asset_id))
-        )
+        asset = analyses.client.get_document(asset_path(owner_uid, project_id, str(asset_id)))
     except Exception:  # noqa: BLE001 - visual context is an enhancement, not a dependency
         logger.warning("visual reviewer tools: could not load source asset", exc_info=True)
         return None
@@ -617,10 +686,7 @@ def _build_context_store(
     analysis_run_id: str,
 ) -> GcsContextArtifactStore:
     """Store reviewer-fetched footage under the project prefix (covered by project delete)."""
-    prefix = (
-        f"{project_object_prefix(owner_uid, project_id)}"
-        f"review-context/{analysis_run_id}/"
-    )
+    prefix = f"{project_object_prefix(owner_uid, project_id)}review-context/{analysis_run_id}/"
     return GcsContextArtifactStore(storage, prefix)
 
 

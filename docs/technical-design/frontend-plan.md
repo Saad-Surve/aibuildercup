@@ -350,7 +350,7 @@ DimensionFilter
 SeverityFilter
 AnalysisRunSelector
 ReviewerStatusList
-OverallScoreCard
+FlaggedMomentScore
 ~~~
 
 Dimensions:
@@ -358,20 +358,25 @@ Dimensions:
 ~~~text
 Truth & Evidence
 Clarity
-Structure & Pacing
+Pacing & Retention
 Legal & Safety
 Cultural & Localization
 Platform Fit
-Audience Fit
-Brand Voice
-Engagement & Retention
+Audience & Brand
 Emotional Impact
-SEO & Discoverability
-Visual & Accessibility
 Conversion & CTA
 ~~~
 
 If one reviewer fails, show a partial result instead of blocking the whole workspace.
+The studio requests all nine existing reviewers on new runs. Historical tracks follow the
+run's actual `requestedDimensions`. Empty tracks are visible; gaps carry no invented score.
+The score label is **Flagged moments**, with a tooltip explaining that it summarizes reported
+observations. Completed-reviewer counts exclude errors, and empty results distinguish a finished
+review from a failed/incomplete one and from a review that has not started.
+
+Finding rows show the explanation and concrete edit together, with exact quotes in the existing
+collapsed evidence section. Strengths use **Keep** and show their explanation without an edit.
+Shared sampled footage appears once in the existing collapsed footage checks, fetched lazily.
 
 ## 11. Artifact gallery
 
@@ -495,4 +500,3 @@ Show tool activity such as Finding transcript evidence or Creating clip candidat
 - Every async action has progress, retry, and failure UI.
 - Signed download URLs are never persisted in local storage.
 - The user can delete a project and see deletion progress.
-

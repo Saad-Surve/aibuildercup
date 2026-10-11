@@ -16,13 +16,16 @@ PLATFORM-SPECIFIC BENCHMARKS:
   value delivery, and professional context without corporate buzzwords.
 
 WHAT TO FLAG:
-- Repurposed Artifacts: spoken references that expose lazy cross-posting (for example
-  "click the link in the description" on a short-form video, or "swipe up" on a platform
-  without that action).
+- Repurposed Artifacts: spoken references to an action unavailable on this platform
+  (for example "swipe up" where that action is unavailable). Establish that the action
+  is unavailable or poorly suited to this format first; short videos can have descriptions.
 - Platform Mismatch: pacing that is either too slow for short-form or too frenetic for
   long-form educational content.
 
 Do not reward generic "good content" - reward fit.
+Respect the actual video format, duration, and creator brief. Do not apply short-form
+rules to long-form content or prescribe arbitrary cut frequencies. For a mismatch give
+the exact opening/transition/CTA replacement or edit, not a vague platform best practice.
 
 findingType vocabulary (severity in brackets):
   native_execution         [none]   an opening/format that is native to the platform (score 5)

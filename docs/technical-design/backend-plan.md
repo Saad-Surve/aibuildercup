@@ -301,7 +301,7 @@ It runs specialist reviewers concurrently.
 class Reviewer(Protocol):
     dimension: AnalysisDimension
 
-    async def review(self, context: ReviewContext) -> list[Finding]:
+    async def review(self, context: ReviewContext, *, reviewer_run_id: str = "") -> ReviewResult:
         ...
 ~~~
 
@@ -325,7 +325,7 @@ class Finding(BaseModel):
 Reviewer dimensions (2026-09 panel; 13 consolidated to 9):
 
 ~~~text
-core (always run)
+core (API minimum, always run)
   truth_evidence
   clarity
   pacing_retention        # merged structure_pacing + engagement_retention
@@ -333,7 +333,7 @@ core (always run)
   cultural_localization
   platform_fit
 
-extended (configurable)
+extended (API configurable, included by the studio)
   audience_brand          # merged audience_fit + brand_voice
   emotional_impact
   conversion_cta
@@ -342,6 +342,9 @@ retired (never run; kept only so historical runs deserialize)
   structure_pacing, engagement_retention, audience_fit, brand_voice,
   seo_discoverability, visual_accessibility
 ~~~
+
+The studio explicitly requests all nine active dimensions. Requests that omit `dimensions`
+retain the six-core API minimum; historical runs render their original requested dimensions.
 
 `seo_discoverability` and `visual_accessibility` were dropped: spoken keyword density is
 the wrong signal for modern recommendation systems, and transcript-only accessibility review
@@ -399,8 +402,18 @@ not search keeps it.
 
 Running every reviewer over every segment is unbounded cost. Instead, each reviewer runs as one
 structured Gemini call over the whole transcript, chunked into roughly 8k to 12k token windows
-with overlap when the transcript is long. The reviewer returns findings keyed by segment id with
-timestamps. Cost is bounded at one call per reviewer per chunk.
+when the transcript is long. Segments and timeline intervals have one owning window; neighbouring
+segments are context only. Each window also receives the project description and bounded real
+opening/ending/evenly selected excerpts for continuity. Excerpts are not evidence that an omitted
+part of the video lacks a payoff. There is one initial call per reviewer per chunk, plus the
+existing bounded tool rounds and provider retries.
+
+When footage tools are available, the worker extracts three shared stills for videos of up to
+60 seconds, or at most six for longer videos (opening, early hook, middle, ending, and intermediate
+positions), with extraction concurrency two. Each is attached only to its owning window and
+stored once beneath `review-context/{analysisRunId}/shared/`. Reviewers reference these through
+existing `toolCalls`; the UI deduplicates the same stored frame. This adds media input, not another
+model stage. Stills do not establish motion, audio quality, or full-video visual coverage.
 
 A reviewer may also pull *visual* context mid-review through two FFmpeg-backed tools
 (`app/services/video_tools.py`): `extract_frame` (one still at a timestamp) and `cut_clip` (a
@@ -427,6 +440,14 @@ strength, never as filler for ordinary sentences, which keeps token cost and hea
 down. Reviewer prompts carry a `promptVersion` and the run records `modelConfigVersion` so two
 runs are comparable.
 
+Current versions are `reviewers-v5` / `analysis-v5`. Critiques must explain specific viewer
+friction and offer replacement words or a precise trim, move, qualification, or addition.
+The suggested fix must pass the same rubric and preserve the creator's voice and audience.
+Omissions and inspected visual issues may have an empty quote; speech quotes must occur in the
+transcript (Unicode marks retained, punctuation ignored). Normalization rejects missing actions,
+invented quotes, and findings outside the owned interval, and removes exact overlapping advice.
+Routine strengths are discouraged; prompts request at most two exceptional strengths per window.
+
 ### Bounded parallel execution
 
 ~~~python
@@ -443,6 +464,9 @@ results = await asyncio.gather(
 ~~~
 
 Persist reviewer status independently so partial results remain visible.
+Any reviewer error, including partial chunk failure with retained findings, makes the run
+`partial_failure`. The job can still succeed with useful results; completely failed runs fail
+the job. The studio's completed-reviewer count excludes reviewers carrying an error.
 
 ## 9. Heatmap aggregation
 
@@ -455,12 +479,16 @@ For every finding:
 5. Convert severity to UI color.
 
 ~~~text
-score >= 8       green
-score 6–7.99     yellow
-score 4–5.99     orange
-score < 4        red
+score >= 4       green
+score 3–3.99     yellow
+score 2–2.99     orange
+score < 2        red
 critical finding red regardless of score
 ~~~
+
+Only findings create bins. Gaps have no score. `overallScore` averages duration-weighted reported
+moments by dimension, excluding dimensions with no findings; it is shown as **Flagged moments**,
+not a whole-video grade. Older runs retain their stored scores and prompt versions.
 
 ## 10. Project chat agent
 

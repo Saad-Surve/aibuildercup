@@ -34,8 +34,12 @@ export function ReviewerFootage({
   const [open, setOpen] = useState(false);
 
   const items: FootageItem[] = [];
+  const seenPaths = new Set<string>();
   for (const reviewer of reviewers) {
     (reviewer.toolCalls ?? []).forEach((call, index) => {
+      // Shared samples are supplied to several reviewers but shown once.
+      if (call.contentPath && seenPaths.has(call.contentPath)) return;
+      if (call.contentPath) seenPaths.add(call.contentPath);
       items.push({
         reviewerRunId: reviewer.reviewerRunId,
         dimension: reviewer.dimension,
@@ -59,7 +63,7 @@ export function ReviewerFootage({
           Footage checks{" "}
           <span className="tabular text-muted-foreground">{items.length}</span>
           <span className="ml-1.5 text-muted-foreground">
-            — moments the reviewers pulled from the video
+            — sampled frames and moments inspected during review
           </span>
         </span>
         <span className="text-xs text-muted-foreground">
@@ -126,7 +130,11 @@ function FootageCard({
         title={`Jump to ${formatTimestamp(call.timestampMs)}`}
         className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left"
       >
-        <span className="truncate text-xs">{dimensionLabel(item.dimension)}</span>
+        <span className="truncate text-xs">
+          {call.label.startsWith("Shared sample:")
+            ? "Shared sample"
+            : dimensionLabel(item.dimension)}
+        </span>
         <span className="shrink-0 tabular text-xs text-time underline-offset-2 hover:underline">
           {formatTimestamp(call.timestampMs)}
         </span>
