@@ -213,7 +213,12 @@ class GoogleFirestoreClient:
     def set_owned_children(
         self, parent: str, documents: list[tuple[str, dict[str, Any]]], uid: str
     ) -> bool:
-        """Install a bounded precomputed index atomically without one RPC per vector."""
+        """Install vectors in small transactions, checking ownership before every batch.
+
+        Firestore's transaction size includes generated index entries for vector arrays.
+        Keep batches small even when the document payloads themselves fit the byte limit.
+        Stable IDs make partial installation retryable; callers mark completion afterward.
+        """
         from google.cloud import firestore
 
         if len(documents) > 400 or any(
@@ -223,7 +228,7 @@ class GoogleFirestoreClient:
             raise ValueError("Owned batch exceeds limit or has invalid ownership")
 
         @firestore.transactional
-        def write(transaction: Any) -> bool:
+        def write(transaction: Any, batch: list[tuple[str, dict[str, Any]]]) -> bool:
             user = self._client.document(user_path(uid)).get(transaction=transaction)
             source = self._client.document(parent).get(transaction=transaction)
             if (
@@ -233,11 +238,15 @@ class GoogleFirestoreClient:
                 or source.to_dict().get("ownerUid") != uid
             ):
                 return False
-            for path, data in documents:
+            for path, data in batch:
                 transaction.set(self._client.document(path), data)
             return True
 
-        return bool(write(self._client.transaction()))
+        batches = [documents[i : i + 8] for i in range(0, len(documents), 8)] or [[]]
+        for batch in batches:
+            if not write(self._client.transaction(), batch):
+                return False
+        return True
 
     def create_document(self, path: str, data: dict[str, Any]) -> bool:
         """Atomically create a document; return False if another writer won."""
