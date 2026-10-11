@@ -129,6 +129,10 @@ class FirestoreClient(Protocol):
         self, parent: str, path: str, uid: str, data: dict[str, Any], *, create_only: bool = False
     ) -> bool: ...
 
+    def set_owned_children(
+        self, parent: str, documents: list[tuple[str, dict[str, Any]]], uid: str
+    ) -> bool: ...
+
     def create_document(self, path: str, data: dict[str, Any]) -> bool: ...
 
     def set_documents(self, documents: Iterable[tuple[str, dict[str, Any]]]) -> None: ...
@@ -205,6 +209,35 @@ class GoogleFirestoreClient:
             return bool(write(self._client.transaction()))
         except AlreadyExists:
             return False
+
+    def set_owned_children(
+        self, parent: str, documents: list[tuple[str, dict[str, Any]]], uid: str
+    ) -> bool:
+        """Install a bounded precomputed index atomically without one RPC per vector."""
+        from google.cloud import firestore
+
+        if len(documents) > 400 or any(
+            not path.startswith(parent + "/") or data.get("ownerUid") != uid
+            for path, data in documents
+        ):
+            raise ValueError("Owned batch exceeds limit or has invalid ownership")
+
+        @firestore.transactional
+        def write(transaction: Any) -> bool:
+            user = self._client.document(user_path(uid)).get(transaction=transaction)
+            source = self._client.document(parent).get(transaction=transaction)
+            if (
+                not user.exists
+                or not source.exists
+                or user.to_dict().get("ownerUid", uid) != uid
+                or source.to_dict().get("ownerUid") != uid
+            ):
+                return False
+            for path, data in documents:
+                transaction.set(self._client.document(path), data)
+            return True
+
+        return bool(write(self._client.transaction()))
 
     def create_document(self, path: str, data: dict[str, Any]) -> bool:
         """Atomically create a document; return False if another writer won."""

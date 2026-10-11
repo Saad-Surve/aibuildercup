@@ -584,7 +584,7 @@ class ChannelContentService:
                     return semantic_references
             except Exception:
                 logger.warning("content: semantic thumbnail references unavailable", exc_info=True)
-        if self.imports is not None:
+        if self._use_preset(owner_uid) and self.imports is not None:
             try:
                 imported_references = self.imports.thumbnail_references(owner_uid, limit=limit)
                 if imported_references:
@@ -661,7 +661,7 @@ class ChannelContentService:
     ) -> dict[str, Any] | None:
         """Best-effort creator context for the user's most recently synced channel."""
         try:
-            if self.imports is not None:
+            if self._use_preset(owner_uid) and self.imports is not None:
                 imported = self.imports.build_context(owner_uid, query=query, k=100)
                 if imported is not None:
                     return self._semantic_context(owner_uid, query, imported, k=k)
@@ -678,6 +678,12 @@ class ChannelContentService:
         except Exception:  # noqa: BLE001 - context is an enhancement, never a blocker
             logger.warning("content: could not build creator context", exc_info=True)
             return None
+
+    def _use_preset(self, uid: str) -> bool:
+        if self.library is None or not self.library.settings.creator_preset_enabled:
+            return False
+        self.library.source(uid)  # Validates/installs the configured source before context use.
+        return True
 
     def _semantic_context(
         self, uid: str, query: str, context: dict[str, Any], *, k: int

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/common/page-header";
@@ -10,12 +10,15 @@ import { apiFetch } from "@/lib/api-client";
 import type { CreatorLibrary, LibrarySearch } from "@/lib/creator-library";
 import { useReadOnly, READ_ONLY_REASON } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
+import { thumbnailLabels } from "@/lib/library-layout";
 
 const position = (value: number | null) => 8 + (value ?? 0.5) * 84;
 const formatTime = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 
 export default function LibraryPage() {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [mapSize, setMapSize] = useState({ width: 800, height: 540 });
   const cache = useQueryClient();
   const readOnly = useReadOnly();
   const { data, isPending, error, refetch } = useQuery({
@@ -25,6 +28,8 @@ export default function LibraryPage() {
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "text" | "image">("all");
+  const [topic, setTopic] = useState("all");
+  const [zoom, setZoom] = useState(1);
   const [query, setQuery] = useState("");
   const [searchState, setSearchState] = useState<{
     fingerprint: string;
@@ -37,17 +42,52 @@ export default function LibraryPage() {
     searchState?.fingerprint === fingerprint ? searchState.result : null;
   const matches = new Map(search?.matches.map((n) => [n.id, n]) ?? []);
   const nodes = (data?.nodes ?? []).filter(
-    (n) => filter === "all" || n.modality === filter,
+    (n) =>
+      (filter === "all" || n.modality === filter) &&
+      (topic === "all" || n.tags.includes(topic)),
   );
   const plotted = nodes.filter(
     (n) => n.indexed && n.x !== null && n.y !== null,
   );
+  const labels = thumbnailLabels(plotted, mapSize.width, mapSize.height);
+  useEffect(() => {
+    if (!data?.totalNodes) return;
+    const element = mapRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width > 0)
+        setMapSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [data?.totalNodes]);
   const selected =
     search?.matches.find((n) => n.id === selectedId) ??
-    data?.nodes.find((n) => n.id === selectedId);
-  const selectedPlot = plotted.find((n) => n.id === selectedId);
+    data?.nodes.find((n) => n.id === selectedId) ??
+    nodes.find((n) => n.modality === "image" && n.indexed) ??
+    nodes[0];
+  const selectedPlot = plotted.find((n) => n.id === selected?.id);
+  const relationNode = data?.nodes.find((n) => n.id === selected?.id);
+  const neighbors = (relationNode?.related ?? []).flatMap((edge) => {
+    const node = data?.nodes.find((n) => n.id === edge.nodeId);
+    return node
+      ? [{ node, similarity: edge.similarity, relation: edge.relation }]
+      : [];
+  });
+  const relatedIds = new Set(neighbors.map(({ node }) => node.id));
+  const topics = Array.from(
+    new Set((data?.nodes ?? []).flatMap((n) => n.tags)),
+  ).toSorted();
+  const thumbnails = (data?.nodes ?? []).filter((n) => n.modality === "image");
   const rows = search
-    ? search.matches.filter((n) => filter === "all" || n.modality === filter)
+    ? search.matches.filter(
+        (n) =>
+          (filter === "all" || n.modality === filter) &&
+          (topic === "all" || n.tags.includes(topic)),
+      )
     : nodes;
 
   async function index() {
@@ -125,15 +165,14 @@ export default function LibraryPage() {
             Start with something you’ve made
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-            Connect a YouTube channel in Settings and sync its content. For a
-            demo, an operator can import a folder of transcripts, writing and
-            thumbnails into your account.
+            Connect an account in Settings and read its published content to
+            bring your words and images into the studio.
           </p>
           <Link
             href="/settings"
             className="mt-6 inline-flex rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground focus-visible:outline-2 focus-visible:outline-signal"
           >
-            Connect a channel
+            Connect an account
           </Link>
         </div>
       ) : data ? (
@@ -144,7 +183,7 @@ export default function LibraryPage() {
                 {data.displayName}{" "}
                 <span className="ml-2 rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                   {data.sourceType === "folder_import"
-                    ? "Imported library"
+                    ? "Creator sources"
                     : "YouTube"}
                 </span>
               </p>
@@ -210,7 +249,7 @@ export default function LibraryPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               maxLength={1000}
-              placeholder="Find something in your work — e.g. learning by making small projects"
+              placeholder="Find ideas, visual styles or buying advice across your work…"
               disabled={readOnly || !!busy}
               className="h-10"
             />
@@ -234,13 +273,65 @@ export default function LibraryPage() {
               </Button>
             )}
           </form>
+          {thumbnails.length > 0 && (
+            <div
+              className="flex gap-3 overflow-x-auto pb-2"
+              aria-label="Thumbnail collection"
+            >
+              {thumbnails.map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => {
+                    setSelectedId(n.id);
+                    setFilter("all");
+                    setTopic("all");
+                  }}
+                  aria-label={`Explore thumbnail: ${n.title}`}
+                  aria-pressed={selected?.id === n.id}
+                  className={cn(
+                    "w-36 shrink-0 rounded-lg border bg-muted/20 p-1 text-left outline-offset-2 focus-visible:outline-2 focus-visible:outline-signal",
+                    selected?.id === n.id && "border-signal",
+                  )}
+                >
+                  {n.thumbnailUrl && (
+                    <img
+                      src={n.thumbnailUrl}
+                      alt=""
+                      className="aspect-video w-full rounded-md object-cover"
+                    />
+                  )}
+                  <span className="mt-1.5 line-clamp-2 px-1 pb-1 text-[10px] leading-4 text-muted-foreground">
+                    {n.title}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex flex-wrap gap-1.5" aria-label="Filter by topic">
+            {["all", ...topics].map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setTopic(value)}
+                aria-pressed={topic === value}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-signal",
+                  topic === value
+                    ? "border-signal/50 bg-signal/10 text-signal"
+                    : "text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {value === "all" ? "All topics" : value}
+              </button>
+            ))}
+          </div>
           <div className="overflow-hidden rounded-2xl border">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3">
               <div>
                 <p className="text-sm font-medium">Your work, connected</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Similar material sits closer. Lines join passages from the
-                  same source.
+                  Select a source to reveal its closest semantic neighbors.
+                  Links use similarity in the full embedding space.
                 </p>
               </div>
               <div className="flex gap-1" aria-label="Filter by material">
@@ -263,97 +354,177 @@ export default function LibraryPage() {
             </div>
             <div className="grid lg:grid-cols-[1fr_320px]">
               <div
-                className="relative h-[340px] overflow-hidden bg-muted/15 sm:h-[450px]"
+                ref={mapRef}
+                className="relative h-[400px] overflow-hidden bg-muted/15 sm:h-[540px]"
                 aria-label="Approximate content similarity map"
               >
-                <svg
-                  className="pointer-events-none absolute inset-0 size-full text-border"
-                  aria-hidden="true"
+                <div
+                  className="absolute inset-0 transition-transform duration-300 motion-reduce:transition-none"
+                  style={{
+                    transform: `scale(${zoom})`,
+                    transformOrigin: `${position(selectedPlot?.x ?? null)}% ${position(selectedPlot?.y ?? null)}%`,
+                  }}
                 >
-                  <defs>
-                    <pattern
-                      id="library-grid"
-                      width="24"
-                      height="24"
-                      patternUnits="userSpaceOnUse"
-                    >
-                      <circle cx="1" cy="1" r="0.8" fill="currentColor" />
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#library-grid)" />
-                  {selectedPlot &&
-                    plotted
-                      .filter(
-                        (n) =>
-                          n.itemId === selectedPlot.itemId &&
-                          n.id !== selectedPlot.id,
-                      )
-                      .map((n) => (
-                        <line
-                          key={n.id}
-                          x1={`${position(selectedPlot.x)}%`}
-                          y1={`${position(selectedPlot.y)}%`}
-                          x2={`${position(n.x)}%`}
-                          y2={`${position(n.y)}%`}
-                          stroke="var(--signal)"
-                          strokeOpacity="0.35"
-                          strokeDasharray="4 4"
-                        />
-                      ))}
-                </svg>
-                {!plotted.length && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
-                    <span className="font-mono text-4xl text-signal/60">∴</span>
-                    <p className="mt-4 text-sm font-medium">
-                      The map starts with your first index
-                    </p>
-                    <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">
-                      Your sources are listed below. Index a batch to see how
-                      passages and images relate.
-                    </p>
-                  </div>
-                )}
-                {plotted.map((n, i) => (
-                  <button
-                    key={n.id}
-                    type="button"
-                    onClick={() => setSelectedId(n.id)}
-                    aria-label={`${n.modality === "image" ? "Thumbnail" : "Passage"}: ${n.title}`}
-                    aria-pressed={selectedId === n.id}
-                    title={n.title}
-                    className={cn(
-                      "absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-signal shadow-sm outline-offset-4 focus-visible:outline-2 focus-visible:outline-signal",
-                      n.modality === "image"
-                        ? "size-10 overflow-hidden rounded-md sm:size-12"
-                        : "size-3.5 hover:scale-125",
-                      selectedId === n.id &&
-                        "ring-2 ring-signal ring-offset-3 ring-offset-background",
-                      search && !matches.has(n.id) && "opacity-20",
-                      search && matches.has(n.id) && "ring-2 ring-signal/30",
-                      !search && "opacity-85",
-                    )}
-                    style={{
-                      left: `${position(n.x)}%`,
-                      top: `${position(n.y)}%`,
-                      zIndex:
-                        selectedId === n.id
-                          ? 20
-                          : n.modality === "image"
-                            ? 10
-                            : (i % 3) + 1,
-                    }}
+                  <svg
+                    className="pointer-events-none absolute inset-0 size-full text-border"
+                    aria-hidden="true"
                   >
-                    {n.modality === "image" && n.thumbnailUrl ? (
-                      <img
-                        src={n.thumbnailUrl}
-                        alt=""
-                        className="size-full object-cover"
-                      />
-                    ) : n.modality === "image" ? (
-                      <span className="text-xs text-white">▧</span>
-                    ) : null}
-                  </button>
-                ))}
+                    <defs>
+                      <pattern
+                        id="library-grid"
+                        width="24"
+                        height="24"
+                        patternUnits="userSpaceOnUse"
+                      >
+                        <circle cx="1" cy="1" r="0.8" fill="currentColor" />
+                      </pattern>
+                    </defs>
+                    <rect
+                      width="100%"
+                      height="100%"
+                      fill="url(#library-grid)"
+                    />
+                    {plotted
+                      .filter((n) => n.modality === "image")
+                      .map((n) => (
+                        <g key={`anchor-${n.id}`}>
+                          <line
+                            x1={`${position(n.x)}%`}
+                            y1={`${position(n.y)}%`}
+                            x2={`${labels.get(n.id)?.x ?? position(n.x)}%`}
+                            y2={`${labels.get(n.id)?.y ?? position(n.y)}%`}
+                            stroke="currentColor"
+                            strokeWidth="1"
+                          />
+                          <circle
+                            cx={`${position(n.x)}%`}
+                            cy={`${position(n.y)}%`}
+                            r="3"
+                            fill="var(--signal)"
+                          />
+                        </g>
+                      ))}
+                    {selectedPlot &&
+                      plotted
+                        .filter((n) => relatedIds.has(n.id))
+                        .map((n) => (
+                          <line
+                            key={n.id}
+                            x1={`${position(selectedPlot.x)}%`}
+                            y1={`${position(selectedPlot.y)}%`}
+                            x2={`${position(n.x)}%`}
+                            y2={`${position(n.y)}%`}
+                            stroke="var(--signal)"
+                            strokeOpacity="0.65"
+                            strokeDasharray={
+                              neighbors.find((edge) => edge.node.id === n.id)
+                                ?.relation === "cross_modal"
+                                ? "5 4"
+                                : undefined
+                            }
+                            strokeWidth="1.5"
+                          />
+                        ))}
+                  </svg>
+                  {!plotted.length && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
+                      <span className="font-mono text-4xl text-signal/60">
+                        ∴
+                      </span>
+                      <p className="mt-4 text-sm font-medium">
+                        The map starts with your first index
+                      </p>
+                      <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">
+                        Your sources are listed below. Index a batch to see how
+                        passages and images relate.
+                      </p>
+                    </div>
+                  )}
+                  {plotted.map((n, i) => (
+                    <button
+                      key={n.id}
+                      type="button"
+                      onClick={() => setSelectedId(n.id)}
+                      aria-label={`${n.modality === "image" ? "Thumbnail" : "Passage"}: ${n.title}`}
+                      aria-pressed={selected?.id === n.id}
+                      title={`${n.title} · ${n.language} · ${n.contentType}`}
+                      className={cn(
+                        "absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-signal shadow-sm outline-offset-4 focus-visible:outline-2 focus-visible:outline-signal",
+                        n.modality === "image"
+                          ? "h-10 w-[70px] overflow-hidden rounded-md sm:h-[52px] sm:w-[92px]"
+                          : n.kind === "profile"
+                            ? "size-6"
+                            : "size-3.5 hover:scale-125",
+                        n.modality === "text" &&
+                          n.kind === "post" &&
+                          "bg-chart-2",
+                        n.modality === "text" &&
+                          n.kind === "article" &&
+                          "bg-chart-3",
+                        relatedIds.has(n.id) && "ring-2 ring-signal/40",
+                        selected &&
+                          !relatedIds.has(n.id) &&
+                          n.id !== selected.id &&
+                          !search &&
+                          "opacity-60",
+                        selected?.id === n.id &&
+                          "ring-2 ring-signal ring-offset-3 ring-offset-background",
+                        search && !matches.has(n.id) && "opacity-20",
+                        search && matches.has(n.id) && "ring-2 ring-signal/30",
+                      )}
+                      style={{
+                        left: `${labels.get(n.id)?.x ?? position(n.x)}%`,
+                        top: `${labels.get(n.id)?.y ?? position(n.y)}%`,
+                        zIndex:
+                          selected?.id === n.id
+                            ? 20
+                            : n.modality === "image"
+                              ? 10
+                              : (i % 3) + 1,
+                      }}
+                    >
+                      {n.modality === "image" && n.thumbnailUrl ? (
+                        <img
+                          src={n.thumbnailUrl}
+                          alt=""
+                          className="size-full object-cover"
+                        />
+                      ) : n.modality === "image" ? (
+                        <span className="text-xs text-white">▧</span>
+                      ) : n.kind === "profile" ? (
+                        <span className="text-xs text-primary-foreground">
+                          ◎
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+                <div
+                  className="absolute right-4 top-4 flex items-center gap-1 rounded-lg border bg-background/95 p-1 shadow-sm"
+                  aria-label="Map zoom"
+                >
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label="Zoom out"
+                    onClick={() => setZoom(Math.max(1, zoom - 0.5))}
+                    disabled={zoom === 1}
+                  >
+                    −
+                  </Button>
+                  <span className="w-9 text-center font-mono text-[10px]">
+                    {zoom}×
+                  </span>
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label="Zoom into selected source"
+                    onClick={() => setZoom(Math.min(3, zoom + 0.5))}
+                    disabled={zoom === 3}
+                  >
+                    +
+                  </Button>
+                </div>
                 <div className="pointer-events-none absolute bottom-4 left-5 flex items-center gap-4 text-[10px] text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     <span className="size-2 rounded-full bg-signal" />
@@ -366,7 +537,7 @@ export default function LibraryPage() {
                 </div>
               </div>
               <aside
-                className="border-t bg-background p-5 lg:border-t-0 lg:border-l"
+                className="border-t bg-background p-5 lg:max-h-[540px] lg:overflow-y-auto lg:border-t-0 lg:border-l"
                 aria-label="Selected source"
                 aria-live="polite"
               >
@@ -382,14 +553,34 @@ export default function LibraryPage() {
                     <h2 className="mt-2 text-base font-semibold leading-snug">
                       {selected.title}
                     </h2>
-                    {selected.modality === "image" && selected.thumbnailUrl && (
+                    {selected.thumbnailUrl && (
                       <img
                         src={selected.thumbnailUrl}
-                        alt={`Supplied thumbnail for ${selected.title}`}
+                        alt={`Thumbnail for ${selected.title}`}
                         className="mt-4 w-full rounded-lg border"
                       />
                     )}
-                    <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                    <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
+                      <span className="rounded border px-2 py-0.5">
+                        {selected.platform}
+                      </span>
+                      <span className="rounded border px-2 py-0.5">
+                        {selected.language === "hi"
+                          ? "Hindi"
+                          : selected.language === "en"
+                            ? "English"
+                            : selected.language}
+                      </span>
+                      <span className="rounded border px-2 py-0.5">
+                        {selected.contentType}
+                      </span>
+                    </div>
+                    {selected.attribution && (
+                      <p className="mt-2 text-[10px] text-muted-foreground">
+                        {selected.attribution}
+                      </p>
+                    )}
+                    <p className="mt-4 max-h-48 overflow-y-auto whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
                       {selected.excerpt}
                     </p>
                     {selected.url && /^https?:\/\//i.test(selected.url) && (
@@ -401,6 +592,50 @@ export default function LibraryPage() {
                       >
                         Open original ↗
                       </a>
+                    )}
+                    {neighbors.length > 0 && (
+                      <div className="mt-5 space-y-2 border-t pt-4">
+                        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                          Closest related sources
+                        </p>
+                        {neighbors.map(({ node, similarity, relation }) => (
+                          <button
+                            key={node.id}
+                            onClick={() => {
+                              setSelectedId(node.id);
+                              setTopic("all");
+                              setFilter("all");
+                            }}
+                            className="flex w-full items-center gap-2 rounded-lg border p-2 text-left hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-signal"
+                          >
+                            {node.thumbnailUrl ? (
+                              <img
+                                src={node.thumbnailUrl}
+                                alt=""
+                                className="h-8 w-12 shrink-0 rounded object-cover"
+                              />
+                            ) : (
+                              <span className="grid size-8 shrink-0 place-items-center rounded bg-muted text-signal">
+                                ¶
+                              </span>
+                            )}
+                            <span className="min-w-0 flex-1">
+                              <span className="line-clamp-2 text-[11px] leading-4">
+                                {node.title}
+                              </span>
+                              <span className="text-[9px] text-muted-foreground">
+                                {relation === "cross_modal"
+                                  ? "Closest " +
+                                    (node.modality === "image"
+                                      ? "image"
+                                      : "words")
+                                  : node.modality}{" "}
+                                · cosine {similarity.toFixed(3)}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     )}
                     <p className="mt-5 text-xs text-muted-foreground">
                       {selected.indexed
@@ -427,8 +662,8 @@ export default function LibraryPage() {
             </div>
             <div className="flex flex-wrap justify-between gap-2 border-t px-5 py-3 text-[10px] text-muted-foreground">
               <span>
-                Approximate 2D projection · distances are not quality or
-                confidence scores
+                Approximate 2D projection · image tiles connect to their true
+                positions · distances are not quality scores
               </span>
               <span className="font-mono">
                 {data.model} · {data.dimensions} dimensions
@@ -475,7 +710,7 @@ export default function LibraryPage() {
                       <span className="block text-sm font-medium">
                         {n.title}
                       </span>
-                      <span className="mt-1 line-clamp-2 block text-xs leading-5 text-muted-foreground">
+                      <span className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
                         {n.excerpt}
                       </span>
                     </span>
@@ -497,9 +732,9 @@ export default function LibraryPage() {
           </div>
           {data.omittedPassages > 0 && (
             <p className="text-xs text-muted-foreground">
-              This demo indexes up to six passages per source, ten thumbnails
-              and 300 nodes. {data.omittedPassages} additional passages are
-              outside that scope.
+              The map includes up to six passages sampled across each source,
+              ten thumbnails and 300 nodes. {data.omittedPassages} additional
+              passages are outside that scope.
             </p>
           )}
         </>

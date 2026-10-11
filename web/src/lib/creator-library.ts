@@ -8,6 +8,17 @@ export interface LibraryNode {
   url: string | null;
   thumbnailUrl: string | null;
   startSeconds: number | null;
+  platform: string;
+  language: string;
+  tags: string[];
+  contentType: string;
+  attribution: string;
+  collectionMethod: string;
+  related: {
+    nodeId: string;
+    similarity: number;
+    relation: "nearest" | "cross_modal";
+  }[];
   indexed: boolean;
   x: number | null;
   y: number | null;

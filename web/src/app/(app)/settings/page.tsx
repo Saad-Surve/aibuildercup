@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/common/page-header";
-import { YouTubeConnections } from "@/components/projects/studio/youtube-connections";
+import { AccountConnections } from "@/components/accounts/account-connections";
 import {
   Card,
   CardContent,
@@ -36,12 +36,12 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Connections</CardTitle>
           <CardDescription>
-            Connect the YouTube channels you publish to. Sign in with any Gmail
-            account; every channel under it becomes a connection.
+            Bring your published work into the studio. Manage your accounts here
+            and choose which content to share.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <YouTubeConnections redirectPath="/settings" />
+          <AccountConnections redirectPath="/settings" />
         </CardContent>
       </Card>
 
@@ -49,8 +49,8 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Creator library</CardTitle>
           <CardDescription>
-            Explore synced videos, imported writing and thumbnails. Find source
-            material by meaning and use it as context for your drafts.
+            Explore your videos, writing and thumbnails. Find source material by
+            meaning and use it as context for your drafts.
           </CardDescription>
         </CardHeader>
         <CardContent>

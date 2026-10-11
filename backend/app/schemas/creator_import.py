@@ -43,6 +43,11 @@ class ImportItem(ImportModel):
     mediaFile: str | None = None
     url: str | None = None
     language: str = Field(default="en", max_length=20)
+    platform: str = Field(default="unknown", max_length=40)
+    contentType: str = Field(default="supplied", max_length=80)
+    attribution: str = Field(default="", max_length=200)
+    collectionMethod: str = Field(default="supplied", max_length=80)
+    fetchedAt: datetime | None = None
     publishedAt: datetime | None = None
     viewCount: int | None = Field(default=None, ge=0)
     likeCount: int | None = Field(default=None, ge=0)
@@ -68,7 +73,7 @@ class ImportItem(ImportModel):
                 raise ValueError("Files must be relative paths inside the bundle")
         return value
 
-    @field_validator("publishedAt")
+    @field_validator("publishedAt", "fetchedAt")
     @classmethod
     def aware_date(cls, value: datetime | None) -> datetime | None:
         if value is not None and value.tzinfo is None:

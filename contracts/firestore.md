@@ -273,10 +273,10 @@ so project / account delete covers them.
 
 ### Creator semantic library
 
-The active folder revision or latest synced connected channel is the retrieval scope.
+The flag-selected prepared folder revision or latest synced connected channel is the retrieval scope.
 `semanticChunks/{hash}` lives beneath its revision or connection document. Each document
 contains `ownerUid`, `model`, `dimensions`, `promptVersion`, a normalized `vector`, and
-`createdAt`. Hashes include source identity, content/image fingerprint, model, dimensions,
+`createdAt`. Hashes include item identity, content/image fingerprint, model, dimensions,
 and chunking/prompt version. Only hashes regenerated from current source material are read;
 stale documents are excluded, then pruned during explicit indexing. No vectors leave the API.
 
@@ -296,3 +296,14 @@ a source does not erase already generated project evidence; project/account dele
 Embedding cache writes transactionally require the owned source and user to still exist.
 Daily call-slot reservations use the same user-existence guard with create-only semantics;
 a removed source/account cannot be resurrected by an in-flight embedding response.
+
+### Backend preset and semantic relationships
+
+`users/{uid}.creatorPresetObject` records the immutable backend corpus version installed in
+its ordinary `creatorImports` subtree. Only `CREATOR_PRESET_ENABLED` selects those imports;
+flag off uses real connections. Shared ZIP originals in `creator-presets/` are operator-owned
+and have an explicit preset removal CLI, while account deletion removes every user copy.
+Imported items retain platform, source language, attribution, content type, fetch time and
+collection method. API node `related` contains three actual cosine neighbors from other
+items plus the closest other modality when absent (explicit `cross_modal` relation), computed
+from current model vectors; these are not stored confidence or quality scores.

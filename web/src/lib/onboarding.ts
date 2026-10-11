@@ -7,6 +7,7 @@ export type StepId =
   | "style"
   | "platforms"
   | "persona"
+  | "connections"
   | "done";
 
 export interface StepMeta {
@@ -30,10 +31,10 @@ export const ONBOARDING_STEPS: StepMeta[] = [
   },
   {
     id: "import",
-    label: "Connect",
-    title: "Connect your accounts",
+    label: "Research",
+    title: "Start with your public profiles",
     description:
-      "Bring in your channel content and add public profile links to prefill your creator profile. This step is optional.",
+      "Add profile links to prefill your answers, or continue to tell us about yourself.",
   },
   {
     id: "identity",
@@ -72,6 +73,13 @@ export const ONBOARDING_STEPS: StepMeta[] = [
     label: "Persona",
     title: "Your creator persona",
     description: "Generated from your answers. Edit anything that isn't right.",
+  },
+  {
+    id: "connections",
+    label: "Connections",
+    title: "Connect your accounts",
+    description:
+      "Your persona is ready. Bring in your published work to help the studio learn your voice and visual style. You can also connect later in Settings.",
   },
   {
     id: "done",
@@ -221,6 +229,7 @@ const STEP_KEYS: Record<StepId, (keyof OnboardingAnswers)[]> = {
   ],
   platforms: ["platforms"],
   persona: [],
+  connections: [],
   done: [],
 };
 

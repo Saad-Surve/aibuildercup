@@ -10,11 +10,18 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Literal
 
+import numpy as np
+
 from app.config import Settings
 from app.errors import AppError
 from app.providers.base import EmbeddingProvider, MediaPart
 from app.providers.creator_media import download_youtube_thumbnail
-from app.schemas.creator_library import CreatorLibrary, CreatorLibraryNode, CreatorLibrarySearch
+from app.schemas.creator_library import (
+    CreatorLibrary,
+    CreatorLibraryNode,
+    CreatorLibrarySearch,
+    SemanticNeighbor,
+)
 from app.services.connection_service import ConnectionService
 from app.services.creator_import_service import CreatorImportService, import_path
 from app.services.firestore_service import FirestoreClient, connection_path, user_path
@@ -34,54 +41,63 @@ def _dot(a: list[float], b: list[float]) -> float:
 
 
 def project_vectors(vectors: list[list[float]]) -> list[tuple[float, float]]:
-    """Deterministic centered PCA via covariance power iteration."""
+    """Centered PCA of real vectors; canonical axis signs keep repeated renders stable."""
     if len(vectors) < 2:
         return [(0.5, 0.5) for _ in vectors]
-    dimensions = len(vectors[0])
-    mean = [sum(row[j] for row in vectors) / len(vectors) for j in range(dimensions)]
-    rows = [[x - m for x, m in zip(row, mean, strict=True)] for row in vectors]
-    axes: list[list[float]] = []
-    coordinates: list[list[float]] = []
-    for _component in range(2):
-        axis = max(rows, key=lambda row: _dot(row, row))[:]
-        if axes:
-            axis = max(
-                (
-                    [x - _dot(row, axes[0]) * a for x, a in zip(row, axes[0], strict=True)]
-                    for row in rows
-                ),
-                key=lambda row: _dot(row, row),
+    rows = np.asarray(vectors, dtype=float)
+    rows -= rows.mean(axis=0)
+    _, _, axes = np.linalg.svd(rows, full_matrices=False)
+    axes = axes[:2].copy()
+    for axis in axes:
+        if axis[np.argmax(np.abs(axis))] < 0:
+            axis *= -1
+    coords = rows @ axes.T
+    result = np.full((len(rows), 2), 0.5)
+    for c in range(coords.shape[1]):
+        lo, hi = coords[:, c].min(), coords[:, c].max()
+        if hi - lo > 1e-9:
+            result[:, c] = (coords[:, c] - lo) / (hi - lo)
+    return [(round(float(x), 5), round(float(y), 5)) for x, y in result]
+
+
+def add_neighbors(nodes: list[CreatorLibraryNode], vectors: dict[str, list[float]]) -> None:
+    """Three highest cosine neighbors, one per other source; full-space, not 2D distances."""
+    if len(nodes) < 2:
+        return
+    rows = np.asarray([vectors[node.id] for node in nodes])
+    norms = np.linalg.norm(rows, axis=1, keepdims=True)
+    rows = rows / np.maximum(norms, 1e-12)
+    similarities = np.clip(rows @ rows.T, -1, 1)
+    for i, node in enumerate(nodes):
+        seen = {node.itemId}
+        for j in np.argsort(-similarities[i], kind="stable"):
+            candidate = nodes[int(j)]
+            if candidate.itemId in seen:
+                continue
+            seen.add(candidate.itemId)
+            node.related.append(
+                SemanticNeighbor(
+                    nodeId=candidate.id, similarity=round(float(similarities[i, j]), 5)
+                )
             )
-        for _ in range(24):
-            norm = math.sqrt(_dot(axis, axis))
-            if norm < 1e-10:
-                axis = [0.0] * dimensions
+            if len(node.related) == 3:
                 break
-            axis = [x / norm for x in axis]
-            scores = [_dot(row, axis) for row in rows]
-            axis = [
-                sum(score * row[j] for score, row in zip(scores, rows, strict=True))
-                for j in range(dimensions)
-            ]
-            for previous in axes:
-                overlap = _dot(axis, previous)
-                axis = [x - overlap * a for x, a in zip(axis, previous, strict=True)]
-        norm = math.sqrt(_dot(axis, axis))
-        axis = [x / norm for x in axis] if norm > 1e-10 else [0.0] * dimensions
-        pivot = max(range(dimensions), key=lambda j: abs(axis[j]))
-        if axis[pivot] < 0:
-            axis = [-x for x in axis]
-        axes.append(axis)
-        coordinates.append([_dot(row, axis) for row in rows])
-    result: list[tuple[float, float]] = []
-    bounds = [(min(values), max(values)) for values in coordinates]
-    for index in range(len(rows)):
-        xy = [
-            0.5 if hi - lo < 1e-9 else (coordinates[c][index] - lo) / (hi - lo)
-            for c, (lo, hi) in enumerate(bounds)
-        ]
-        result.append((round(xy[0], 5), round(xy[1], 5)))
-    return result
+        cross = next(
+            (
+                int(j)
+                for j in np.argsort(-similarities[i], kind="stable")
+                if nodes[int(j)].modality != node.modality and nodes[int(j)].itemId != node.itemId
+            ),
+            None,
+        )
+        if cross is not None and all(edge.nodeId != nodes[cross].id for edge in node.related):
+            node.related.append(
+                SemanticNeighbor(
+                    nodeId=nodes[cross].id,
+                    similarity=round(float(similarities[i, cross]), 5),
+                    relation="cross_modal",
+                )
+            )
 
 
 @dataclass
@@ -97,6 +113,93 @@ class Passage:
     node: CreatorLibraryNode
     item: dict[str, Any]
     prompt: str
+
+
+def build_passages(source: LibrarySource, settings: Settings) -> tuple[list[Passage], int]:
+    passages: list[Passage] = []
+    omitted = 0
+    images = 0
+    for item in sorted(source.items, key=lambda i: str(i["id"])):
+        title = str(item.get("title", "Untitled"))
+        text = str(item.get("text") or item.get("description") or title).strip()
+        chunks = [(offset, text[offset : offset + 1400]) for offset in range(0, len(text), 1200)]
+        omitted += max(0, len(chunks) - 6)
+        candidates: list[tuple[Literal["text", "image"], str, float | None]] = []
+        sampled = (
+            chunks
+            if len(chunks) <= 6
+            else [chunks[int(index)] for index in np.linspace(0, len(chunks) - 1, 6)]
+        )
+        for offset, excerpt in sampled:
+            start = None
+            if item.get("segments"):
+                position = 0
+                for segment in item["segments"]:
+                    end = position + len(segment["text"]) + 1
+                    if end > offset:
+                        start = float(segment["startMs"]) / 1000
+                        break
+                    position = end
+            candidates.append(("text", excerpt, start))
+        if item.get("thumbnailStoragePath") or item.get("thumbnailUrl"):
+            if images < 10:
+                candidates.append(("image", f"Thumbnail: {title}", None))
+                images += 1
+        for modality, excerpt, start in candidates:
+            fingerprint = item.get("contentHash") or item.get("thumbnailUrl")
+            node_id = _hash(
+                [
+                    item["id"],
+                    modality,
+                    excerpt,
+                    fingerprint,
+                    settings.model_embedding,
+                    settings.embedding_dimensions,
+                    _VERSION,
+                ]
+            )
+            node = CreatorLibraryNode(
+                id=node_id,
+                itemId=str(item["id"]),
+                title=title,
+                kind=item.get("kind", "video"),
+                modality=modality,
+                excerpt=excerpt,
+                url=item.get("url"),
+                startSeconds=start,
+                platform=item.get("platform", "unknown"),
+                language=item.get("language", "und"),
+                tags=item.get("tags", []),
+                contentType=item.get("contentType", "connected content"),
+                attribution=item.get("attribution", ""),
+                collectionMethod=item.get("collectionMethod", "connected account"),
+            )
+            prompt = f"title: {title} | text: {excerpt}" if modality == "text" else title
+            passages.append(Passage(node, item, prompt))
+    omitted += max(0, len(passages) - _MAX_NODES)
+    return passages[:_MAX_NODES], omitted
+
+
+def with_creator_profile(
+    creator: dict[str, Any], items: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    if not creator.get("bio"):
+        return items
+    return [
+        *items,
+        {
+            "id": "creator-profile",
+            "kind": "profile",
+            "title": creator["name"],
+            "text": creator["bio"],
+            "platform": "profile",
+            "language": "en",
+            "tags": ["identity", "voice"],
+            "contentType": "user-supplied persona",
+            "attribution": "User-supplied preferences",
+            "collectionMethod": "supplied",
+        },
+    ]
 
 
 class CreatorLibraryService:
@@ -123,21 +226,19 @@ class CreatorLibraryService:
         )
 
     def source(self, uid: str) -> LibrarySource | None:
-        imported = self.imports.active_library(uid)
+        imported = None
+        if self.settings.creator_preset_enabled:
+            from app.services.creator_preset_service import CreatorPresetService
+
+            CreatorPresetService(
+                self.client, storage=self.storage, imports=self.imports, settings=self.settings
+            ).ensure(uid)
+            imported = self.imports.active_library(uid)
         if imported is not None:
             bundle, items = imported
             path = f"{import_path(uid, bundle['bundleId'])}/revisions/{bundle['revisionId']}"
             creator = bundle["creator"]
-            if creator.get("bio"):
-                items = [
-                    *items,
-                    {
-                        "id": "creator-profile",
-                        "kind": "profile",
-                        "title": creator["name"],
-                        "text": creator["bio"],
-                    },
-                ]
+            items = with_creator_profile(creator, items)
             return LibrarySource(path, "folder_import", creator["name"], items)
         connections = [
             c
@@ -155,6 +256,8 @@ class CreatorLibraryService:
                 **data,
                 "id": item_id,
                 "kind": "video",
+                "platform": "youtube",
+                "collectionMethod": "connected account",
                 "text": data.get("transcript", ""),
                 "url": f"https://www.youtube.com/watch?v={item_id}",
             }
@@ -164,60 +267,7 @@ class CreatorLibraryService:
         return LibrarySource(path, "youtube", connection.displayName, items)
 
     def _passages(self, source: LibrarySource) -> tuple[list[Passage], int]:
-        passages: list[Passage] = []
-        omitted = 0
-        images = 0
-        for item in sorted(source.items, key=lambda i: str(i["id"])):
-            title = str(item.get("title", "Untitled"))
-            text = str(item.get("text") or item.get("description") or title).strip()
-            chunks = [
-                (offset, text[offset : offset + 1400]) for offset in range(0, len(text), 1200)
-            ]
-            omitted += max(0, len(chunks) - 6)
-            candidates: list[tuple[Literal["text", "image"], str, float | None]] = []
-            for offset, excerpt in chunks[:6]:
-                start = None
-                if item.get("segments"):
-                    position = 0
-                    for segment in item["segments"]:
-                        end = position + len(segment["text"]) + 1
-                        if end > offset:
-                            start = float(segment["startMs"]) / 1000
-                            break
-                        position = end
-                candidates.append(("text", excerpt, start))
-            if item.get("thumbnailStoragePath") or item.get("thumbnailUrl"):
-                if images < 10:
-                    candidates.append(("image", f"Thumbnail: {title}", None))
-                    images += 1
-            for modality, excerpt, start in candidates:
-                fingerprint = item.get("contentHash") or item.get("thumbnailUrl")
-                node_id = _hash(
-                    [
-                        source.path,
-                        item["id"],
-                        modality,
-                        excerpt,
-                        fingerprint,
-                        self.settings.model_embedding,
-                        self.settings.embedding_dimensions,
-                        _VERSION,
-                    ]
-                )
-                node = CreatorLibraryNode(
-                    id=node_id,
-                    itemId=str(item["id"]),
-                    title=title,
-                    kind=item.get("kind", "video"),
-                    modality=modality,
-                    excerpt=excerpt,
-                    url=item.get("url"),
-                    startSeconds=start,
-                )
-                prompt = f"title: {title} | text: {excerpt}" if modality == "text" else title
-                passages.append(Passage(node, item, prompt))
-        omitted += max(0, len(passages) - _MAX_NODES)
-        return passages[:_MAX_NODES], omitted
+        return build_passages(source, self.settings)
 
     def _vectors(self, source: LibrarySource, uid: str) -> dict[str, list[float]]:
         result = {}
@@ -310,6 +360,7 @@ class CreatorLibraryService:
         coords = project_vectors([vectors[node.id] for node in indexed])
         for node, (x, y) in zip(indexed, coords, strict=True):
             node.indexed, node.x, node.y = True, x, y
+        add_neighbors(indexed, vectors)
         return CreatorLibrary(
             sourceType=source.source_type,
             displayName=source.display_name,

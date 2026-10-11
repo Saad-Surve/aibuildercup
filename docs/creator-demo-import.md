@@ -108,3 +108,10 @@ with public links alongside them. OAuth returns to that step with the links save
 research prefills the profile; it is not a full-page content collector. Only synced connector
 content and supplied originals enter this library. A read-only demo account can browse an
 already indexed library; use the operator account to prepare indexing before handing it out.
+
+## Automatic prepared corpus source
+
+The backend source flag now controls whether an imported corpus participates in retrieval.
+See [public corpus setup](creator-public-corpus.md) for collection, precomputed Gemini vectors,
+GCS publication, automatic installation and returning to connected accounts. Folder import
+alone does not override real connections when `CREATOR_PRESET_ENABLED=false`.

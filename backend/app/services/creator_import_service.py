@@ -104,8 +104,16 @@ def _subtitles(raw: str) -> tuple[str, list[dict[str, Any]]]:
                 ((int(hours or 0) * 60 + int(minutes)) * 60 + int(seconds)) * 1000 + int(millis)
             )
         text = re.sub(r"<[^>]+>", "", " ".join(lines[timing + 1 :])).strip()
-        if times[1] <= times[0] or not text:
-            raise ValueError("Subtitle cues need text and increasing timestamps")
+        if times[1] < times[0]:
+            raise ValueError("Subtitle cues need increasing timestamps")
+        # YouTube VTT includes empty display-clear cues; retain originals but omit them
+        # from retrieval. Rolling cues repeat the previous displayed line.
+        if times[1] == times[0] or not text:
+            continue
+        if segments and text == segments[-1]["text"]:
+            continue
+        if segments and text.startswith(segments[-1]["text"] + " "):
+            text = text[len(segments[-1]["text"]) + 1 :]
         segments.append({"startMs": times[0], "endMs": times[1], "text": text})
     if not segments:
         raise ValueError("Subtitle file contains no usable timed cues")
@@ -174,6 +182,22 @@ def prepare_import(folder: Path) -> PreparedImport:
     return PreparedImport(manifest, files, texts, segments, revision_id)
 
 
+def item_content_hash(prepared: PreparedImport, item: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            {
+                "item": item.model_dump(mode="json"),
+                "files": {
+                    name: prepared.files[name].digest
+                    for name in (item.textFile, item.thumbnailFile, item.mediaFile)
+                    if name
+                },
+            },
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
+
+
 class CreatorImportService:
     def __init__(self, client: FirestoreClient, *, storage: StorageClient) -> None:
         self.client = client
@@ -220,23 +244,7 @@ class CreatorImportService:
                             prefix + item.thumbnailFile if item.thumbnailFile else None
                         ),
                         "mediaStoragePath": prefix + item.mediaFile if item.mediaFile else None,
-                        "contentHash": hashlib.sha256(
-                            json.dumps(
-                                {
-                                    "item": item.model_dump(mode="json"),
-                                    "files": {
-                                        name: prepared.files[name].digest
-                                        for name in (
-                                            item.textFile,
-                                            item.thumbnailFile,
-                                            item.mediaFile,
-                                        )
-                                        if name
-                                    },
-                                },
-                                sort_keys=True,
-                            ).encode()
-                        ).hexdigest(),
+                        "contentHash": item_content_hash(prepared, item),
                     }
                 )
                 documents.append((f"{revision}/items/{item.id}", payload))

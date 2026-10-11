@@ -3,6 +3,12 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+class SemanticNeighbor(BaseModel):
+    nodeId: str
+    similarity: float = Field(ge=-1, le=1)
+    relation: Literal["nearest", "cross_modal"] = "nearest"
+
+
 class CreatorLibraryNode(BaseModel):
     id: str
     itemId: str
@@ -13,6 +19,13 @@ class CreatorLibraryNode(BaseModel):
     url: str | None = None
     thumbnailUrl: str | None = None
     startSeconds: float | None = None
+    platform: str = "unknown"
+    language: str = "und"
+    tags: list[str] = Field(default_factory=list)
+    contentType: str = "supplied"
+    attribution: str = ""
+    collectionMethod: str = "supplied"
+    related: list[SemanticNeighbor] = Field(default_factory=list)
     indexed: bool = False
     x: float | None = None
     y: float | None = None

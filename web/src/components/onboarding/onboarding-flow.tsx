@@ -9,6 +9,7 @@ import { CenteredScreen } from "@/components/common/centered-screen";
 import { Icon } from "@/components/common/icon";
 import { Logo } from "@/components/common/logo";
 import { UserMenu } from "@/components/layout/user-menu";
+import { AccountConnections } from "@/components/accounts/account-connections";
 import { StepRail } from "@/components/onboarding/step-rail";
 import {
   AudienceStep,
@@ -67,7 +68,7 @@ export function OnboardingFlow({
   const steps =
     mode === "edit"
       ? ONBOARDING_STEPS.filter(
-          (item) => item.id !== "welcome" && item.id !== "import",
+          (item) => !["welcome", "import", "connections"].includes(item.id),
         )
       : ONBOARDING_STEPS;
 
@@ -96,6 +97,15 @@ export function OnboardingFlow({
             (item) => item.id === state.currentStep,
           );
           if (resume >= 0) setIndex(resume);
+          if (["persona", "connections", "done"].includes(state.currentStep)) {
+            void apiFetch<Persona>("/persona")
+              .then((saved) => {
+                if (active) setPersona(saved);
+              })
+              .catch((caught) => {
+                if (active) setError(describe(caught));
+              });
+          }
         }
       })
       .catch((caught) => {
@@ -185,7 +195,13 @@ export function OnboardingFlow({
       if (step.id === "platforms") {
         await generatePersona();
       }
-      if (!isLast) setIndex((value) => value + 1);
+      if (!isLast) {
+        await apiFetch("/onboarding", {
+          method: "PUT",
+          body: JSON.stringify({ step: steps[index + 1].id, answers: {} }),
+        });
+        setIndex((value) => value + 1);
+      }
     } catch (caught) {
       setError(describe(caught));
     } finally {
@@ -209,11 +225,15 @@ export function OnboardingFlow({
       await persistCurrentStep();
       const targetStep = steps[target];
       if (
-        (targetStep.id === "persona" || targetStep.id === "done") &&
+        ["persona", "connections", "done"].includes(targetStep.id) &&
         !persona
       ) {
         await generatePersona();
       }
+      await apiFetch("/onboarding", {
+        method: "PUT",
+        body: JSON.stringify({ step: targetStep.id, answers: {} }),
+      });
       setIndex(target);
     } catch (caught) {
       setError(describe(caught));
@@ -279,15 +299,6 @@ export function OnboardingFlow({
             researchError={researchError}
             busy={busy}
             onResearch={runResearch}
-            beforeConnect={async () => {
-              await apiFetch("/onboarding", {
-                method: "PUT",
-                body: JSON.stringify({
-                  step: "import",
-                  answers: answersForStep("import", answers),
-                }),
-              });
-            }}
           />
         );
       case "identity":
@@ -302,6 +313,18 @@ export function OnboardingFlow({
         return <PlatformsStep answers={answers} update={update} />;
       case "persona":
         return <PersonaStep persona={persona} />;
+      case "connections":
+        return (
+          <AccountConnections
+            redirectPath="/onboarding"
+            beforeConnect={async () => {
+              await apiFetch("/onboarding", {
+                method: "PUT",
+                body: JSON.stringify({ step: "connections", answers: {} }),
+              });
+            }}
+          />
+        );
       case "done":
         return (
           <DoneStep

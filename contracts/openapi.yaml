@@ -1651,6 +1651,22 @@ components:
         url: { type: [string, "null"] }
         thumbnailUrl: { type: [string, "null"] }
         startSeconds: { type: [number, "null"] }
+        platform: { type: string }
+        language: { type: string }
+        tags: { type: array, items: { type: string } }
+        contentType: { type: string }
+        attribution: { type: string }
+        collectionMethod: { type: string }
+        related:
+          type: array
+          description: Top three cosine neighbors from different sources, plus the closest other modality when absent, in the full embedding space
+          items:
+            type: object
+            required: [nodeId, similarity]
+            properties:
+              nodeId: { type: string }
+              similarity: { type: number, minimum: -1, maximum: 1 }
+              relation: { type: string, enum: [nearest, cross_modal] }
         indexed: { type: boolean }
         x: { type: [number, "null"], description: "Approximate PCA coordinate in [0,1]" }
         y: { type: [number, "null"], description: "Approximate PCA coordinate in [0,1]" }

@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     media_bucket: str = "habeas-codus-media"
     corpus_bucket: str = "habeas-codus-corpus"
 
+    # Server-controlled corpus source; never a browser demo toggle or auth bypass.
+    creator_preset_enabled: bool = False
+    creator_preset_object: str = ""
+
     # Browser origins allowed to call this API. Override with a JSON array in CORS_ALLOWED_ORIGINS.
     cors_allowed_origins: list[str] = [
         "http://localhost:3000",
