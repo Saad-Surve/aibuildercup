@@ -61,3 +61,11 @@
   existing integrations were reviewed and their new retrieval/dependency paths live-checked.
 - Preserved the independently committed old demo-loader removal. Unrelated deletion of
   `fixtures/seed/.gitkeep` will remain unstaged. User explicitly requested commit and push.
+
+## Repository delivery
+
+- Feature commit: `55002da` (`feat: add creator imports and Gemini semantic library`).
+- `git push origin main` succeeded; remote advanced from `f8a90d4` to `55002da`.
+- All task source/contracts/docs/fixtures included. The only unrelated working-tree change
+  is the pre-existing deletion of `fixtures/seed/.gitkeep`, intentionally left unstaged.
+- This delivery record is committed separately. CI deployment has not been verified here.
