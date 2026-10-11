@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { InlineArrow } from "@/components/common/inline-arrow";
 import {
   LegalPage,
   LegalSection,
@@ -117,7 +118,8 @@ export default function DataDeletionPage() {
         <p>
           To revoke our access to a connected platform without deleting your
           account, go to{" "}
-          <span className="font-medium text-foreground">Settings</span> &rarr;{" "}
+          <span className="font-medium text-foreground">Settings</span>{" "}
+          <InlineArrow />{" "}
           <span className="font-medium text-foreground">Connections</span>, choose
           the connected channel or account, and disconnect it. This revokes our
           access and deletes the stored token. Content already generated from

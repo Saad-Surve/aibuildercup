@@ -6,8 +6,8 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Analytics01Icon,
-  Bookshelf03Icon,
   Calendar01Icon,
+  ConstellationIcon,
   DashboardSquare01Icon,
   FolderOpenIcon,
   Plug01Icon,
@@ -45,7 +45,7 @@ const NAV: NavItem[] = [
   {
     href: "/library",
     label: "Creator library",
-    icon: Bookshelf03Icon,
+    icon: ConstellationIcon,
     ready: true,
   },
   { href: "/calendar", label: "Calendar", icon: Calendar01Icon, ready: true },
@@ -281,7 +281,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="no-scrollbar flex min-w-0 flex-1 items-center justify-center overflow-x-auto py-1">
               {headerNav}
             </div>
-            <div className="flex shrink-0 items-center gap-1">
+            <div className="flex shrink-0 items-center gap-2">
               <NotificationCenter />
               <UserMenu />
             </div>

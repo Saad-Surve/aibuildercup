@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { SparklesIcon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
+import { InlineArrow } from "@/components/common/inline-arrow";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -163,8 +164,10 @@ export function DraftContextPanel({
         {!query.isLoading && !context?.available ? (
           <p className="text-sm text-muted-foreground">
             No channel content yet. Connect your YouTube channel from{" "}
-            <span className="font-medium">Profile → Connected channels</span>,
-            use “Read channel content for the AI”, then regenerate the draft.
+            <span className="font-medium">
+              Profile <InlineArrow /> Connected channels
+            </span>
+            , use “Read channel content for the AI”, then regenerate the draft.
           </p>
         ) : null}
 

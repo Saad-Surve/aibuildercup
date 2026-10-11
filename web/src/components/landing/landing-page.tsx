@@ -21,6 +21,7 @@ import { AuthLoadingScreen } from "@/components/auth/auth-loading-screen";
 import { useAuth } from "@/components/auth/auth-provider";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { Icon } from "@/components/common/icon";
+import { InlineArrow } from "@/components/common/inline-arrow";
 import { Logo } from "@/components/common/logo";
 import { LandingBackground } from "@/components/landing/landing-background";
 import { Button } from "@/components/ui/button";
@@ -80,9 +81,17 @@ const ALSO_ON = [
   { logo: "/substack.svg", name: "Substack" },
 ];
 
-const DERIVS = [
+const DERIVS: { title: string; meta: ReactNode; color: string }[] = [
   { title: "Short clip", meta: "0:32 · 9:16", color: "#f43f5e" },
-  { title: "Captions", meta: "EN → HI", color: "#6366f1" },
+  {
+    title: "Captions",
+    meta: (
+      <>
+        EN <InlineArrow /> HI
+      </>
+    ),
+    color: "#6366f1",
+  },
   { title: "Blog draft", meta: "Ready to publish", color: "#f59e0b" },
 ];
 
@@ -598,117 +607,187 @@ function LocaleDemo({ active }: { active: boolean }) {
   );
 }
 
-/* ——— demo 5: send → typing → reply ——— */
+/* ——— demo 5: a scheduled month ——— */
 
-interface ChatMsg {
-  from: "me" | "bot";
-  text: string;
+interface ScheduledPost {
+  day: number;
+  project: string;
+  platform: string;
+  time: string;
+  color: string;
+  logo: string;
 }
 
-const CHAT_INIT_DRAFT = "Why did clarity dip at 02:14?";
-const CHAT_BOT_REPLY =
-  "Three reviewers flagged a rushed cut at 02:14 — here is a tighter version.";
+const CAL_MONTH = "November 2026";
+const CAL_DAYS = 30;
+const CAL_START_OFFSET = 0; // Sunday-first; Nov 1 2026 lands on a Sunday
+const CAL_WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
-function ChatDemo({ active }: { active: boolean }) {
+/*
+ * Three posts spread across the month. Colours stay in the fuchsia/violet
+ * family of the old chat demo, so the card keeps its identity while the days
+ * read as distinct. Each event is a badge on the day's top-right; hovering,
+ * focusing, or the auto-play loop morphs it into a rounded square carrying the
+ * project, platform, and slot.
+ */
+const SCHEDULED_POSTS: ScheduledPost[] = [
+  {
+    day: 5,
+    project: "Fireside Ep. 12",
+    platform: "YouTube",
+    time: "9:00 AM",
+    color: "#d946ef", // fuchsia-500
+    logo: "/youtube.svg",
+  },
+  {
+    day: 13,
+    project: "Hook breakdown short",
+    platform: "TikTok",
+    time: "6:30 PM",
+    color: "#8b5cf6", // violet-500
+    logo: "/tiktok-mono.svg",
+  },
+  {
+    day: 21,
+    project: "Behind the scenes",
+    platform: "Instagram",
+    time: "12:00 PM",
+    color: "#f43f5e", // rose-500
+    logo: "/instagram.svg",
+  },
+];
+
+// Only the first scheduled day self-demos; the rest wait for a hover.
+const CAL_AUTOPLAY_DAY = 5;
+
+function CalendarDemo({ active }: { active: boolean }) {
   const reduced = useReducedMotion();
-  const [msgs, setMsgs] = useState<ChatMsg[]>(() =>
-    active && !reduced ? [{ from: "me", text: CHAT_INIT_DRAFT }] : [],
-  );
-  const [draft, setDraft] = useState(CHAT_INIT_DRAFT);
-  const [typing, setTyping] = useState(() => active && !reduced);
-  const timers = useRef<number[]>([]);
+  const [hoverDay, setHoverDay] = useState<number | null>(null);
+  const [demoDay, setDemoDay] = useState<number | null>(null);
 
-  useEffect(
-    () => () => {
-      timers.current.forEach((t) => window.clearTimeout(t));
-    },
-    [],
-  );
-
+  // Auto-play: one random scheduled day pops open on a loop so the card shows
+  // what a hover reveals on its own. A manual hover or focus always wins, and
+  // the loop idles under prefers-reduced-motion.
   useEffect(() => {
-    if (!active || reduced) return;
-    const id = window.setTimeout(() => {
-      setTyping(false);
-      setMsgs((m) => [...m.slice(-3), { from: "bot", text: CHAT_BOT_REPLY }]);
-    }, 1400);
-    return () => window.clearTimeout(id);
-  }, [active, reduced]);
+    if (reduced) return;
+    let openTimer = 0;
+    let gapTimer = 0;
+    const cycle = () => {
+      setDemoDay(CAL_AUTOPLAY_DAY);
+      openTimer = window.setTimeout(() => {
+        setDemoDay(null);
+        gapTimer = window.setTimeout(cycle, 1600);
+      }, 1500);
+    };
+    gapTimer = window.setTimeout(cycle, 1000);
+    return () => {
+      window.clearTimeout(openTimer);
+      window.clearTimeout(gapTimer);
+    };
+  }, [reduced]);
 
-  const send = () => {
-    const text = draft.trim();
-    if (!text || typing) return;
-    setMsgs((m) => [...m.slice(-3), { from: "me", text }]);
-    setDraft("");
-    setTyping(true);
-    timers.current.push(
-      window.setTimeout(() => {
-        setTyping(false);
-        setMsgs((m) => [
-          ...m.slice(-3),
-          {
-            from: "bot",
-            text: "Three reviewers flagged a rushed cut at 02:14 — here is a tighter version.",
-          },
-        ]);
-      }, 1400),
-    );
-  };
+  const openDay = hoverDay ?? demoDay;
+
+  // Leading blanks + the month's days, padded to whole weeks so the grid keeps
+  // its shape and event days never shift between renders.
+  const cells: (number | null)[] = [
+    ...Array.from({ length: CAL_START_OFFSET }, () => null),
+    ...Array.from({ length: CAL_DAYS }, (_, i) => i + 1),
+  ];
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const clearHover = (day: number) =>
+    setHoverDay((current) => (current === day ? null : current));
 
   return (
     <div className="rounded-xl border border-black/[0.06] bg-white/85 p-3">
-      <div className="min-h-[86px] space-y-2">
-        {msgs.length === 0 && !typing && (
-          <p className="py-6 text-center text-[0.7rem] text-foreground/40">
-            Ask anything about your video…
-          </p>
-        )}
-        {msgs.map((m, i) =>
-          m.from === "me" ? (
-            <div
-              key={i}
-              className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-foreground px-3 py-1.5 text-[0.7rem] text-background animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out motion-reduce:animate-none"
-            >
-              {m.text}
-            </div>
-          ) : (
-            <div
-              key={i}
-              className="w-fit max-w-[90%] rounded-2xl rounded-bl-md bg-fuchsia-600/10 px-3 py-1.5 text-[0.7rem] text-foreground/80 animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out motion-reduce:animate-none"
-            >
-              {m.text}
-            </div>
-          ),
-        )}
-        {typing && (
-          <div className="flex w-fit items-center gap-1 rounded-2xl rounded-bl-md bg-fuchsia-600/10 px-3 py-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out motion-reduce:animate-none">
-            {[0, 1, 2].map((d) => (
-              <span
-                key={d}
-                style={{ animationDelay: `${d * 150}ms` }}
-                className="typing-dot size-1.5 rounded-full bg-fuchsia-600"
-              />
-            ))}
-          </div>
-        )}
+      <div className="flex items-baseline justify-between px-0.5 pb-1.5">
+        <span className="text-[0.72rem] font-semibold text-foreground/80">
+          {CAL_MONTH}
+        </span>
+        <span className="text-[0.62rem] font-medium text-foreground/35">
+          {SCHEDULED_POSTS.length} scheduled
+        </span>
       </div>
-      <div className="mt-2 flex items-center gap-2 border-t border-black/[0.05] pt-2.5">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") send();
-          }}
-          placeholder="Ask about your video…"
-          aria-label="Ask about your video"
-          className="h-8 min-w-0 flex-1 rounded-full border border-black/[0.08] bg-white px-3 text-xs text-foreground outline-none placeholder:text-foreground/35 focus:border-fuchsia-600/50"
-        />
-        <button
-          type="button"
-          onClick={send}
-          className="h-8 shrink-0 cursor-pointer rounded-full bg-fuchsia-600 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-fuchsia-700"
-        >
-          Send
-        </button>
+      <div className="grid grid-cols-7 gap-x-1">
+        {CAL_WEEKDAYS.map((weekday, i) => (
+          <span
+            key={i}
+            className="pb-1 text-center text-[0.58rem] font-medium text-foreground/35"
+          >
+            {weekday}
+          </span>
+        ))}
+        {cells.map((day, i) => {
+          if (!day) {
+            return <span key={i} className="h-6" />;
+          }
+          const post = SCHEDULED_POSTS.find((p) => p.day === day);
+          const isOpen = openDay === day;
+          return (
+            <div
+              key={i}
+              className="relative flex h-6 items-center justify-center"
+            >
+              <span className="relative text-[0.58rem] tabular-nums text-foreground/55">
+                {day}
+                {post ? (
+                  <button
+                    type="button"
+                    aria-label={`${post.project} — ${post.platform}, Nov ${day} at ${post.time}`}
+                    onMouseEnter={() => setHoverDay(day)}
+                    onMouseLeave={() => clearHover(day)}
+                    onFocus={() => setHoverDay(day)}
+                    onBlur={() => clearHover(day)}
+                    style={{
+                      backgroundColor: post.color,
+                      boxShadow:
+                        active && !isOpen
+                          ? `0 0 0 3px ${post.color}33`
+                          : undefined,
+                    }}
+                    className={`absolute -top-1 -right-2.5 flex cursor-pointer flex-col overflow-hidden text-left text-white transition-all duration-150 ease-out motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
+                      isOpen
+                        ? "z-30 size-24 justify-between rounded-2xl p-2 shadow-[0_18px_40px_-16px_rgba(23,23,23,0.5)]"
+                        : "z-10 size-2 rounded-full"
+                    }`}
+                  >
+                    <span
+                      className={`flex flex-col transition-opacity duration-100 ${
+                        isOpen ? "opacity-100 delay-75" : "opacity-0"
+                      }`}
+                    >
+                      <span className="flex items-center gap-1">
+                        <span className="flex size-3 shrink-0 items-center justify-center rounded-full bg-white p-px">
+                          <Image
+                            src={post.logo}
+                            alt=""
+                            width={10}
+                            height={10}
+                            className="size-full object-contain"
+                          />
+                        </span>
+                        <span className="text-[0.5rem] font-semibold tracking-wide text-white/85 uppercase">
+                          {post.platform}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 line-clamp-2 text-[0.62rem] leading-tight font-medium">
+                        {post.project}
+                      </span>
+                    </span>
+                    <span
+                      className={`text-[0.54rem] font-medium text-white/85 transition-opacity duration-100 ${
+                        isOpen ? "opacity-100 delay-75" : "opacity-0"
+                      }`}
+                    >
+                      Nov {day} · {post.time}
+                    </span>
+                  </button>
+                ) : null}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -874,11 +953,9 @@ const FEATURES: Feature[] = [
     hover: "group-hover:text-indigo-600",
   },
   {
-    title: "Ask anything about your project",
-    copy: "A project-scoped agent that answers from your transcript and findings, with citations.",
-    render: (active) => (
-      <ChatDemo key={active ? "on" : "off"} active={active} />
-    ),
+    title: "Every post, on a schedule",
+    copy: "Schedule your posts from within the app",
+    render: (active) => <CalendarDemo active={active} />,
     hover: "group-hover:text-fuchsia-600",
   },
   {

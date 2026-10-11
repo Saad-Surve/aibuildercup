@@ -41,13 +41,13 @@ export function UserMenu() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-11 w-11 rounded-full"
+            className="h-9 w-9 rounded-full"
           />
         }
       >
         <span className="rounded-full bg-gradient-to-br from-cyan-400 via-fuchsia-500 to-orange-400 p-[2px]">
           <span className="block rounded-full bg-background p-[2px]">
-            <UserAvatar state={avatar} size={38} title={name} />
+            <UserAvatar state={avatar} size={30} title={name} />
           </span>
         </span>
       </DropdownMenuTrigger>

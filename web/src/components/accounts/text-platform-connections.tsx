@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { PlatformLogo } from "@/components/calendar/platform";
 import { Icon } from "@/components/common/icon";
+import { InlineArrow } from "@/components/common/inline-arrow";
 import { DisabledReason } from "@/components/common/disabled-reason";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -293,8 +294,9 @@ export function TextPlatformConnections({
                   onChange={(event) => setToken(event.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Medium → Settings → Security → Integration tokens. Only
-                  pre-2025 tokens work; new ones are no longer issued.
+                  Medium <InlineArrow /> Settings <InlineArrow /> Security{" "}
+                  <InlineArrow /> Integration tokens. Only pre-2025 tokens work;
+                  new ones are no longer issued.
                 </p>
               </Field>
             ) : (
@@ -320,12 +322,13 @@ export function TextPlatformConnections({
                     type="password"
                     value={sid}
                     autoComplete="off"
-                    placeholder="Paste from browser devtools → cookies"
+                    placeholder="Paste the cookies value from browser devtools"
                     onChange={(event) => setSid(event.target.value)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    While logged into Substack, open devtools → Application →
-                    Cookies → copy the <code>substack.sid</code> value.
+                    While logged into Substack, open devtools <InlineArrow />{" "}
+                    Application <InlineArrow /> Cookies <InlineArrow /> copy the{" "}
+                    <code>substack.sid</code> value.
                   </p>
                 </Field>
               </>

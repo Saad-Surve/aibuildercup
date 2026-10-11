@@ -1,3 +1,5 @@
+import { InlineArrow } from "@/components/common/inline-arrow";
+
 /*
  * Landing atmosphere: a clean light base with warm / cool haze at the edges,
  * plus a small, deliberately art-directed set of creator-motif vignettes kept
@@ -153,8 +155,8 @@ export function LandingBackground() {
               <div className="h-1.5 w-2/3 rounded-full bg-foreground/[0.07]" />
             </div>
             <div className="mt-2.5 flex items-center gap-1.5 px-0.5">
-              <span className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[0.62rem] font-semibold text-foreground/60">
-                EN → HI
+              <span className="flex items-center gap-1 rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[0.62rem] font-semibold text-foreground/60">
+                EN <InlineArrow /> HI
               </span>
               <span className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[0.62rem] font-semibold text-foreground/60">
                 CC
