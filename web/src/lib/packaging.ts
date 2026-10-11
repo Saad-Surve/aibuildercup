@@ -31,6 +31,19 @@ export interface PackagingAccepted {
 }
 
 export interface VisualInsert {
+  visualStyle: {
+    summary: string;
+    palette: string;
+    lighting: string;
+    composition: string;
+    texture: string;
+    motion: string;
+    setting: string;
+  } | null;
+  generationMode: "text-to-video" | "image-to-video";
+  styleReferenceTimestampMs: number | null;
+  styleReferenceUrl: string | null;
+  conditioningReason: string;
   insertId: string;
   kind: "chart" | "callout" | "broll";
   status: "suggested" | "queued" | "rendering" | "ready" | "failed";

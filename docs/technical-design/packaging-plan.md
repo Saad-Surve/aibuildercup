@@ -1,8 +1,8 @@
 # Video packaging: listings and visual inserts
 
 The packaging module offers a saved YouTube listing and suggested supplementary visual
-inserts. These use the uploaded video's current transcript and, for insert planning, three
-sampled video frames. Optional creator-library retrieval informs voice and presentation;
+inserts. These use the uploaded video's current transcript and sampled video frames. Each footage idea then uses three nearby
+frames and a short surrounding clip to analyze the source look independently of shot design. Optional creator-library retrieval informs voice and presentation;
 current-video facts remain the source for claims. The API is defined in
 [OpenAPI](../../contracts/openapi.yaml); persistence in
 [Firestore](../../contracts/firestore.md).
@@ -35,6 +35,17 @@ FFmpeg/libass-shaped text. Both landscape and portrait are supported. Full sourc
 remains in the panel; long on-screen quotes use a short excerpt. B-roll uses
 `veo-3.1-fast-generate-001` through the video provider in `us-central1`, at 720p without audio.
 The proposed `gemini-omni-1.1` name could not be verified as a callable video model.
+
+Footage direction follows the [researched Veo guidance](../research/veo-source-style-2026-10-11.md).
+An observation pass sees only source footage and records palette, lighting, framing, texture,
+movement and setting. A separate director designs a single shot within that recipe. A clear,
+relevant source frame can become Veo's actual opening image; otherwise it is displayed as
+style evidence and Veo receives a structured text prompt plus the transferable recipe. The
+panel shows the reference, observed look and conditioning reason. Image-conditioned shots
+retain the source aspect and use motion-focused direction. Text-mode edits preserve observed
+color/light/texture/camera qualities. Exact submitted positive/negative prompts are saved
+before submission; resuming an operation never replans it. Old unsubmitted ideas need fresh
+suggestions.
 
 The creator can edit the footage prompt and choose an aspect ratio before pressing the
 priced generation action. `allowPaidGeneration` is required. A transaction reserves at most

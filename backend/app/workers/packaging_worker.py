@@ -26,6 +26,7 @@ from app.services.packaging_service import (
 from app.services.paths import asset_path
 from app.services.source_media import stage_source
 from app.services.video_tools import MediaToolkit
+from app.services.visual_insert_director import direct_insert, submission_prompt
 from app.services.visual_insert_renderer import render_graphic
 from app.workers.guard import serialize_job
 
@@ -301,7 +302,7 @@ async def _context(
         if asset and asset.get("ownerUid") == uid and asset.get("storagePath"):
             try:
                 with tempfile.TemporaryDirectory(prefix="insert-source-") as tmpdir:
-                    source, _, _, duration = await stage_source(
+                    footage_source, _, _, duration = await stage_source(
                         storage=service.storage,
                         source_path=asset["storagePath"],
                         tmpdir=tmpdir,
@@ -309,7 +310,7 @@ async def _context(
                         fallback_duration_ms=transcript.durationMs,
                     )
                     toolkit = MediaToolkit(
-                        source=source,
+                        source=footage_source,
                         duration_ms=duration,
                         ffmpeg_path=service.settings.ffmpeg_path,
                     )
@@ -335,7 +336,7 @@ async def _generate(
     listing = payload["mode"] == "listing"
     completion = await providers.llm.complete_json(
         model=service.settings.model_packaging,
-        prompt_version="packaging-listing-v2" if listing else "visual-insert-plan-v2",
+        prompt_version="packaging-listing-v2" if listing else "visual-insert-plan-v3",
         system=_LISTING_SYSTEM if listing else _INSERT_SYSTEM,
         user=json.dumps(context, ensure_ascii=False, default=str),
         schema=LISTING_SCHEMA if listing else INSERT_SCHEMA,
@@ -414,31 +415,90 @@ async def _generate(
                 logger.warning("Discarded an ungrounded visual insert suggestion", exc_info=True)
         if not valid:
             raise ValueError("No grounded visual inserts were returned. Try a more specific brief.")
-        for idea in valid:
-            ensure_active(service, uid, project_id, job_id)
-            insert_id = uuid4().hex
-            service.write(
-                uid,
-                project_id,
-                insert_path(uid, project_id, insert_id),
-                {
-                    **idea.model_dump(),
-                    "ownerUid": uid,
-                    "insertId": insert_id,
-                    "status": "suggested",
-                    "sourceAssetId": payload["sourceAssetId"],
-                    "transcriptId": payload["transcriptId"],
-                    "durationSeconds": 6,
-                    "createdAt": now,
-                    "error": None,
-                    "jobId": None,
-                    "estimatedCostUsd": (
-                        6 * service.settings.videogen_price_per_second_usd
-                        if idea.kind == "broll"
-                        else 0
-                    ),
-                },
-            )
+        with tempfile.TemporaryDirectory(prefix="insert-direction-") as tmpdir:
+            toolkit = None
+            if any(idea.kind == "broll" for idea in valid):
+                asset = service.client.get_document(
+                    asset_path(uid, project_id, payload["sourceAssetId"])
+                )
+                if not asset or asset.get("ownerUid") != uid or not asset.get("storagePath"):
+                    raise NotFoundError("The source video is unavailable for visual matching.")
+                footage_source, _, _, duration = await stage_source(
+                    storage=service.storage,
+                    source_path=asset["storagePath"],
+                    tmpdir=tmpdir,
+                    settings=service.settings,
+                    fallback_duration_ms=transcript.durationMs,
+                )
+                toolkit = MediaToolkit(
+                    source=footage_source,
+                    duration_ms=duration,
+                    ffmpeg_path=service.settings.ffmpeg_path,
+                    frame_max_width=1280,
+                    window_seconds=3,
+                )
+            for idea in valid:
+                ensure_active(service, uid, project_id, job_id)
+                insert_id = uuid4().hex
+                extra: dict[str, Any] = {}
+                reference = None
+                if idea.kind == "broll":
+                    assert toolkit is not None
+                    direction = await direct_insert(
+                        idea=idea,
+                        toolkit=toolkit,
+                        llm=providers.llm,
+                        settings=service.settings,
+                        language=transcript.language,
+                    )
+                    extra = direction.fields
+                    reference = direction.reference
+                    extra["styleReferencePath"] = (
+                        insert_prefix(uid, project_id, insert_id) + "reference.jpg"
+                    )
+                ensure_active(service, uid, project_id, job_id)
+                if service.stale(uid, project_id, payload):
+                    raise ConflictError(
+                        "The source changed during shot planning. Suggest new inserts."
+                    )
+                try:
+                    if reference:
+                        await asyncio.to_thread(
+                            service.storage.upload_bytes,
+                            extra["styleReferencePath"],
+                            reference.data,
+                            content_type=reference.mime_type,
+                        )
+                    ensure_active(service, uid, project_id, job_id)
+                    service.write(
+                        uid,
+                        project_id,
+                        insert_path(uid, project_id, insert_id),
+                        {
+                            **idea.model_dump(),
+                            **extra,
+                            "ownerUid": uid,
+                            "insertId": insert_id,
+                            "status": "suggested",
+                            "sourceAssetId": payload["sourceAssetId"],
+                            "transcriptId": payload["transcriptId"],
+                            "durationSeconds": 6,
+                            "createdAt": now,
+                            "error": None,
+                            "jobId": None,
+                            "estimatedCostUsd": (
+                                6 * service.settings.videogen_price_per_second_usd
+                                if idea.kind == "broll"
+                                else 0
+                            ),
+                        },
+                    )
+                except Exception:
+                    # Remove even a late upload when project deletion/cancellation wins the race.
+                    await asyncio.to_thread(
+                        service.storage.delete_prefix, insert_prefix(uid, project_id, insert_id)
+                    )
+                    raise
 
 
 async def _render(
@@ -464,12 +524,29 @@ async def _render(
     if idea.kind == "broll":
         operation_name = data.get("operationName")
         if not operation_name:
+            if not data.get("visualStyle") or not data.get("directionVersion"):
+                raise ConflictError("Suggest new inserts to match the source video's visual style.")
+            first_frame = None
+            if data.get("generationMode") == "image-to-video":
+                first_frame = MediaPart(
+                    mime_type="image/jpeg",
+                    data=await asyncio.to_thread(
+                        service.storage.download_bytes, data["styleReferencePath"]
+                    ),
+                )
+            data["submittedPrompt"] = submission_prompt(data)
+            data["submittedNegativePrompt"] = data.get("negativePrompt", "")
+            ensure_active(service, uid, project_id, job_id)
+            if service.stale(uid, project_id, data):
+                raise ConflictError("The source changed before video submission.")
             # Persist before submission so a crash can never silently double-charge on retry.
             data["submissionStarted"] = True
             service.write(uid, project_id, path, data)
             operation_name = await providers.videos.start(
                 model=service.settings.model_video,
-                prompt=idea.prompt,
+                prompt=data["submittedPrompt"],
+                first_frame=first_frame,
+                negative_prompt=data["submittedNegativePrompt"],
                 duration_seconds=6,
                 aspect_ratio=data["aspectRatio"],
             )

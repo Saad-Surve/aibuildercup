@@ -180,6 +180,11 @@ class PackagingService:
             if data.get("ownerUid") != uid:
                 continue
             url = None
+            reference_url = None
+            if data.get("styleReferencePath"):
+                reference_url = self.storage.signed_download_url(
+                    data["styleReferencePath"], expires_seconds=self.settings.upload_url_ttl_seconds
+                )
             if data.get("status") == "ready" and data.get("storagePath"):
                 url = self.storage.signed_download_url(
                     data["storagePath"], expires_seconds=self.settings.upload_url_ttl_seconds
@@ -190,6 +195,7 @@ class PackagingService:
                         **data,
                         "insertId": insert_id,
                         "previewUrl": url,
+                        "styleReferenceUrl": reference_url,
                         "canRetry": not data.get("operationFinished")
                         and not (data.get("submissionStarted") and not data.get("operationName")),
                         "stale": current != (data.get("sourceAssetId"), data.get("transcriptId")),
@@ -233,6 +239,17 @@ class PackagingService:
                 if job.status in (JobStatus.queued, JobStatus.running, JobStatus.succeeded):
                     return job
             paid = data["kind"] == "broll"
+            if paid and not data.get("operationName"):
+                if not data.get("visualStyle") or not data.get("directionVersion"):
+                    raise ConflictError(
+                        "Suggest new inserts to match the source video's visual style."
+                    )
+                if data.get(
+                    "generationMode"
+                ) == "image-to-video" and request.aspectRatio != data.get("referenceAspectRatio"):
+                    raise BadRequestError(
+                        "Source-frame footage keeps the source frame's aspect ratio."
+                    )
             if data.get("operationFinished"):
                 raise ConflictError(
                     "This video operation failed. Suggest a new insert to try again."

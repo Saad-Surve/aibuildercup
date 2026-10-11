@@ -98,7 +98,27 @@ class VisualInsertIdea(BaseModel):
     chartUnit: str = Field(default="", max_length=35)
 
 
+class VisualStyle(BaseModel):
+    summary: str = Field(min_length=1, max_length=800)
+    palette: str = Field(min_length=1, max_length=400)
+    lighting: str = Field(min_length=1, max_length=400)
+    composition: str = Field(min_length=1, max_length=400)
+    texture: str = Field(min_length=1, max_length=400)
+    motion: str = Field(min_length=1, max_length=400)
+    setting: str = Field(min_length=1, max_length=400)
+
+
 class VisualInsert(VisualInsertIdea):
+    visualStyle: VisualStyle | None = Field(
+        default=None, description="Observed look of the source footage near this insert."
+    )
+    generationMode: Literal["text-to-video", "image-to-video"] = "text-to-video"
+    styleReferenceTimestampMs: int | None = Field(default=None, ge=0)
+    styleReferenceUrl: str | None = Field(
+        default=None,
+        description="Signed source-frame preview; only image-to-video sends it to Veo.",
+    )
+    conditioningReason: str = Field(default="", max_length=800)
     insertId: str
     status: Literal["suggested", "queued", "rendering", "ready", "failed"]
     sourceAssetId: str

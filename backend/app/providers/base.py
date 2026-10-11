@@ -210,6 +210,8 @@ class VideoGenProvider(Protocol):
         prompt: str,
         duration_seconds: int,
         aspect_ratio: str,
+        first_frame: MediaPart | None = None,
+        negative_prompt: str = "",
     ) -> str: ...
 
     async def wait(self, operation_name: str) -> bytes: ...

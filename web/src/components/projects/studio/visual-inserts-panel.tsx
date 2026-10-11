@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -65,6 +66,7 @@ function InsertCard({
   });
   const maximum = Math.max(1, ...insert.chart.map((point) => point.value));
   const disabled = readOnly || active || render.isPending || remove.isPending;
+  const needsNewDirection = insert.kind === "broll" && !insert.visualStyle;
   return (
     <article className="overflow-hidden rounded-xl border bg-card">
       {insert.previewUrl ? (
@@ -141,6 +143,54 @@ function InsertCard({
         <blockquote className="border-l-2 border-signal/50 pl-3 text-xs leading-relaxed text-muted-foreground">
           “{insert.sourceQuote}”
         </blockquote>
+        {insert.kind === "broll" && insert.visualStyle ? (
+          <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+            {insert.styleReferenceUrl ? (
+              <Image
+                src={insert.styleReferenceUrl}
+                alt={`Source video reference at ${timestamp(insert.styleReferenceTimestampMs ?? insert.sourceStartMs)}`}
+                width={1280}
+                height={720}
+                unoptimized
+                className="max-h-40 w-full rounded object-contain"
+              />
+            ) : null}
+            <p className="text-xs font-medium">
+              {insert.generationMode === "image-to-video"
+                ? "Starts from this source frame"
+                : "Matches the source's observed look"}
+            </p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {insert.visualStyle.summary}
+            </p>
+            <details className="text-xs text-muted-foreground">
+              <summary className="cursor-pointer">Visual direction</summary>
+              <dl className="mt-2 space-y-2">
+                {(
+                  [
+                    ["Color", insert.visualStyle.palette],
+                    ["Light", insert.visualStyle.lighting],
+                    ["Framing", insert.visualStyle.composition],
+                    ["Texture", insert.visualStyle.texture],
+                    ["Motion", insert.visualStyle.motion],
+                    ["Setting", insert.visualStyle.setting],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="font-medium">{label}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="mt-3">{insert.conditioningReason}</p>
+            </details>
+          </div>
+        ) : null}
+        {needsNewDirection && insert.status !== "ready" ? (
+          <p role="status" className="text-xs text-muted-foreground">
+            Suggest new inserts to analyze and match this video’s visual style.
+          </p>
+        ) : null}
         {insert.kind === "chart" ? (
           <details className="text-xs text-muted-foreground">
             <summary className="cursor-pointer">
@@ -181,6 +231,11 @@ function InsertCard({
               onChange={(event) => setPrompt(event.target.value)}
             />
             <p className="text-xs text-muted-foreground">
+              {insert.generationMode === "image-to-video"
+                ? "Describe motion; the source frame supplies the look. "
+                : insert.visualStyle
+                  ? "The observed source style is included with your direction. "
+                  : ""}
               AI-generated illustration. Review it before adding it to your
               video.
             </p>
@@ -199,6 +254,10 @@ function InsertCard({
                   name={`aspect-${insert.insertId}`}
                   value={value}
                   checked={aspect === value}
+                  disabled={
+                    insert.generationMode === "image-to-video" &&
+                    value !== insert.aspectRatio
+                  }
                   onChange={() => setAspect(value)}
                 />
                 {value === "16:9" ? "Landscape" : "Portrait"}
@@ -227,6 +286,7 @@ function InsertCard({
               disabled={
                 disabled ||
                 !insert.canRetry ||
+                (needsNewDirection && insert.status !== "failed") ||
                 insert.stale ||
                 (insert.kind === "broll" && !prompt.trim()) ||
                 (insert.kind === "broll" &&

@@ -10,6 +10,7 @@ import asyncio
 import time
 
 from app.config import Settings
+from app.providers.base import MediaPart
 from app.providers.gemini_client import get_gemini_client
 
 
@@ -36,14 +37,23 @@ class VideoGenProvider:
         prompt: str,
         duration_seconds: int,
         aspect_ratio: str,
+        first_frame: MediaPart | None = None,
+        negative_prompt: str = "",
     ) -> str:
         from google.genai import types
 
         if duration_seconds != 6 or aspect_ratio not in ("16:9", "9:16"):
             raise VideoGenError("Visual inserts must be six seconds in a supported aspect ratio.")
+        if first_frame and first_frame.mime_type not in ("image/jpeg", "image/png"):
+            raise VideoGenError("The opening frame must be a JPEG or PNG image.")
         operation = await self._client().aio.models.generate_videos(
             model="veo-3.1-fast-generate-001" if model == "veo-3.1-fast" else model,
             prompt=prompt,
+            image=(
+                types.Image(image_bytes=first_frame.data, mime_type=first_frame.mime_type)
+                if first_frame
+                else None
+            ),
             config=types.GenerateVideosConfig(
                 number_of_videos=1,
                 duration_seconds=6,
@@ -51,6 +61,8 @@ class VideoGenProvider:
                 resolution="720p",
                 generate_audio=False,
                 person_generation="allow_adult",
+                negative_prompt=negative_prompt or None,
+                resize_mode=types.ImageResizeMode.PAD if first_frame else None,
             ),
         )
         if not operation.name:

@@ -1984,6 +1984,64 @@ components:
         ],
         "title": "ChartDatum"
       }
+    VisualStyle:
+      {
+        "properties": {
+          "summary": {
+            "type": "string",
+            "maxLength": 800,
+            "minLength": 1,
+            "title": "Summary"
+          },
+          "palette": {
+            "type": "string",
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Palette"
+          },
+          "lighting": {
+            "type": "string",
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Lighting"
+          },
+          "composition": {
+            "type": "string",
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Composition"
+          },
+          "texture": {
+            "type": "string",
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Texture"
+          },
+          "motion": {
+            "type": "string",
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Motion"
+          },
+          "setting": {
+            "type": "string",
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Setting"
+          }
+        },
+        "type": "object",
+        "required": [
+          "summary",
+          "palette",
+          "lighting",
+          "composition",
+          "texture",
+          "motion",
+          "setting"
+        ],
+        "title": "VisualStyle"
+      }
     VisualInsert:
       {
         "properties": {
@@ -2048,6 +2106,56 @@ components:
             "type": "string",
             "maxLength": 35,
             "title": "Chartunit",
+            "default": ""
+          },
+          "visualStyle": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VisualStyle"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Observed look of the source footage near this insert."
+          },
+          "generationMode": {
+            "type": "string",
+            "enum": [
+              "text-to-video",
+              "image-to-video"
+            ],
+            "title": "Generationmode",
+            "default": "text-to-video"
+          },
+          "styleReferenceTimestampMs": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stylereferencetimestampms"
+          },
+          "styleReferenceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stylereferenceurl",
+            "description": "Signed source-frame preview; only image-to-video sends it to Veo."
+          },
+          "conditioningReason": {
+            "type": "string",
+            "maxLength": 800,
+            "title": "Conditioningreason",
             "default": ""
           },
           "insertId": {
