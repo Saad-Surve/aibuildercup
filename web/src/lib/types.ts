@@ -719,7 +719,7 @@ export interface GlobalCorpus {
 
 /* ------------------------------------------------------------------ connections */
 
-export type ConnectionPlatform = "youtube";
+export type ConnectionPlatform = "youtube" | "medium" | "substack" | "reddit";
 
 export type ConnectionStatus =
   | "pending"
@@ -738,6 +738,7 @@ export interface Connection {
   uploadsPlaylistId: string | null;
   googleAccountEmail: string | null;
   avatarUrl: string | null;
+  profileUrl: string | null;
   subscriberCount: number | null;
   videoCount: number | null;
   status: ConnectionStatus;
@@ -763,6 +764,25 @@ export interface OAuthStartRequest {
 export interface OAuthStartResponse {
   authorizationUrl: string;
   state: string;
+}
+
+export type CrosspostPlatform = "medium" | "substack" | "reddit";
+
+export interface CrosspostInput {
+  platform: CrosspostPlatform;
+  connectionId: string;
+  title: string;
+  body: string;
+  options?: Record<string, unknown>;
+}
+
+export interface CrosspostResult {
+  platform: string;
+  connectionId: string;
+  externalId: string;
+  url: string;
+  status: "draft" | "published" | "scheduled";
+  title: string;
 }
 
 export interface ContentItem {

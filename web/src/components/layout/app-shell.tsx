@@ -10,7 +10,7 @@ import {
   Calendar01Icon,
   DashboardSquare01Icon,
   FolderOpenIcon,
-  Settings01Icon,
+  Plug01Icon,
   SidebarLeft01Icon,
   SidebarRight01Icon,
 } from "@hugeicons/core-free-icons";
@@ -55,7 +55,7 @@ const NAV: NavItem[] = [
     icon: Analytics01Icon,
     ready: false,
   },
-  { href: "/settings", label: "Settings", icon: Settings01Icon, ready: true },
+  { href: "/settings", label: "Connectors", icon: Plug01Icon, ready: true },
 ];
 
 const COLLAPSE_KEY = "hc-sidebar-collapsed";

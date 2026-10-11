@@ -10,12 +10,16 @@ only read by the OAuth service.
 
 from datetime import datetime
 from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 
 class ConnectionPlatform(StrEnum):
     youtube = "youtube"
+    medium = "medium"
+    substack = "substack"
+    reddit = "reddit"
 
 
 class ConnectionStatus(StrEnum):
@@ -41,6 +45,8 @@ class Connection(BaseModel):
     #: two connections apart when the same Google account owns several channels.
     googleAccountEmail: str | None = None
     avatarUrl: str | None = None
+    #: Public profile/publication URL (Medium profile, Substack publication, Reddit user).
+    profileUrl: str | None = None
     subscriberCount: int | None = None
     videoCount: int | None = None
     status: ConnectionStatus
@@ -75,6 +81,53 @@ class OAuthStartResponse(BaseModel):
 class ConnectionSyncAccepted(BaseModel):
     connectionId: str
     status: str
+
+
+class MediumConnectRequest(BaseModel):
+    #: A pre-2025 integration token. Medium stopped issuing new ones in January
+    #: 2025, so this only works for creators who already hold one.
+    token: str = Field(min_length=10, max_length=500)
+
+
+class SubstackConnectRequest(BaseModel):
+    #: The `substack.sid` session cookie from a logged-in browser session.
+    sid: str = Field(min_length=10, max_length=2000)
+    #: Publication subdomain: `name`, `name.substack.com`, or a full URL.
+    subdomain: str = Field(min_length=1, max_length=200)
+
+
+class CrosspostRequest(BaseModel):
+    #: Target platform: `medium`, `substack`, or `reddit`.
+    platform: str = Field(max_length=40)
+    #: Connection to post from (must belong to the platform).
+    connectionId: str = Field(max_length=200)
+    title: str = Field(min_length=1, max_length=300)
+    #: Markdown body. Medium posts it as markdown; Substack converts a subset
+    #: (headings, bold, italic, links) to HTML; Reddit posts it as text.
+    body: str = Field(min_length=1, max_length=60000)
+    #: Per-platform options:
+    #: - medium: `publishStatus` (draft | public | unlisted, default draft),
+    #:   `canonicalUrl`, `tags` (up to 3).
+    #: - substack: `subtitle`, `mode` (draft | publish | schedule, default
+    #:   draft), `audience` (everyone | subscribers_only | paid_subscribers_only),
+    #:   `send` (email subscribers on publish, default true),
+    #:   `scheduleAt` (ISO-8601 UTC, required for schedule mode).
+    #: - reddit: `subreddit` (default `u/{username}` — your own profile),
+    #:   `kind` (self | link, default self), `url` (required for link),
+    #:   `sendReplies`, `nsfw`, `spoiler`.
+    options: dict[str, Any] = Field(default_factory=dict)
+
+
+class CrosspostResult(BaseModel):
+    platform: str
+    connectionId: str
+    #: Medium post id, Reddit thing id, or Substack draft id.
+    externalId: str
+    #: Canonical URL, or the Substack draft dashboard URL for drafts.
+    url: str
+    #: `draft` (Medium/Substack draft), `published` (live), `scheduled`.
+    status: str
+    title: str
 
 
 class ContentItem(BaseModel):

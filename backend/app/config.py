@@ -239,6 +239,18 @@ class Settings(BaseSettings):
         "https://www.googleapis.com/auth/youtube.force-ssl",
         "https://www.googleapis.com/auth/yt-analytics.readonly",
     ]
+    # --- Reddit connector -------------------------------------------------------
+    # Reddit OAuth client (web-app type). Created at reddit.com/prefs/apps; the secret is
+    # read from Secret Manager in production. Both may be blank locally until you create one.
+    # Note: since late 2025 Reddit funnels some new apps through a manual Developer
+    # Support pre-approval, so self-service registration can stall — see the setup doc.
+    reddit_oauth_client_id: str | None = None
+    reddit_oauth_client_secret: str | None = None
+    # Explicit override for the callback URL. Derived from `api_public_base_url` when blank.
+    # Must exactly match the redirect URI registered on the Reddit app.
+    reddit_oauth_redirect_uri: str | None = None
+    # Scopes requested for a Reddit connection: identity + posting + reading own posts.
+    reddit_oauth_scopes: list[str] = ["identity", "submit", "read"]
     # Token encryption. In production the refresh/access tokens are envelope-encrypted with
     # Cloud KMS (`user-token-key`). For local development set this to any passphrase and the
     # tokens are encrypted with a key derived from it instead, so no KMS permission is needed.

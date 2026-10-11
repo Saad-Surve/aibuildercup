@@ -212,11 +212,15 @@ bundled `backend/app/assets/corpus/global.json`, versioned separately.
 ## Connections and OAuth tokens
 
 `users/{uid}/connections/{connectionId}` holds one authorized external account (one YouTube
-channel under one Google account). It is backend-only: the browser never reads it directly, and
+channel under one Google account, one Medium profile, one Substack publication, or one Reddit
+account). It is backend-only: the browser never reads it directly, and
 the API never returns tokens. The document keeps display metadata, channel stats, granted
 scopes, and `tokenSecretRef` pointing at the encrypted-token document. A creator may have
 several (several Gmail accounts, or several brand channels under one account); `prompt=select_account`
 on the Google consent URL is what lets them pick which Gmail to connect from.
+`platform` is `youtube | medium | substack | reddit`; text platforms also keep `profileUrl`.
+YouTube-only fields (`uploadsPlaylistId`, `googleAccountEmail`, `subscriberCount`,
+`videoCount`) are null for the others.
 
 ```json
 {
@@ -244,7 +248,12 @@ on the Google consent URL is what lets them pick which Gmail to connect from.
 
 The encrypted token payload lives in `users/{uid}/connectionSecrets/{connectionId}` as
 `{ownerUid, connectionId, platform, ciphertext, keyVersion, updatedAt}`. Both collections sit
-under the user subtree, so account deletion removes them.
+under the user subtree, so account deletion removes them. The decrypted envelope is an
+`OAuthTokenSet` for OAuth platforms (Google, Reddit) and a small credential object otherwise:
+Medium stores `{"authKind": "token", "token"}` (legacy integration token), Substack stores
+`{"authKind": "cookie", "sid", "subdomain"}` (browser session cookie). Server-side revoke on
+delete happens only for Google; Reddit has no revoke endpoint and bearer secrets are
+invalidated by deletion alone.
 
 `users/{uid}/connections/{connectionId}/contentItems/{videoId}` holds a compact read-back copy of
 one video already published on the channel: `title`, `description`, `tags`, `publishedAt`,

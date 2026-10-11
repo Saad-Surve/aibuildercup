@@ -13,6 +13,7 @@ from app.api import (
     captions,
     connections,
     creator_library,
+    crossposts,
     demo,
     draft,
     glossaries,
@@ -176,6 +177,7 @@ def create_app() -> FastAPI:
     app.include_router(onboarding.router, prefix="/api")
     app.include_router(packaging.router, prefix="/api")
     app.include_router(connections.router, prefix="/api")
+    app.include_router(crossposts.router, prefix="/api")
     app.include_router(creator_library.router, prefix="/api")
     app.include_router(projects.router, prefix="/api")
     app.include_router(uploads.router, prefix="/api")

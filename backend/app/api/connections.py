@@ -1,12 +1,15 @@
 """Platform connection endpoints.
 
 Public API:
-- `GET /connections` — list the creator's connected channels.
-- `POST /connections/{platform}/oauth/start` — begin OAuth; returns the Google authorization URL.
-- `GET /connections/{platform}/oauth/callback` — Google's redirect target (no Firebase auth;
+- `GET /connections` — list the creator's connected accounts.
+- `POST /connections/{platform}/oauth/start` — begin OAuth (youtube, reddit);
+  returns the provider authorization URL.
+- `GET /connections/{platform}/oauth/callback` — provider redirect target (no Firebase auth;
   the signed `state` is the proof of identity). Redirects back into the web app.
-- `POST /connections/{connectionId}/sync` — refresh channel stats.
-- `DELETE /connections/{connectionId}` — revoke at Google and delete the stored tokens.
+- `POST /connections/medium/connect` — connect Medium with a legacy token.
+- `POST /connections/substack/connect` — connect a Substack publication with a session cookie.
+- `POST /connections/{connectionId}/sync` — re-verify identity / refresh stats.
+- `DELETE /connections/{connectionId}` — revoke where the provider allows it, then delete.
 """
 
 from typing import Annotated
@@ -25,8 +28,10 @@ from app.schemas.connections import (
     ChannelContentProfile,
     Connection,
     ConnectionList,
+    MediumConnectRequest,
     OAuthStartRequest,
     OAuthStartResponse,
+    SubstackConnectRequest,
 )
 from app.services.channel_content_service import ChannelContentService
 from app.services.connection_service import ConnectionService
@@ -64,10 +69,10 @@ def oauth_callback(
     code: str | None = None,
     error: str | None = None,
 ) -> RedirectResponse:
-    """Google redirects the browser here. Always redirects; never renders JSON.
+    """The provider redirects the browser here. Always redirects; never renders JSON.
 
-    This route is intentionally unauthenticated: Google, not the browser's Firebase session,
-    is the caller. `state` points at a short-lived server-side record created by an
+    This route is intentionally unauthenticated: the provider, not the browser's Firebase
+    session, is the caller. `state` points at a short-lived server-side record created by an
     authenticated `oauth/start` call.
     """
     del platform  # only youtube is supported; the state records the real platform
@@ -82,6 +87,36 @@ def sync_connection(
     service: ServiceDep,
 ) -> Connection:
     return service.sync(owner_uid=user.uid, connection_id=connectionId)
+
+
+@router.post(
+    "/connections/medium/connect",
+    response_model=Connection,
+    status_code=status.HTTP_201_CREATED,
+)
+def connect_medium(
+    payload: MediumConnectRequest,
+    user: UserDep,
+    service: ServiceDep,
+) -> Connection:
+    """Connect Medium with a pre-2025 integration token (none are issued anymore)."""
+    return service.connect_medium(owner_uid=user.uid, token=payload.token)
+
+
+@router.post(
+    "/connections/substack/connect",
+    response_model=Connection,
+    status_code=status.HTTP_201_CREATED,
+)
+def connect_substack(
+    payload: SubstackConnectRequest,
+    user: UserDep,
+    service: ServiceDep,
+) -> Connection:
+    """Connect a Substack publication with a browser session cookie."""
+    return service.connect_substack(
+        owner_uid=user.uid, sid=payload.sid, subdomain=payload.subdomain
+    )
 
 
 ContentServiceDep = Annotated[ChannelContentService, Depends(get_channel_content_service)]

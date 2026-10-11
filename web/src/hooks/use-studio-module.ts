@@ -7,7 +7,6 @@ import {
   isStudioModuleId,
   studioModuleHref,
 } from "@/lib/studio";
-import { useFeatureFlag } from "@/lib/feature-flags";
 
 function normalize(moduleId: string): StudioModuleId {
   return isStudioModuleId(moduleId) ? moduleId : "overview";
@@ -28,9 +27,6 @@ export function useStudioModule(projectId: string, moduleId: string) {
     normalize(moduleId),
   );
   const [lastModuleId, setLastModuleId] = useState(moduleId);
-  // With header tabs the tab strip stays put, so switching a module must not move the page:
-  // only the right pane changes. Without the flag, keep the old scroll-to-top behaviour.
-  const headerTabs = useFeatureFlag("headerTabs");
 
   // Adopt a new URL prop (back/forward or a real navigation). Adjusting state
   // during render is React's documented "previous value" pattern and avoids a
@@ -45,13 +41,10 @@ export function useStudioModule(projectId: string, moduleId: string) {
       if (next === activeModule) return;
       window.history.pushState(null, "", studioModuleHref(projectId, next));
       setActiveModule(next);
-      // A fresh navigation used to reset scroll; keep that on tab switches, but not when the
-      // tabs live in the header (the page should stay exactly where it is).
-      if (!headerTabs) {
-        window.scrollTo({ top: 0, behavior: "auto" });
-      }
+      // The tabs live in the sticky header, so switching a module must not move
+      // the page: only the right pane changes (the studio scrolls it into view).
     },
-    [activeModule, headerTabs, projectId],
+    [activeModule, projectId],
   );
 
   return { activeModule, navigate };

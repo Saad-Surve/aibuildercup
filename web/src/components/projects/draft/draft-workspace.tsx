@@ -23,6 +23,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CrosspostCard } from "@/components/projects/draft/crosspost-card";
 import { DraftBriefDialog } from "@/components/projects/draft/draft-brief-dialog";
 import { DraftChat } from "@/components/projects/draft/draft-chat";
 import { DraftContextPanel } from "@/components/projects/draft/draft-context-panel";
@@ -433,6 +434,8 @@ export function DraftWorkspace({
           </DisabledReason>
         </span>
       </div>
+
+      <CrosspostCard projectId={projectId} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
         {generating ? (

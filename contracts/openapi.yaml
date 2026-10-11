@@ -1374,7 +1374,7 @@ paths:
         For YouTube the URL sets `prompt=select_account`, so Google shows the account chooser
         and the creator picks which Gmail account to connect from.
       parameters:
-        - { name: platform, in: path, required: true, schema: { type: string, enum: [youtube] } }
+        - { name: platform, in: path, required: true, schema: { type: string, enum: [youtube, reddit] } }
       requestBody:
         required: false
         content:
@@ -1394,11 +1394,11 @@ paths:
       security: []
       summary: Provider OAuth callback (browser redirect)
       description: |
-        Google redirects the browser here after consent. Unauthenticated by design: the
+        The provider redirects the browser here after consent. Unauthenticated by design: the
         single-use server-side `state` is the proof of identity. Always responds with a 302
-        back into the web app, carrying `youtube=connected|error`.
+        back into the web app, carrying `<platform>=connected|error`.
       parameters:
-        - { name: platform, in: path, required: true, schema: { type: string, enum: [youtube] } }
+        - { name: platform, in: path, required: true, schema: { type: string, enum: [youtube, reddit] } }
         - { name: state, in: query, required: true, schema: { type: string } }
         - { name: code, in: query, required: false, schema: { type: [string, "null"] } }
         - { name: error, in: query, required: false, schema: { type: [string, "null"] } }
@@ -1423,12 +1423,79 @@ paths:
   /api/connections/{connectionId}:
     delete:
       summary: Revoke and delete a connection
+      description: |
+        Server-side revoke happens only where the provider offers one (Google). For
+        Reddit/Medium/Substack, deleting the stored secret is the disconnect.
       parameters:
         - { $ref: "#/components/parameters/ConnectionId" }
       responses:
         "204": { description: Connection removed }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/connections/medium/connect:
+    post:
+      summary: Connect Medium with a legacy integration token
+      description: |
+        Verifies the token against `GET /v1/me` and stores it encrypted. Only works
+        for pre-2025 tokens — Medium issues no new ones.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MediumConnectRequest" }
+      responses:
+        "201":
+          description: Connected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Connection" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/connections/substack/connect:
+    post:
+      summary: Connect a Substack publication with a session cookie
+      description: |
+        Verifies the `substack.sid` cookie and resolves the publication by subdomain.
+        Cookie-based and fragile by nature — an expired session needs a reconnect.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SubstackConnectRequest" }
+      responses:
+        "201":
+          description: Connected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Connection" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/projects/{projectId}/crossposts:
+    post:
+      summary: Cross-post a written piece to a connected text platform
+      description: |
+        Synchronous — text posts complete in one provider call, so the response carries
+        the live URL (or the Substack draft dashboard URL) directly. Nothing is persisted.
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CrosspostRequest" }
+      responses:
+        "201":
+          description: Posted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CrosspostResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
 
   /api/connections/{connectionId}/content:
     get:
@@ -3790,7 +3857,7 @@ components:
 
     ConnectionPlatform:
       type: string
-      enum: [youtube]
+      enum: [youtube, medium, substack, reddit]
 
     ConnectionStatus:
       type: string
@@ -3809,6 +3876,9 @@ components:
         uploadsPlaylistId: { type: [string, "null"], description: Hidden uploads playlist used to read back published videos }
         googleAccountEmail: { type: [string, "null"] }
         avatarUrl: { type: [string, "null"] }
+        profileUrl:
+          type: [string, "null"]
+          description: Public profile/publication URL (Medium profile, Substack publication, Reddit user).
         subscriberCount: { type: [integer, "null"] }
         videoCount: { type: [integer, "null"] }
         status: { $ref: "#/components/schemas/ConnectionStatus" }
@@ -3842,6 +3912,58 @@ components:
       properties:
         authorizationUrl: { type: string }
         state: { type: string }
+
+    MediumConnectRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: |
+            A pre-2025 Medium integration token. Medium stopped issuing new ones in
+            January 2025, so this only works for creators who already hold one.
+
+    SubstackConnectRequest:
+      type: object
+      required: [sid, subdomain]
+      properties:
+        sid:
+          type: string
+          description: The `substack.sid` session cookie from a logged-in browser session.
+        subdomain:
+          type: string
+          description: Publication subdomain — `name`, `name.substack.com`, or a full URL.
+
+    CrosspostRequest:
+      type: object
+      required: [platform, connectionId, title, body]
+      properties:
+        platform: { type: string, enum: [medium, substack, reddit] }
+        connectionId: { type: string }
+        title: { type: string, maxLength: 300 }
+        body:
+          type: string
+          maxLength: 60000
+          description: Markdown body. Medium posts it as markdown; Substack converts a subset to HTML; Reddit posts it as text.
+        options:
+          type: object
+          additionalProperties: true
+          description: |
+            Per-platform options. medium: publishStatus (draft|public|unlisted, default draft),
+            canonicalUrl, tags (up to 3). substack: subtitle, mode (draft|publish|schedule,
+            default draft), audience, send (default true), scheduleAt (ISO-8601, for schedule).
+            reddit: subreddit (default your own profile), kind (self|link), url, sendReplies, nsfw, spoiler.
+
+    CrosspostResult:
+      type: object
+      required: [platform, connectionId, externalId, url, status, title]
+      properties:
+        platform: { type: string }
+        connectionId: { type: string }
+        externalId: { type: string, description: Medium post id, Reddit thing id, or Substack draft id }
+        url: { type: string, description: Canonical URL, or the Substack draft dashboard URL for drafts }
+        status: { type: string, enum: [draft, published, scheduled] }
+        title: { type: string }
 
     ContentItem:
       type: object

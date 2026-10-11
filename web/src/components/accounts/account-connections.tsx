@@ -5,6 +5,7 @@ import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 
 import { PlatformLogo } from "@/components/calendar/platform";
 import { Icon } from "@/components/common/icon";
+import { TextPlatformConnections } from "@/components/accounts/text-platform-connections";
 import { YouTubeConnections } from "@/components/projects/studio/youtube-connections";
 
 /** One connection surface shared by onboarding and Settings; OAuth remains provider-specific. */
@@ -32,6 +33,17 @@ export function AccountConnections({
             redirectPath={redirectPath}
             beforeConnect={beforeConnect}
           />
+        </div>
+      </section>
+      <section className="overflow-hidden rounded-xl border">
+        <div className="border-b bg-muted/20 px-4 py-3">
+          <h2 className="text-sm font-semibold">Writing platforms</h2>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            Cross-post drafts and essays to Medium, Substack, and Reddit.
+          </p>
+        </div>
+        <div className="p-4">
+          <TextPlatformConnections redirectPath={redirectPath} />
         </div>
       </section>
       <div className="grid gap-3 sm:grid-cols-2">

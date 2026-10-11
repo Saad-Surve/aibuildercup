@@ -15,6 +15,9 @@ export const PLATFORM_OPTIONS: { value: string; label: string }[] = [
   { value: "x", label: "X" },
   { value: "facebook", label: "Facebook" },
   { value: "linkedin", label: "LinkedIn" },
+  { value: "medium", label: "Medium" },
+  { value: "substack", label: "Substack" },
+  { value: "reddit", label: "Reddit" },
 ];
 
 const LOGO_BY_PLATFORM: Record<string, string> = {
@@ -24,6 +27,9 @@ const LOGO_BY_PLATFORM: Record<string, string> = {
   x: "/x.svg",
   facebook: "/facebook.svg",
   linkedin: "/linkedin.svg",
+  medium: "/medium.svg",
+  substack: "/substack.svg",
+  reddit: "/reddit.svg",
 };
 
 export function platformLabel(value: string): string {
