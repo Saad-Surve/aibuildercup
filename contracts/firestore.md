@@ -94,7 +94,13 @@ Account deletion covers both trees. The operator import command supports removin
 `kind: "draft"` project: a `brief`, ordered `blocks[]`, and each block's immutable
 `versions[]`. Deletes need no special handling because the document sits under the project
 subtree. The project document mirrors `draftSummary` (title, preview, word/block/version
-counts) for list cards. After each generation the draft document also keeps `lastCreatorContext` —
+counts) for list cards. A video project based on a draft keeps `sourceDraftId` and
+`sourceDraftName` (title snapshotted at link time) on its own project document —
+the draft → video → upload lineage pointer. Title-only: the draft text is never
+copied. Deleting the draft leaves the pointer dangling by design: clients show the
+title as plain text with an unlink action. The fields sit on the project document
+itself, so project / account delete covers them with no extra wiring. After each
+generation the draft document also keeps `lastCreatorContext` —
 the style evidence (retrieved past videos, style signals, audience profile) the writer used — read
 back by `GET /projects/{id}/draft/context` for the studio's "Style evidence" panel. The document
 also keeps `grounding` (the newest grounded call's `queries`, `sources`, and

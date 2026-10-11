@@ -67,6 +67,8 @@ def _to_project(project_id: str, data: dict[str, Any]) -> Project:
         draftSummary=DraftSummary(**data["draftSummary"])
         if data.get("draftSummary")
         else None,
+        sourceDraftId=data.get("sourceDraftId"),
+        sourceDraftName=data.get("sourceDraftName"),
         status=ProjectStatus(data.get("status", ProjectStatus.draft.value)),
         progress=ProjectProgress(**data["progress"])
         if data.get("progress")
@@ -108,9 +110,34 @@ class ProjectService:
         except Exception:  # noqa: BLE001 - a signing hiccup must not hide the project
             return None
 
+    def _require_draft_source(self, *, owner_uid: str, draft_id: str) -> dict[str, Any]:
+        """Validate a script-source link: owned, live, and actually a draft."""
+        draft = self._require_owned(owner_uid=owner_uid, project_id=draft_id)
+        if draft.get("kind") != ProjectKind.draft.value:
+            raise BadRequestError(
+                "Only a draft project can be a script source.",
+                code="PROJECT_NOT_A_DRAFT",
+                details={"projectId": draft_id},
+            )
+        return draft
+
     def create(self, *, owner_uid: str, payload: CreateProject) -> Project:
         project_id = uuid4().hex
         now = datetime.now(UTC)
+        source_name: str | None = None
+        if payload.sourceDraftId is not None:
+            if payload.kind != ProjectKind.video:
+                raise BadRequestError(
+                    "Only a video project can link a script source.",
+                    code="PROJECT_LINK_WRONG_KIND",
+                    details={"kind": payload.kind.value},
+                )
+            source_name = str(
+                self._require_draft_source(
+                    owner_uid=owner_uid, draft_id=payload.sourceDraftId
+                ).get("name", "")
+                or ""
+            )
         document: dict[str, Any] = {
             "ownerUid": owner_uid,
             "name": payload.name,
@@ -119,6 +146,8 @@ class ProjectService:
             "kind": payload.kind.value,
             "draftFormat": payload.draftFormat.value,
             "draftSummary": None,
+            "sourceDraftId": payload.sourceDraftId,
+            "sourceDraftName": source_name,
             "status": ProjectStatus.draft.value,
             "visibility": "private",
             "sourceAssetId": None,
@@ -161,6 +190,30 @@ class ProjectService:
     def update(self, *, owner_uid: str, project_id: str, patch: UpdateProject) -> Project:
         data = self._require_owned(owner_uid=owner_uid, project_id=project_id)
         changes = patch.model_dump(exclude_none=True)
+        if "sourceDraftId" in patch.model_fields_set:
+            # Explicit null clears the link; omitted leaves it untouched
+            # (exclude_none would otherwise swallow the null).
+            if patch.sourceDraftId is None:
+                changes["sourceDraftId"] = None
+                changes["sourceDraftName"] = None
+            else:
+                if data.get("kind") != ProjectKind.video.value:
+                    raise BadRequestError(
+                        "Only a video project can link a script source.",
+                        code="PROJECT_LINK_WRONG_KIND",
+                        details={"projectId": project_id},
+                    )
+                if patch.sourceDraftId == project_id:
+                    raise BadRequestError(
+                        "A project cannot be its own script source.",
+                        code="PROJECT_LINK_SELF",
+                        details={"projectId": project_id},
+                    )
+                draft = self._require_draft_source(
+                    owner_uid=owner_uid, draft_id=patch.sourceDraftId
+                )
+                changes["sourceDraftId"] = patch.sourceDraftId
+                changes["sourceDraftName"] = str(draft.get("name", "") or "")
         if changes:
             changes["updatedAt"] = datetime.now(UTC)
             self.client.update_document(project_path(owner_uid, project_id), changes)

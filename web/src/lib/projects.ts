@@ -74,7 +74,13 @@ export function createProject(input: CreateProjectInput): Promise<Project> {
 
 export function updateProject(
   projectId: string,
-  input: { name?: string; description?: string; thumbnailConcept?: string },
+  input: {
+    name?: string;
+    description?: string;
+    thumbnailConcept?: string;
+    /** Link/unlink the script source; explicit null clears the link. */
+    sourceDraftId?: string | null;
+  },
 ): Promise<Project> {
   return apiFetch<Project>(`/projects/${projectId}`, {
     method: "PATCH",

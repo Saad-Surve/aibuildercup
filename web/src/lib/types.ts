@@ -105,6 +105,10 @@ export interface Project {
   draftFormat: DraftFormat;
   /** Denormalised draft stats for cards; null for video projects. */
   draftSummary: DraftSummary | null;
+  /** Script source: the draft project this video is based on, if any. */
+  sourceDraftId: string | null;
+  /** Draft title snapshotted at link time, so the lineage renders without a join. */
+  sourceDraftName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -117,6 +121,7 @@ export interface CreateProjectInput {
   targetLanguages?: string[];
   targetPlatforms?: string[];
   kind?: ProjectKind;
+  sourceDraftId?: string;
   draftFormat?: DraftFormat;
   draftBrief?: DraftBrief;
 }

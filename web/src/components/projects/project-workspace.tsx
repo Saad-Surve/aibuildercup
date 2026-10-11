@@ -10,6 +10,7 @@ import { Icon } from "@/components/common/icon";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { EditProjectDialog } from "@/components/projects/edit-project-dialog";
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge";
+import { PipelineStrip } from "@/components/projects/script-link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProjectEvents } from "@/hooks/use-project-events";
 import { useStudioModule } from "@/hooks/use-studio-module";
@@ -170,6 +171,9 @@ export function ProjectWorkspace({
         </div>
       </div>
 
+      {project.kind === "draft" ? null : (
+        <PipelineStrip project={project} />
+      )}
       {project.kind === "draft" ? (
         <DraftWorkspace project={project} />
       ) : (

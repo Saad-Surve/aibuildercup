@@ -283,6 +283,12 @@ paths:
               properties:
                 name: { type: string }
                 description: { type: string }
+                sourceDraftId:
+                  type: [string, "null"]
+                  description: |
+                    Link/unlink the script source (video projects only; must point at a
+                    draft project). Explicit null clears the link; omitted leaves it
+                    untouched.
       responses:
         "200":
           description: Updated
@@ -1832,6 +1838,12 @@ components:
           $ref: "#/components/schemas/DraftFormat"
         draftBrief:
           $ref: "#/components/schemas/DraftBrief"
+        sourceDraftId:
+          type: [string, "null"]
+          description: |
+            Script source for a video project: the draft project this video is
+            based on. Only valid when `kind` is video; the service snapshots the
+            draft title. Title-only link — the draft text itself is never copied.
         isDemo: { type: boolean, default: false }
         demoProfileId: { type: [string, "null"] }
 
@@ -1881,6 +1893,15 @@ components:
                 - $ref: "#/components/schemas/DraftSummary"
                 - type: "null"
               description: Draft stats for list cards; null for video projects.
+            sourceDraftId:
+              type: [string, "null"]
+              description: Script source — the draft project this video is based on, if any.
+            sourceDraftName:
+              type: [string, "null"]
+              description: |
+                Draft title snapshotted at link time, so the lineage renders without a
+                join. A deleted draft leaves the pointer dangling: clients show the
+                title as plain text with an unlink action instead of failing.
 
     UploadSessionRequest:
       type: object

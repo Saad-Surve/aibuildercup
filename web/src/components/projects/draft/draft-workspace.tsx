@@ -1,8 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PencilEdit02Icon, SparklesIcon } from "@hugeicons/core-free-icons";
+import {
+  ArrowRight01Icon,
+  FileVideoIcon,
+  PencilEdit02Icon,
+  SparklesIcon,
+} from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/common/icon";
@@ -30,7 +37,9 @@ import {
   suggestDraft,
 } from "@/lib/drafts";
 import { markdownToPlain } from "@/lib/draft-content";
+import { createProject, listProjects } from "@/lib/projects";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
+import { workspaceHref } from "@/lib/studio";
 import type { Draft, DraftBlock, DraftBrief } from "@/lib/types";
 import {
   DRAFT_PANE_STACK_SPACER,
@@ -130,6 +139,7 @@ export function DraftWorkspace({
   const projectId = project.projectId;
   const queryClient = useQueryClient();
   const readOnly = useReadOnly();
+  const router = useRouter();
   const [briefOpen, setBriefOpen] = useState(false);
   const [contextText, setContextText] = useState("");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -141,6 +151,17 @@ export function DraftWorkspace({
     retry: false,
   });
   const draft = draftQuery.data;
+
+  // Videos made from this draft (newest first) — once one exists the action
+  // becomes "Go to video" instead of offering another conversion.
+  const videosQuery = useQuery({
+    queryKey: ["projects"],
+    queryFn: listProjects,
+    staleTime: 30_000,
+  });
+  const firstVideo = (videosQuery.data?.items ?? []).find(
+    (item) => item.kind === "video" && item.sourceDraftId === projectId,
+  );
 
   const { mutate: saveBlock, mutateAsync: saveBlockAsync } = useMutation({
     mutationFn: (input: { title?: string; blocks: DraftBlock[] }) =>
@@ -300,6 +321,37 @@ export function DraftWorkspace({
     })();
   }
 
+  const sendToVideoMutation = useMutation({
+    mutationFn: async () => {
+      // Persist any in-flight keystrokes first so the new project is fresh.
+      await flushSave();
+      const fresh =
+        queryClient.getQueryData<Draft>(["draft", projectId]) ?? draft;
+      const hasContent = (fresh?.blocks.length ?? 0) > 0;
+      if (!hasContent) {
+        throw new Error("Write the draft first — there is nothing to send yet.");
+      }
+      const platforms = (fresh?.brief.platform ?? "")
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+      return createProject({
+        name: fresh?.title.trim() || project.name,
+        primaryLanguage: fresh?.brief.language || project.primaryLanguage,
+        targetPlatforms: platforms,
+        kind: "video",
+        sourceDraftId: projectId,
+      });
+    },
+    onSuccess: (video) => {
+      toast.success("Video project created from this draft");
+      void queryClient.invalidateQueries({ queryKey: ["projects"] });
+      router.push(workspaceHref(video.projectId));
+    },
+    onError: (error) =>
+      toast.error(describe(error, "Could not create the video project.")),
+  });
+
   if (draftQuery.isLoading) {
     return (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
@@ -337,19 +389,49 @@ export function DraftWorkspace({
         </span>
         {draft.brief.audience ? <span>· {draft.brief.audience}</span> : null}
         {draft.brief.tone ? <span>· {draft.brief.tone}</span> : null}
-        <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
-          <Button
-            type="button"
-            size="xs"
-            variant="ghost"
-            className="ml-auto"
-            onClick={() => setBriefOpen(true)}
-            disabled={readOnly}
-          >
-            <Icon icon={PencilEdit02Icon} />
-            Edit brief
-          </Button>
-        </DisabledReason>
+        <span className="ml-auto inline-flex items-center gap-1">
+          {videosQuery.isLoading ? null : firstVideo ? (
+            <Link
+              href={workspaceHref(firstVideo.projectId)}
+              className="inline-flex h-6 items-center gap-1 rounded-[min(var(--radius-md),10px)] border border-border bg-background px-2 text-xs font-medium transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Icon icon={ArrowRight01Icon} className="size-3" />
+              Go to video
+            </Link>
+          ) : (
+            <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={() => sendToVideoMutation.mutate()}
+                disabled={
+                  readOnly || sendToVideoMutation.isPending || generating || empty
+                }
+                title={
+                  empty
+                    ? "Write the draft first"
+                    : "Create a video project from this draft"
+                }
+              >
+                <Icon icon={FileVideoIcon} />
+                {sendToVideoMutation.isPending ? "Converting…" : "Convert to video"}
+              </Button>
+            </DisabledReason>
+          )}
+          <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+            <Button
+              type="button"
+              size="xs"
+              variant="ghost"
+              onClick={() => setBriefOpen(true)}
+              disabled={readOnly}
+            >
+              <Icon icon={PencilEdit02Icon} />
+              Edit brief
+            </Button>
+          </DisabledReason>
+        </span>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">

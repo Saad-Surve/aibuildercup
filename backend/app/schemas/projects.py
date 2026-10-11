@@ -35,6 +35,10 @@ class CreateProject(BaseModel):
     draftFormat: DraftFormat = DraftFormat.written
     #: Seed brief for a draft project, captured in the creation dialog.
     draftBrief: DraftBrief | None = None
+    #: Script source for a video project: the draft project this video is based
+    #: on. Only valid when `kind` is video; the service snapshots the draft name.
+    #: Title-only link — the draft text itself is never copied.
+    sourceDraftId: str | None = Field(default=None, max_length=200)
     isDemo: bool = False
     demoProfileId: str | None = None
 
@@ -43,6 +47,9 @@ class UpdateProject(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = None
     thumbnailConcept: str | None = None
+    #: Link/unlink the script source. An explicit null clears the link (and the
+    #: snapshotted title with it); omitted leaves it untouched.
+    sourceDraftId: str | None = Field(default=None, max_length=200)
 
 
 class ProjectProgress(BaseModel):
@@ -62,6 +69,10 @@ class Project(BaseModel):
     kind: ProjectKind = ProjectKind.video
     draftFormat: DraftFormat = DraftFormat.written
     draftSummary: DraftSummary | None = None
+    #: Script source: the draft project this video is based on, if any.
+    sourceDraftId: str | None = None
+    #: Draft title snapshotted at link time, so the lineage renders without a join.
+    sourceDraftName: str | None = None
     isDemo: bool
     demoProfileId: str | None
     status: ProjectStatus
