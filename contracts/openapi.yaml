@@ -1350,28 +1350,6 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
 
-  /api/seed/youtube-content:
-    post:
-      summary: Seed the account with a public CC-BY channel's content (demo)
-      description: |
-        Loads a pre-built seed (`seed/youtube/<channel>.json` in the media bucket) as a synthetic
-        demo connection plus its content items, so a fresh account has creator content for the
-        style/RAG, transcript, and thumbnail-reference features. Authenticated; writes only the
-        caller's subtree. Known channels: `lawrencesystems`, `psych2go`, `thehumanistreport`.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/SeedYouTubeContentRequest" }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/SeedYouTubeContentResult" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "404": { $ref: "#/components/responses/NotFound" }
-
   /api/projects/{projectId}/publishes:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
@@ -3003,9 +2981,6 @@ components:
         lastErrorCode: { type: [string, "null"] }
         contentSyncedAt: { type: [string, "null"], format: date-time, description: When the channel's videos were last read back for style/RAG }
         contentItemCount: { type: [integer, "null"] }
-        isSeed: { type: boolean, description: Demo seed connection (CC-BY content, no tokens to sync) }
-        seedAttribution: { type: [string, "null"], description: CC-BY credit line for a seed connection }
-        seedLicense: { type: [string, "null"] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -3120,21 +3095,6 @@ components:
         topVideos:
           type: array
           items: { $ref: "#/components/schemas/ContentItem" }
-
-    SeedYouTubeContentRequest:
-      type: object
-      properties:
-        channel: { type: string, default: psych2go, description: "Seed channel slug" }
-
-    SeedYouTubeContentResult:
-      type: object
-      required: [connectionId, channel, itemCount]
-      properties:
-        connectionId: { type: string }
-        channel: { type: string }
-        itemCount: { type: integer }
-        license: { type: string }
-        attribution: { type: string }
 
     PublishSourceKind:
       type: string

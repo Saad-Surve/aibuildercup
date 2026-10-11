@@ -51,11 +51,6 @@ class Connection(BaseModel):
     #: When the channel's existing videos were last read back for style/RAG analysis.
     contentSyncedAt: datetime | None = None
     contentItemCount: int | None = None
-    #: True for a demo seed connection (public CC-BY content, no OAuth tokens to sync).
-    isSeed: bool = False
-    #: CC-BY credit line for a seed connection (see fixtures/seed/youtube/ATTRIBUTION.md).
-    seedAttribution: str | None = None
-    seedLicense: str | None = None
     createdAt: datetime
     updatedAt: datetime
 
@@ -151,16 +146,3 @@ class AudienceProfile(BaseModel):
     trafficSources: AudienceBreakdown | None = None
     topCountries: AudienceBreakdown | None = None
     topVideos: list[ContentItem] = Field(default_factory=list)
-
-
-class SeedYouTubeContentRequest(BaseModel):
-    #: Seed channel slug, e.g. `psych2go`, `lawrencesystems`, `thehumanistreport`.
-    channel: str = Field(default="psych2go", max_length=64)
-
-
-class SeedYouTubeContentResult(BaseModel):
-    connectionId: str
-    channel: str
-    itemCount: int
-    license: str = ""
-    attribution: str = ""

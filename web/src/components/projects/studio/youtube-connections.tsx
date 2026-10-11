@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Analytics01Icon,
-  ArrowDown01Icon,
   CheckmarkCircle02Icon,
   Link01Icon,
   Loading03Icon,
@@ -18,15 +17,6 @@ import { Icon } from "@/components/common/icon";
 import { DisabledReason } from "@/components/common/disabled-reason";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ApiError } from "@/lib/api-client";
 import {
   deleteConnection,
@@ -36,7 +26,6 @@ import {
   syncConnectionAudience,
   syncConnectionContent,
 } from "@/lib/connections";
-import { seedYouTubeContent } from "@/lib/seed";
 import type { Connection } from "@/lib/types";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
@@ -46,25 +35,6 @@ function describe(error: unknown, fallback: string): string {
   if (error instanceof Error) return error.message;
   return fallback;
 }
-
-/** Public CC-BY channels available to seed the demo with (see fixtures/seed/youtube). */
-const SEED_CHANNELS = [
-  {
-    value: "psych2go",
-    label: "Psychology & self-help",
-    hint: "Psych2Go — everyday, relatable",
-  },
-  {
-    value: "lawrencesystems",
-    label: "Tech & self-hosting",
-    hint: "Lawrence Systems — expert-level",
-  },
-  {
-    value: "thehumanistreport",
-    label: "Politics & commentary",
-    hint: "The Humanist Report",
-  },
-];
 
 function subtitle(connection: Connection): string {
   const parts: string[] = [];
@@ -135,7 +105,9 @@ export function YouTubeConnections({
     if (status === "connected") {
       const accounts = params.get("googleAccount");
       toast.success(
-        accounts ? `Connected Google account ${accounts}.` : "YouTube connected.",
+        accounts
+          ? `Connected Google account ${accounts}.`
+          : "YouTube connected.",
       );
     } else if (status === "error") {
       toast.error(params.get("reason") ?? "Connecting YouTube failed.");
@@ -167,7 +139,8 @@ export function YouTubeConnections({
       toast.success("Channel stats refreshed.");
       void queryClient.invalidateQueries({ queryKey: ["connections"] });
     },
-    onError: (error) => toast.error(describe(error, "Could not refresh the channel.")),
+    onError: (error) =>
+      toast.error(describe(error, "Could not refresh the channel.")),
   });
 
   const contentMutation = useMutation({
@@ -187,7 +160,9 @@ export function YouTubeConnections({
   const audienceMutation = useMutation({
     mutationFn: (connectionId: string) => syncConnectionAudience(connectionId),
     onSuccess: (profile) => {
-      const views = profile.summary.find((metric) => metric.metric === "views")?.value;
+      const views = profile.summary.find(
+        (metric) => metric.metric === "views",
+      )?.value;
       toast.success(
         views != null
           ? `Audience read — ${Math.round(views).toLocaleString()} views in the last ${profile.periodDays} days.`
@@ -197,17 +172,6 @@ export function YouTubeConnections({
     },
     onError: (error) =>
       toast.error(describe(error, "Could not read the channel's analytics.")),
-  });
-
-  const seedMutation = useMutation({
-    mutationFn: (channel: string) => seedYouTubeContent(channel),
-    onSuccess: (result) => {
-      toast.success(
-        `Loaded ${result.itemCount} videos from ${result.channel} (CC BY) for the demo.`,
-      );
-      void queryClient.invalidateQueries({ queryKey: ["connections"] });
-    },
-    onError: (error) => toast.error(describe(error, "Could not load the demo content.")),
   });
 
   const disconnectMutation = useMutation({
@@ -241,48 +205,6 @@ export function YouTubeConnections({
           ) : null}
         </div>
         <div className="flex items-center gap-1.5">
-          <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    disabled={seedMutation.isPending || readOnly}
-                    title="Load a public CC-BY channel's content for the demo (no account needed)"
-                  />
-                }
-              >
-                {seedMutation.isPending ? (
-                  <Icon icon={Loading03Icon} className="animate-spin" />
-                ) : (
-                  <Icon icon={SparklesIcon} />
-                )}
-                Load CC-BY demo
-                <Icon icon={ArrowDown01Icon} />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>Seed demo content from…</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {SEED_CHANNELS.map((option) => (
-                    <DropdownMenuItem
-                      key={option.value}
-                      onClick={() => seedMutation.mutate(option.value)}
-                    >
-                      <span className="flex flex-col items-start">
-                        <span className="text-sm">{option.label}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {option.hint}
-                        </span>
-                      </span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </DisabledReason>
           <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
             <Button
               type="button"
@@ -321,7 +243,9 @@ export function YouTubeConnections({
                 <div
                   className={cn(
                     "flex items-start gap-3 rounded-lg border p-3",
-                    isSelected ? "border-signal/60 bg-signal/5" : "border-border",
+                    isSelected
+                      ? "border-signal/60 bg-signal/5"
+                      : "border-border",
                   )}
                 >
                   {connection.avatarUrl ? (
@@ -342,9 +266,6 @@ export function YouTubeConnections({
                         {connection.displayName}
                       </span>
                       <StatusBadge connection={connection} />
-                      {connection.isSeed ? (
-                        <Badge variant="outline">CC-BY demo</Badge>
-                      ) : null}
                       {isSelected ? (
                         <Icon
                           icon={CheckmarkCircle02Icon}
@@ -355,16 +276,6 @@ export function YouTubeConnections({
                     {subtitle(connection) ? (
                       <p className="truncate text-xs text-muted-foreground">
                         {subtitle(connection)}
-                      </p>
-                    ) : null}
-                    {connection.isSeed ? (
-                      <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                        {connection.seedLicense
-                          ? `Licensed: ${connection.seedLicense}.`
-                          : "CC BY licensed demo content."}{" "}
-                        Credit each video:{" "}
-                        {connection.seedAttribution ||
-                          "the original creator and link to the source video."}
                       </p>
                     ) : null}
                     {selectable && onSelect ? (
@@ -380,8 +291,6 @@ export function YouTubeConnections({
                     ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
-                    {!connection.isSeed ? (
-                      <>
                     <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
                       <Button
                         type="button"
@@ -389,14 +298,17 @@ export function YouTubeConnections({
                         variant="ghost"
                         aria-label="Read channel content for the AI"
                         title="Read your published videos so the writer can match your style"
-                        onClick={() => contentMutation.mutate(connection.connectionId)}
+                        onClick={() =>
+                          contentMutation.mutate(connection.connectionId)
+                        }
                         disabled={contentMutation.isPending || readOnly}
                       >
                         <Icon
                           icon={SparklesIcon}
                           className={cn(
                             contentMutation.isPending &&
-                              contentMutation.variables === connection.connectionId &&
+                              contentMutation.variables ===
+                                connection.connectionId &&
                               "animate-pulse",
                           )}
                         />
@@ -409,14 +321,17 @@ export function YouTubeConnections({
                         variant="ghost"
                         aria-label="Read channel analytics"
                         title="Read your audience analytics (demographics, traffic, top videos)"
-                        onClick={() => audienceMutation.mutate(connection.connectionId)}
+                        onClick={() =>
+                          audienceMutation.mutate(connection.connectionId)
+                        }
                         disabled={audienceMutation.isPending || readOnly}
                       >
                         <Icon
                           icon={Analytics01Icon}
                           className={cn(
                             audienceMutation.isPending &&
-                              audienceMutation.variables === connection.connectionId &&
+                              audienceMutation.variables ===
+                                connection.connectionId &&
                               "animate-pulse",
                           )}
                         />
@@ -428,21 +343,22 @@ export function YouTubeConnections({
                         size="icon-sm"
                         variant="ghost"
                         aria-label="Refresh channel stats"
-                        onClick={() => syncMutation.mutate(connection.connectionId)}
+                        onClick={() =>
+                          syncMutation.mutate(connection.connectionId)
+                        }
                         disabled={syncMutation.isPending || readOnly}
                       >
                         <Icon
                           icon={Refresh01Icon}
                           className={cn(
                             syncMutation.isPending &&
-                              syncMutation.variables === connection.connectionId &&
+                              syncMutation.variables ===
+                                connection.connectionId &&
                               "animate-spin",
                           )}
                         />
                       </Button>
                     </DisabledReason>
-                      </>
-                    ) : null}
                     <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
                       <Button
                         type="button"

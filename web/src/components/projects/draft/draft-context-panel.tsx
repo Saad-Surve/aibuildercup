@@ -38,7 +38,8 @@ function StyleSignals({ style }: { style: ContentStyleSummary }) {
       ) : null}
       <p className="text-xs text-muted-foreground">
         {style.videoCount} videos · ~{style.avgTitleWords} words/title ·{" "}
-        {style.titleWithNumberPct}% of titles use a number · {style.videosPerMonth}/month
+        {style.titleWithNumberPct}% of titles use a number ·{" "}
+        {style.videosPerMonth}/month
       </p>
     </div>
   );
@@ -161,11 +162,9 @@ export function DraftContextPanel({
 
         {!query.isLoading && !context?.available ? (
           <p className="text-sm text-muted-foreground">
-            No channel content yet. Load it from{" "}
-            <span className="font-medium">
-              Profile → Connected channels → Load CC-BY demo
-            </span>
-            , then regenerate the draft.
+            No channel content yet. Connect your YouTube channel from{" "}
+            <span className="font-medium">Profile → Connected channels</span>,
+            use “Read channel content for the AI”, then regenerate the draft.
           </p>
         ) : null}
 

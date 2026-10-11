@@ -742,9 +742,6 @@ export interface Connection {
   lastErrorCode: string | null;
   contentSyncedAt: string | null;
   contentItemCount: number | null;
-  isSeed: boolean;
-  seedAttribution: string | null;
-  seedLicense: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -823,14 +820,6 @@ export interface AudienceProfile {
   trafficSources: AudienceBreakdown | null;
   topCountries: AudienceBreakdown | null;
   topVideos: ContentItem[];
-}
-
-export interface SeedYouTubeContentResult {
-  connectionId: string;
-  channel: string;
-  itemCount: number;
-  license: string;
-  attribution: string;
 }
 
 export interface CreatorContextExample {

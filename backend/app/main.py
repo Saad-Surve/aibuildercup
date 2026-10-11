@@ -23,7 +23,6 @@ from app.api import (
     projects,
     publishes,
     schedules,
-    seed,
     thumbnails,
     transcripts,
     uploads,
@@ -187,7 +186,6 @@ def create_app() -> FastAPI:
     app.include_router(analysis.router, prefix="/api")
     app.include_router(publishes.router, prefix="/api")
     app.include_router(schedules.router, prefix="/api")
-    app.include_router(seed.router, prefix="/api")
     app.include_router(internal.router, prefix="/api")
     return app
 
