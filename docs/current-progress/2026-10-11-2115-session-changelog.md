@@ -292,6 +292,45 @@ Contracts: `openapi.yaml` PublishStatus enum now includes `deleted`. Verified:
 
 ---
 
+## 12. Automatic slot status + reschedule re-uploads (23:01)
+
+User: "status should not be a dropdown that user can manually select. it should
+be automatically based and updated" and "tried uploading a video now 'Something'
+which was scheduled for 22:51 … it did not get uploaded".
+
+**Why 22:51 didn't upload.** The slot was the *original* one, still linked to the
+**dead publish** (`d5dbfdd1`, video deleted on YouTube). Editing a slot only ran
+`_sync_linked_publish`, which moved `publishAt` on that dead record — it never
+re-uploaded. (The week-grid position was a red herring: a 30-min chip starting
+22:51 legitimately crosses the 11pm line.)
+
+**Status is now automatic.** The Status dropdown is gone from `ScheduleDialog`;
+create/edit no longer send `status`. A slot is `planned` (bare plan) or
+`scheduled` (linked upload) and the system moves it to `published` at go-live and
+`cancelled` on a YouTube deletion. Create payloads fall back to the backend
+default, edits keep the stored status.
+
+**Rescheduling keeps a live upload.** New `_revive_slot_upload` in the schedules
+`PATCH` handler:
+- linked publish is `deleted`/`failed` → `PublishService.recreate_for_schedule`
+  copies the dead publish's settings (video source, title, channel, captions,
+  thumbnail) into a fresh scheduled publish for the new time, re-links the slot
+  (`ScheduleService.relink_publish`, back to `scheduled`) and enqueues its job;
+- linked publish is still waiting (`queued`/`uploading`/`processing` with a
+  `youtubeVideoId`) → `reschedule_on_youtube` moves the real go-live via a new
+  `YouTubeConnector.update_publish_at` (`videos.update part=status`);
+- live (`published`) stays blocked by the existing `CONFLICT`.
+
+**Verified on the real slot** (`1f5e668f`): revive re-linked it from the dead
+`d5dbfdd1` to a fresh publish `b02394f2` and the worker uploaded
+**`aQJ0Gx5-ers`** — YouTube API reports **`public`, `processed`**
+(https://www.youtube.com/watch?v=aQJ0Gx5-ers); slot flipped to `published`.
+
+Verified: `ruff` + `mypy` (139 files) clean; `oxlint` + `tsc` clean; full build
++ `/calendar` 200.
+
+---
+
 ## Verification throughout
 
 `bun run lint` (oxlint) and `bunx tsc --noEmit` clean after every step; dev

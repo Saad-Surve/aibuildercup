@@ -49,16 +49,9 @@ import {
   updateSchedule,
 } from "@/lib/schedules";
 import { workspaceHref } from "@/lib/studio";
-import type { Schedule, ScheduleStatus } from "@/lib/types";
+import type { Schedule } from "@/lib/types";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
-
-const STATUS_OPTIONS: { value: ScheduleStatus; label: string }[] = [
-  { value: "planned", label: "Planned" },
-  { value: "scheduled", label: "Scheduled" },
-  { value: "published", label: "Published" },
-  { value: "cancelled", label: "Cancelled" },
-];
 
 function describe(error: unknown, fallback: string): string {
   if (error instanceof ApiError) return error.message;
@@ -139,9 +132,6 @@ export function ScheduleDialog({
   );
   const [date, setDate] = useState(() => toDateInput(seededAt));
   const [time, setTime] = useState(() => toTimeInput(seededAt));
-  const [status, setStatus] = useState<ScheduleStatus>(
-    schedule?.status ?? "scheduled",
-  );
   const [platform, setPlatform] = useState(schedule?.platform ?? "youtube");
   const [notes, setNotes] = useState(schedule?.notes ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -189,7 +179,6 @@ export function ScheduleDialog({
             notes,
             platform: platform.trim() || "youtube",
             scheduledAt,
-            status,
           },
         );
         return { projectId: saved.projectId, upload: false };
@@ -230,7 +219,6 @@ export function ScheduleDialog({
         notes,
         platform: platform.trim() || "youtube",
         scheduledAt,
-        status,
         publishId: initialPublishId ?? null,
       });
       return { projectId: saved.projectId, upload: false };
@@ -348,33 +336,7 @@ export function ScheduleDialog({
             </Field>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field>
-              <FieldLabel>Status</FieldLabel>
-              <Select
-                value={status}
-                onValueChange={(value) => setStatus(value as ScheduleStatus)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue>
-                    {(value: unknown) =>
-                      typeof value === "string"
-                        ? (STATUS_OPTIONS.find(
-                            (option) => option.value === value,
-                          )?.label ?? value)
-                        : ""
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+          <div>
             <Field>
               <FieldLabel>Platform</FieldLabel>
               <div className="flex items-center gap-2">
@@ -422,10 +384,9 @@ export function ScheduleDialog({
           ) : null}
           {!editing && !initialPublishId ? (
             <p className="text-xs text-muted-foreground">
-              A slot alone is just a plan — nothing uploads from here. To put a
-              video on YouTube at this time, use “Schedule for later” in the
-              project&apos;s publishing studio, or link an existing upload from
-              the project&apos;s Posting schedule card.
+              {createUpload
+                ? "Saving uploads this project's video and schedules it to go public at the chosen time."
+                : "A slot alone is just a plan — nothing uploads from here. To put a video on YouTube at this time, use “Schedule for later” in the project's publishing studio, or link an existing upload from the project's Posting schedule card."}
             </p>
           ) : null}
 

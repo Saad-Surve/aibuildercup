@@ -334,6 +334,29 @@ class ScheduleService:
                     publish_id,
                 )
 
+    def relink_publish(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        schedule_id: str,
+        publish_id: str,
+        connection_id: str | None,
+        connection_display_name: str | None,
+    ) -> None:
+        """Point an existing slot at a freshly re-created upload, back to scheduled."""
+        self._require(owner_uid, project_id, schedule_id)
+        self.client.update_document(
+            schedule_path(owner_uid, project_id, schedule_id),
+            {
+                "publishId": publish_id,
+                "connectionId": connection_id,
+                "connectionDisplayName": connection_display_name,
+                "status": ScheduleStatus.scheduled.value,
+                "updatedAt": datetime.now(UTC),
+            },
+        )
+
     def _require(
         self, owner_uid: str, project_id: str, schedule_id: str
     ) -> dict[str, Any]:

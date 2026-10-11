@@ -405,6 +405,29 @@ class YouTubeConnector:
             raise self._translate(exc, "Could not check the videos on YouTube.") from exc
         return found
 
+    def update_publish_at(
+        self, tokens: OAuthTokenSet, *, video_id: str, publish_at: str
+    ) -> None:
+        """Move a scheduled (still private) video's go-public time on YouTube."""
+        service = self._service(tokens)
+        try:
+            (
+                service.videos()
+                .update(
+                    part="status",
+                    body={
+                        "id": video_id,
+                        "status": {
+                            "privacyStatus": "private",
+                            "publishAt": publish_at,
+                        },
+                    },
+                )
+                .execute()
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise self._translate(exc, "Could not reschedule the video on YouTube.") from exc
+
     # ------------------------------------------------------------------ parsing
 
     @staticmethod

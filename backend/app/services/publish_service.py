@@ -29,7 +29,9 @@ from app.schemas.publishes import (
     PublishRequest,
     PublishSourceKind,
     PublishStatus,
+    PublishThumbnail,
     PublishVideoSource,
+    PublishVisibility,
 )
 from app.schemas.thumbnails import ThumbnailStatus
 from app.services.asset_service import AssetService
@@ -533,6 +535,64 @@ class PublishService:
                 "code": "YOUTUBE_VIDEO_DELETED",
                 "message": "This video was deleted directly on YouTube.",
             },
+        )
+
+    def recreate_for_schedule(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        source: dict[str, Any],
+        publish_at: datetime,
+    ) -> tuple[Publish, Job]:
+        """Queue a fresh upload for a calendar slot whose linked publish is dead.
+
+        Copies the dead publish's settings (video source, title, channel,
+        captions, thumbnail) so a rescheduled slot uploads the same thing again.
+        """
+        thumbnail = None
+        if source.get("thumbnailId"):
+            thumbnail = PublishThumbnail(
+                thumbnailId=str(source["thumbnailId"]),
+                version=source.get("thumbnailVersion"),
+            )
+        payload = PublishRequest(
+            connectionId=str(source["connectionId"]),
+            video=PublishVideoSource(
+                kind=PublishSourceKind(source.get("videoKind") or "source"),
+                id=source.get("videoId"),
+            ),
+            title=str(source.get("title") or "Untitled"),
+            description=str(source.get("description") or ""),
+            tags=list(source.get("tags") or []),
+            categoryId=str(source.get("categoryId") or "22"),
+            privacyStatus=PublishVisibility(source.get("privacyStatus") or "private"),
+            madeForKids=bool(source.get("madeForKids", False)),
+            notifySubscribers=bool(source.get("notifySubscribers", True)),
+            captionFormat=PublishCaptionFormat(source.get("captionFormat") or "srt"),
+            captionLanguage=str(source.get("captionLanguage") or "en"),
+            captionName=str(source.get("captionName") or "English"),
+            thumbnail=thumbnail,
+            publishAt=publish_at,
+        )
+        return self.create(owner_uid=owner_uid, project_id=project_id, payload=payload)
+
+    def reschedule_on_youtube(
+        self, *, owner_uid: str, project_id: str, publish_id: str
+    ) -> None:
+        """Move a waiting (private, scheduled) video's go-public time on YouTube."""
+        data = self._require(owner_uid, project_id, publish_id)
+        video_id = data.get("youtubeVideoId")
+        moment = data.get("publishAt")
+        if not video_id or not isinstance(moment, datetime):
+            return
+        when = moment if moment.tzinfo else moment.replace(tzinfo=UTC)
+        iso = when.astimezone(UTC).isoformat().replace("+00:00", "Z")
+        tokens = self.connections.tokens_for_use(
+            owner_uid=owner_uid, connection_id=str(data.get("connectionId"))
+        )
+        self._youtube_connector().update_publish_at(
+            tokens, video_id=str(video_id), publish_at=iso
         )
 
     def _promote_due(
