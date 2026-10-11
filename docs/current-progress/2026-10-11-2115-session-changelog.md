@@ -368,6 +368,37 @@ Verified: `ruff` + `mypy` (139 files) clean; backend `/api/healthz` 200.
 
 ---
 
+## 14. Stuck uvicorn reload (root cause) + status shown on calendar chips (23:16)
+
+User: "I cannot even see the status … Show it in the card" and "the scheduled
+entry for deleted video I have updated to previous slot but it did not send/post
+it".
+
+**Root cause of "did not post": the backend was running stale code.** The dev
+`uvicorn --reload` had stalled: `%TEMP%/habeas-backend.err.log` ended at
+`WatchFiles detected changes in 'app\workers\publish_worker.py'. Reloading...`
+with no following `Application startup complete`. So `_revive_slot_upload`
+(added later) was never loaded, the slot PATCH fell back to the old behaviour
+(only move `publishAt`), and no new upload was queued. Restarted the backend;
+it came up clean.
+
+**Recovered the post.** With the fresh backend, the revive created publish
+`61f9a663` and the worker uploaded **`jT2-hKGMy2s`** — YouTube API reports
+**`public`, `processed`**; slot `1f5e668f` → `published`.
+
+**Status is visible on the calendar now.** The month `EventChip` and the week-grid
+chip only colour-coded the status; both now also render `STATUS_META[status].label`
+(same as the day agenda, Upcoming rail, project schedule card and publish card),
+and the tooltip includes it.
+
+Verified: `oxlint` + `tsc` clean; backend `/api/healthz` 200 after restart.
+
+**Operational gotcha:** after backend edits, confirm the reload actually
+completed (`Application startup complete`) before testing — a stalled watcher
+silently serves old code. When in doubt, restart the process.
+
+---
+
 ## Verification throughout
 
 `bun run lint` (oxlint) and `bunx tsc --noEmit` clean after every step; dev

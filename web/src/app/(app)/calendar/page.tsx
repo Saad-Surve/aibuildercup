@@ -169,9 +169,9 @@ function EventChip({
     <button
       type="button"
       onClick={onOpen}
-      title={`${schedule.title} · ${projectName}`}
+      title={`${schedule.title} · ${projectName} · ${meta.label}`}
       className={cn(
-        "flex w-full items-center gap-1.5 truncate rounded-md px-1.5 py-1 text-left text-xs transition-colors",
+        "flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-xs transition-colors",
         meta.chip,
         highlighted &&
           "ring-2 ring-signal ring-offset-1 ring-offset-background",
@@ -179,10 +179,13 @@ function EventChip({
     >
       <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", meta.dot)} />
       <PlatformLogo platform={schedule.platform} size={14} />
-      <span className="hidden font-medium tabular-nums xl:inline">
+      <span className="hidden shrink-0 font-medium tabular-nums xl:inline">
         {format(new Date(schedule.scheduledAt), "HH:mm")}
       </span>
-      <span className="truncate">{schedule.title}</span>
+      <span className="min-w-0 flex-1 truncate">{schedule.title}</span>
+      <span className="shrink-0 text-[0.6rem] font-medium opacity-70">
+        {meta.label}
+      </span>
     </button>
   );
 }
@@ -405,7 +408,7 @@ function WeekTimeGrid({
                         event.stopPropagation();
                         onOpen(slot.schedule);
                       }}
-                      title={`${slot.schedule.title} · ${nameOf(slot.schedule)} · ${format(new Date(slot.schedule.scheduledAt), "HH:mm")}`}
+                      title={`${slot.schedule.title} · ${nameOf(slot.schedule)} · ${format(new Date(slot.schedule.scheduledAt), "HH:mm")} · ${meta.label}`}
                       className={cn(
                         "absolute z-20 flex items-center gap-1 overflow-hidden rounded-md px-1 text-left text-[11px] leading-none transition-colors",
                         meta.chip,
@@ -423,7 +426,12 @@ function WeekTimeGrid({
                         {format(new Date(slot.schedule.scheduledAt), "HH:mm")}
                       </span>
                       <PlatformLogo platform={slot.schedule.platform} size={12} />
-                      <span className="truncate">{slot.schedule.title}</span>
+                      <span className="min-w-0 flex-1 truncate">
+                        {slot.schedule.title}
+                      </span>
+                      <span className="shrink-0 font-medium opacity-70">
+                        {meta.label}
+                      </span>
                     </button>
                   );
                 })}
