@@ -1,5 +1,6 @@
 """Content-calendar endpoints: planned posting slots across projects."""
 
+import logging
 from datetime import datetime
 from typing import Annotated
 
@@ -25,6 +26,7 @@ from app.services.publish_service import PublishService
 from app.services.schedule_service import ScheduleService
 
 router = APIRouter(tags=["schedules"])
+logger = logging.getLogger(__name__)
 
 UserDep = Annotated[AuthenticatedUser, Depends(current_user)]
 ServiceDep = Annotated[ScheduleService, Depends(get_schedule_service)]
@@ -33,26 +35,32 @@ SchedulerDep = Annotated[PublishScheduler, Depends(get_publish_scheduler)]
 
 
 @router.get("/schedules", response_model=ScheduleList)
-async def list_schedules(
+def list_schedules(
     user: UserDep,
     service: ServiceDep,
+    publishes: PublishesDep,
     start: Annotated[datetime | None, Query()] = None,
     end: Annotated[datetime | None, Query()] = None,
 ) -> ScheduleList:
-    return ScheduleList(
-        items=service.list_for_owner(owner_uid=user.uid, start=start, end=end)
-    )
+    items = service.list_for_owner(owner_uid=user.uid, start=start, end=end)
+    if any(item.publishId for item in items):
+        _reconcile_linked_uploads(user.uid, items, publishes)
+        items = service.list_for_owner(owner_uid=user.uid, start=start, end=end)
+    return ScheduleList(items=items)
 
 
 @router.get("/projects/{projectId}/schedules", response_model=ScheduleList)
-async def list_project_schedules(
+def list_project_schedules(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
+    publishes: PublishesDep,
 ) -> ScheduleList:
-    return ScheduleList(
-        items=service.list_for_project(owner_uid=user.uid, project_id=projectId)
-    )
+    items = service.list_for_project(owner_uid=user.uid, project_id=projectId)
+    if any(item.publishId for item in items):
+        _reconcile_linked_uploads(user.uid, items, publishes)
+        items = service.list_for_project(owner_uid=user.uid, project_id=projectId)
+    return ScheduleList(items=items)
 
 
 @router.post(
@@ -107,6 +115,25 @@ async def delete_schedule(
     service: ServiceDep,
 ) -> None:
     service.delete(owner_uid=user.uid, project_id=projectId, schedule_id=scheduleId)
+
+
+def _reconcile_linked_uploads(
+    owner_uid: str, items: list[Schedule], publishes: PublishService
+) -> None:
+    """Reconcile live videos when the calendar is read.
+
+    The publishing studio already reconciles, but the calendar should not depend
+    on it: deleting a video on YouTube must flip its slot here too. `list` runs
+    the (throttled, batched) deletion check and cancels linked slots.
+    """
+    project_ids = sorted({item.projectId for item in items if item.publishId})
+    for project_id in project_ids:
+        try:
+            publishes.list(owner_uid=owner_uid, project_id=project_id)
+        except Exception:  # noqa: BLE001 - the calendar must still render
+            logger.warning(
+                "calendar: reconcile failed for project %s", project_id, exc_info=True
+            )
 
 
 def _revive_slot_upload(

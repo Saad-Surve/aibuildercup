@@ -233,15 +233,20 @@ class ScheduleService:
                 )
             if "connectionDisplayName" not in changes:
                 changes["connectionDisplayName"] = publish.get("connectionDisplayName")
+        moved = "scheduledAt" in changes
         if changes:
+            # Validate + move the linked publish BEFORE writing the slot, so a
+            # conflict (a live post) never half-applies a new time.
+            if moved:
+                self._sync_linked_publish(
+                    owner_uid, project_id, _to_schedule(schedule_id, {**data, **changes})
+                )
             changes["updatedAt"] = datetime.now(UTC)
             self.client.update_document(
                 schedule_path(owner_uid, project_id, schedule_id), changes
             )
             data.update(changes)
-        updated = _to_schedule(schedule_id, data)
-        self._sync_linked_publish(owner_uid, project_id, updated)
-        return updated
+        return _to_schedule(schedule_id, data)
 
     def delete(self, *, owner_uid: str, project_id: str, schedule_id: str) -> None:
         self._require(owner_uid, project_id, schedule_id)
@@ -262,9 +267,13 @@ class ScheduleService:
         path = publish_path(owner_uid, project_id, schedule.publishId)
         publish = self.client.get_document(path)
         if publish is None or publish.get("ownerUid") != owner_uid:
-            raise NotFoundError(
-                "Publish not found", details={"publishId": schedule.publishId}
+            # The upload record is gone; nothing to move (a rescheduled slot will
+            # get a fresh upload via the schedules API).
+            logger.warning(
+                "schedule: linked publish %s is missing; nothing to sync",
+                schedule.publishId,
             )
+            return
         if publish.get("status") == PublishStatus.published.value:
             raise ConflictError(
                 "This video already published; its calendar slot is history.",

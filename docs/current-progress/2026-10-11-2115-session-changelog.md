@@ -331,6 +331,43 @@ Verified: `ruff` + `mypy` (139 files) clean; `oxlint` + `tsc` clean; full build
 
 ---
 
+## 13. Calendar deletion sync + no half-applied reschedule (23:09)
+
+User: "Again the sync issue. I have deleted video from YT but it is still showing
+in my calendar as published" + earlier got "This video already published; its
+calendar slot is history."
+
+**Why the calendar stayed `published`.** The YouTube-deletion reconcile only ran
+from the *publish* read paths (`PublishService.list/get`). The calendar reads
+schedules, which never triggered it, so a deleted video kept its slot `published`
+unless the publishing studio (or the notification watcher) happened to poll.
+
+**Why the conflict half-applied.** `ScheduleService.update` wrote the new
+`scheduledAt` to Firestore *before* `_sync_linked_publish` raised the
+`SCHEDULE_PUBLISH_FINISHED` conflict, so a blocked edit still moved the slot time
+(observed: slot 17:35 vs publish 17:21).
+
+**Fixes.**
+- `api/schedules.py`: `_reconcile_linked_uploads` runs on the calendar list
+  endpoints (`GET /schedules`, `GET /projects/{id}/schedules`) — it calls
+  `publishes.list` for each project with a linked slot (throttled/batched
+  deletion check) and re-reads, so viewing the calendar syncs a YouTube deletion
+  to `cancelled`. Those handlers are now sync (`def`) since they do I/O.
+- `services/schedule_service.py`: `update` now calls `_sync_linked_publish`
+  *before* writing the slot, so a conflict aborts with nothing applied;
+  `_sync_linked_publish` no longer 404s on a missing publish record, it logs and
+  continues (the API then re-creates a fresh upload on reschedule).
+
+**Verified on the real slot** (`1f5e668f`): the calendar reconcile flipped it
+`published` → `cancelled` and publish `b02394f2` → `deleted`; the earlier
+half-written time was restored to 17:21. A direct conflict test (fake live
+publish + future reschedule) raised `SCHEDULE_PUBLISH_FINISHED` and left the slot
+time byte-identical.
+
+Verified: `ruff` + `mypy` (139 files) clean; backend `/api/healthz` 200.
+
+---
+
 ## Verification throughout
 
 `bun run lint` (oxlint) and `bunx tsc --noEmit` clean after every step; dev
