@@ -49,6 +49,14 @@ from app.services.transcript_service import TranscriptService
 
 logger = logging.getLogger(__name__)
 
+#: How long a live video's existence is trusted before re-checking YouTube.
+_RECONCILE_SECONDS = 60
+
+#: (publishId, publish, raw document) — carried through the live-video reconcile.
+#: A module-level alias, because inside `PublishService` the method named `list`
+#: shadows the builtin `list` for every annotation below it.
+_LiveItems = list[tuple[str, Publish, dict[str, Any]]]
+
 
 @dataclass(frozen=True)
 class ResolvedVideo:
@@ -408,14 +416,159 @@ class PublishService:
             limit=50,
             offset=0,
         )
-        return [
-            _to_publish(publish_id, data)
+        items = [
+            (
+                publish_id,
+                self._promote_due(owner_uid, project_id, _to_publish(publish_id, data)),
+                data,
+            )
             for publish_id, data in rows
             if data.get("ownerUid") == owner_uid
         ]
+        items = self._reconcile_live(owner_uid, project_id, items)
+        return [publish for _, publish, _ in items]
 
     def get(self, *, owner_uid: str, project_id: str, publish_id: str) -> Publish:
-        return _to_publish(publish_id, self._require(owner_uid, project_id, publish_id))
+        data = self._require(owner_uid, project_id, publish_id)
+        publish = self._promote_due(
+            owner_uid, project_id, _to_publish(publish_id, data)
+        )
+        items = self._reconcile_live(owner_uid, project_id, [(publish_id, publish, data)])
+        return items[0][1]
+
+    def _reconcile_live(
+        self,
+        owner_uid: str,
+        project_id: str,
+        items: _LiveItems,
+    ) -> _LiveItems:
+        """Notice a live video that was deleted directly on YouTube.
+
+        Batched, throttled `videos.list` per connection; an id the API no longer
+        returns marks the publish `deleted` and cancels its linked calendar slot.
+        A failed check leaves every publish untouched.
+        """
+        now = datetime.now(UTC)
+        stale = [
+            (publish_id, publish)
+            for publish_id, publish, data in items
+            if publish.status == PublishStatus.published
+            and publish.youtubeVideoId
+            and self._check_due(data.get("videoCheckedAt"), now)
+        ]
+        if not stale:
+            return items
+
+        by_connection: dict[str, list[Publish]] = {}
+        for _, publish in stale:
+            by_connection.setdefault(publish.connectionId, []).append(publish)
+
+        checked: set[str] = set()
+        existing: set[str] = set()
+        for connection_id, group in by_connection.items():
+            ids = [p.youtubeVideoId for p in group if p.youtubeVideoId]
+            try:
+                tokens = self.connections.tokens_for_use(
+                    owner_uid=owner_uid, connection_id=connection_id
+                )
+                existing |= self._youtube_connector().existing_video_ids(
+                    tokens, video_ids=ids
+                )
+            except Exception:  # noqa: BLE001 - a check failure must not break a read
+                logger.warning(
+                    "publish reconcile: could not check %d video(s) on connection %s",
+                    len(ids),
+                    connection_id,
+                    exc_info=True,
+                )
+                continue
+            checked.update(ids)
+
+        updates: dict[str, Publish] = {}
+        for publish_id, publish in stale:
+            video_id = publish.youtubeVideoId
+            if video_id is None or video_id not in checked:
+                continue
+            if video_id in existing:
+                self.client.update_document(
+                    publish_path(owner_uid, project_id, publish_id),
+                    {"videoCheckedAt": now},
+                )
+                continue
+            self._mark_deleted(owner_uid, project_id, publish_id)
+            updates[publish_id] = _to_publish(
+                publish_id, self._require(owner_uid, project_id, publish_id)
+            )
+
+        if not updates:
+            return items
+        return [
+            (publish_id, updates.get(publish_id, publish), data)
+            for publish_id, publish, data in items
+        ]
+
+    @staticmethod
+    def _check_due(checked: Any, now: datetime) -> bool:
+        if not isinstance(checked, datetime):
+            return True
+        moment = checked if checked.tzinfo else checked.replace(tzinfo=UTC)
+        return (now - moment.astimezone(UTC)).total_seconds() >= _RECONCILE_SECONDS
+
+    def _youtube_connector(self) -> Any:
+        from app.connectors.youtube import YouTubeConnector
+
+        return YouTubeConnector(
+            client_id=self.settings.google_oauth_client_id or "",
+            client_secret=self.settings.google_oauth_client_secret or "",
+        )
+
+    def _mark_deleted(self, owner_uid: str, project_id: str, publish_id: str) -> None:
+        self.mark_status(
+            owner_uid=owner_uid,
+            project_id=project_id,
+            publish_id=publish_id,
+            status=PublishStatus.deleted,
+            step="Deleted on YouTube",
+            error={
+                "code": "YOUTUBE_VIDEO_DELETED",
+                "message": "This video was deleted directly on YouTube.",
+            },
+        )
+
+    def _promote_due(
+        self, owner_uid: str, project_id: str, publish: Publish
+    ) -> Publish:
+        """Flip a scheduled upload to `published` once its go-public time passes.
+
+        YouTube holds the video private until `publishAt`, so until then the
+        publish stays `processing` and its linked calendar slot stays
+        `scheduled`. There is no scheduler in this runtime, so promotion happens
+        lazily when a publish is read — the notification watcher polls `list`
+        every cycle, so the "went live" notification and the calendar flip both
+        fire then.
+        """
+        if (
+            publish.status != PublishStatus.processing
+            or publish.publishAt is None
+            or publish.youtubeVideoId is None
+        ):
+            return publish
+        moment = publish.publishAt
+        if moment.tzinfo is None:
+            moment = moment.replace(tzinfo=UTC)
+        if moment.astimezone(UTC) > datetime.now(UTC):
+            return publish
+        self.mark_status(
+            owner_uid=owner_uid,
+            project_id=project_id,
+            publish_id=publish.publishId,
+            status=PublishStatus.published,
+            step="Published",
+            upload_progress=100,
+        )
+        return _to_publish(
+            publish.publishId, self._require(owner_uid, project_id, publish.publishId)
+        )
 
     def delete(self, *, owner_uid: str, project_id: str, publish_id: str) -> None:
         self._require(owner_uid, project_id, publish_id)
@@ -496,6 +649,13 @@ class PublishService:
             from app.services.schedule_service import ScheduleService
 
             ScheduleService(self.client, projects=self.projects).mark_linked_published(
+                owner_uid=owner_uid, project_id=project_id, publish_id=publish_id
+            )
+        elif status == PublishStatus.deleted:
+            # Gone from YouTube: its calendar slot is no longer a live post.
+            from app.services.schedule_service import ScheduleService
+
+            ScheduleService(self.client, projects=self.projects).mark_linked_cancelled(
                 owner_uid=owner_uid, project_id=project_id, publish_id=publish_id
             )
 

@@ -904,7 +904,8 @@ export type PublishStatus =
   | "uploading"
   | "processing"
   | "published"
-  | "failed";
+  | "failed"
+  | "deleted";
 
 export interface PublishThumbnailRef {
   thumbnailId: string;

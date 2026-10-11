@@ -40,7 +40,9 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api-client";
+import { listConnections } from "@/lib/connections";
 import { listProjects } from "@/lib/projects";
+import { createPublish } from "@/lib/publishes";
 import {
   createSchedule,
   deleteSchedule,
@@ -89,6 +91,12 @@ interface ScheduleDialogProps {
   initialPublishId?: string;
   /** Title for a new slot (an upload title); falls back to the project name. */
   initialTitle?: string;
+  /**
+   * Calendar mode: turn a new YouTube slot into a real scheduled upload.
+   * Creates a `publish` with `publishAt` (which auto-links its own slot), so the
+   * video actually uploads instead of only appearing on the calendar.
+   */
+  createUpload?: boolean;
   trigger?: ReactElement;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -101,6 +109,7 @@ export function ScheduleDialog({
   initialDate,
   initialPublishId,
   initialTitle,
+  createUpload,
   trigger,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
@@ -145,6 +154,12 @@ export function ScheduleDialog({
   });
   const projects = projectsQuery.data?.items ?? [];
 
+  const connectionsQuery = useQuery({
+    queryKey: ["connections"],
+    queryFn: listConnections,
+    enabled: open && Boolean(createUpload) && !editing,
+  });
+
   function invalidate(project: string) {
     void queryClient.invalidateQueries({ queryKey: ["schedules"] });
     void queryClient.invalidateQueries({
@@ -154,7 +169,7 @@ export function ScheduleDialog({
   }
 
   const saveMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const targetProject = fixedProjectId ?? projectId;
       if (!targetProject) throw new Error("Pick a project for this slot.");
       // No title field: a new slot takes the upload title, else the project
@@ -167,14 +182,50 @@ export function ScheduleDialog({
       if (!date) throw new Error("Pick a date for this slot.");
       const scheduledAt = combineLocal(date, time).toISOString();
       if (editing && schedule) {
-        return updateSchedule(schedule.projectId, schedule.scheduleId, {
-          notes,
-          platform: platform.trim() || "youtube",
-          scheduledAt,
-          status,
-        });
+        const saved = await updateSchedule(
+          schedule.projectId,
+          schedule.scheduleId,
+          {
+            notes,
+            platform: platform.trim() || "youtube",
+            scheduledAt,
+            status,
+          },
+        );
+        return { projectId: saved.projectId, upload: false };
       }
-      return createSchedule(targetProject, {
+      // A calendar-created YouTube slot becomes a real upload: creating the
+      // publish uploads the project's source video and auto-creates the linked
+      // slot (see PublishService.create + the publishes router). Falls back to a
+      // plain planner slot when there is no connected channel / source video.
+      if (createUpload && !initialPublishId && platform.trim() === "youtube") {
+        if (Date.parse(scheduledAt) <= Date.now()) {
+          throw new Error("Pick a time in the future to schedule an upload.");
+        }
+        const items =
+          connectionsQuery.data?.items ??
+          (await connectionsQuery.refetch()).data?.items ??
+          [];
+        const channel = items.find(
+          (item) => item.platform === "youtube" && item.status === "connected",
+        );
+        const project = projects.find(
+          (item) => item.projectId === targetProject,
+        );
+        if (channel && project?.sourceAssetId) {
+          await createPublish(targetProject, {
+            connectionId: channel.connectionId,
+            video: { kind: "source", id: null },
+            title: finalTitle,
+            description: "",
+            privacyStatus: "private",
+            captionFormat: "none",
+            publishAt: scheduledAt,
+          });
+          return { projectId: targetProject, upload: true };
+        }
+      }
+      const saved = await createSchedule(targetProject, {
         title: finalTitle,
         notes,
         platform: platform.trim() || "youtube",
@@ -182,10 +233,26 @@ export function ScheduleDialog({
         status,
         publishId: initialPublishId ?? null,
       });
+      return { projectId: saved.projectId, upload: false };
     },
     onSuccess: (saved) => {
       invalidate(saved.projectId);
-      toast.success(editing ? "Slot updated" : "Slot scheduled");
+      toast.success(
+        editing
+          ? "Slot updated"
+          : saved.upload
+            ? "Upload scheduled"
+            : "Slot scheduled",
+        !editing &&
+          createUpload &&
+          !saved.upload &&
+          platform.trim() === "youtube"
+          ? {
+              description:
+                "Connect a YouTube channel and add a source video to upload this slot automatically.",
+            }
+          : undefined,
+      );
       setOpen(false);
     },
     onError: (caught) => setError(describe(caught, "Could not save the slot.")),

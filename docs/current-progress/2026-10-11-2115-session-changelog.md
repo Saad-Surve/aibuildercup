@@ -114,6 +114,184 @@ Uncommitted (user didn't ask to commit this round).
 
 ---
 
+## 8. Scheduler bug: calendar slots never uploaded to YouTube (22:12)
+
+**Symptom.** "My scheduler is not working, it is not able to upload videos to
+YT."
+
+**Root cause (confirmed against live Firestore).** The content calendar's
+"Schedule a slot" only writes a *planner* record
+(`users/{uid}/projects/{pid}/schedules/{sid}` with `publishId: null`). Nothing
+ever turns a bare slot into an upload — the upload pipeline is only reached by
+creating a **publish** with `publishAt` (which the publishes router then mirrors
+onto the calendar via `ScheduleService.link_publish`). The user's data showed
+exactly that: one bare slot (`publishId: null`, `scheduledAt 09:28`) and **zero**
+publish documents, while an older immediate publish had uploaded fine. So
+scheduling from the calendar silently did nothing.
+
+**Fix (`web` only).** `ScheduleDialog` gained a `createUpload` flag (set by the
+calendar page's create flow). In create mode, for a YouTube slot with no
+existing `initialPublishId`, it now resolves the caller's connected YouTube
+channel and the project's source video and calls `createPublish` with
+`publishAt = scheduledAt`, `privacyStatus: "private"`, `captionFormat: "none"`.
+The backend uploads the video and auto-creates the linked calendar slot, so the
+slot is real. When there is no connected channel or no source video it falls
+back to the old bare-plan slot and the toast explains why. Edits and the studio's
+"Plan a slot" are unchanged.
+
+Files: `web/src/components/calendar/schedule-dialog.tsx`,
+`web/src/app/(app)/calendar/page.tsx`. No backend/contract change.
+
+Verified: `oxlint` + `tsc --noEmit` clean; `eslint` 0 errors (pre-existing
+`<img>` warnings only). Not exercised end-to-end (needs a signed-in session; the
+pasted bearer token was rejected by the local backend with 401 "Invalid token").
+
+**Not fixed / open.** The pre-existing bare slot at 09:28 is untouched (fix only
+affects new slots). Also note: a scheduled publish is marked `published` and its
+slot flips to `published` as soon as the *upload* finishes, even though YouTube
+holds it private until `publishAt` — a status-semantics wart, separate from this
+bug.
+
+---
+
+## 9. Go-live semantics + the real local blocker (22:19)
+
+User asked: "have you fixed everything? would I get notif after post goes live and
+status in calendar be updated? and link and everything". Answer: not everything.
+
+**Found a second, bigger problem.** The local backend has **no Google OAuth
+client configured** (`GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET` are
+missing from `backend/.env`, present in `.env.example`). `ConnectionService.
+tokens_for_use` needs them to refresh the channel's access token; once the
+~1-hour access token expires, every publish fails with
+`CONNECTION_NEEDS_REAUTH`. (A probe of mine also flipped the connection to
+`needs_reauth` as a side effect — I restored it to `connected` +
+`lastErrorCode: null`. It will flip again on the next publish until the env is
+set.) The upload at 08:25 worked only because its access token was still fresh.
+
+**Fixed go-live timing (backend).** Previously the worker marked a scheduled
+publish `published` *the moment the upload finished* — hours before it went
+public — which flipped the calendar slot to `published` and fired the "is live"
+notification early.
+- `workers/publish_worker.py`: when `publishAt` is still in the future, mark the
+  publish `processing` with step "Scheduled to go public <time>" (job still
+  succeeds) instead of `published`.
+- `services/publish_service.py`: new `_promote_due`, called from `list` and
+  `get`, flips a `processing` publish to `published` (which also flips its linked
+  calendar slot via `mark_linked_published`) once `publishAt` has passed. No
+  scheduler exists in this runtime, so promotion is lazy — the notification
+  watcher and the publishing module poll `list`, so the flip + notification fire
+  within one poll (~60s) of the real go-public time.
+- `web .../calendar/page.tsx`: the schedules query now polls every 60s while any
+  slot is still `scheduled`/`planned`, so the status updates in place.
+
+**What already works.** The "live" notification (`is live on YouTube`) and the
+`went live` schedule notification are both in `notification-center.tsx` and now
+fire at the right moment. The YouTube link exists on the publish card
+(`"Open on YouTube"` from `publish.youtubeUrl`) and is set by the worker after
+upload. `publishAt` is shown as "Goes public …".
+
+Verified: backend `ruff` + `mypy` (139 files) clean; web `oxlint` + `tsc` clean;
+backend `/api/healthz` 200 and `/calendar` 200.
+
+**Fixed the local blocker (env).** Pulled `youtube-oauth-client-id` /
+`youtube-oauth-client-secret` from Secret Manager into `backend/.env`
+(gitignored), restarted the backend, and verified
+`ConnectionService.tokens_for_use` now refreshes (access token len 254, 7 scopes;
+connection `connected`, no error). Publishing can refresh and upload locally now.
+(The earlier `v5hed68hifE` video has been deleted from the channel — the API
+returns no item for it.)
+
+**Still open / not fixed.**
+- ~~Set `GOOGLE_OAUTH_CLIENT_ID`/`_SECRET` in `backend/.env`~~ — done this session;
+  both values now live in the gitignored `.env` (from Secret Manager).
+- The calendar slot itself shows "Linked upload · <channel>" and links to the
+  project, but not directly to the YouTube video (the URL lives on the publish).
+  Denormalising `youtubeUrl` onto the schedule is the clean follow-up.
+- Lazy promotion is a demo-grade substitute for a real scheduler (Cloud
+  Scheduler + a due scan) and only runs while a client is polling.
+- Whether YouTube actually flips the video public at `publishAt` depends on the
+  OAuth client passing YouTube's API audit; an unaudited client's uploads stay
+  private regardless, and we don't verify the real privacy status before marking
+  it live.
+
+---
+
+## 10. The "Something" post at 22:26 failed — diagnosed and recovered (22:30)
+
+User: "I had scheduled for a post 'Something' at 22:26 but it was not uploaded".
+
+Firestore showed **my calendar fix did run**: a publish was created at 22:13 IST
+(16:43 UTC) and its job ran immediately, but it **failed** with
+`Google rejected the connection's token. Reconnect the channel.` That was
+*before* the OAuth env fix (22:19) — the job was doomed by the then-missing
+client id/secret. A second problem: the stored `scheduledAt` was `04:56 UTC`
+= **10:26 local**, not 22:26 — the `<input type="time">` dialog's default is
+10:00, and my calendar path did **not** reject past times.
+
+**Fixes.**
+- `workers/publish_worker.py`: a scheduled `publishAt` now drives privacy too —
+  future → upload `private` + `publishAt` (YouTube holds it); already past → drop
+  `publishAt` and upload `public` now (the go-live was intended).
+- `web .../calendar/schedule-dialog.tsx`: creating an upload slot now rejects a
+  time that is not in the future (the publish form already did).
+
+**Recovery (done).** Retried the failed publish via `PublishService.retry` +
+`run_publish`:
+- job `4816824e80fd197fc076bb68d8a95d06` → succeeded, video
+  **`ThVr4MD0FhQ`**, `https://www.youtube.com/watch?v=ThVr4MD0FhQ`
+- checked via the YouTube API: **privacyStatus `public`, uploadStatus
+  `processed`** → the OAuth client *is* allowed to publish publicly (so the
+  earlier audit caveat does not apply here)
+- the linked calendar slot flipped to `published`.
+
+Verified: `ruff` + `mypy` (139 files) clean; `oxlint` + `tsc` clean.
+
+**Default time fixed too.** The real root of the 10:26 slip: `at()` in
+`web .../calendar/page.tsx` hard-coded 10:00 for every new slot, so a slot on
+*today* opened in the past. It now keeps 10:00 for future days but, when the
+target day is today, rounds up to the next full hour (22:31 → 23:00) so the
+dialog always opens on a valid, publishable time. (Renamed the local `isToday`
+to avoid shadowing an outer variable.)
+
+**Still open.** The direct YouTube link on the calendar slot is still not added.
+
+---
+
+## 11. Sync a YouTube deletion back to the app (22:39)
+
+User: "if I have deleted the video directly on YT, it does not sync back to my
+calendar and project card." (They had in fact deleted `ThVr4MD0FhQ` — the channel
+ow has zero uploads.)
+
+**New status.** `PublishStatus.deleted` added to the backend enum + the web
+type; the publish badge shows "Deleted on YouTube" (muted, struck through).
+
+**Detection (lazy, batched, throttled).** `PublishService._reconcile_live`, run
+from `list` and `get`, checks live publishes against YouTube via a new
+`YouTubeConnector.existing_video_ids` (`videos.list(part=status)`, up to 50 ids
+per call). An id the API no longer returns marks the publish `deleted`
+(`YOUTUBE_VIDEO_DELETED`) and cancels its linked calendar slot
+(`ScheduleService.mark_linked_cancelled`, wired in `mark_status`). A failed
+check leaves the publish untouched, and each live video is only re-checked every
+`_RECONCILE_SECONDS` (60s) via a `videoCheckedAt` stamp — never on every read.
+
+**UI polling.** The studio's publish query now keeps polling (120s) while any
+publish is `published`, and the calendar polls while any slot is non-terminal,
+so both surfaces update after the deletion without a manual refresh.
+
+**Verified end-to-end** (temporarily faking a deleted id, then restoring): the
+publish flipped to `deleted` with the right error and the slot to `cancelled`;
+`existing_video_ids` correctly excludes a missing id. Ran the same reconcile on
+the real data: publish `d5dbfdd1…` → `deleted`, slot
+`1f5e668f…` → `cancelled`.
+
+Contracts: `openapi.yaml` PublishStatus enum now includes `deleted`. Verified:
+`ruff` + `mypy` (139 files) clean; `oxlint` + `tsc` clean; backend `/api/healthz`
+200.
+
+---
+
 ## Verification throughout
 
 `bun run lint` (oxlint) and `bunx tsc --noEmit` clean after every step; dev

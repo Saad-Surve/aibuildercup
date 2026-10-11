@@ -212,6 +212,21 @@ async def run_publish(
             status=PublishStatus.uploading,
             step="Uploading the video to YouTube",
         )
+        # A scheduled go-public time drives both the upload status and privacy:
+        # in the future YouTube holds the video private until then; if the moment
+        # already passed, upload it public now (the go-live was intended).
+        scheduled_at = _iso_or_none(publish.get("publishAt"))
+        goes_live_later = False
+        upload_publish_at: str | None = None
+        upload_privacy = str(publish.get("privacyStatus") or "private")
+        if scheduled_at is not None:
+            moment = datetime.fromisoformat(scheduled_at.replace("Z", "+00:00"))
+            if moment > datetime.now(UTC):
+                goes_live_later = True
+                upload_publish_at = scheduled_at
+                upload_privacy = "private"
+            else:
+                upload_privacy = "public"
         uploaded = await asyncio.to_thread(
             connector.upload_video,
             tokens,
@@ -220,10 +235,10 @@ async def run_publish(
             description=str(publish.get("description") or ""),
             tags=list(publish.get("tags") or []),
             category_id=str(publish.get("categoryId") or "22"),
-            privacy_status=str(publish.get("privacyStatus") or "private"),
+            privacy_status=upload_privacy,
             made_for_kids=bool(publish.get("madeForKids", False)),
             notify_subscribers=bool(publish.get("notifySubscribers", True)),
-            publish_at=_iso_or_none(publish.get("publishAt")),
+            publish_at=upload_publish_at,
             on_progress=on_progress,
             mime_type=str(publish.get("videoMimeType") or "video/mp4"),
         )
@@ -320,13 +335,23 @@ async def run_publish(
                 step="Captions uploaded",
             )
 
+        # A future go-public time means the upload is done but YouTube holds the
+        # video private until then. Keep the publish `processing` (not
+        # `published`) so the calendar slot and the "is live" notification wait
+        # for the real moment; `PublishService.list/get` promotes it once due.
         await asyncio.to_thread(
             publishes.mark_status,
             owner_uid=owner_uid,
             project_id=project_id,
             publish_id=publish_id,
-            status=PublishStatus.published,
-            step="Published",
+            status=(
+                PublishStatus.processing if goes_live_later else PublishStatus.published
+            ),
+            step=(
+                f"Scheduled to go public {scheduled_at}"
+                if goes_live_later
+                else "Published"
+            ),
             upload_progress=100,
             youtube_video_id=uploaded.video_id,
             youtube_url=youtube_url,
@@ -337,7 +362,11 @@ async def run_publish(
             project_id=project_id,
             job_id=job_id,
             output={"publishIds": [publish_id], "youtubeVideoId": uploaded.video_id},
-            message="Published to YouTube",
+            message=(
+                "Uploaded; scheduled on YouTube"
+                if goes_live_later
+                else "Published to YouTube"
+            ),
         )
         return publish_id
     except ConnectorError as exc:

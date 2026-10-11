@@ -4105,7 +4105,7 @@ components:
 
     PublishStatus:
       type: string
-      enum: [queued, uploading, processing, published, failed]
+      enum: [queued, uploading, processing, published, failed, deleted]
 
     Publish:
       type: object

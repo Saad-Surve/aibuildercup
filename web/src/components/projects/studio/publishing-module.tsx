@@ -116,6 +116,8 @@ function statusTone(status: Publish["status"]): string {
     return "border-sev-good/40 bg-sev-good/10 text-sev-good";
   if (status === "failed")
     return "border-sev-high/40 bg-sev-high/10 text-sev-high";
+  if (status === "deleted")
+    return "border-border bg-muted text-muted-foreground line-through";
   return "border-border bg-muted text-muted-foreground";
 }
 
@@ -123,7 +125,9 @@ function PublishStatusBadge({ status }: { status: Publish["status"] }) {
   const label =
     status === "processing"
       ? "YouTube processing"
-      : status.charAt(0).toUpperCase() + status.slice(1);
+      : status === "deleted"
+        ? "Deleted on YouTube"
+        : status.charAt(0).toUpperCase() + status.slice(1);
   return <Badge className={statusTone(status)}>{label}</Badge>;
 }
 
@@ -203,7 +207,10 @@ export function PublishingModule({
           item.status === "uploading" ||
           item.status === "processing",
       );
-      return active ? 4000 : false;
+      if (active) return 4000;
+      // Keep checking live videos so a deletion on YouTube syncs back here.
+      const live = items.some((item) => item.status === "published");
+      return live ? 120_000 : false;
     },
     refetchIntervalInBackground: true,
   });

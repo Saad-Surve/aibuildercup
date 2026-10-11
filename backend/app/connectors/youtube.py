@@ -376,6 +376,35 @@ class YouTubeConnector:
             raise self._translate(exc, "YouTube rejected the caption track.") from exc
         return response.get("id")
 
+    def existing_video_ids(
+        self, tokens: OAuthTokenSet, *, video_ids: list[str]
+    ) -> set[str]:
+        """Which of these ids still exist on the channel (a deleted video is absent).
+
+        One `videos.list` per 50 ids (1 quota unit each) with `part=status`, so a
+        bulk "was it deleted on YouTube?" check stays cheap.
+        """
+        if not video_ids:
+            return set()
+        service = self._service(tokens)
+        found: set[str] = set()
+        try:
+            for start in range(0, len(video_ids), 50):
+                batch = video_ids[start : start + 50]
+                response = (
+                    service.videos()
+                    .list(part="status", id=",".join(batch))
+                    .execute()
+                )
+                found.update(
+                    str(item.get("id"))
+                    for item in response.get("items") or []
+                    if item.get("id")
+                )
+        except Exception as exc:  # noqa: BLE001 - normalised below
+            raise self._translate(exc, "Could not check the videos on YouTube.") from exc
+        return found
+
     # ------------------------------------------------------------------ parsing
 
     @staticmethod

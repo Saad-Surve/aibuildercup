@@ -80,6 +80,8 @@ class PublishStatus(StrEnum):
     processing = "processing"
     published = "published"
     failed = "failed"
+    #: The video is gone from YouTube (deleted directly there), not an upload failure.
+    deleted = "deleted"
 
 
 class Publish(BaseModel):

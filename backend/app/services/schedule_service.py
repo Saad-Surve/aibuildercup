@@ -305,6 +305,35 @@ class ScheduleService:
                     publish_id,
                 )
 
+    def mark_linked_cancelled(
+        self, *, owner_uid: str, project_id: str, publish_id: str
+    ) -> None:
+        """Cancel linked calendar entries when a live video is deleted on YouTube."""
+        rows = self.client.query_collection(
+            schedules_collection_path(owner_uid, project_id),
+            filters=[("publishId", "==", publish_id)],
+            order_by=[],
+            limit=50,
+            offset=0,
+        )
+        now = datetime.now(UTC)
+        for schedule_id, data in rows:
+            if data.get("ownerUid") != owner_uid:
+                continue
+            if data.get("status") == ScheduleStatus.cancelled.value:
+                continue
+            try:
+                self.client.update_document(
+                    schedule_path(owner_uid, project_id, schedule_id),
+                    {"status": ScheduleStatus.cancelled.value, "updatedAt": now},
+                )
+            except Exception:  # noqa: BLE001 - a calendar write must not fail the publish
+                logger.warning(
+                    "schedule: could not cancel %s for deleted publish %s",
+                    schedule_id,
+                    publish_id,
+                )
+
     def _require(
         self, owner_uid: str, project_id: str, schedule_id: str
     ) -> dict[str, Any]:

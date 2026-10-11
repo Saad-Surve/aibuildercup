@@ -95,9 +95,25 @@ const FILTERS: { value: ScheduleStatus | "all"; label: string }[] = [
   { value: "cancelled", label: "Cancelled" },
 ];
 
+/*
+ * Default time for a new slot. A future day keeps the calm 10:00 posting
+ * default, but a slot on *today* must never open in the past — round up to the
+ * next full hour (22:31 -> 23:00) so the create dialog always starts on a
+ * valid, publishable time. Past days stay at 10:00 and are rejected on save.
+ */
 function at(day: Date): Date {
   const next = new Date(day);
-  next.setHours(10, 0, 0, 0);
+  const now = new Date();
+  const onToday =
+    next.getFullYear() === now.getFullYear() &&
+    next.getMonth() === now.getMonth() &&
+    next.getDate() === now.getDate();
+  if (onToday) {
+    next.setMinutes(0, 0, 0);
+    next.setHours(next.getHours() + 1);
+  } else {
+    next.setHours(10, 0, 0, 0);
+  }
   return next;
 }
 
@@ -452,6 +468,17 @@ function CalendarInner() {
   const schedulesQuery = useQuery({
     queryKey: ["schedules", startISO, endISO],
     queryFn: () => listSchedules({ start: startISO, end: endISO }),
+    // While any slot is still waiting to go live, poll so a scheduled upload's
+    // status flips in place once its go-public time passes (the backend promotes
+    // it lazily when publishes are read).
+    refetchInterval: (query) => {
+      const items = query.state.data?.items ?? [];
+      // Keep polling unless every slot is terminal, so a scheduled upload's
+      // status flips here at go-live and a YouTube deletion flips it to
+      // cancelled.
+      const waiting = items.some((item) => item.status !== "cancelled");
+      return waiting ? 60_000 : false;
+    },
   });
   const projectsQuery = useQuery({
     queryKey: ["projects"],
@@ -840,6 +867,7 @@ function CalendarInner() {
         <ScheduleDialog
           key={`create-${dialog.date.getTime()}`}
           initialDate={dialog.date}
+          createUpload
           open={dialogOpen}
           onOpenChange={(next) => {
             if (!next) setDialog(null);
