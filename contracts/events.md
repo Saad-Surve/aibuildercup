@@ -70,6 +70,7 @@ Client → server (JSON, one object per frame):
 
 ```json
 {"type": "subscribe.project", "projectId": "project-id"}
+{"type": "unsubscribe.project", "projectId": "project-id"}
 {"type": "ping"}
 ```
 
@@ -108,6 +109,12 @@ Server → client:
 
 - The server sends `snapshot.project` immediately after a successful subscribe; the
   client uses it to prime the progress UI without an extra HTTP fetch.
+- The server registers the subscription after verifying ownership and before reading
+  the snapshot, so events written during the read remain queued for delivery.
+- `unsubscribe.project` removes only that project's subscription from the calling
+  socket. Clients send it when the last local observer leaves the project.
+- A client whose bounded event queue fills is closed with code `1013`; reconnect
+  and HTTP cache invalidation restore its state rather than silently losing events.
 - Events are emitted when the backing documents are written, inside the job write path —
   there is no separate broker to poll. If no socket is subscribed, emission is a no-op.
 - `analysis.progress` events fire per reviewer outcome (not just per job tick), giving
@@ -115,4 +122,3 @@ Server → client:
 - Keepalive: either side sends `ping`; the peer answers `pong`. The server pings every
   ~30s. Server-initiated close → client reconnects with backoff.
 - Malformed or unauthorized frames: the server sends `error` and closes the socket.
-

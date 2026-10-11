@@ -17,11 +17,12 @@ real write. If a queue overruns, that queue is dropped and the client reconnects
 import asyncio
 import json
 import logging
+from threading import RLock
 
 log = logging.getLogger(__name__)
 
 # Per-connection queue depth. A queue that falls this far behind is dropped.
-_MAX_QUEUE_DEPTH = 256
+DISCONNECT_FRAME = {"type": "_disconnect"}
 
 
 def json_ready(data: dict) -> dict:
@@ -38,12 +39,14 @@ class EventHub:
         # The loop the sockets live on, captured on first connect so a publish
         # from a worker thread can still deliver safely.
         self._loop: asyncio.AbstractEventLoop | None = None
+        self._lock = RLock()
 
     def bind_loop(self, loop: asyncio.AbstractEventLoop) -> None:
         self._loop = loop
 
     def queues_for(self, owner_uid: str, project_id: str) -> list[asyncio.Queue[dict]]:
-        return self._subscribers.get((owner_uid, project_id), [])
+        with self._lock:
+            return list(self._subscribers.get((owner_uid, project_id), []))
 
     def has_subscribers(self, owner_uid: str, project_id: str) -> bool:
         """True when at least one socket is watching this project.
@@ -55,20 +58,36 @@ class EventHub:
 
     def subscribe(self, owner_uid: str, project_id: str, queue: asyncio.Queue[dict]) -> None:
         """Start delivering events for a project to a socket queue."""
-        queues = self._subscribers.setdefault((owner_uid, project_id), [])
-        if queue not in queues:  # a resubscribe must not duplicate deliveries
-            queues.append(queue)
+        with self._lock:
+            queues = self._subscribers.setdefault((owner_uid, project_id), [])
+            if queue not in queues:
+                queues.append(queue)
 
-    def unsubscribe(self, queue: asyncio.Queue[dict]) -> None:
+    def unsubscribe(
+        self, queue: asyncio.Queue[dict], *, project: tuple[str, str] | None = None
+    ) -> None:
         """Remove one queue from every project it subscribed to."""
-        stale: list[tuple[str, str]] = []
-        for key, queues in self._subscribers.items():
-            if queue in queues:
-                queues.remove(queue)
+        with self._lock:
+            keys = [project] if project is not None else list(self._subscribers)
+            for key in keys:
+                queues = self._subscribers.get(key, [])
+                if queue in queues:
+                    queues.remove(queue)
                 if not queues:
-                    stale.append(key)
-        for key in stale:
-            self._subscribers.pop(key, None)
+                    self._subscribers.pop(key, None)
+
+    def _enqueue(self, queue: asyncio.Queue[dict], data: dict) -> None:
+        """Runs on the socket loop, including the overflow handling."""
+        try:
+            queue.put_nowait(data)
+        except asyncio.QueueFull:
+            self.unsubscribe(queue)
+            # Wake the writer with a close signal; just removing subscriptions
+            # would leave a healthy-looking socket receiving only keepalives.
+            while not queue.empty():
+                queue.get_nowait()
+            queue.put_nowait(DISCONNECT_FRAME)
+            log.warning("realtime queue overrun; closing slow socket")
 
     def _deliver(self, queue: asyncio.Queue[dict], data: dict) -> bool:
         """Put one event on a queue, from the loop or a worker thread."""
@@ -77,10 +96,10 @@ class EventHub:
         except RuntimeError:
             running = None
         if running is self._loop or self._loop is None:
-            queue.put_nowait(data)
+            self._enqueue(queue, data)
         else:
             # Called off the socket's loop (sync worker/threadpool path).
-            self._loop.call_soon_threadsafe(queue.put_nowait, data)
+            self._loop.call_soon_threadsafe(self._enqueue, queue, data)
         return True
 
     def publish(self, owner_uid: str, project_id: str, data: dict) -> int:
@@ -96,10 +115,8 @@ class EventHub:
             try:
                 self._deliver(queue, data)
                 delivered += 1
-            except asyncio.QueueFull:
-                # The socket cannot keep up; drop it so the client resyncs via
-                # a fresh snapshot on reconnect instead of drifting silently.
-                log.warning("realtime queue overrun, dropping socket: project=%s", project_id)
+            except RuntimeError:
+                # The socket loop may already have stopped during shutdown.
                 self.unsubscribe(queue)
         return delivered
 

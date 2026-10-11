@@ -5,6 +5,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api import (
@@ -33,7 +34,7 @@ from app.auth.read_only import (
     READ_ONLY_MESSAGE,
     is_read_only_allowed,
     is_write_method,
-    read_only_claims,
+    write_token_claims,
 )
 from app.config import get_settings
 from app.errors import AppError, error_body
@@ -82,10 +83,11 @@ def create_app() -> FastAPI:
         ):
             header = request.headers.get("authorization", "")
             if header.lower().startswith("bearer "):
-                claims = read_only_claims(header[7:].strip())
+                claims = await run_in_threadpool(write_token_claims, header[7:].strip())
                 if claims is not None:
                     # Cache the verified claims so `current_user` need not verify again.
                     request.state.firebase_token_claims = claims
+                if claims is not None and claims.get("uid") in settings.read_only_user_uids:
                     return JSONResponse(
                         status_code=403,
                         content=error_body(
@@ -119,7 +121,8 @@ def create_app() -> FastAPI:
         # Say no-store at the origin so no layer in front can second-guess it.
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
         response.headers["Pragma"] = "no-cache"
-        response.headers["Vary"] = "Authorization"
+        vary = response.headers.get("Vary", "")
+        response.headers["Vary"] = f"{vary}, Authorization" if vary else "Authorization"
         return response
 
     @app.exception_handler(AppError)
@@ -140,9 +143,7 @@ def create_app() -> FastAPI:
         message = exc.detail if isinstance(exc.detail, str) else "Request failed"
         return JSONResponse(
             status_code=exc.status_code,
-            content=error_body(
-                code=code, message=message, request_id=_request_id(request)
-            ),
+            content=error_body(code=code, message=message, request_id=_request_id(request)),
         )
 
     @app.exception_handler(RequestValidationError)

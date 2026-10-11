@@ -17,10 +17,10 @@ ServiceDep = Annotated[JobService, Depends(get_job_service)]
 
 
 @router.get("/jobs/{jobId}", response_model=Job)
-async def get_job(jobId: str, user: UserDep, service: ServiceDep) -> Job:
+def get_job(jobId: str, user: UserDep, service: ServiceDep) -> Job:
     return service.get(owner_uid=user.uid, job_id=jobId)
 
 
 @router.post("/jobs/{jobId}/cancel", response_model=Job)
-async def cancel_job(jobId: str, user: UserDep, service: ServiceDep) -> Job:
+def cancel_job(jobId: str, user: UserDep, service: ServiceDep) -> Job:
     return service.cancel(owner_uid=user.uid, job_id=jobId)

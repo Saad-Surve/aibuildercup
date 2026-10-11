@@ -61,10 +61,21 @@ async function readBlob(key: string): Promise<Blob | null> {
     try {
       const value = await new Promise<unknown>((resolve, reject) => {
         const transaction = db.transaction(STORE_NAME, "readonly");
-        const request = transaction.objectStore(STORE_NAME).get(key);
-        request.addEventListener("success", () =>
-          resolve(request.result ?? null),
-        );
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get(key);
+        request.addEventListener("success", () => {
+          // New project entries point to the asset blob; older entries contain
+          // the blob itself and remain readable without a migration.
+          if (typeof request.result === "string") {
+            const linked = store.get(request.result);
+            linked.addEventListener("success", () =>
+              resolve(linked.result ?? null),
+            );
+            linked.addEventListener("error", () => reject(linked.error));
+          } else {
+            resolve(request.result ?? null);
+          }
+        });
         request.addEventListener("error", () =>
           reject(request.error ?? new Error("Could not read video cache.")),
         );
@@ -90,7 +101,8 @@ export async function saveVideoBlob(
       const transaction = db.transaction(STORE_NAME, "readwrite");
       const store = transaction.objectStore(STORE_NAME);
       store.put(blob, assetBlobKey(assetId));
-      if (projectId) store.put(blob, projectBlobKey(projectId));
+      if (projectId)
+        store.put(assetBlobKey(assetId), projectBlobKey(projectId));
       transaction.addEventListener("complete", () => resolve());
       transaction.addEventListener("error", () =>
         reject(transaction.error ?? new Error("Could not cache video.")),
@@ -223,19 +235,22 @@ function nextFrames(count = 2): Promise<void> {
  * Capture a poster frame from a blob without attaching anything to the DOM.
  * Tries several timestamps so fade-from-black intros don't yield a black card.
  */
-export function capturePoster(blob: Blob): Promise<string> {
+export function capturePoster(source: Blob | string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(blob);
+    const objectUrl =
+      typeof source === "string" ? null : URL.createObjectURL(source);
+    const url = objectUrl ?? (source as string);
     const video = document.createElement("video");
     video.muted = true;
     video.playsInline = true;
-    video.preload = "auto";
+    video.preload = "metadata";
+    video.crossOrigin = "anonymous";
     video.src = url;
 
     let settled = false;
     const cleanup = () => {
       window.clearTimeout(timer);
-      URL.revokeObjectURL(url);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
       video.removeAttribute("src");
       video.load();
     };
@@ -364,13 +379,9 @@ async function resolvePoster(ref: PosterRef): Promise<string | null> {
     try {
       const { getDownloadUrl } = await import("@/lib/projects");
       const playback = await getDownloadUrl(ref.projectId, ref.assetId);
-      const response = await fetch(playback.url);
-      if (!response.ok) return null;
-      const blob = await response.blob();
-      if (!blob.type.startsWith("video")) return null;
-      // Warm the blob cache so the next playback is instant and offline.
-      saveVideoBlob(ref.assetId, blob, ref.projectId).catch(() => {});
-      const dataUrl = await capturePoster(blob);
+      // Let the video element request metadata/frame ranges from GCS instead
+      // of downloading and caching the entire object just for a small poster.
+      const dataUrl = await capturePoster(playback.url);
       saveCachedPoster(ref.assetId, dataUrl, ref.projectId);
       return dataUrl;
     } catch {

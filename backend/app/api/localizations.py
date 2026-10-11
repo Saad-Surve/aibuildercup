@@ -40,7 +40,7 @@ SchedulerDep = Annotated[DubScheduler, Depends(get_dub_scheduler)]
 
 
 @router.get("/localization-voices", response_model=LocalizationVoiceList)
-async def list_localization_voices(user: UserDep) -> LocalizationVoiceList:
+def list_localization_voices(user: UserDep) -> LocalizationVoiceList:
     """Languages the dubbing pipeline can synthesize and the voices available for each."""
     return LocalizationVoiceList(
         items=[
@@ -67,7 +67,7 @@ async def list_localization_voices(user: UserDep) -> LocalizationVoiceList:
     response_model=LocalizationAccepted,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def create_localization(
+def create_localization(
     projectId: str,
     payload: LocalizationRequest,
     user: UserDep,
@@ -97,7 +97,7 @@ async def create_localization(
     "/projects/{projectId}/localizations",
     response_model=LocalizationList,
 )
-async def list_localizations(
+def list_localizations(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
@@ -111,7 +111,7 @@ async def list_localizations(
     "/projects/{projectId}/localizations/{localizationId}",
     response_model=Localization,
 )
-async def get_localization(
+def get_localization(
     projectId: str,
     localizationId: str,
     user: UserDep,
@@ -128,7 +128,7 @@ async def get_localization(
     "/projects/{projectId}/localizations/{localizationId}/download-url",
     response_model=DownloadUrl,
 )
-async def get_localization_download_url(
+def get_localization_download_url(
     projectId: str,
     localizationId: str,
     user: UserDep,
@@ -146,7 +146,7 @@ async def get_localization_download_url(
     "/projects/{projectId}/localizations/{localizationId}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_localization(
+def delete_localization(
     projectId: str,
     localizationId: str,
     user: UserDep,

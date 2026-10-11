@@ -2590,7 +2590,15 @@ components:
     WsClientMessage:
       oneOf:
         - $ref: "#/components/schemas/WsSubscribeProject"
+        - $ref: "#/components/schemas/WsUnsubscribeProject"
         - $ref: "#/components/schemas/WsPing"
+
+    WsUnsubscribeProject:
+      type: object
+      required: [type, projectId]
+      properties:
+        type: { type: string, enum: [unsubscribe.project] }
+        projectId: { type: string }
 
     ProjectProgress:
       type: object

@@ -43,6 +43,14 @@ demoProfiles/{demoProfileId}  platform
 - Only the backend reads `connections`, `glossaries`, `demoProfiles`.
 - Ownership is checked in the API, not only in Firestore rules.
 
+## Job idempotency
+
+New job IDs are the first 32 hexadecimal characters of SHA-256 over
+`{ownerUid}/{projectId}/{idempotencyKey}`. The document is created atomically rather than
+overwritten: concurrent requests for the same key converge on one job. Existing random
+job IDs remain readable and are reused through the idempotency-key query. The job document
+shape and project deletion path are unchanged.
+
 ## User document: onboarding and research
 
 `users/{uid}.onboarding` holds `status`, `currentStep`, `answers`, and `schemaVersion`. After

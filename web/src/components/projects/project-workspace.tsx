@@ -2,20 +2,38 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
-import { DraftWorkspace } from "@/components/projects/draft/draft-workspace";
 import { EditProjectDialog } from "@/components/projects/edit-project-dialog";
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge";
-import { VideoStudio } from "@/components/projects/video-studio";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProjectEvents } from "@/hooks/use-project-events";
 import { useStudioModule } from "@/hooks/use-studio-module";
 import { getJob, getProject } from "@/lib/projects";
 import type { Job } from "@/lib/types";
+
+function WorkspaceLoading() {
+  return <Skeleton className="h-[min(70vh,48rem)] w-full" />;
+}
+
+const DraftWorkspace = dynamic(
+  () =>
+    import("@/components/projects/draft/draft-workspace").then(
+      (module) => module.DraftWorkspace,
+    ),
+  { loading: WorkspaceLoading },
+);
+const VideoStudio = dynamic(
+  () =>
+    import("@/components/projects/video-studio").then(
+      (module) => module.VideoStudio,
+    ),
+  { loading: WorkspaceLoading },
+);
 
 /**
  * Project router. Fetches the project, drives the realtime socket, and hands off

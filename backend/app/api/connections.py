@@ -38,7 +38,7 @@ ServiceDep = Annotated[ConnectionService, Depends(get_connection_service)]
 
 
 @router.get("/connections", response_model=ConnectionList)
-async def list_connections(user: UserDep, service: ServiceDep) -> ConnectionList:
+def list_connections(user: UserDep, service: ServiceDep) -> ConnectionList:
     return ConnectionList(items=service.list(owner_uid=user.uid))
 
 
@@ -47,7 +47,7 @@ async def list_connections(user: UserDep, service: ServiceDep) -> ConnectionList
     response_model=OAuthStartResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def start_oauth(
+def start_oauth(
     platform: str,
     payload: OAuthStartRequest,
     user: UserDep,
@@ -57,7 +57,7 @@ async def start_oauth(
 
 
 @router.get("/connections/{platform}/oauth/callback", include_in_schema=True)
-async def oauth_callback(
+def oauth_callback(
     platform: str,
     service: ServiceDep,
     state: str = "",
@@ -76,7 +76,7 @@ async def oauth_callback(
 
 
 @router.post("/connections/{connectionId}/sync", response_model=Connection)
-async def sync_connection(
+def sync_connection(
     connectionId: str,
     user: UserDep,
     service: ServiceDep,
@@ -91,7 +91,7 @@ ContentServiceDep = Annotated[ChannelContentService, Depends(get_channel_content
     "/connections/{connectionId}/content/sync",
     response_model=ChannelContentProfile,
 )
-async def sync_connection_content(
+def sync_connection_content(
     connectionId: str,
     user: UserDep,
     service: ContentServiceDep,
@@ -104,7 +104,7 @@ async def sync_connection_content(
     "/connections/{connectionId}/content",
     response_model=ChannelContentProfile,
 )
-async def get_connection_content(
+def get_connection_content(
     connectionId: str,
     user: UserDep,
     service: ContentServiceDep,
@@ -116,7 +116,7 @@ async def get_connection_content(
     "/connections/{connectionId}/audience/sync",
     response_model=AudienceProfile,
 )
-async def sync_connection_audience(
+def sync_connection_audience(
     connectionId: str,
     user: UserDep,
     service: ContentServiceDep,
@@ -129,7 +129,7 @@ async def sync_connection_audience(
     "/connections/{connectionId}/audience",
     response_model=AudienceProfile,
 )
-async def get_connection_audience(
+def get_connection_audience(
     connectionId: str,
     user: UserDep,
     service: ContentServiceDep,
@@ -138,7 +138,7 @@ async def get_connection_audience(
 
 
 @router.delete("/connections/{connectionId}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_connection(
+def delete_connection(
     connectionId: str,
     user: UserDep,
     service: ServiceDep,

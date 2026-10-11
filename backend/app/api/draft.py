@@ -27,7 +27,7 @@ ServiceDep = Annotated[DraftService, Depends(get_draft_service)]
 
 
 @router.get("/projects/{projectId}/draft", response_model=Draft)
-async def get_draft(
+def get_draft(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
@@ -36,7 +36,7 @@ async def get_draft(
 
 
 @router.put("/projects/{projectId}/draft", response_model=Draft)
-async def save_draft(
+def save_draft(
     projectId: str,
     payload: SaveDraftRequest,
     user: UserDep,
@@ -46,7 +46,7 @@ async def save_draft(
 
 
 @router.get("/projects/{projectId}/draft/context", response_model=CreatorContext)
-async def get_draft_context(
+def get_draft_context(
     projectId: str,
     user: UserDep,
     service: ServiceDep,

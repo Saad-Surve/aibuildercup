@@ -37,7 +37,7 @@ def _with_poster(service: ProjectService, project: Project) -> Project:
 
 
 @router.get("/projects", response_model=ProjectList)
-async def list_projects(
+def list_projects(
     user: UserDep,
     service: ServiceDep,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
@@ -53,7 +53,7 @@ async def list_projects(
 
 
 @router.post("/projects", response_model=Project, status_code=status.HTTP_201_CREATED)
-async def create_project(
+def create_project(
     payload: CreateProject,
     user: UserDep,
     service: ServiceDep,
@@ -73,7 +73,7 @@ async def create_project(
 
 
 @router.get("/projects/{projectId}", response_model=Project)
-async def get_project(
+def get_project(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
@@ -84,7 +84,7 @@ async def get_project(
 
 
 @router.patch("/projects/{projectId}", response_model=Project)
-async def update_project(
+def update_project(
     projectId: str,
     payload: UpdateProject,
     user: UserDep,
@@ -97,7 +97,7 @@ async def update_project(
 
 
 @router.delete("/projects/{projectId}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_project(
+def delete_project(
     projectId: str,
     user: UserDep,
     service: ServiceDep,

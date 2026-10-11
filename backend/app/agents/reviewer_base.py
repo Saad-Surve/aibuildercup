@@ -12,6 +12,7 @@ Two things live here so they cannot drift between the thirteen reviewers:
   with clamped timestamps, bounded scores, and resolved segment ids.
 """
 
+import asyncio
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -619,8 +620,12 @@ class LlmReviewer:
                 path = ""
                 if store is not None:
                     try:
-                        path = store.save(
-                            part, reviewer_run_id=reviewer_run_id, tool=name, index=index
+                        path = await asyncio.to_thread(
+                            store.save,
+                            part,
+                            reviewer_run_id=reviewer_run_id,
+                            tool=name,
+                            index=index,
                         )
                     except Exception:  # noqa: BLE001 - storage must not lose the review
                         logger.warning(

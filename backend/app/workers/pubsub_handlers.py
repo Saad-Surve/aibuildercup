@@ -6,6 +6,7 @@ diagrams 4/5): object finalized -> `video-events` -> push subscription -> this h
 job as `POST /assets/{id}/complete` is reused, so the two paths converge.
 """
 
+import asyncio
 import base64
 import json
 import logging
@@ -63,8 +64,11 @@ async def handle_video_finalized(
 
     assets = dependencies["assets"]
     try:
-        job = assets.queue_transcription(
-            owner_uid=owner_uid, project_id=project_id, asset_id=asset_id
+        job = await asyncio.to_thread(
+            assets.queue_transcription,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            asset_id=asset_id,
         )
     except NotFoundError:
         logger.warning("video event for unknown asset %s; ignoring", asset_id)

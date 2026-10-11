@@ -7,8 +7,8 @@ match without knowing the project.
 """
 
 from datetime import UTC, datetime
+from hashlib import sha256
 from typing import Any
-from uuid import uuid4
 
 from app.errors import ConflictError, NotFoundError
 from app.realtime.events import emit_job
@@ -63,7 +63,10 @@ class JobService:
         if existing is not None:
             return existing
 
-        job_id = uuid4().hex
+        # A query alone races under concurrent upload-complete/Pub/Sub delivery.
+        # Keep the legacy lookup above, but let Firestore arbitrate new jobs at
+        # a stable ID instead of creating two random IDs and charging twice.
+        job_id = sha256(f"{owner_uid}/{project_id}/{idempotency_key}".encode()).hexdigest()[:32]
         now = datetime.now(UTC)
         document: dict[str, Any] = {
             "jobId": job_id,
@@ -88,7 +91,10 @@ class JobService:
             "createdAt": now,
             "updatedAt": now,
         }
-        self.client.set_document(job_path(owner_uid, project_id, job_id), document)
+        if not self.client.create_document(job_path(owner_uid, project_id, job_id), document):
+            document = self.load_for_worker(
+                owner_uid=owner_uid, project_id=project_id, job_id=job_id
+            )
         return _to_job(job_id, document)
 
     def get(self, *, owner_uid: str, job_id: str) -> Job:

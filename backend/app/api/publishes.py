@@ -35,7 +35,7 @@ SchedulerDep = Annotated[PublishScheduler, Depends(get_publish_scheduler)]
     response_model=PublishAccepted,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def create_publish(
+def create_publish(
     projectId: str,
     payload: PublishRequest,
     user: UserDep,
@@ -69,7 +69,7 @@ async def create_publish(
 
 
 @router.get("/projects/{projectId}/publishes", response_model=PublishList)
-async def list_publishes(
+def list_publishes(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
@@ -78,7 +78,7 @@ async def list_publishes(
 
 
 @router.get("/projects/{projectId}/publishes/{publishId}", response_model=Publish)
-async def get_publish(
+def get_publish(
     projectId: str,
     publishId: str,
     user: UserDep,
@@ -92,7 +92,7 @@ async def get_publish(
     response_model=PublishAccepted,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def retry_publish(
+def retry_publish(
     projectId: str,
     publishId: str,
     user: UserDep,
@@ -117,7 +117,7 @@ async def retry_publish(
     "/projects/{projectId}/publishes/{publishId}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_publish(
+def delete_publish(
     projectId: str,
     publishId: str,
     user: UserDep,

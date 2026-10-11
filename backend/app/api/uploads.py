@@ -33,7 +33,7 @@ SchedulerDep = Annotated[TranscribeScheduler, Depends(get_transcribe_scheduler)]
     response_model=UploadSession,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_upload_session(
+def create_upload_session(
     projectId: str,
     payload: CreateUploadSession,
     user: UserDep,
@@ -45,7 +45,7 @@ async def create_upload_session(
 
 
 @router.get("/projects/{projectId}/assets", response_model=AssetList)
-async def list_assets(
+def list_assets(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
@@ -54,7 +54,7 @@ async def list_assets(
 
 
 @router.get("/projects/{projectId}/revisions", response_model=RevisionList)
-async def list_revisions(
+def list_revisions(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
@@ -70,7 +70,7 @@ async def list_revisions(
     response_model=RevisionActivation,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def activate_revision(
+def activate_revision(
     projectId: str,
     assetId: str,
     user: UserDep,
@@ -96,7 +96,7 @@ async def activate_revision(
     "/projects/{projectId}/assets/{assetId}/download-url",
     response_model=DownloadUrl,
 )
-async def download_url(
+def download_url(
     projectId: str,
     assetId: str,
     user: UserDep,
@@ -112,7 +112,7 @@ async def download_url(
     response_model=AcceptedJob,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def complete_upload(
+def complete_upload(
     projectId: str,
     assetId: str,
     user: UserDep,

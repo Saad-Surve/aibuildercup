@@ -34,6 +34,18 @@ STT_REGION=us                               # Chirp 3 is GA on `us`, not in us-c
 
 ## 2. Backend repository structure
 
+HTTP endpoints that call synchronous Firestore, Storage, OAuth, or connector services use
+plain `def`, so FastAPI executes them in its bounded thread pool. Coroutine routes/workers
+offload those calls with `asyncio.to_thread` (or `run_in_threadpool` in HTTP middleware and
+WebSocket handlers); model calls remain async. Do not run blocking cloud I/O on the socket's
+event loop.
+
+Bulk persistence uses `FirestoreClient.set_documents` in bounded 400-document commits.
+New jobs use atomic creation at a deterministic ID derived from owner/project/idempotency key;
+legacy random IDs are still reused. The in-process `serialize_job` guard wraps all worker entry
+points to prevent duplicate deliveries from executing the same job concurrently. This guard
+matches the current single-instance deployment; scaling out requires a distributed job lease.
+
 ~~~text
 backend/
 ├── app/

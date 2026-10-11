@@ -26,7 +26,7 @@ ServiceDep = Annotated[GlossaryService, Depends(get_glossary_service)]
 
 
 @router.get("/glossaries", response_model=GlobalCorpus)
-async def get_global_corpus(user: UserDep) -> GlobalCorpus:
+def get_global_corpus(user: UserDep) -> GlobalCorpus:
     """The bundled global corpus version and the language pairs it covers."""
     return GlobalCorpus(
         version=corpus_version(),
@@ -44,7 +44,7 @@ async def get_global_corpus(user: UserDep) -> GlobalCorpus:
     "/projects/{projectId}/glossary",
     response_model=Glossary,
 )
-async def get_project_glossary(
+def get_project_glossary(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
@@ -56,7 +56,7 @@ async def get_project_glossary(
     "/projects/{projectId}/glossary",
     response_model=Glossary,
 )
-async def put_project_glossary(
+def put_project_glossary(
     projectId: str,
     payload: GlossaryUpdate,
     user: UserDep,

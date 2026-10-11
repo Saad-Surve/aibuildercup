@@ -1,31 +1,35 @@
 from functools import lru_cache
+from threading import Lock
 
 import firebase_admin
 from firebase_admin import auth
 
 from app.config import get_settings
 
+_app_lock = Lock()
+
 
 @lru_cache
 def _ensure_app() -> firebase_admin.App:
-    if not firebase_admin._apps:
-        settings = get_settings()
-        # The `serviceAccountId` is what lets the Admin SDK sign custom tokens through the IAM
-        # signBlob API instead of requiring a downloaded private key. On Cloud Run the runtime
-        # service account signs as itself (`api_sign_blob` in infra/iam.tf); locally, Application
-        # Default Credentials sign as it too, which is why the developer needs
-        # `roles/iam.serviceAccountTokenCreator` on this service account.
-        service_account = (
-            settings.storage_signing_service_account
-            or f"creator-studio-api@{settings.project_id}.iam.gserviceaccount.com"
-        )
-        firebase_admin.initialize_app(
-            options={
-                "projectId": settings.firebase_project_id,
-                "serviceAccountId": service_account,
-            }
-        )
-    return firebase_admin.get_app()
+    with _app_lock:
+        if not firebase_admin._apps:
+            settings = get_settings()
+            # The `serviceAccountId` is what lets the Admin SDK sign custom tokens through the IAM
+            # signBlob API instead of requiring a downloaded private key. On Cloud Run the runtime
+            # The service account signs as itself (`api_sign_blob` in infra/iam.tf).
+            # Locally, Application Default Credentials sign as it too, so the developer needs
+            # `roles/iam.serviceAccountTokenCreator` on this service account.
+            service_account = (
+                settings.storage_signing_service_account
+                or f"creator-studio-api@{settings.project_id}.iam.gserviceaccount.com"
+            )
+            firebase_admin.initialize_app(
+                options={
+                    "projectId": settings.firebase_project_id,
+                    "serviceAccountId": service_account,
+                }
+            )
+        return firebase_admin.get_app()
 
 
 def verify_id_token(token: str) -> dict:

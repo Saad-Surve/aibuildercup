@@ -6,6 +6,7 @@ keeps onboarding working. Every version is also written as an immutable revision
 `personaRevisions` document.
 """
 
+import asyncio
 import json
 import logging
 from datetime import UTC, datetime
@@ -102,21 +103,26 @@ class PersonaService:
         self.settings = settings
 
     async def complete_onboarding(self, owner_uid: str) -> PersonaRef:
-        self.users.ensure_user(owner_uid)
-        answers = self.users.get_onboarding(owner_uid).answers
+        await asyncio.to_thread(self.users.ensure_user, owner_uid)
+        state = await asyncio.to_thread(self.users.get_onboarding, owner_uid)
+        answers = state.answers
         markdown = await self._generate_markdown(answers)
 
         now = datetime.now(UTC)
-        canonical_path, revision_path = self._persist(owner_uid, markdown, version=1)
+        canonical_path, revision_path = await asyncio.to_thread(
+            self._persist, owner_uid, markdown, version=1
+        )
         language = str(answers.get("primaryLanguage") or "en")
-        self.users.set_persona(
+        await asyncio.to_thread(
+            self.users.set_persona,
             owner_uid,
             storage_path=canonical_path,
             version=1,
             language=language,
             approved_at=now,
         )
-        self._write_revision(
+        await asyncio.to_thread(
+            self._write_revision,
             owner_uid,
             version=1,
             storage_path=revision_path,
@@ -125,7 +131,7 @@ class PersonaService:
             source="onboarding",
             created_at=now,
         )
-        self.users.mark_onboarding_complete(owner_uid)
+        await asyncio.to_thread(self.users.mark_onboarding_complete, owner_uid)
         return PersonaRef(
             onboardingCompleted=True,
             personaVersion=1,

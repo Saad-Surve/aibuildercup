@@ -31,12 +31,12 @@ PersonaResearchServiceDep = Annotated[
 
 
 @router.get("/onboarding", response_model=OnboardingState)
-async def get_onboarding(user: UserDep, service: UserServiceDep) -> OnboardingState:
+def get_onboarding(user: UserDep, service: UserServiceDep) -> OnboardingState:
     return service.get_onboarding(user.uid)
 
 
 @router.put("/onboarding", response_model=OnboardingState)
-async def save_onboarding_step(
+def save_onboarding_step(
     payload: OnboardingStep,
     user: UserDep,
     service: UserServiceDep,
@@ -62,12 +62,12 @@ async def complete_onboarding(
 
 
 @router.get("/persona", response_model=Persona)
-async def get_persona(user: UserDep, service: PersonaServiceDep) -> Persona:
+def get_persona(user: UserDep, service: PersonaServiceDep) -> Persona:
     return service.get(user.uid)
 
 
 @router.patch("/persona", response_model=Persona)
-async def update_persona(
+def update_persona(
     payload: PersonaUpdate,
     user: UserDep,
     service: PersonaServiceDep,

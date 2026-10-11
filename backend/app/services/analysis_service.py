@@ -252,13 +252,9 @@ class AnalysisService:
                 code="TRANSCRIPT_NOT_READY",
                 details={"projectId": project_id},
             )
-        transcript = self.client.get_document(
-            transcript_path(owner_uid, project_id, transcript_id)
-        )
+        transcript = self.client.get_document(transcript_path(owner_uid, project_id, transcript_id))
         if transcript is None or not is_owner(transcript, owner_uid):
-            raise NotFoundError(
-                "Transcript not found", details={"transcriptId": transcript_id}
-            )
+            raise NotFoundError("Transcript not found", details={"transcriptId": transcript_id})
         persona_version = self._persona_version(owner_uid)
 
         analysis_run_id = uuid4().hex
@@ -306,8 +302,8 @@ class AnalysisService:
         self.client.set_document(
             analysis_run_path(owner_uid, project_id, analysis_run_id), document
         )
-        for dimension in dimensions:
-            self.client.set_document(
+        self.client.set_documents(
+            (
                 reviewer_run_path(
                     owner_uid, project_id, analysis_run_id, reviewer_run_ids[dimension.value]
                 ),
@@ -328,6 +324,8 @@ class AnalysisService:
                     "updatedAt": now,
                 },
             )
+            for dimension in dimensions
+        )
         return _to_analysis_run(analysis_run_id, document), job
 
     def load_run_document(
@@ -579,8 +577,8 @@ class AnalysisService:
         findings: Sequence[Finding],
     ) -> int:
         now = datetime.now(UTC)
-        for finding in findings:
-            self.client.set_document(
+        self.client.set_documents(
+            (
                 finding_path(owner_uid, project_id, analysis_run_id, finding.findingId),
                 {
                     "ownerUid": owner_uid,
@@ -595,15 +593,15 @@ class AnalysisService:
                     "findingType": finding.findingType,
                     "evidence": {
                         "quote": finding.evidence.quote,
-                        "critique_and_reasoning": (
-                            finding.evidence.critique_and_reasoning
-                        ),
+                        "critique_and_reasoning": (finding.evidence.critique_and_reasoning),
                     },
                     "suggestion": finding.suggestion,
                     "citations": finding.citations,
                     "createdAt": now,
                 },
             )
+            for finding in findings
+        )
         return len(findings)
 
     def save_bins(
@@ -615,11 +613,9 @@ class AnalysisService:
         bins: Sequence[HeatmapBin],
     ) -> int:
         now = datetime.now(UTC)
-        for heatmap_bin in bins:
-            self.client.set_document(
-                heatmap_bin_path(
-                    owner_uid, project_id, analysis_run_id, heatmap_bin.binId
-                ),
+        self.client.set_documents(
+            (
+                heatmap_bin_path(owner_uid, project_id, analysis_run_id, heatmap_bin.binId),
                 {
                     "ownerUid": owner_uid,
                     "binId": heatmap_bin.binId,
@@ -633,6 +629,8 @@ class AnalysisService:
                     "createdAt": now,
                 },
             )
+            for heatmap_bin in bins
+        )
         return len(bins)
 
     def finish_run(

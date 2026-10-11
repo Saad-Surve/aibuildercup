@@ -249,7 +249,7 @@ class TranscriptService:
                 limit=1,
                 offset=0,
             )
-            match = next((tid, data) for tid, data in rows if is_owner(data, owner_uid))
+            match = next(((tid, data) for tid, data in rows if is_owner(data, owner_uid)), None)
             if match is None:
                 raise NotFoundError(
                     "Transcript version not found",
@@ -444,9 +444,7 @@ class TranscriptService:
     ) -> str:
         # The caller's real media duration wins when known; otherwise fall back to the
         # last segment so the transcript never outruns the video.
-        duration_ms = int(duration_ms or 0) or max(
-            (int(s["endMs"]) for s in segments), default=0
-        )
+        duration_ms = int(duration_ms or 0) or max((int(s["endMs"]) for s in segments), default=0)
         transcript_id = uuid4().hex
         now = datetime.now(UTC)
         speaker_labels = speaker_labels or {}
@@ -499,8 +497,8 @@ class TranscriptService:
             },
         )
         base = transcript_path(owner_uid, project_id, transcript_id)
-        for segment in segments:
-            self.client.set_document(
+        self.client.set_documents(
+            (
                 f"{base}/segments/{segment['segmentId']}",
                 {
                     "ownerUid": owner_uid,
@@ -513,6 +511,8 @@ class TranscriptService:
                     "createdAt": now,
                 },
             )
+            for segment in segments
+        )
         self.client.update_document(
             project_path(owner_uid, project_id),
             {

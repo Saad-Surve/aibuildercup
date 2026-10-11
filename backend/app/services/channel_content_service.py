@@ -43,17 +43,83 @@ logger = logging.getLogger(__name__)
 
 _WORD = re.compile(r"[A-Za-z0-9']+")
 _HASHTAG = re.compile(r"#\w+")
-_EMOJI = re.compile(
-    "[\U0001F000-\U0001FAFF\u2600-\u27BF\u2190-\u21FF\u2B00-\u2BFF]"
-)
+_EMOJI = re.compile("[\U0001f000-\U0001faff\u2600-\u27bf\u2190-\u21ff\u2b00-\u2bff]")
 _STOPWORDS = frozenset(
     {
-        "the", "a", "an", "and", "or", "but", "to", "of", "in", "on", "for", "with", "at", "by",
-        "from", "is", "are", "was", "were", "be", "been", "this", "that", "these", "those", "it",
-        "its", "as", "your", "you", "my", "i", "we", "our", "how", "what", "why", "when", "where",
-        "who", "which", "do", "does", "did", "can", "will", "just", "so", "if", "then", "than",
-        "too", "very", "about", "into", "over", "after", "before", "up", "down", "out", "off",
-        "not", "no", "yes", "get", "got", "make", "made", "use", "using", "new", "one", "two",
+        "the",
+        "a",
+        "an",
+        "and",
+        "or",
+        "but",
+        "to",
+        "of",
+        "in",
+        "on",
+        "for",
+        "with",
+        "at",
+        "by",
+        "from",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "this",
+        "that",
+        "these",
+        "those",
+        "it",
+        "its",
+        "as",
+        "your",
+        "you",
+        "my",
+        "i",
+        "we",
+        "our",
+        "how",
+        "what",
+        "why",
+        "when",
+        "where",
+        "who",
+        "which",
+        "do",
+        "does",
+        "did",
+        "can",
+        "will",
+        "just",
+        "so",
+        "if",
+        "then",
+        "than",
+        "too",
+        "very",
+        "about",
+        "into",
+        "over",
+        "after",
+        "before",
+        "up",
+        "down",
+        "out",
+        "off",
+        "not",
+        "no",
+        "yes",
+        "get",
+        "got",
+        "make",
+        "made",
+        "use",
+        "using",
+        "new",
+        "one",
+        "two",
     }
 )
 
@@ -222,9 +288,7 @@ class ChannelContentService:
     def sync(self, *, owner_uid: str, connection_id: str) -> ChannelContentProfile:
         """Read the channel's published videos (and a capped set of transcripts) into Firestore."""
         connection = self.connections.get(owner_uid=owner_uid, connection_id=connection_id)
-        tokens = self.connections.tokens_for_use(
-            owner_uid=owner_uid, connection_id=connection_id
-        )
+        tokens = self.connections.tokens_for_use(owner_uid=owner_uid, connection_id=connection_id)
         connector = self._connector()
 
         uploads = connection.uploadsPlaylistId
@@ -248,8 +312,8 @@ class ChannelContentService:
             max_videos=self.settings.channel_content_max_videos,
         )
         now = datetime.now(UTC)
-        for video in videos:
-            self.client.set_document(
+        self.client.set_documents(
+            (
                 content_item_path(owner_uid, connection_id, video.video_id),
                 {
                     "ownerUid": owner_uid,
@@ -270,6 +334,8 @@ class ChannelContentService:
                     "updatedAt": now,
                 },
             )
+            for video in videos
+        )
 
         transcripts = self._fetch_transcripts(
             owner_uid=owner_uid,

@@ -12,6 +12,7 @@ results are persisted as they land, so a half-finished run still shows what its
 completed reviewers found.
 """
 
+import asyncio
 import logging
 from typing import Any
 
@@ -31,7 +32,7 @@ from app.errors import NotFoundError
 from app.events import build_event, topic_for_event
 from app.providers import get_providers
 from app.providers.base import LlmProvider
-from app.schemas.analysis import AnalysisDimension, AnalysisRunStatus, Finding
+from app.schemas.analysis import AnalysisDimension, AnalysisRunStatus
 from app.schemas.jobs import JobStatus
 from app.services.analysis_service import AnalysisService
 from app.services.cost import estimate_cost_usd
@@ -53,6 +54,7 @@ from app.services.video_tools import (
     MediaToolkit,
     ffmpeg_available,
 )
+from app.workers.guard import serialize_job
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +70,7 @@ _REVIEW_START_PERCENT = 10
 _REVIEW_END_PERCENT = 85
 
 
+@serialize_job
 async def run_analysis(
     *,
     owner_uid: str,
@@ -85,7 +88,9 @@ async def run_analysis(
 ) -> str | None:
     """Run one multi-reviewer analysis job. Returns the analysis run id, or None."""
     try:
-        job = jobs.load_for_worker(owner_uid=owner_uid, project_id=project_id, job_id=job_id)
+        job = await asyncio.to_thread(
+            jobs.load_for_worker, owner_uid=owner_uid, project_id=project_id, job_id=job_id
+        )
     except NotFoundError:
         logger.warning("analyze job %s not found; skipping", job_id)
         return None
@@ -96,7 +101,8 @@ async def run_analysis(
 
     analysis_run_id = (job.get("input") or {}).get("analysisRunId")
     if not analysis_run_id:
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -106,12 +112,16 @@ async def run_analysis(
         return None
 
     try:
-        run = analyses.load_run_document(
-            owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+        run = await asyncio.to_thread(
+            analyses.load_run_document,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            analysis_run_id=analysis_run_id,
         )
     except NotFoundError:
         logger.warning("analyze job %s: run %s not found", job_id, analysis_run_id)
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -120,11 +130,10 @@ async def run_analysis(
         )
         return None
 
-    dimensions = [
-        AnalysisDimension(value) for value in run.get("requestedDimensions", [])
-    ]
+    dimensions = [AnalysisDimension(value) for value in run.get("requestedDimensions", [])]
     if not dimensions:
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -133,7 +142,8 @@ async def run_analysis(
         )
         return None
 
-    jobs.mark_running(
+    await asyncio.to_thread(
+        jobs.mark_running,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,
@@ -141,20 +151,23 @@ async def run_analysis(
         message="Loading transcript",
     )
     try:
-        transcript = transcripts.get_by_id(
+        transcript = await asyncio.to_thread(
+            transcripts.get_by_id,
             owner_uid=owner_uid,
             project_id=project_id,
             transcript_id=str(run.get("transcriptId") or ""),
         )
     except NotFoundError:
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
             message="Transcript for this analysis is gone. Start a new analysis.",
             code="ANALYZE_FAILED",
         )
-        analyses.finish_run(
+        await asyncio.to_thread(
+            analyses.finish_run,
             owner_uid=owner_uid,
             project_id=project_id,
             analysis_run_id=analysis_run_id,
@@ -176,14 +189,16 @@ async def run_analysis(
         for segment in transcript.segments
     ]
     if not segments:
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
             message="Transcript has no segments to review.",
             code="ANALYZE_FAILED",
         )
-        analyses.finish_run(
+        await asyncio.to_thread(
+            analyses.finish_run,
             owner_uid=owner_uid,
             project_id=project_id,
             analysis_run_id=analysis_run_id,
@@ -195,13 +210,16 @@ async def run_analysis(
         )
         return None
 
-    persona_markdown, persona_version = _load_persona(users, storage, owner_uid)
-    audience = _load_audience(users, owner_uid)
-    video_title, thumbnail_concept = _load_packaging(analyses, owner_uid, project_id)
+    persona_markdown, persona_version = await asyncio.to_thread(
+        _load_persona, users, storage, owner_uid
+    )
+    audience = await asyncio.to_thread(_load_audience, users, owner_uid)
+    video_title, thumbnail_concept = await asyncio.to_thread(
+        _load_packaging, analyses, owner_uid, project_id
+    )
     platform = str(run.get("platform") or "youtube")
     reviewer_run_ids = {
-        AnalysisDimension(key): value
-        for key, value in (run.get("reviewerRunIds") or {}).items()
+        AnalysisDimension(key): value for key, value in (run.get("reviewerRunIds") or {}).items()
     }
 
     chunks = chunk_segments(segments, max_chars=max_chunk_chars)
@@ -215,7 +233,8 @@ async def run_analysis(
         video_title=video_title,
         thumbnail_concept=thumbnail_concept,
     )
-    analyses.mark_running(
+    await asyncio.to_thread(
+        analyses.mark_running,
         owner_uid=owner_uid,
         project_id=project_id,
         analysis_run_id=analysis_run_id,
@@ -228,7 +247,8 @@ async def run_analysis(
         len(chunks),
     )
 
-    visual_tools = _build_visual_tools(
+    visual_tools = await asyncio.to_thread(
+        _build_visual_tools,
         analyses,
         storage,
         settings,
@@ -251,33 +271,35 @@ async def run_analysis(
         grounding_enabled=settings.truth_grounding_enabled,
     )
     completed: list[DimensionOutcome] = []
-    all_findings: list[Finding] = []
+    outcome_lock = asyncio.Lock()
     total_dimensions = max(1, len(dimensions))
 
     async def on_outcome(outcome: DimensionOutcome) -> None:
-        completed.append(outcome)
-        all_findings.extend(outcome.findings)
-        _persist_outcome(
-            analyses,
-            pubsub,
-            owner_uid=owner_uid,
-            project_id=project_id,
-            analysis_run_id=analysis_run_id,
-            outcome=outcome,
-        )
-        jobs.update_progress(
-            owner_uid=owner_uid,
-            project_id=project_id,
-            job_id=job_id,
-            percent=_REVIEW_START_PERCENT
-            + int(
-                (_REVIEW_END_PERCENT - _REVIEW_START_PERCENT)
-                * len(completed)
-                / total_dimensions
-            ),
-            step=f"reviewer:{outcome.dimension.value}",
-            message=f"{len(completed)}/{total_dimensions} reviewers finished",
-        )
+        async with outcome_lock:
+            completed.append(outcome)
+            await asyncio.to_thread(
+                _persist_outcome,
+                analyses,
+                pubsub,
+                owner_uid=owner_uid,
+                project_id=project_id,
+                analysis_run_id=analysis_run_id,
+                outcome=outcome,
+            )
+            await asyncio.to_thread(
+                jobs.update_progress,
+                owner_uid=owner_uid,
+                project_id=project_id,
+                job_id=job_id,
+                percent=_REVIEW_START_PERCENT
+                + int(
+                    (_REVIEW_END_PERCENT - _REVIEW_START_PERCENT)
+                    * len(completed)
+                    / total_dimensions
+                ),
+                step=f"reviewer:{outcome.dimension.value}",
+                message=f"{len(completed)}/{total_dimensions} reviewers finished",
+            )
 
     try:
         outcomes = await run_reviewers(
@@ -289,14 +311,16 @@ async def run_analysis(
         )
     except Exception as exc:  # noqa: BLE001 - record the failure on the job and the run
         logger.exception("analyze job %s: fan-out failed", job_id)
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
             message=f"Analysis failed: {exc}",
             code="ANALYZE_FAILED",
         )
-        analyses.finish_run(
+        await asyncio.to_thread(
+            analyses.finish_run,
             owner_uid=owner_uid,
             project_id=project_id,
             analysis_run_id=analysis_run_id,
@@ -309,7 +333,8 @@ async def run_analysis(
         return None
 
     findings = [finding for outcome in outcomes for finding in outcome.findings]
-    jobs.update_progress(
+    await asyncio.to_thread(
+        jobs.update_progress,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,
@@ -320,7 +345,8 @@ async def run_analysis(
 
     bins = aggregate_bins(findings, duration_ms=transcript.durationMs)
     summary = summarize_findings(findings)
-    analyses.save_bins(
+    await asyncio.to_thread(
+        analyses.save_bins,
         owner_uid=owner_uid,
         project_id=project_id,
         analysis_run_id=analysis_run_id,
@@ -355,7 +381,8 @@ async def run_analysis(
         else None
     )
 
-    run_model = analyses.finish_run(
+    run_model = await asyncio.to_thread(
+        analyses.finish_run,
         owner_uid=owner_uid,
         project_id=project_id,
         analysis_run_id=analysis_run_id,
@@ -366,7 +393,8 @@ async def run_analysis(
         error=error,
     )
     if status is AnalysisRunStatus.failed:
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -374,7 +402,8 @@ async def run_analysis(
             code="ANALYZE_FAILED",
         )
     else:
-        jobs.mark_succeeded(
+        await asyncio.to_thread(
+            jobs.mark_succeeded,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -385,11 +414,10 @@ async def run_analysis(
                 "findingCount": len(findings),
                 "heatmapBinCount": len(bins),
             },
-            message=(
-                "Completed" if status is AnalysisRunStatus.ready else "Completed with gaps"
-            ),
+            message=("Completed" if status is AnalysisRunStatus.ready else "Completed with gaps"),
         )
-    _publish(
+    await asyncio.to_thread(
+        _publish,
         pubsub,
         event_type="analysis.ready",
         owner_uid=owner_uid,
@@ -427,22 +455,20 @@ def _persist_outcome(
 ) -> None:
     """Record one reviewer's result the moment it lands."""
     try:
-        analyses.save_reviewer_outcome(
-            owner_uid=owner_uid,
-            project_id=project_id,
-            analysis_run_id=analysis_run_id,
-            outcome=outcome,
-        )
         analyses.save_findings(
             owner_uid=owner_uid,
             project_id=project_id,
             analysis_run_id=analysis_run_id,
             findings=outcome.findings,
         )
-    except Exception:  # noqa: BLE001 - a write failure must not lose the other reviewers
-        logger.exception(
-            "failed to persist %s reviewer result", outcome.dimension.value
+        analyses.save_reviewer_outcome(
+            owner_uid=owner_uid,
+            project_id=project_id,
+            analysis_run_id=analysis_run_id,
+            outcome=outcome,
         )
+    except Exception:  # noqa: BLE001 - a write failure must not lose the other reviewers
+        logger.exception("failed to persist %s reviewer result", outcome.dimension.value)
         return
     _publish(
         pubsub,

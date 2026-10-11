@@ -27,24 +27,42 @@ import githubDark from "shiki/themes/github-dark.mjs";
 import githubLight from "shiki/themes/github-light.mjs";
 
 /** Languages bundled for highlighting. Add here if a new fence language shows up often. */
-const highlighter = createHighlighterCoreSync({
-  themes: [githubLight, githubDark],
-  langs: [
-    bash,
-    css,
-    html,
-    javascript,
-    json,
-    jsx,
-    markdown,
-    python,
-    shell,
-    tsx,
-    typescript,
-    yaml,
-  ],
-  engine: createJavaScriptRegexEngine(),
-});
+function createHighlighter() {
+  return createHighlighterCoreSync({
+    themes: [githubLight, githubDark],
+    langs: [
+      bash,
+      css,
+      html,
+      javascript,
+      json,
+      jsx,
+      markdown,
+      python,
+      shell,
+      tsx,
+      typescript,
+      yaml,
+    ],
+    engine: createJavaScriptRegexEngine(),
+  });
+}
+
+let highlighter: ReturnType<typeof createHighlighter> | undefined;
+const loadedLanguages = new Set([
+  "bash",
+  "css",
+  "html",
+  "javascript",
+  "json",
+  "jsx",
+  "markdown",
+  "python",
+  "shell",
+  "tsx",
+  "typescript",
+  "yaml",
+]);
 
 const LANG_ALIASES: Record<string, string> = {
   bash: "bash",
@@ -73,19 +91,24 @@ function escapeHtml(value: string): string {
  * can round-trip the fence language when it serializes the DOM back to Markdown.
  */
 export function highlightCode(code: string, language = ""): string {
-  const requested = (language || "").trim().split(/\s+/)[0]?.toLowerCase() ?? "";
+  const requested =
+    (language || "").trim().split(/\s+/)[0]?.toLowerCase() ?? "";
   const resolved = LANG_ALIASES[requested] ?? requested;
   const dataLang = requested ? ` data-language="${escapeHtml(requested)}"` : "";
-  if (!resolved || !highlighter.getLoadedLanguages().includes(resolved)) {
+  if (!loadedLanguages.has(resolved)) {
     return `<pre class="shiki"${dataLang}><code>${escapeHtml(code)}</code></pre>`;
   }
+  // Ordinary prose never needs to compile grammars or initialize the regex engine.
+  highlighter ??= createHighlighter();
   const rendered = highlighter.codeToHtml(code, {
     lang: resolved,
     themes: { light: "github-light", dark: "github-dark" },
     defaultColor: false,
   });
   // Inject the fence language onto the <pre> (shiki omits it from the output).
-  return requested ? rendered.replace(/^<pre/, `<pre data-language="${escapeHtml(requested)}"`) : rendered;
+  return requested
+    ? rendered.replace(/^<pre/, `<pre data-language="${escapeHtml(requested)}"`)
+    : rendered;
 }
 
 const md = new MarkdownIt({

@@ -5,6 +5,7 @@ Google SDK. Only object paths are stored in Firestore; signed URLs are generated
 """
 
 from functools import lru_cache
+from threading import Lock
 from typing import Any, Protocol, runtime_checkable
 
 from app.config import get_settings
@@ -68,11 +69,11 @@ class StorageClient(Protocol):
 class GoogleStorageClient:
     """`StorageClient` backed by a real Cloud Storage bucket."""
 
-    def __init__(
-        self, bucket: Any, *, signing_service_account: str | None = None
-    ) -> None:
+    def __init__(self, bucket: Any, *, signing_service_account: str | None = None) -> None:
         self._bucket = bucket
         self._signing_service_account = signing_service_account
+        self._credentials: Any = None
+        self._signing_lock = Lock()
 
     def _signing_credentials(self) -> dict[str, Any]:
         """Credentials usable for a V4 signed URL.
@@ -86,24 +87,27 @@ class GoogleStorageClient:
         import google.auth
         from google.auth.transport.requests import Request
 
-        credentials, _ = google.auth.default()
-        if hasattr(credentials, "sign_bytes"):
-            return {"credentials": credentials}
+        # Reuse ADC across URLs and serialize refreshes so concurrent requests do
+        # not repeatedly discover credentials or mint the same access token.
+        with self._signing_lock:
+            if self._credentials is None:
+                self._credentials, _ = google.auth.default()
+            credentials = self._credentials
+            if hasattr(credentials, "sign_bytes"):
+                return {"credentials": credentials}
+            if not credentials.valid:
+                credentials.refresh(Request())
 
-        # Compute-engine credentials report the placeholder "default" until a metadata request
-        # resolves the real email, so treat it as absent and prefer the configured account.
-        email = getattr(credentials, "service_account_email", None)
-        if not email or email == "default":
-            email = self._signing_service_account
-        if not email:
-            raise RuntimeError(
-                "Cannot sign Cloud Storage URLs: no signing credentials. Set "
-                "STORAGE_SIGNING_SERVICE_ACCOUNT, use a service-account key, or run "
-                "`gcloud auth application-default login --impersonate-service-account`."
-            )
-        if not credentials.token:
-            credentials.refresh(Request())
-        return {"service_account_email": email, "access_token": credentials.token}
+            email = getattr(credentials, "service_account_email", None)
+            if not email or email == "default":
+                email = self._signing_service_account
+            if not email:
+                raise RuntimeError(
+                    "Cannot sign Cloud Storage URLs: no signing credentials. Set "
+                    "STORAGE_SIGNING_SERVICE_ACCOUNT, use a service-account key, or run "
+                    "`gcloud auth application-default login --impersonate-service-account`."
+                )
+            return {"service_account_email": email, "access_token": credentials.token}
 
     def _signed_url(
         self,

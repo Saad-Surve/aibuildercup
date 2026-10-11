@@ -36,7 +36,7 @@ SchedulerDep = Annotated[CaptionScheduler, Depends(get_caption_scheduler)]
 
 
 @router.get("/caption-presets", response_model=CaptionPresetList)
-async def list_caption_presets(user: UserDep) -> CaptionPresetList:
+def list_caption_presets(user: UserDep) -> CaptionPresetList:
     """Style presets the web client mirrors in its customizer.
 
     The same definitions feed `build_ass`, so the preview and the render cannot drift.
@@ -49,7 +49,7 @@ async def list_caption_presets(user: UserDep) -> CaptionPresetList:
     response_model=CaptionRenderAccepted,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def create_caption_render(
+def create_caption_render(
     projectId: str,
     payload: CaptionRenderRequest,
     user: UserDep,
@@ -79,7 +79,7 @@ async def create_caption_render(
     "/projects/{projectId}/captions/renders",
     response_model=CaptionRenderList,
 )
-async def list_caption_renders(
+def list_caption_renders(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
@@ -93,7 +93,7 @@ async def list_caption_renders(
     "/projects/{projectId}/captions/renders/{captionRenderId}",
     response_model=CaptionRender,
 )
-async def get_caption_render(
+def get_caption_render(
     projectId: str,
     captionRenderId: str,
     user: UserDep,
@@ -110,7 +110,7 @@ async def get_caption_render(
     "/projects/{projectId}/captions/renders/{captionRenderId}/download-url",
     response_model=DownloadUrl,
 )
-async def get_caption_render_download_url(
+def get_caption_render_download_url(
     projectId: str,
     captionRenderId: str,
     user: UserDep,
@@ -128,7 +128,7 @@ async def get_caption_render_download_url(
     "/projects/{projectId}/captions/renders/{captionRenderId}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_caption_render(
+def delete_caption_render(
     projectId: str,
     captionRenderId: str,
     user: UserDep,

@@ -10,6 +10,7 @@ Grounding with Google Search obliges the client to render the Search Suggestions
 as returned and to show the sources; the API returns both, and the web client renders them.
 """
 
+import asyncio
 import json
 import logging
 from typing import Any
@@ -279,15 +280,11 @@ class PersonaResearchService:
         self, owner_uid: str, request: OnboardingResearchRequest
     ) -> OnboardingResearch:
         if not self.settings.onboarding_research_enabled:
-            raise ForbiddenError(
-                "Creator research is disabled", code="RESEARCH_DISABLED"
-            )
+            raise ForbiddenError("Creator research is disabled", code="RESEARCH_DISABLED")
 
         links = _normalize_links(request.links, self.settings.onboarding_research_max_links)
         inferred = infer_platforms(links)
-        user = json.dumps(
-            {"links": links, "detectedPlatforms": inferred}, ensure_ascii=False
-        )
+        user = json.dumps({"links": links, "detectedPlatforms": inferred}, ensure_ascii=False)
         completion = await self.llm.complete_json(
             model=self.settings.model_research,
             prompt_version=RESEARCH_PROMPT_VERSION,
@@ -311,7 +308,8 @@ class PersonaResearchService:
         queries = list(grounding.queries) if grounding else []
         suggestions = grounding.search_suggestions_html if grounding else ""
 
-        state = self.users.save_onboarding_research(
+        state = await asyncio.to_thread(
+            self.users.save_onboarding_research,
             owner_uid,
             links=links,
             answers=answers,

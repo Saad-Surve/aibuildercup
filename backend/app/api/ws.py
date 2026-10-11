@@ -16,9 +16,11 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from starlette.concurrency import run_in_threadpool
 
 from app.auth.firebase import verify_id_token
 from app.realtime import EventHub, get_hub
+from app.realtime.hub import DISCONNECT_FRAME
 from app.services.firestore_service import get_firestore_client
 from app.services.job_service import JobService
 from app.services.project_service import ProjectService
@@ -55,7 +57,7 @@ async def _authenticate(socket: WebSocket) -> str | None:
     token = socket.query_params.get("token", "")
     if token:
         try:
-            decoded = verify_id_token(token)
+            decoded = await run_in_threadpool(verify_id_token, token)
         except Exception:  # noqa: BLE001 — any verification failure is a denial
             decoded = None
         if decoded is not None:
@@ -76,13 +78,9 @@ async def _handle_subscribe(
     message: dict,
     jobs: JobService,
     projects: ProjectService,
+    send_lock: asyncio.Lock,
 ) -> None:
-    """Verify ownership, send the snapshot, then register the queue.
-
-    The snapshot is sent BEFORE registering so there is no window in which an
-    event could be emitted after the read but before the subscription, and no
-    event can arrive before the client has its baseline.
-    """
+    """Verify ownership, register, then send a snapshot before queued events."""
     project_id = message.get("projectId")
     if not isinstance(project_id, str) or not project_id:
         await socket.send_text(
@@ -97,13 +95,31 @@ async def _handle_subscribe(
         return
 
     try:
-        project = projects.get(owner_uid=owner_uid, project_id=project_id)
+        await run_in_threadpool(projects.get, owner_uid=owner_uid, project_id=project_id)
     except Exception:  # noqa: BLE001 — not-owned and not-found are the same denial
         await socket.send_text(
             _dumps({"type": "error", "code": "NOT_FOUND", "message": "Project not found"})
         )
         return
 
+    # Hold the send lock until the baseline is on the wire. The writer can
+    # collect events during the read, but cannot send them ahead of the snapshot.
+    async with send_lock:
+        hub.subscribe(owner_uid, project_id, queue)
+        try:
+            snapshot = await run_in_threadpool(
+                _project_snapshot, owner_uid, project_id, jobs, projects
+            )
+            await socket.send_text(_dumps(snapshot))
+        except Exception:
+            hub.unsubscribe(queue, project=(owner_uid, project_id))
+            raise
+
+
+def _project_snapshot(
+    owner_uid: str, project_id: str, jobs: JobService, projects: ProjectService
+) -> dict:
+    project = projects.get(owner_uid=owner_uid, project_id=project_id)
     job_frame: dict[str, Any] | None
     try:
         job = jobs.latest_for_project(owner_uid=owner_uid, project_id=project_id)
@@ -121,15 +137,13 @@ async def _handle_subscribe(
     except Exception:  # noqa: BLE001 — a snapshot without the job is still useful
         job_frame = None
 
-    snapshot = {
+    return {
         "type": "snapshot.project",
         "projectId": project.projectId,
         "status": project.status.value,
         "progress": project.progress.model_dump() if project.progress else None,
         "job": job_frame,
     }
-    await socket.send_text(_dumps(snapshot))
-    hub.subscribe(owner_uid, project_id, queue)
 
 
 async def _reader(
@@ -139,6 +153,7 @@ async def _reader(
     owner_uid: str,
     jobs: JobService,
     projects: ProjectService,
+    send_lock: asyncio.Lock,
 ) -> None:
     """Client → server loop: subscribe frames, pings, and clean disconnects."""
     while True:
@@ -166,8 +181,12 @@ async def _reader(
         kind = message.get("type")
         if kind == "subscribe.project":
             await _handle_subscribe(
-                socket, hub, owner_uid, queue, message, jobs, projects
+                socket, hub, owner_uid, queue, message, jobs, projects, send_lock
             )
+        elif kind == "unsubscribe.project":
+            project_id = message.get("projectId")
+            if isinstance(project_id, str):
+                hub.unsubscribe(queue, project=(owner_uid, project_id))
         elif kind == "ping":
             await socket.send_text(_dumps({"type": "pong"}))
         elif kind == "pong":
@@ -184,7 +203,9 @@ async def _reader(
             )
 
 
-async def _writer(socket: WebSocket, hub: EventHub, queue: asyncio.Queue[dict]) -> None:
+async def _writer(
+    socket: WebSocket, hub: EventHub, queue: asyncio.Queue[dict], send_lock: asyncio.Lock
+) -> None:
     """Server → client loop: drain the queue, ping when idle, close when due."""
     loop = asyncio.get_running_loop()
     connection_deadline = loop.time() + _WS_OPEN_TIMEOUT_SECONDS
@@ -210,7 +231,11 @@ async def _writer(socket: WebSocket, hub: EventHub, queue: asyncio.Queue[dict]) 
                 return
             continue
         try:
-            await socket.send_text(_dumps(data))
+            if data == DISCONNECT_FRAME:
+                await socket.close(code=1013, reason="Resync required")
+                return
+            async with send_lock:
+                await socket.send_text(_dumps(data))
         except (WebSocketDisconnect, RuntimeError):
             hub.unsubscribe(queue)
             return
@@ -234,12 +259,15 @@ async def ws_endpoint(socket: WebSocket) -> None:
     await socket.accept()
 
     queue: asyncio.Queue[dict] = asyncio.Queue(maxsize=256)
-    client = get_firestore_client()
+    client = await run_in_threadpool(get_firestore_client)
     jobs = JobService(client)
     projects = ProjectService(client)
 
-    reader = asyncio.create_task(_reader(socket, hub, queue, owner_uid, jobs, projects))
-    writer = asyncio.create_task(_writer(socket, hub, queue))
+    send_lock = asyncio.Lock()
+    reader = asyncio.create_task(
+        _reader(socket, hub, queue, owner_uid, jobs, projects, send_lock)
+    )
+    writer = asyncio.create_task(_writer(socket, hub, queue, send_lock))
 
     try:
         done, pending = await asyncio.wait({reader, writer}, return_when=asyncio.FIRST_COMPLETED)

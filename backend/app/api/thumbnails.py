@@ -40,7 +40,7 @@ SchedulerDep = Annotated[ThumbnailScheduler, Depends(get_thumbnail_scheduler)]
 @router.get(
     "/projects/{projectId}/thumbnails", response_model=ThumbnailConceptList
 )
-async def list_thumbnails(
+def list_thumbnails(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
@@ -55,7 +55,7 @@ async def list_thumbnails(
     response_model=ThumbnailBatchAccepted,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def generate_thumbnails(
+def generate_thumbnails(
     projectId: str,
     payload: GenerateThumbnailsRequest,
     user: UserDep,
@@ -86,7 +86,7 @@ async def generate_thumbnails(
     response_model=ThumbnailBatchAccepted,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def regenerate_thumbnails(
+def regenerate_thumbnails(
     projectId: str,
     payload: ThumbnailSelectionRequest,
     user: UserDep,
@@ -115,7 +115,7 @@ async def regenerate_thumbnails(
 
 
 @router.post("/projects/{projectId}/thumbnails/download")
-async def download_thumbnails(
+def download_thumbnails(
     projectId: str,
     payload: ThumbnailSelectionRequest,
     user: UserDep,
@@ -137,7 +137,7 @@ async def download_thumbnails(
 @router.get(
     "/projects/{projectId}/thumbnails/{thumbnailId}", response_model=ThumbnailConcept
 )
-async def get_thumbnail(
+def get_thumbnail(
     projectId: str,
     thumbnailId: str,
     user: UserDep,
@@ -153,7 +153,7 @@ async def get_thumbnail(
     response_model=ThumbnailRevisionAccepted,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def revise_thumbnail(
+def revise_thumbnail(
     projectId: str,
     thumbnailId: str,
     payload: ReviseThumbnailRequest,
@@ -185,7 +185,7 @@ async def revise_thumbnail(
     "/projects/{projectId}/thumbnails/{thumbnailId}/apply",
     response_model=ThumbnailConcept,
 )
-async def apply_thumbnail(
+def apply_thumbnail(
     projectId: str,
     thumbnailId: str,
     user: UserDep,
@@ -201,7 +201,7 @@ async def apply_thumbnail(
     "/projects/{projectId}/thumbnails/{thumbnailId}/download-url",
     response_model=DownloadUrl,
 )
-async def get_thumbnail_download_url(
+def get_thumbnail_download_url(
     projectId: str,
     thumbnailId: str,
     user: UserDep,
@@ -217,7 +217,7 @@ async def get_thumbnail_download_url(
     "/projects/{projectId}/thumbnails/{thumbnailId}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_thumbnail(
+def delete_thumbnail(
     projectId: str,
     thumbnailId: str,
     user: UserDep,

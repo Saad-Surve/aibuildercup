@@ -17,7 +17,9 @@ pathway to wire up.
 """
 
 import asyncio
+import json
 import logging
+import math
 import shutil
 import subprocess
 import threading
@@ -204,6 +206,43 @@ def probe_duration_ms(
     if seconds <= 0:
         return None
     return int(seconds * 1000)
+
+
+def probe_video_metadata(
+    source: str, *, ffprobe_path: str = "ffprobe", timeout_seconds: int = 30
+) -> tuple[int, int, int | None] | None:
+    """Read frame dimensions and duration in a single scan of the source."""
+    if not source or shutil.which(ffprobe_path) is None:
+        return None
+    try:
+        completed = subprocess.run(
+            [
+                ffprobe_path,
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration:stream=width,height",
+                "-of",
+                "json",
+                source,
+            ],
+            capture_output=True,
+            timeout=timeout_seconds,
+            check=False,
+        )
+        if completed.returncode != 0:
+            return None
+        data = json.loads(completed.stdout)
+        width, height = 1920, 1080
+        for stream in data.get("streams", []):
+            if stream.get("width", 0) > 0 and stream.get("height", 0) > 0:
+                width, height = int(stream["width"]), int(stream["height"])
+                break
+        seconds = float(data.get("format", {}).get("duration", 0))
+        duration = int(seconds * 1000) if math.isfinite(seconds) and seconds > 0 else None
+        return width, height, duration
+    except (OSError, subprocess.TimeoutExpired, ValueError, TypeError, AttributeError):
+        return None
 
 
 def run_ffmpeg_command(args: list[str], *, timeout_seconds: int) -> None:

@@ -42,18 +42,17 @@ def is_read_only_allowed(path: str) -> bool:
     return any(pattern.match(path) for pattern in _ALLOWED_READ_ONLY_POSTS)
 
 
-def read_only_claims(token: str) -> dict | None:
-    """Return the decoded claims when `token` is valid and read-only, else None.
+def write_token_claims(token: str) -> dict | None:
+    """Verify a write request's token so middleware and dependencies can share it.
 
     A missing, invalid, or expired token returns None: the request then falls through to the
     router, which returns its own 401 for protected routes. We never reject a request here
     because of a token problem — only because the (valid) identity is read-only.
     """
-    read_only = set(get_settings().read_only_user_uids)
-    if not read_only:
+    if not get_settings().read_only_user_uids:
         return None
     try:
         decoded = verify_id_token(token)
     except Exception:  # noqa: BLE001 - invalid token is the router's problem, not ours
         return None
-    return decoded if decoded.get("uid") in read_only else None
+    return decoded

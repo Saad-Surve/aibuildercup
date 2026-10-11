@@ -52,7 +52,7 @@ _CONTEXT_URL_TTL_SECONDS = 900
 
 
 @router.get("/projects/{projectId}/analysis", response_model=AnalysisRunList)
-async def list_analysis_runs(
+def list_analysis_runs(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
@@ -67,7 +67,7 @@ async def list_analysis_runs(
     response_model=AnalysisStartResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def start_analysis(
+def start_analysis(
     projectId: str,
     payload: AnalysisRequest,
     background_tasks: BackgroundTasks,
@@ -118,7 +118,7 @@ async def start_analysis(
 @router.get(
     "/projects/{projectId}/analysis/{analysisRunId}", response_model=AnalysisRun
 )
-async def get_analysis_run(
+def get_analysis_run(
     projectId: str,
     analysisRunId: str,
     user: UserDep,
@@ -133,7 +133,7 @@ async def get_analysis_run(
     "/projects/{projectId}/analysis/{analysisRunId}/reviewers",
     response_model=ReviewerRunList,
 )
-async def list_analysis_reviewers(
+def list_analysis_reviewers(
     projectId: str,
     analysisRunId: str,
     user: UserDep,
@@ -150,7 +150,7 @@ async def list_analysis_reviewers(
     "/projects/{projectId}/analysis/{analysisRunId}/findings",
     response_model=FindingList,
 )
-async def list_analysis_findings(
+def list_analysis_findings(
     projectId: str,
     analysisRunId: str,
     user: UserDep,
@@ -177,7 +177,7 @@ async def list_analysis_findings(
     "/projects/{projectId}/analysis/{analysisRunId}/heatmap",
     response_model=HeatmapResponse,
 )
-async def get_analysis_heatmap(
+def get_analysis_heatmap(
     projectId: str,
     analysisRunId: str,
     user: UserDep,
@@ -195,7 +195,7 @@ async def get_analysis_heatmap(
     "/context/{index}",
     response_model=ContextArtifactUrl,
 )
-async def get_reviewer_context_artifact(
+def get_reviewer_context_artifact(
     projectId: str,
     analysisRunId: str,
     reviewerRunId: str,

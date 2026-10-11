@@ -41,6 +41,7 @@ from app.services.video_tools import (
     ffmpeg_available,
     run_ffmpeg_with_progress,
 )
+from app.workers.guard import serialize_job
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +168,7 @@ def _ffmpeg_command(
     ]
 
 
+@serialize_job
 async def run_caption_render(
     *,
     owner_uid: str,
@@ -182,22 +184,21 @@ async def run_caption_render(
 ) -> str | None:
     """Run one caption render. Returns the render id, or None if skipped/failed."""
     try:
-        job = jobs.load_for_worker(
-            owner_uid=owner_uid, project_id=project_id, job_id=job_id
+        job = await asyncio.to_thread(
+            jobs.load_for_worker, owner_uid=owner_uid, project_id=project_id, job_id=job_id
         )
     except NotFoundError:
         logger.warning("caption render job %s not found; skipping", job_id)
         return None
 
     if job.get("status") in TERMINAL_STATUSES:
-        logger.info(
-            "caption render job %s already %s; skipping", job_id, job.get("status")
-        )
+        logger.info("caption render job %s already %s; skipping", job_id, job.get("status"))
         return (job.get("input") or {}).get("captionRenderId")
 
     caption_render_id = (job.get("input") or {}).get("captionRenderId")
     if not caption_render_id:
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -206,13 +207,15 @@ async def run_caption_render(
         )
         return None
 
-    render = captions.load(
+    render = await asyncio.to_thread(
+        captions.load,
         owner_uid=owner_uid,
         project_id=project_id,
         caption_render_id=caption_render_id,
     )
     if render is None:
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -222,7 +225,8 @@ async def run_caption_render(
         return None
 
     if render.get("status") == CaptionRenderStatus.ready.value:
-        jobs.mark_succeeded(
+        await asyncio.to_thread(
+            jobs.mark_succeeded,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -253,7 +257,8 @@ async def run_caption_render(
         logger.exception("caption render job %s failed", job_id)
         message = _failure_message(exc)
         try:
-            captions.mark_failed(
+            await asyncio.to_thread(
+                captions.mark_failed,
                 owner_uid=owner_uid,
                 project_id=project_id,
                 caption_render_id=caption_render_id,
@@ -262,7 +267,8 @@ async def run_caption_render(
             )
         except Exception:  # noqa: BLE001 - job failure is the primary signal
             logger.exception("caption render %s: could not mark failed", caption_render_id)
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -288,18 +294,18 @@ async def _render(
     settings: Settings,
 ) -> None:
     if not ffmpeg_available(settings.ffmpeg_path):
-        raise VideoToolError(
-            f"ffmpeg ({settings.ffmpeg_path}) is not available on this server"
-        )
+        raise VideoToolError(f"ffmpeg ({settings.ffmpeg_path}) is not available on this server")
 
-    jobs.mark_running(
+    await asyncio.to_thread(
+        jobs.mark_running,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,
         step="preparing",
         message="Preparing captions",
     )
-    captions.mark_rendering(
+    await asyncio.to_thread(
+        captions.mark_rendering,
         owner_uid=owner_uid,
         project_id=project_id,
         caption_render_id=caption_render_id,
@@ -312,9 +318,9 @@ async def _render(
         # Burn the dub's localized SRT onto the dubbed video.
         source_path = str(render.get("dubVideoStoragePath") or "")
         captions_path = str(render.get("dubCaptionsStoragePath") or "")
-        if not source_path or not storage.object_exists(source_path):
+        if not source_path or not await asyncio.to_thread(storage.object_exists, source_path):
             raise VideoToolError("The dubbed video is missing from storage.")
-        if not captions_path or not storage.object_exists(captions_path):
+        if not captions_path or not await asyncio.to_thread(storage.object_exists, captions_path):
             raise VideoToolError("The dub has no localized captions to burn.")
         srt_text = await asyncio.to_thread(storage.download_text, captions_path)
         segments = parse_srt(srt_text)
@@ -326,20 +332,21 @@ async def _render(
         source_asset_id = render.get("sourceAssetId")
         if not source_asset_id:
             raise VideoToolError("The render has no source video.")
-        asset = firestore.get_document(
-            asset_path(owner_uid, project_id, str(source_asset_id))
-        )
+        asset = firestore.get_document(asset_path(owner_uid, project_id, str(source_asset_id)))
         if asset is None or asset.get("ownerUid") != owner_uid:
             raise VideoToolError("The source video is missing.")
         source_path = str(asset.get("storagePath") or "")
-        if not source_path or not storage.object_exists(source_path):
+        if not source_path or not await asyncio.to_thread(storage.object_exists, source_path):
             raise VideoToolError("The source video is missing from storage.")
 
         transcript_id = render.get("sourceTranscriptId")
         if not transcript_id:
             raise VideoToolError("The render has no source transcript.")
-        transcript = transcripts.get_by_id(
-            owner_uid=owner_uid, project_id=project_id, transcript_id=str(transcript_id)
+        transcript = await asyncio.to_thread(
+            transcripts.get_by_id,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            transcript_id=str(transcript_id),
         )
         if not transcript.segments:
             raise VideoToolError("The transcript has no segments to burn.")
@@ -382,7 +389,8 @@ async def _render(
         with open(ass_path, "w", encoding="utf-8") as handle:
             handle.write(ass_text)
 
-        jobs.update_progress(
+        await asyncio.to_thread(
+            jobs.update_progress,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -411,7 +419,8 @@ async def _render(
         if not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
             raise VideoToolError("ffmpeg produced an empty video.")
 
-        jobs.update_progress(
+        await asyncio.to_thread(
+            jobs.update_progress,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -420,16 +429,17 @@ async def _render(
             message="Saving the captioned video",
         )
         size_bytes = os.path.getsize(out_path)
-        storage.upload_from_filename(
-            ass_object, ass_path, content_type="text/plain"
+        await asyncio.to_thread(
+            storage.upload_from_filename, ass_object, ass_path, content_type="text/plain"
         )
-        storage.upload_from_filename(
-            video_object, out_path, content_type="video/mp4"
+        await asyncio.to_thread(
+            storage.upload_from_filename, video_object, out_path, content_type="video/mp4"
         )
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
 
-    captions.mark_ready(
+    await asyncio.to_thread(
+        captions.mark_ready,
         owner_uid=owner_uid,
         project_id=project_id,
         caption_render_id=caption_render_id,
@@ -440,7 +450,8 @@ async def _render(
         width=width,
         height=height,
     )
-    jobs.mark_succeeded(
+    await asyncio.to_thread(
+        jobs.mark_succeeded,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,

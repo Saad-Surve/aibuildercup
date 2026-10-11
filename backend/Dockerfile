@@ -27,12 +27,15 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
-COPY app ./app
+COPY --chown=10001:10001 app ./app
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV ENVIRONMENT=production
+ENV PYTHONUNBUFFERED=1
 
-RUN useradd --create-home --uid 10001 appuser && chown -R appuser:appuser /app
+# Dependencies are immutable and already readable by the runtime user. Recursively
+# chowning the venv would copy every dependency into a second large image layer.
+RUN useradd --create-home --uid 10001 appuser && chown appuser:appuser /app
 USER appuser
 
 EXPOSE 8080

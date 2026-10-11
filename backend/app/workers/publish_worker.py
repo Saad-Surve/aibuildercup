@@ -12,6 +12,7 @@ The worker is idempotent: a terminal publish is skipped, so a redelivered job ca
 same video twice.
 """
 
+import asyncio
 import logging
 import os
 import tempfile
@@ -31,6 +32,7 @@ from app.services.job_service import JobService
 from app.services.publish_service import PublishService
 from app.services.storage_service import StorageClient
 from app.services.token_cipher import build_token_cipher
+from app.workers.guard import serialize_job
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +90,7 @@ def _suffix_for(mime_type: str) -> str:
     return mapping.get(mime_type, ".bin")
 
 
+@serialize_job
 async def run_publish(
     *,
     owner_uid: str,
@@ -102,7 +105,9 @@ async def run_publish(
     settings: Settings,
 ) -> str | None:
     try:
-        job = jobs.load_for_worker(owner_uid=owner_uid, project_id=project_id, job_id=job_id)
+        job = await asyncio.to_thread(
+            jobs.load_for_worker, owner_uid=owner_uid, project_id=project_id, job_id=job_id
+        )
     except NotFoundError:
         logger.warning("publish job %s not found; skipping", job_id)
         return None
@@ -112,7 +117,8 @@ async def run_publish(
 
     publish_id = (job.get("input") or {}).get("publishId")
     if not publish_id:
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -122,11 +128,12 @@ async def run_publish(
         return None
 
     try:
-        publish = publishes.load(
-            owner_uid=owner_uid, project_id=project_id, publish_id=publish_id
+        publish = await asyncio.to_thread(
+            publishes.load, owner_uid=owner_uid, project_id=project_id, publish_id=publish_id
         )
     except NotFoundError:
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -136,7 +143,8 @@ async def run_publish(
         return publish_id
 
     if publish.get("status") == PublishStatus.published.value:
-        jobs.mark_succeeded(
+        await asyncio.to_thread(
+            jobs.mark_succeeded,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -145,14 +153,16 @@ async def run_publish(
         )
         return publish_id
 
-    jobs.mark_running(
+    await asyncio.to_thread(
+        jobs.mark_running,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,
         step="publishing",
         message="Preparing the upload",
     )
-    publishes.mark_status(
+    await asyncio.to_thread(
+        publishes.mark_status,
         owner_uid=owner_uid,
         project_id=project_id,
         publish_id=publish_id,
@@ -163,19 +173,21 @@ async def run_publish(
     video_path: Path | None = None
     thumbnail_path: Path | None = None
     try:
-        tokens = connections.tokens_for_use(
-            owner_uid=owner_uid, connection_id=str(publish["connectionId"])
+        tokens = await asyncio.to_thread(
+            connections.tokens_for_use,
+            owner_uid=owner_uid,
+            connection_id=str(publish["connectionId"]),
         )
 
-        video_path = _stage_storage_object(
+        video_path = await asyncio.to_thread(
+            _stage_storage_object,
             storage,
             storage_path=str(publish["videoStoragePath"]),
             suffix=_suffix_for(str(publish.get("videoMimeType") or "video/mp4")),
             # The business limit and the runtime temp-disk limit both apply; the smaller wins.
-            max_bytes=min(
-                settings.publish_max_source_bytes, settings.publish_max_stage_bytes
-            ),
+            max_bytes=min(settings.publish_max_source_bytes, settings.publish_max_stage_bytes),
         )
+
         def on_progress(fraction: int) -> None:
             span = _UPLOAD_PERCENT_END - _UPLOAD_PERCENT_START
             clamped = max(0, min(100, fraction))
@@ -192,14 +204,16 @@ async def run_publish(
                 message="Uploading the video to YouTube",
             )
 
-        publishes.mark_status(
+        await asyncio.to_thread(
+            publishes.mark_status,
             owner_uid=owner_uid,
             project_id=project_id,
             publish_id=publish_id,
             status=PublishStatus.uploading,
             step="Uploading the video to YouTube",
         )
-        uploaded = connector.upload_video(
+        uploaded = await asyncio.to_thread(
+            connector.upload_video,
             tokens,
             path=video_path,
             title=str(publish["title"]),
@@ -214,7 +228,8 @@ async def run_publish(
             mime_type=str(publish.get("videoMimeType") or "video/mp4"),
         )
         youtube_url = f"https://www.youtube.com/watch?v={uploaded.video_id}"
-        publishes.mark_status(
+        await asyncio.to_thread(
+            publishes.mark_status,
             owner_uid=owner_uid,
             project_id=project_id,
             publish_id=publish_id,
@@ -229,7 +244,8 @@ async def run_publish(
         # access will reject it, which must not fail a video that is already uploaded.
         if publish.get("thumbnailStoragePath"):
             try:
-                _report_progress(
+                await asyncio.to_thread(
+                    _report_progress,
                     jobs,
                     publishes,
                     owner_uid=owner_uid,
@@ -239,19 +255,22 @@ async def run_publish(
                     percent=90,
                     message="Setting the thumbnail",
                 )
-                thumbnail_path = _stage_storage_object(
+                thumbnail_path = await asyncio.to_thread(
+                    _stage_storage_object,
                     storage,
                     storage_path=str(publish["thumbnailStoragePath"]),
                     suffix=_suffix_for(str(publish.get("thumbnailMimeType") or "image/png")),
                     max_bytes=50 * 1024 * 1024,
                 )
-                connector.set_thumbnail(
+                await asyncio.to_thread(
+                    connector.set_thumbnail,
                     tokens,
                     video_id=uploaded.video_id,
                     path=thumbnail_path,
                     mime_type=str(publish.get("thumbnailMimeType") or "image/png"),
                 )
-                publishes.mark_status(
+                await asyncio.to_thread(
+                    publishes.mark_status,
                     owner_uid=owner_uid,
                     project_id=project_id,
                     publish_id=publish_id,
@@ -260,7 +279,8 @@ async def run_publish(
                 )
             except ConnectorError as exc:
                 logger.warning("publish %s: thumbnail rejected: %s", publish_id, exc.message)
-                publishes.mark_status(
+                await asyncio.to_thread(
+                    publishes.mark_status,
                     owner_uid=owner_uid,
                     project_id=project_id,
                     publish_id=publish_id,
@@ -272,7 +292,8 @@ async def run_publish(
             publish.get("captionFormat") != PublishCaptionFormat.none.value
             and str(publish.get("captionContent") or "").strip()
         ):
-            _report_progress(
+            await asyncio.to_thread(
+                _report_progress,
                 jobs,
                 publishes,
                 owner_uid=owner_uid,
@@ -282,14 +303,16 @@ async def run_publish(
                 percent=95,
                 message="Uploading the caption track",
             )
-            connector.upload_caption(
+            await asyncio.to_thread(
+                connector.upload_caption,
                 tokens,
                 video_id=uploaded.video_id,
                 content=str(publish["captionContent"]),
                 language=str(publish.get("captionLanguage") or "en"),
                 name=str(publish.get("captionName") or "English"),
             )
-            publishes.mark_status(
+            await asyncio.to_thread(
+                publishes.mark_status,
                 owner_uid=owner_uid,
                 project_id=project_id,
                 publish_id=publish_id,
@@ -297,7 +320,8 @@ async def run_publish(
                 step="Captions uploaded",
             )
 
-        publishes.mark_status(
+        await asyncio.to_thread(
+            publishes.mark_status,
             owner_uid=owner_uid,
             project_id=project_id,
             publish_id=publish_id,
@@ -307,7 +331,8 @@ async def run_publish(
             youtube_video_id=uploaded.video_id,
             youtube_url=youtube_url,
         )
-        jobs.mark_succeeded(
+        await asyncio.to_thread(
+            jobs.mark_succeeded,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,

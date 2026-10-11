@@ -46,6 +46,7 @@ from app.services.transcript_service import (
     sanitize_word_timings,
 )
 from app.services.video_tools import ffmpeg_available, probe_duration_ms
+from app.workers.guard import serialize_job
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,7 @@ TERMINAL_STATUSES = frozenset(
 )
 
 
+@serialize_job
 async def run_transcribe(
     *,
     owner_uid: str,
@@ -71,7 +73,9 @@ async def run_transcribe(
 ) -> str | None:
     """Run one transcription job. Returns the transcript id, or None if skipped/failed."""
     try:
-        job = jobs.load_for_worker(owner_uid=owner_uid, project_id=project_id, job_id=job_id)
+        job = await asyncio.to_thread(
+            jobs.load_for_worker, owner_uid=owner_uid, project_id=project_id, job_id=job_id
+        )
     except NotFoundError:
         logger.warning("transcribe job %s not found; skipping", job_id)
         return None
@@ -82,13 +86,15 @@ async def run_transcribe(
 
     asset_id = (job.get("input") or {}).get("assetId")
     if not asset_id:
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
             message="Transcription job is missing its asset id.",
         )
-        projects.mark_failed(
+        await asyncio.to_thread(
+            projects.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             message="Transcription failed: missing asset.",
@@ -97,20 +103,23 @@ async def run_transcribe(
 
     asset = firestore.get_document(asset_path(owner_uid, project_id, asset_id))
     if asset is None or asset.get("ownerUid") != owner_uid:
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
             message="Source asset not found.",
         )
-        projects.mark_failed(
+        await asyncio.to_thread(
+            projects.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             message="Transcription failed: source video missing.",
         )
         return None
 
-    jobs.mark_running(
+    await asyncio.to_thread(
+        jobs.mark_running,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,
@@ -132,7 +141,8 @@ async def run_transcribe(
         )
     except Exception as exc:  # noqa: BLE001 - worker must record provider failures
         logger.warning("transcribe job %s: STT failed (%s); trying normalized audio", job_id, exc)
-        jobs.update_progress(
+        await asyncio.to_thread(
+            jobs.update_progress,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -155,7 +165,8 @@ async def run_transcribe(
             firestore.update_document(
                 asset_path(owner_uid, project_id, asset_id), {"status": "failed"}
             )
-            jobs.mark_failed(
+            await asyncio.to_thread(
+                jobs.mark_failed,
                 owner_uid=owner_uid,
                 project_id=project_id,
                 job_id=job_id,
@@ -163,7 +174,8 @@ async def run_transcribe(
             )
             # Persist the concrete reason on the project too: the UI loses the job id on
             # reload and used to fall back to a generic message, so the reason vanished.
-            projects.mark_failed(
+            await asyncio.to_thread(
+                projects.mark_failed,
                 owner_uid=owner_uid,
                 project_id=project_id,
                 message=_failure_message(exc),
@@ -182,7 +194,8 @@ async def run_transcribe(
     # Chirp sometimes emits offsets past the end of the video; drop those before segmenting.
     words, duration_ms = sanitize_word_timings(words, media_duration_ms)
     language = response.get("language") or _project_language(firestore, owner_uid, project_id)
-    jobs.update_progress(
+    await asyncio.to_thread(
+        jobs.update_progress,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,
@@ -196,7 +209,8 @@ async def run_transcribe(
     # by design (the pass never raises), so raw STT output is the floor, never lost.
     speaker_labels: dict[str, str] = {}
     if settings.transcript_repair_enabled and segments:
-        jobs.update_progress(
+        await asyncio.to_thread(
+            jobs.update_progress,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -214,7 +228,8 @@ async def run_transcribe(
         segments = repair.segments
         speaker_labels = repair.speaker_labels
 
-    transcript_id = transcripts.save(
+    transcript_id = await asyncio.to_thread(
+        transcripts.save,
         owner_uid=owner_uid,
         project_id=project_id,
         source_asset_id=asset_id,
@@ -227,21 +242,24 @@ async def run_transcribe(
     firestore.update_document(
         asset_path(owner_uid, project_id, asset_id), {"status": "ready", "durationMs": duration_ms}
     )
-    projects.mark_transcript_ready(
+    await asyncio.to_thread(
+        projects.mark_transcript_ready,
         owner_uid=owner_uid,
         project_id=project_id,
         transcript_id=transcript_id,
         duration_ms=duration_ms,
         word_count=len(words),
     )
-    jobs.mark_succeeded(
+    await asyncio.to_thread(
+        jobs.mark_succeeded,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,
         output={"artifactIds": [], "storagePaths": [], "transcriptId": transcript_id},
         message="Completed" if words else "Completed — no speech detected",
     )
-    _publish_transcript_ready(
+    await asyncio.to_thread(
+        _publish_transcript_ready,
         pubsub,
         owner_uid=owner_uid,
         project_id=project_id,
@@ -286,7 +304,9 @@ async def _probe_media_duration(
         )
         return None
     try:
-        source = storage.signed_download_url(storage_path, expires_seconds=900)
+        source = await asyncio.to_thread(
+            storage.signed_download_url, storage_path, expires_seconds=900
+        )
     except Exception:  # noqa: BLE001 - the length probe is best-effort
         logger.warning(
             "transcribe job %s: cannot sign the source for a length probe",
@@ -322,21 +342,22 @@ async def _retry_with_normalized_audio(
     if os.path.splitext(storage_path)[1].lower() not in _NORMALIZE_EXTENSIONS:
         return None
     try:
-        source = transcripts.storage.download_bytes(storage_path)
+        source = await asyncio.to_thread(transcripts.storage.download_bytes, storage_path)
     except Exception:  # noqa: BLE001 - fall through to the original STT error
         logger.warning("transcribe job %s: cannot download source for retry", job_id)
         return None
     if len(source) > settings.max_upload_size_bytes:
         logger.warning("transcribe job %s: source too large to normalize", job_id)
         return None
-    track = extract_aac_track(source)
+    track = await asyncio.to_thread(extract_aac_track, source)
     if track is None:
         logger.warning("transcribe job %s: no AAC-LC track to normalize", job_id)
         return None
     tmp_path = f"{project_object_prefix(owner_uid, project_id)}transcribe-tmp/{job_id}.m4a"
     try:
-        transcripts.storage.upload_bytes(
-            tmp_path, mux_m4a(track), content_type="audio/mp4"
+        normalized = await asyncio.to_thread(mux_m4a, track)
+        await asyncio.to_thread(
+            transcripts.storage.upload_bytes, tmp_path, normalized, content_type="audio/mp4"
         )
     except Exception:  # noqa: BLE001 - fall through to the original STT error
         logger.warning("transcribe job %s: cannot stage normalized audio", job_id)
@@ -353,7 +374,7 @@ async def _retry_with_normalized_audio(
         return None
     finally:
         try:
-            transcripts.storage.delete_prefix(tmp_path)
+            await asyncio.to_thread(transcripts.storage.delete_prefix, tmp_path)
         except Exception:  # noqa: BLE001 - temp is under the project prefix; delete covers it
             logger.warning("transcribe job %s: cannot clean up normalized audio", job_id)
 

@@ -27,7 +27,7 @@ ServiceDep = Annotated[SeedService, Depends(get_seed_service)]
 
 
 @router.post("/seed/youtube-content", response_model=SeedYouTubeContentResult)
-async def seed_youtube_content(
+def seed_youtube_content(
     payload: SeedYouTubeContentRequest,
     user: UserDep,
     service: ServiceDep,

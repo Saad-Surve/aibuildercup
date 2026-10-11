@@ -6,6 +6,7 @@ in-memory implementation used by tests. Path builders live in `paths.py` and are
 here for convenience.
 """
 
+from collections.abc import Iterable
 from functools import lru_cache
 from typing import Any, Protocol, runtime_checkable
 
@@ -124,6 +125,10 @@ class FirestoreClient(Protocol):
 
     def set_document(self, path: str, data: dict[str, Any]) -> None: ...
 
+    def create_document(self, path: str, data: dict[str, Any]) -> bool: ...
+
+    def set_documents(self, documents: Iterable[tuple[str, dict[str, Any]]]) -> None: ...
+
     def update_document(self, path: str, data: dict[str, Any]) -> None: ...
 
     def delete_document(self, path: str) -> None: ...
@@ -163,6 +168,34 @@ class GoogleFirestoreClient:
 
     def set_document(self, path: str, data: dict[str, Any]) -> None:
         self._client.document(path).set(data)
+
+    def create_document(self, path: str, data: dict[str, Any]) -> bool:
+        """Atomically create a document; return False if another writer won."""
+        from google.api_core.exceptions import AlreadyExists
+
+        try:
+            self._client.document(path).create(data)
+        except AlreadyExists:
+            return False
+        return True
+
+    def set_documents(self, documents: Iterable[tuple[str, dict[str, Any]]]) -> None:
+        """Persist bounded batches rather than one RPC per document.
+
+        Each batch commits atomically; callers only publish completion after all
+        batches succeed. Stable document IDs make a partial retry idempotent.
+        """
+        batch = self._client.batch()
+        count = 0
+        for path, data in documents:
+            batch.set(self._client.document(path), data)
+            count += 1
+            if count == 400:
+                batch.commit()
+                batch = self._client.batch()
+                count = 0
+        if count:
+            batch.commit()
 
     def update_document(self, path: str, data: dict[str, Any]) -> None:
         self._client.document(path).update(data)

@@ -113,6 +113,8 @@ const projectHandlers = new Map<string, Set<MessageHandler>>();
 const statusHandlers = new Set<StatusHandler>();
 
 let socket: WebSocket | null = null;
+let connecting = false;
+let connectionAttempt = 0;
 let status: RealtimeStatus = "closed";
 let reconnectAttempt = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -160,6 +162,8 @@ function clearTimers(): void {
 }
 
 function teardown(): void {
+  connectionAttempt += 1;
+  connecting = false;
   clearTimers();
   const current = socket;
   // Clear the reference before closing so the close handler's
@@ -198,7 +202,10 @@ function scheduleReconnect(): void {
 
 async function connect(): Promise<void> {
   if (typeof window === "undefined") return;
-  if (socket || projectHandlers.size === 0) return;
+  if (socket || connecting || projectHandlers.size === 0) return;
+
+  connecting = true;
+  const attempt = ++connectionAttempt;
 
   setStatus("connecting");
   let token: string | undefined;
@@ -207,6 +214,8 @@ async function connect(): Promise<void> {
   } catch {
     token = undefined;
   }
+  if (attempt !== connectionAttempt) return;
+  connecting = false;
   if (!token) {
     // Signed out or auth not ready yet; retry with backoff.
     setStatus("closed");
@@ -231,6 +240,7 @@ async function connect(): Promise<void> {
   next.addEventListener(
     "open",
     () => {
+      if (socket !== next) return;
       reconnectAttempt = 0;
       setStatus("open");
       // Re-subscribe everything: a fresh connect replays no server state.
@@ -248,6 +258,7 @@ async function connect(): Promise<void> {
   );
 
   next.addEventListener("message", (event: MessageEvent<string>) => {
+    if (socket !== next) return;
     let message: RealtimeMessage;
     try {
       message = JSON.parse(event.data) as RealtimeMessage;
@@ -309,6 +320,7 @@ export function subscribeProject(
     current.delete(handler);
     if (current.size === 0) {
       projectHandlers.delete(projectId);
+      send({ type: "unsubscribe.project", projectId });
       if (projectHandlers.size === 0) {
         idleTimer = setTimeout(() => {
           idleTimer = null;

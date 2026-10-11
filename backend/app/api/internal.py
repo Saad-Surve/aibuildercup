@@ -8,6 +8,7 @@ bearer requirement.
 import logging
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
+from starlette.concurrency import run_in_threadpool
 
 from app.auth.pubsub import verify_pubsub_push
 from app.workers.pubsub_handlers import (
@@ -25,7 +26,7 @@ router = APIRouter(tags=["internal"])
 @router.post("/internal/pubsub/video-events", status_code=status.HTTP_204_NO_CONTENT)
 async def video_events(request: Request) -> Response:
     """Receive GCS `object finalized` notifications and run the transcribe worker."""
-    verify_pubsub_push(request.headers.get("authorization"))
+    await run_in_threadpool(verify_pubsub_push, request.headers.get("authorization"))
 
     try:
         body = await request.json()
@@ -40,7 +41,8 @@ async def video_events(request: Request) -> Response:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     try:
-        await handle_video_finalized(payload, dependencies=live_worker_dependencies())
+        dependencies = await run_in_threadpool(live_worker_dependencies)
+        await handle_video_finalized(payload, dependencies=dependencies)
     except Exception as exc:  # noqa: BLE001 - surface to Pub/Sub so the message is retried
         logger.exception("video-events handler failed")
         raise HTTPException(

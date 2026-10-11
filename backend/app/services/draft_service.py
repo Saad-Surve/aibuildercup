@@ -7,6 +7,7 @@ service turns a proposal into a new immutable version on a block, so nothing the
 creator typed is ever overwritten.
 """
 
+import asyncio
 import json
 import logging
 import re
@@ -180,9 +181,7 @@ SUGGEST_SYSTEM = (
 
 SUGGEST_SCHEMA: dict[str, Any] = {
     "type": "object",
-    "properties": {
-        "suggestions": {"type": "array", "items": {"type": "string"}}
-    },
+    "properties": {"suggestions": {"type": "array", "items": {"type": "string"}}},
     "required": ["suggestions"],
 }
 
@@ -490,17 +489,20 @@ class DraftService:
         project_id: str,
         overrides: GenerateDraftRequest,
     ) -> Draft:
-        draft = self.get(owner_uid=owner_uid, project_id=project_id)
+        draft = await asyncio.to_thread(self.get, owner_uid=owner_uid, project_id=project_id)
         draft.brief = self._apply_overrides(draft.brief, overrides)
         draft.status = DraftStatus.generating
-        self._persist(owner_uid=owner_uid, draft=draft, status=ProjectStatus.processing)
+        await asyncio.to_thread(
+            self._persist, owner_uid=owner_uid, draft=draft, status=ProjectStatus.processing
+        )
 
         # RAG: the creator's own past titles/descriptions/transcripts (their most recently synced
         # channel) as style evidence, retrieved against this brief. Stored on the draft so the UI
         # can show what was used. Absent when nothing has been synced.
         creator_context: dict[str, Any] | None = None
         if self.content is not None:
-            creator_context = self.content.build_context_for_user(
+            creator_context = await asyncio.to_thread(
+                self.content.build_context_for_user,
                 owner_uid,
                 query=f"{draft.brief.topic} {draft.brief.instructions}".strip(),
                 k=5,
@@ -526,9 +528,12 @@ class DraftService:
         ]
         draft.status = DraftStatus.ready
         draft.error = None
-        self._persist(owner_uid=owner_uid, draft=draft, status=ProjectStatus.ready)
+        await asyncio.to_thread(
+            self._persist, owner_uid=owner_uid, draft=draft, status=ProjectStatus.ready
+        )
         if creator_context:
-            self.client.update_document(
+            await asyncio.to_thread(
+                self.client.update_document,
                 draft_path(owner_uid, project_id),
                 {
                     "lastCreatorContext": {
@@ -542,7 +547,7 @@ class DraftService:
     async def assist(
         self, *, owner_uid: str, project_id: str, payload: AssistDraftRequest
     ) -> Draft:
-        draft = self.get(owner_uid=owner_uid, project_id=project_id)
+        draft = await asyncio.to_thread(self.get, owner_uid=owner_uid, project_id=project_id)
         now = datetime.now(UTC)
         draft.messages.append(
             DraftMessage(
@@ -557,18 +562,12 @@ class DraftService:
                 model=self.settings.model_writer,
                 prompt_version=DRAFT_ASSIST_PROMPT_VERSION,
                 system=ASSIST_SYSTEM
-                + (
-                    DRAFT_GROUNDING_INSTRUCTION
-                    if self.settings.draft_grounding_enabled
-                    else ""
-                ),
+                + (DRAFT_GROUNDING_INSTRUCTION if self.settings.draft_grounding_enabled else ""),
                 user=self._assist_context(draft, payload),
                 schema=ASSIST_SCHEMA,
                 grounding=self.settings.draft_grounding_enabled,
             )
-            reply, title, clear_draft, remove_ids, edits = self._parse_assist(
-                result.data
-            )
+            reply, title, clear_draft, remove_ids, edits = self._parse_assist(result.data)
             grounding = _grounding_from(result.data.get("sources"), result.grounding)
         except Exception as exc:  # noqa: BLE001 - keep the user's message on failure
             logger.exception("Draft assist failed")
@@ -583,18 +582,11 @@ class DraftService:
             draft.blocks = []
         elif remove_ids:
             drop = set(remove_ids)
-            draft.blocks = [
-                block for block in draft.blocks if block.blockId not in drop
-            ]
+            draft.blocks = [block for block in draft.blocks if block.blockId not in drop]
         # The model occasionally says it cleared the draft without returning the
         # flag. Trust an explicit clear request so the reply and the document
         # can never disagree.
-        if (
-            not clear_draft
-            and not remove_ids
-            and not edits
-            and _looks_like_clear(payload.message)
-        ):
+        if not clear_draft and not remove_ids and not edits and _looks_like_clear(payload.message):
             draft.blocks = []
         self._apply_edits(draft, edits)
         # Keep the previous sources when this turn did not search; replace them when it did.
@@ -612,7 +604,9 @@ class DraftService:
         )
         if draft.status == DraftStatus.empty and draft.blocks:
             draft.status = DraftStatus.ready
-        self._persist(owner_uid=owner_uid, draft=draft, status=ProjectStatus.ready)
+        await asyncio.to_thread(
+            self._persist, owner_uid=owner_uid, draft=draft, status=ProjectStatus.ready
+        )
         return draft
 
     # ---------------------------------------------------------------- helpers
@@ -626,7 +620,7 @@ class DraftService:
         selection in an inline variant and saves it, so word/sentence alternatives
         stay inside the paragraph instead of becoming whole-block versions.
         """
-        self.projects.get(owner_uid=owner_uid, project_id=project_id)
+        await asyncio.to_thread(self.projects.get, owner_uid=owner_uid, project_id=project_id)
         count = payload.count if payload.mode == SuggestMode.alternatives else 1
         user = json.dumps(
             {

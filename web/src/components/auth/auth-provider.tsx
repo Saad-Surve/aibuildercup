@@ -18,6 +18,7 @@ import {
   signOut as firebaseSignOut,
   type User,
 } from "firebase/auth";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { API_BASE_URL } from "@/lib/api-base";
@@ -52,6 +53,7 @@ function describeError(error: unknown): string {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Me | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
@@ -59,9 +61,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    let previousUid: string | null | undefined;
+    let profileRequest: AbortController | null = null;
 
     const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
       if (!active) return;
+      profileRequest?.abort();
+      if (previousUid !== nextUser?.uid) queryClient.clear();
+      previousUid = nextUser?.uid;
       setUser(nextUser);
 
       if (!nextUser) {
@@ -73,13 +80,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setStatus("loading");
       setError(null);
+      const controller = new AbortController();
+      profileRequest = controller;
       try {
-        const me = await apiFetch<Me>("/me");
-        if (!active) return;
+        const me = await apiFetch<Me>("/me", { signal: controller.signal });
+        if (!active || controller.signal.aborted) return;
         setProfile(me);
         setStatus("signed_in");
       } catch (caught) {
-        if (!active) return;
+        if (!active || controller.signal.aborted) return;
         setError(describeError(caught));
         setStatus("error");
       }
@@ -87,9 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       active = false;
+      profileRequest?.abort();
       unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   const signInWithGoogle = useCallback(async () => {
     setError(null);
@@ -102,7 +112,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         caught && typeof caught === "object" && "code" in caught
           ? String((caught as { code?: unknown }).code)
           : "";
-      if (code === "auth/popup-blocked" || code === "auth/operation-not-supported-in-this-environment") {
+      if (
+        code === "auth/popup-blocked" ||
+        code === "auth/operation-not-supported-in-this-environment"
+      ) {
         try {
           await signInWithRedirect(auth, provider);
           return;
@@ -145,13 +158,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    if (!auth.currentUser) return;
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
     try {
       const me = await apiFetch<Me>("/me");
+      if (auth.currentUser !== currentUser) return;
       setProfile(me);
       setError(null);
       setStatus("signed_in");
     } catch (caught) {
+      if (auth.currentUser !== currentUser) return;
       setError(describeError(caught));
     }
   }, []);
@@ -168,7 +184,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       refreshProfile,
     }),
-    [user, profile, status, error, signInWithGoogle, signInAsDemo, signOut, refreshProfile],
+    [
+      user,
+      profile,
+      status,
+      error,
+      signInWithGoogle,
+      signInAsDemo,
+      signOut,
+      refreshProfile,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

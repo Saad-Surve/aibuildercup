@@ -19,6 +19,7 @@ Everything is best-effort per concept: one failed concept marks itself failed wi
 batch, so a creator still gets the ones that worked.
 """
 
+import asyncio
 import json
 import logging
 import os
@@ -47,6 +48,7 @@ from app.services.storage_service import StorageClient, get_storage_client
 from app.services.thumbnail_service import ThumbnailService
 from app.services.transcript_service import TranscriptService
 from app.services.video_tools import MediaToolkit, VideoToolError, format_timestamp
+from app.workers.guard import serialize_job
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +132,7 @@ CRITIQUE_SCHEMA: dict[str, Any] = {
 # --------------------------------------------------------------------- public entry
 
 
+@serialize_job
 async def run_thumbnail_generation(
     *,
     owner_uid: str,
@@ -148,8 +151,8 @@ async def run_thumbnail_generation(
     settings: Settings,
 ) -> list[str] | None:
     try:
-        job = jobs.load_for_worker(
-            owner_uid=owner_uid, project_id=project_id, job_id=job_id
+        job = await asyncio.to_thread(
+            jobs.load_for_worker, owner_uid=owner_uid, project_id=project_id, job_id=job_id
         )
     except NotFoundError:
         logger.warning("thumbnail job %s not found; skipping", job_id)
@@ -161,7 +164,8 @@ async def run_thumbnail_generation(
     payload = job.get("input") or {}
     thumbnail_ids: list[str] = list(payload.get("thumbnailIds") or [])
     if not thumbnail_ids:
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -216,7 +220,8 @@ async def run_thumbnail_generation(
                     thumbnail_id=thumbnail_id,
                     message=message,
                 )
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -249,16 +254,14 @@ async def _generate_batch(
     images: ImageGenProvider,
     settings: Settings,
 ) -> None:
-    project = projects.get(owner_uid=owner_uid, project_id=project_id)
+    project = await asyncio.to_thread(projects.get, owner_uid=owner_uid, project_id=project_id)
     duration_ms, transcript_view = _transcript_view(
         transcripts=transcripts, owner_uid=owner_uid, project_id=project_id
     )
     findings = _finding_view(
         analysis=analysis, firestore=firestore, owner_uid=owner_uid, project_id=project_id
     )
-    persona = _persona_markdown(
-        firestore=firestore, storage=storage, owner_uid=owner_uid
-    )
+    persona = _persona_markdown(firestore=firestore, storage=storage, owner_uid=owner_uid)
     # The creator's own past thumbnails, as image-model style references (best-effort).
     creator_references: list[MediaPart] = []
     try:
@@ -270,7 +273,8 @@ async def _generate_batch(
 
     regenerate = payload.get("mode") == "regenerate"
     if regenerate:
-        jobs.mark_running(
+        await asyncio.to_thread(
+            jobs.mark_running,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -282,9 +286,15 @@ async def _generate_batch(
         version_numbers = []
         concept_aspects = []
         for thumbnail_id in thumbnail_ids:
-            stored = thumbnails.load(
-                owner_uid=owner_uid, project_id=project_id, thumbnail_id=thumbnail_id
-            ) or {}
+            stored = (
+                await asyncio.to_thread(
+                    thumbnails.load,
+                    owner_uid=owner_uid,
+                    project_id=project_id,
+                    thumbnail_id=thumbnail_id,
+                )
+                or {}
+            )
             plan.append(
                 {
                     "headline": stored.get("headline", ""),
@@ -295,11 +305,10 @@ async def _generate_batch(
                 }
             )
             version_numbers.append(len(stored.get("versions") or []) + 1)
-            concept_aspects.append(
-                str(stored.get("aspect") or settings.imagegen_default_aspect)
-            )
+            concept_aspects.append(str(stored.get("aspect") or settings.imagegen_default_aspect))
     else:
-        jobs.mark_running(
+        await asyncio.to_thread(
+            jobs.mark_running,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -318,9 +327,9 @@ async def _generate_batch(
             findings=findings,
         )
         version_numbers = [1] * len(thumbnail_ids)
-        concept_aspects = [
-            str(payload.get("aspect") or settings.imagegen_default_aspect)
-        ] * len(thumbnail_ids)
+        concept_aspects = [str(payload.get("aspect") or settings.imagegen_default_aspect)] * len(
+            thumbnail_ids
+        )
 
     image_size = str(payload.get("imageSize") or settings.imagegen_default_size)
     use_real_frames = bool(payload.get("useRealFrames", True))
@@ -357,17 +366,17 @@ async def _generate_batch(
             if index < len(concept_aspects)
             else settings.imagegen_default_aspect
         )
-        version_number = (
-            version_numbers[index] if index < len(version_numbers) else 1
-        )
+        version_number = version_numbers[index] if index < len(version_numbers) else 1
 
-        thumbnails.mark_generating(
+        await asyncio.to_thread(
+            thumbnails.mark_generating,
             owner_uid=owner_uid,
             project_id=project_id,
             thumbnail_id=thumbnail_id,
             headline=headline,
         )
-        thumbnails.save_plan(
+        await asyncio.to_thread(
+            thumbnails.save_plan,
             owner_uid=owner_uid,
             project_id=project_id,
             thumbnail_id=thumbnail_id,
@@ -375,7 +384,8 @@ async def _generate_batch(
             rationale=rationale,
             source_timestamp_ms=timestamp_ms,
         )
-        jobs.update_progress(
+        await asyncio.to_thread(
+            jobs.update_progress,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -442,7 +452,8 @@ async def _generate_batch(
                 model=model,
                 price=settings.imagegen_price_per_image_usd,
             )
-            thumbnails.add_version(
+            await asyncio.to_thread(
+                thumbnails.add_version,
                 owner_uid=owner_uid,
                 project_id=project_id,
                 thumbnail_id=thumbnail_id,
@@ -458,7 +469,8 @@ async def _generate_batch(
                 message=str(exc)[:300] or "Generation failed.",
             )
 
-    jobs.update_progress(
+    await asyncio.to_thread(
+        jobs.update_progress,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,
@@ -466,7 +478,8 @@ async def _generate_batch(
         step="finishing",
         message="Finalising thumbnails",
     )
-    jobs.mark_succeeded(
+    await asyncio.to_thread(
+        jobs.mark_succeeded,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,
@@ -494,8 +507,8 @@ async def _revise(
 ) -> None:
     thumbnail_id = str((payload.get("thumbnailIds") or [""])[0])
     instruction = str(payload.get("instruction") or "").strip()
-    concept = thumbnails.load(
-        owner_uid=owner_uid, project_id=project_id, thumbnail_id=thumbnail_id
+    concept = await asyncio.to_thread(
+        thumbnails.load, owner_uid=owner_uid, project_id=project_id, thumbnail_id=thumbnail_id
     )
     if concept is None:
         raise NotFoundError("Thumbnail concept not found", details={"thumbnailId": thumbnail_id})
@@ -504,15 +517,16 @@ async def _revise(
     if active is None or not storage_path:
         raise VideoToolError("This concept has no image to edit.")
 
-    project = projects.get(owner_uid=owner_uid, project_id=project_id)
-    jobs.mark_running(
+    project = await asyncio.to_thread(projects.get, owner_uid=owner_uid, project_id=project_id)
+    await asyncio.to_thread(
+        jobs.mark_running,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,
         step="editing",
         message="Applying your edit",
     )
-    base_bytes = storage.download_bytes(str(storage_path))
+    base_bytes = await asyncio.to_thread(storage.download_bytes, str(storage_path))
     mime_type = str(active.get("mimeType") or "image/png")
     generated = await images.generate(
         model=settings.model_image,
@@ -547,20 +561,20 @@ async def _revise(
         instruction=instruction,
         headline=previous_headline,
         rationale=str(concept.get("rationale") or ""),
-        reference_timestamps=[
-            int(item) for item in (concept.get("referenceTimestampsMs") or [])
-        ],
+        reference_timestamps=[int(item) for item in (concept.get("referenceTimestampsMs") or [])],
         critique=critique,
         model=settings.model_image,
         price=settings.imagegen_price_per_image_usd,
     )
-    thumbnails.add_version(
+    await asyncio.to_thread(
+        thumbnails.add_version,
         owner_uid=owner_uid,
         project_id=project_id,
         thumbnail_id=thumbnail_id,
         version=version,
     )
-    jobs.mark_succeeded(
+    await asyncio.to_thread(
+        jobs.mark_succeeded,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,
@@ -721,7 +735,9 @@ async def _reference_frames(
             timestamp_ms=at,
         )
         try:
-            storage.upload_bytes(object_path, part.data, content_type=part.mime_type)
+            await asyncio.to_thread(
+                storage.upload_bytes, object_path, part.data, content_type=part.mime_type
+            )
         except Exception:  # noqa: BLE001 - persistence of the reference is best-effort
             logger.warning("thumbnail: could not persist a reference frame")
         references.append(part)

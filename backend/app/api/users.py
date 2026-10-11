@@ -20,7 +20,7 @@ IdentityDeleterDep = Annotated[Callable[[str], None], Depends(get_identity_delet
 
 
 @router.get("/me", response_model=Me)
-async def get_me(user: UserDep, service: UserServiceDep) -> Me:
+def get_me(user: UserDep, service: UserServiceDep) -> Me:
     data = service.ensure_user(
         user.uid,
         display_name=user.display_name,
@@ -31,7 +31,7 @@ async def get_me(user: UserDep, service: UserServiceDep) -> Me:
 
 
 @router.put("/me/avatar", response_model=AvatarState)
-async def put_avatar(
+def put_avatar(
     payload: AvatarState,
     user: UserDep,
     service: UserServiceDep,
@@ -41,7 +41,7 @@ async def put_avatar(
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_me(
+def delete_me(
     user: UserDep,
     service: UserServiceDep,
     delete_identity: IdentityDeleterDep,

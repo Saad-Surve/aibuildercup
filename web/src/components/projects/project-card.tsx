@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { FileVideoIcon, PencilEdit02Icon } from "@hugeicons/core-free-icons";
 import { format } from "date-fns";
@@ -75,10 +76,13 @@ function ProjectThumb({
 
   const cover = posterUrl ?? poster;
   if (cover) {
-    // Plain <img> on purpose: posters are generated data URLs or signed URLs.
+    // Static export disables image transformation; retain data/signed URLs while
+    // getting explicit dimensions, async decoding, and native lazy loading.
     return (
-      <img
+      <Image
         src={cover}
+        width={480}
+        height={270}
         alt=""
         aria-hidden="true"
         className="aspect-video w-full object-cover"

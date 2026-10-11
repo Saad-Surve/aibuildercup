@@ -316,14 +316,10 @@ bearer_scheme = HTTPBearer(
     bearerFormat="Firebase ID token",
 )
 
-BearerCredentials = Annotated[
-    HTTPAuthorizationCredentials | None, Depends(bearer_scheme)
-]
+BearerCredentials = Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)]
 
 
-async def current_user(
-    request: Request, credentials: BearerCredentials
-) -> AuthenticatedUser:
+def current_user(request: Request, credentials: BearerCredentials) -> AuthenticatedUser:
     if credentials is None or not credentials.credentials:
         raise HTTPException(status_code=401, detail="Missing bearer token")
     # The read-only middleware may already have verified this token for a mutating request;

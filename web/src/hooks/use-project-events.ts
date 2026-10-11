@@ -40,135 +40,146 @@ export function useProjectEvents(
   useEffect(() => onRealtimeStatus(setStatus), []);
 
   useEffect(() => {
-    return subscribeProject(projectId, (message: RealtimeMessage) => {
-      switch (message.type) {
-        case "snapshot.project": {
-          queryClient.setQueryData<Project>(["project", projectId], (old) =>
-            old
-              ? {
-                  ...old,
-                  status: message.status,
-                  progress: message.progress ?? old.progress,
-                }
-              : old,
-          );
-          const job = message.job;
-          if (job) {
-            onJobIdRef.current?.(job.jobId);
-            queryClient.setQueryData<Job>(["job", job.jobId], (old) =>
+    // A completion often arrives as project.ready, job.succeeded, and
+    // transcript.ready together. Coalesce their invalidations into one refetch.
+    const pending = new Map<string, readonly unknown[]>();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    function invalidate(queryKey: readonly unknown[]) {
+      pending.set(JSON.stringify(queryKey), queryKey);
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        for (const key of pending.values()) {
+          void queryClient.invalidateQueries({ queryKey: key });
+        }
+        pending.clear();
+      }, 200);
+    }
+
+    const unsubscribe = subscribeProject(
+      projectId,
+      (message: RealtimeMessage) => {
+        switch (message.type) {
+          case "snapshot.project": {
+            queryClient.setQueryData<Project>(["project", projectId], (old) =>
               old
                 ? {
                     ...old,
-                    status: job.status,
-                    progress: job.progress ?? old.progress,
-                    error: job.error,
+                    status: message.status,
+                    progress: message.progress ?? old.progress,
                   }
                 : old,
             );
+            const job = message.job;
+            if (job) {
+              onJobIdRef.current?.(job.jobId);
+              queryClient.setQueryData<Job>(["job", job.jobId], (old) =>
+                old
+                  ? {
+                      ...old,
+                      status: job.status,
+                      progress: job.progress ?? old.progress,
+                      error: job.error,
+                    }
+                  : old,
+              );
+            }
+            break;
           }
-          break;
-        }
-        case "project.progress": {
-          queryClient.setQueryData<Project>(["project", projectId], (old) =>
-            old
-              ? {
-                  ...old,
-                  status: message.status,
-                  progress: message.progress ?? old.progress,
-                }
-              : old,
-          );
-          if (message.status === "ready") {
-            void queryClient.invalidateQueries({
-              queryKey: ["transcript", projectId],
-            });
-          }
-          break;
-        }
-        case "job.progress": {
-          onJobIdRef.current?.(message.jobId);
-          queryClient.setQueryData<Job>(["job", message.jobId], (old) =>
-            old
-              ? {
-                  ...old,
-                  status: message.status,
-                  progress: message.progress ?? old.progress,
-                  error: message.error,
-                }
-              : old,
-          );
-          // The transcribe job succeeding means the transcript is stored. The
-          // `transcript.ready` frame usually does this too; this covers a frame
-          // that was missed while the socket was reconnecting.
-          if (
-            message.status === "succeeded" &&
-            (message.jobType === "transcribe" || message.jobType == null)
-          ) {
-            void queryClient.invalidateQueries({
-              queryKey: ["transcript", projectId],
-            });
-          }
-          break;
-        }
-        case "transcript.ready": {
-          void queryClient.invalidateQueries({
-            queryKey: ["transcript", projectId],
-          });
-          void queryClient.invalidateQueries({
-            queryKey: ["project", projectId],
-          });
-          break;
-        }
-        case "analysis.progress": {
-          queryClient.setQueryData<AnalysisRun>(
-            ["analysis-run", projectId, message.analysisRunId],
-            (old) =>
+          case "project.progress": {
+            queryClient.setQueryData<Project>(["project", projectId], (old) =>
               old
                 ? {
                     ...old,
-                    status: message.status as AnalysisRun["status"],
-                    completedDimensions:
-                      message.completedDimensions as AnalysisRun["completedDimensions"],
+                    status: message.status,
+                    progress: message.progress ?? old.progress,
                   }
                 : old,
-          );
-          // Reviewer outcomes land one at a time; refetch the projections that
-          // show them. These are event-driven only — no interval.
-          void queryClient.invalidateQueries({
-            queryKey: ["analysis-reviewers", projectId, message.analysisRunId],
-          });
-          void queryClient.invalidateQueries({
-            queryKey: ["analysis-findings", projectId, message.analysisRunId],
-          });
-          void queryClient.invalidateQueries({
-            queryKey: ["analysis-heatmap", projectId, message.analysisRunId],
-          });
-          break;
+            );
+            if (message.status === "ready") {
+              invalidate(["transcript", projectId]);
+            }
+            break;
+          }
+          case "job.progress": {
+            onJobIdRef.current?.(message.jobId);
+            queryClient.setQueryData<Job>(["job", message.jobId], (old) =>
+              old
+                ? {
+                    ...old,
+                    status: message.status,
+                    progress: message.progress ?? old.progress,
+                    error: message.error,
+                  }
+                : old,
+            );
+            // The transcribe job succeeding means the transcript is stored. The
+            // `transcript.ready` frame usually does this too; this covers a frame
+            // that was missed while the socket was reconnecting.
+            if (
+              message.status === "succeeded" &&
+              (message.jobType === "transcribe" || message.jobType == null)
+            ) {
+              invalidate(["transcript", projectId]);
+            }
+            break;
+          }
+          case "transcript.ready": {
+            invalidate(["transcript", projectId]);
+            invalidate(["project", projectId]);
+            break;
+          }
+          case "analysis.progress": {
+            queryClient.setQueryData<AnalysisRun>(
+              ["analysis-run", projectId, message.analysisRunId],
+              (old) =>
+                old
+                  ? {
+                      ...old,
+                      status: message.status as AnalysisRun["status"],
+                      completedDimensions:
+                        message.completedDimensions as AnalysisRun["completedDimensions"],
+                    }
+                  : old,
+            );
+            // Reviewer outcomes land one at a time; refetch the projections that
+            // show them. These are event-driven only — no interval.
+            invalidate([
+              "analysis-reviewers",
+              projectId,
+              message.analysisRunId,
+            ]);
+            invalidate(["analysis-findings", projectId, message.analysisRunId]);
+            invalidate(["analysis-heatmap", projectId, message.analysisRunId]);
+            break;
+          }
+          case "analysis.ready": {
+            invalidate(["analysis-runs", projectId]);
+            invalidate(["analysis-run", projectId, message.analysisRunId]);
+            invalidate([
+              "analysis-reviewers",
+              projectId,
+              message.analysisRunId,
+            ]);
+            invalidate(["analysis-heatmap", projectId, message.analysisRunId]);
+            invalidate(["analysis-findings", projectId, message.analysisRunId]);
+            break;
+          }
+          case "error":
+          case "ping":
+          case "pong":
+            break;
         }
-        case "analysis.ready": {
-          void queryClient.invalidateQueries({
-            queryKey: ["analysis-runs", projectId],
-          });
-          void queryClient.invalidateQueries({
-            queryKey: ["analysis-run", projectId, message.analysisRunId],
-          });
-          void queryClient.invalidateQueries({
-            queryKey: ["analysis-reviewers", projectId, message.analysisRunId],
-          });
-          void queryClient.invalidateQueries({
-            queryKey: ["analysis-heatmap", projectId, message.analysisRunId],
-          });
-          void queryClient.invalidateQueries({
-            queryKey: ["analysis-findings", projectId, message.analysisRunId],
-          });
-          break;
-        }
-        case "error":
-        case "ping":
-        case "pong":
-          break;
+      },
+    );
+    return () => {
+      unsubscribe();
+      if (timer) clearTimeout(timer);
+      // Keep inactive caches stale even if navigation beats the debounce.
+      for (const queryKey of pending.values()) {
+        void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       }
-    });
+    };
   }, [projectId, queryClient]);
 
   // Skip the very first open (the mount queries are already in flight); from the

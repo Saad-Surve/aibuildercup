@@ -19,7 +19,7 @@ router = APIRouter(tags=["demo"])
 
 
 @router.post("/demo/session")
-async def create_demo_session() -> dict[str, str]:
+def create_demo_session() -> dict[str, str]:
     settings = get_settings()
     if not settings.demo_user_uid:
         raise NotFoundError("The demo account is not configured.")

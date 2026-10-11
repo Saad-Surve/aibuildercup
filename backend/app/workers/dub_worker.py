@@ -48,6 +48,7 @@ from app.services.video_tools import (
     run_ffmpeg,
     run_ffmpeg_command,
 )
+from app.workers.guard import serialize_job
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +84,7 @@ def _encode_timeout(duration_ms: int) -> int:
     )
 
 
+@serialize_job
 async def run_dub(
     *,
     owner_uid: str,
@@ -99,8 +101,8 @@ async def run_dub(
 ) -> str | None:
     """Run one dub. Returns the localization id, or None if skipped/failed."""
     try:
-        job = jobs.load_for_worker(
-            owner_uid=owner_uid, project_id=project_id, job_id=job_id
+        job = await asyncio.to_thread(
+            jobs.load_for_worker, owner_uid=owner_uid, project_id=project_id, job_id=job_id
         )
     except NotFoundError:
         logger.warning("dub job %s not found; skipping", job_id)
@@ -112,7 +114,8 @@ async def run_dub(
 
     localization_id = (job.get("input") or {}).get("localizationId")
     if not localization_id:
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -121,13 +124,15 @@ async def run_dub(
         )
         return None
 
-    localization = localizations.load(
+    localization = await asyncio.to_thread(
+        localizations.load,
         owner_uid=owner_uid,
         project_id=project_id,
         localization_id=localization_id,
     )
     if localization is None:
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -137,7 +142,8 @@ async def run_dub(
         return None
 
     if localization.get("status") == LocalizationStatus.ready.value:
-        jobs.mark_succeeded(
+        await asyncio.to_thread(
+            jobs.mark_succeeded,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -171,7 +177,8 @@ async def run_dub(
         logger.exception("dub job %s failed", job_id)
         message = _failure_message(exc)
         try:
-            localizations.mark_failed(
+            await asyncio.to_thread(
+                localizations.mark_failed,
                 owner_uid=owner_uid,
                 project_id=project_id,
                 localization_id=localization_id,
@@ -180,7 +187,8 @@ async def run_dub(
             )
         except Exception:  # noqa: BLE001 - job failure is the primary signal
             logger.exception("localization %s: could not mark failed", localization_id)
-        jobs.mark_failed(
+        await asyncio.to_thread(
+            jobs.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -207,11 +215,10 @@ async def _dub(
     providers: Providers,
 ) -> None:
     if not ffmpeg_available(settings.ffmpeg_path):
-        raise VideoToolError(
-            f"ffmpeg ({settings.ffmpeg_path}) is not available on this server"
-        )
+        raise VideoToolError(f"ffmpeg ({settings.ffmpeg_path}) is not available on this server")
 
-    jobs.mark_running(
+    await asyncio.to_thread(
+        jobs.mark_running,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,
@@ -222,20 +229,21 @@ async def _dub(
     source_asset_id = localization.get("sourceAssetId")
     if not source_asset_id:
         raise VideoToolError("The dub has no source video.")
-    asset = firestore.get_document(
-        asset_path(owner_uid, project_id, str(source_asset_id))
-    )
+    asset = firestore.get_document(asset_path(owner_uid, project_id, str(source_asset_id)))
     if asset is None or asset.get("ownerUid") != owner_uid:
         raise VideoToolError("The source video is missing.")
     source_path = str(asset.get("storagePath") or "")
-    if not source_path or not storage.object_exists(source_path):
+    if not source_path or not await asyncio.to_thread(storage.object_exists, source_path):
         raise VideoToolError("The source video is missing from storage.")
 
     transcript_id = localization.get("sourceTranscriptId")
     if not transcript_id:
         raise VideoToolError("The dub has no source transcript.")
-    transcript = transcripts.get_by_id(
-        owner_uid=owner_uid, project_id=project_id, transcript_id=str(transcript_id)
+    transcript = await asyncio.to_thread(
+        transcripts.get_by_id,
+        owner_uid=owner_uid,
+        project_id=project_id,
+        transcript_id=str(transcript_id),
     )
     if not transcript.segments:
         raise VideoToolError("The transcript has no segments to dub.")
@@ -278,7 +286,8 @@ async def _dub(
             model=settings.model_localization,
         )
 
-        localizations.mark_status(
+        await asyncio.to_thread(
+            localizations.mark_status,
             owner_uid=owner_uid,
             project_id=project_id,
             localization_id=localization_id,
@@ -328,13 +337,15 @@ async def _dub(
             timeout_seconds=_encode_timeout(total_ms),
         )
 
-        localizations.mark_status(
+        await asyncio.to_thread(
+            localizations.mark_status,
             owner_uid=owner_uid,
             project_id=project_id,
             localization_id=localization_id,
             status=LocalizationStatus.muxing,
         )
-        jobs.update_progress(
+        await asyncio.to_thread(
+            jobs.update_progress,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -361,7 +372,8 @@ async def _dub(
         if not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
             raise VideoToolError("ffmpeg produced an empty video.")
 
-        jobs.update_progress(
+        await asyncio.to_thread(
+            jobs.update_progress,
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
@@ -380,13 +392,14 @@ async def _dub(
             localization_id=localization_id,
         )
         size_bytes = os.path.getsize(out_path)
-        storage.upload_from_filename(
-            video_object, out_path, content_type="video/mp4"
+        await asyncio.to_thread(
+            storage.upload_from_filename, video_object, out_path, content_type="video/mp4"
         )
-        storage.upload_from_filename(
-            audio_object, audio_path, content_type="audio/mpeg"
+        await asyncio.to_thread(
+            storage.upload_from_filename, audio_object, audio_path, content_type="audio/mpeg"
         )
-        storage.upload_text(
+        await asyncio.to_thread(
+            storage.upload_text,
             captions_object,
             _build_srt(transcript.segments, translated),
             content_type="application/x-subrip",
@@ -394,7 +407,8 @@ async def _dub(
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
 
-    localizations.mark_ready(
+    await asyncio.to_thread(
+        localizations.mark_ready,
         owner_uid=owner_uid,
         project_id=project_id,
         localization_id=localization_id,
@@ -406,7 +420,8 @@ async def _dub(
         width=width,
         height=height,
     )
-    jobs.mark_succeeded(
+    await asyncio.to_thread(
+        jobs.mark_succeeded,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,
@@ -451,13 +466,15 @@ async def _translate(
     if source_base and source_base == target_base:
         return list(texts)
 
-    localizations.mark_status(
+    await asyncio.to_thread(
+        localizations.mark_status,
         owner_uid=owner_uid,
         project_id=project_id,
         localization_id=localization_id,
         status=LocalizationStatus.translating,
     )
-    jobs.update_progress(
+    await asyncio.to_thread(
+        jobs.update_progress,
         owner_uid=owner_uid,
         project_id=project_id,
         job_id=job_id,
@@ -589,9 +606,7 @@ async def _synthesize(
     async def one(index: int) -> tuple[int, int, bytes] | None:
         chunk = chunks[index]
         voice = assignments.get(chunk.speaker) or fallback_voice
-        mp3 = await tts.synthesize(
-            text=chunk.text, language=voice.language_code, voice=voice.name
-        )
+        mp3 = await tts.synthesize(text=chunk.text, language=voice.language_code, voice=voice.name)
         if not mp3:
             return None
         mp3_path = os.path.join(tmpdir, f"chunk-{index:04d}.mp3")
@@ -631,19 +646,35 @@ async def _synthesize(
         )
         return (chunk.start_ms, chunk.end_ms, pcm)
 
-    for start in range(0, total, concurrency):
-        batch = range(start, min(start + concurrency, total))
-        results = await asyncio.gather(*(one(index) for index in batch))
-        placements.extend(result for result in results if result is not None)
-        done = min(start + concurrency, total)
-        jobs.update_progress(
-            owner_uid=owner_uid,
-            project_id=project_id,
-            job_id=job_id,
-            percent=15 + int(60 * done / max(1, total)),
-            step="synthesizing",
-            message=f"Synthesizing speech ({done}/{total})",
-        )
+    semaphore = asyncio.Semaphore(concurrency)
+
+    async def bounded_one(index: int) -> tuple[int, int, bytes] | None:
+        async with semaphore:
+            return await one(index)
+
+    # Refill slots as individual chunks finish; a slow chunk no longer stalls
+    # every other slot until an entire fixed batch has completed.
+    tasks = [asyncio.create_task(bounded_one(index)) for index in range(total)]
+    try:
+        for done, task in enumerate(asyncio.as_completed(tasks), start=1):
+            result = await task
+            if result is not None:
+                placements.append(result)
+            if done % concurrency == 0 or done == total:
+                await asyncio.to_thread(
+                    jobs.update_progress,
+                    owner_uid=owner_uid,
+                    project_id=project_id,
+                    job_id=job_id,
+                    percent=15 + int(60 * done / max(1, total)),
+                    step="synthesizing",
+                    message=f"Synthesizing speech ({done}/{total})",
+                )
+    finally:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
     placements.sort(key=lambda item: item[0])
     return placements
 

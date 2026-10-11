@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  memo,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -18,6 +20,9 @@ import {
 } from "@/lib/analysis";
 import type { AnalysisDimension, HeatmapBin, Severity } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const EMPTY_BINS: HeatmapBin[] = [];
+const EMPTY_SEVERITIES: Severity[] = [];
 
 /*
  * The review ribbon: one signal trace per reviewer dimension, plotted against the
@@ -46,7 +51,7 @@ export function HeatmapTracks({
   onSeek,
   selectedBinId,
   onSelectBin,
-  severityFilter = [],
+  severityFilter = EMPTY_SEVERITIES,
 }: {
   bins: HeatmapBin[];
   durationMs: number;
@@ -74,10 +79,20 @@ export function HeatmapTracks({
   }, [bins]);
 
   const rulerTicks = useMemo(() => makeTicks(durationMs), [durationMs]);
+  const byId = useMemo(
+    () => new Map(bins.map((bin) => [bin.binId, bin])),
+    [bins],
+  );
   // Drop a hover that belongs to a previous run rather than showing stale data.
-  const hoveredBin = hovered
-    ? (bins.find((bin) => bin.binId === hovered.binId) ?? null)
-    : null;
+  const hoveredBin = hovered ? (byId.get(hovered.binId) ?? null) : null;
+  const selectedBin = selectedBinId ? byId.get(selectedBinId) : null;
+  const select = useCallback(
+    (bin: HeatmapBin) => {
+      onSelectBin(bin);
+      onSeek(bin.startMs);
+    },
+    [onSelectBin, onSeek],
+  );
 
   if (durationMs <= 0 || dimensions.length === 0) {
     return (
@@ -101,7 +116,7 @@ export function HeatmapTracks({
             </p>
           ) : (
             dimensions.map((dimension) => {
-              const dimensionBins = byDimension.get(dimension) ?? [];
+              const dimensionBins = byDimension.get(dimension) ?? EMPTY_BINS;
               return (
                 <TrackRow
                   key={dimension}
@@ -109,14 +124,19 @@ export function HeatmapTracks({
                   bins={dimensionBins}
                   durationMs={durationMs}
                   score={scores[dimension]}
-                  hoveredBinId={hoveredBin?.binId ?? null}
-                  selectedBinId={selectedBinId}
+                  hoveredBinId={
+                    hoveredBin?.dimension === dimension
+                      ? hoveredBin.binId
+                      : null
+                  }
+                  selectedBinId={
+                    selectedBin?.dimension === dimension
+                      ? selectedBin.binId
+                      : null
+                  }
                   severityFilter={severityFilter}
                   onHover={setHovered}
-                  onSelect={(bin) => {
-                    onSelectBin(bin);
-                    onSeek(bin.startMs);
-                  }}
+                  onSelect={select}
                 />
               );
             })
@@ -151,7 +171,11 @@ function TimeRuler({ ticks }: { ticks: number[] }) {
                 // Five labels collide on a phone-width track; keep 0/50/100%.
                 index % 2 === 1 && "hidden sm:inline",
               )}
-              style={index === 0 || index === ticks.length - 1 ? undefined : { left: `${position}%` }}
+              style={
+                index === 0 || index === ticks.length - 1
+                  ? undefined
+                  : { left: `${position}%` }
+              }
             >
               {formatDurationMs(tick)}
             </span>
@@ -163,7 +187,7 @@ function TimeRuler({ ticks }: { ticks: number[] }) {
   );
 }
 
-function TrackRow({
+const TrackRow = memo(function TrackRow({
   dimension,
   bins,
   durationMs,
@@ -285,7 +309,7 @@ function TrackRow({
       </span>
     </div>
   );
-}
+});
 
 function ReadoutStrip({
   bin,
@@ -327,8 +351,8 @@ function ReadoutStrip({
         </>
       ) : (
         <span>
-          {dimensions} reviewer {dimensions === 1 ? "track" : "tracks"} · hover a
-          segment to inspect it
+          {dimensions} reviewer {dimensions === 1 ? "track" : "tracks"} · hover
+          a segment to inspect it
         </span>
       )}
     </div>

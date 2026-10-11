@@ -30,7 +30,7 @@ SchedulerDep = Annotated[TranscribeScheduler, Depends(get_transcribe_scheduler)]
 
 
 @router.get("/projects/{projectId}/transcript", response_model=Transcript)
-async def get_transcript(
+def get_transcript(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
@@ -44,7 +44,7 @@ async def get_transcript(
     "/projects/{projectId}/transcript/versions",
     response_model=TranscriptVersionList,
 )
-async def list_transcript_versions(
+def list_transcript_versions(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
@@ -59,7 +59,7 @@ async def list_transcript_versions(
     response_model=AcceptedJob,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def retranscribe_transcript(
+def retranscribe_transcript(
     projectId: str,
     user: UserDep,
     assets: AssetServiceDep,
@@ -83,7 +83,7 @@ async def retranscribe_transcript(
 
 
 @router.put("/projects/{projectId}/transcript", response_model=Transcript)
-async def update_transcript(
+def update_transcript(
     projectId: str,
     payload: TranscriptUpdate,
     user: UserDep,
@@ -107,7 +107,7 @@ async def update_transcript(
     "/projects/{projectId}/transcript/segments/{segmentId}",
     response_model=TranscriptSegment,
 )
-async def get_transcript_segment(
+def get_transcript_segment(
     projectId: str,
     segmentId: str,
     user: UserDep,
