@@ -79,6 +79,12 @@ const STATUS_META: Record<
     chip: "bg-sev-good/10 text-sev-good hover:bg-sev-good/20",
     badge: "border-sev-good/40 bg-sev-good/10 text-sev-good",
   },
+  failed: {
+    label: "Failed",
+    dot: "bg-destructive",
+    chip: "bg-destructive/10 text-destructive hover:bg-destructive/20",
+    badge: "border-destructive/40 bg-destructive/10 text-destructive",
+  },
   cancelled: {
     label: "Cancelled",
     dot: "bg-muted-foreground/50",
@@ -92,6 +98,7 @@ const FILTERS: { value: ScheduleStatus | "all"; label: string }[] = [
   { value: "planned", label: "Planned" },
   { value: "scheduled", label: "Scheduled" },
   { value: "published", label: "Published" },
+  { value: "failed", label: "Failed" },
   { value: "cancelled", label: "Cancelled" },
 ];
 
@@ -486,10 +493,17 @@ function CalendarInner() {
     // it lazily when publishes are read).
     refetchInterval: (query) => {
       const items = query.state.data?.items ?? [];
-      // Keep polling unless every slot is terminal, so a scheduled upload's
-      // status flips here at go-live and a YouTube deletion flips it to
-      // cancelled.
-      const waiting = items.some((item) => item.status !== "cancelled");
+      // Poll while any slot is still live: planned/scheduled flip at go-live or
+      // when a blocker clears, and published must keep polling so a video
+      // deleted directly on YouTube flips to cancelled here (the backend
+      // deletion check only runs when the calendar is read). Only cancelled and
+      // failed are terminal.
+      const waiting = items.some(
+        (item) =>
+          item.status === "planned" ||
+          item.status === "scheduled" ||
+          item.status === "published",
+      );
       return waiting ? 60_000 : false;
     },
   });
@@ -542,6 +556,7 @@ function CalendarInner() {
       planned: 0,
       scheduled: 0,
       published: 0,
+      failed: 0,
       cancelled: 0,
     };
     for (const item of all) result[item.status] += 1;
@@ -728,6 +743,13 @@ function CalendarInner() {
                                   "EEE d MMM, HH:mm",
                                 )}
                               </span>
+                              {item.statusDetail &&
+                              (item.status === "planned" ||
+                                item.status === "failed") ? (
+                                <span className="block truncate text-xs text-destructive">
+                                  {item.statusDetail}
+                                </span>
+                              ) : null}
                             </span>
                             <Badge className={cn("shrink-0", meta.badge)}>
                               {meta.label}
@@ -871,7 +893,6 @@ function CalendarInner() {
         <ScheduleDialog
           key={`create-${dialog.date.getTime()}`}
           initialDate={dialog.date}
-          createUpload
           open={dialogOpen}
           onOpenChange={(next) => {
             if (!next) setDialog(null);

@@ -37,8 +37,9 @@ function describe(error: unknown, fallback: string): string {
 }
 
 function subtitle(connection: Connection): string {
+  // One channel, one identity: the handle names the channel. The Google account
+  // email lives on the row's tooltip — showing both inline read as two channels.
   const parts: string[] = [];
-  if (connection.googleAccountEmail) parts.push(connection.googleAccountEmail);
   if (connection.externalHandle) parts.push(connection.externalHandle);
   if (connection.subscriberCount != null) {
     parts.push(`${connection.subscriberCount.toLocaleString()} subscribers`);
@@ -253,6 +254,11 @@ export function YouTubeConnections({
                       ? "border-signal/60 bg-signal/5"
                       : "border-border",
                   )}
+                  title={
+                    connection.googleAccountEmail
+                      ? `Connected via ${connection.googleAccountEmail}`
+                      : undefined
+                  }
                 >
                   {connection.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element

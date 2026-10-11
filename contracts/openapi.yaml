@@ -1612,6 +1612,10 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
     delete:
       summary: Delete a publish record (does not delete the YouTube video)
+      description: |
+        A still-queued job is cancelled first so nothing uploads after the record
+        is gone. Linked calendar slots are detached back to `planned`/`failed` with
+        an explanation instead of pointing at a missing publish.
       responses:
         "204": { description: Publish record removed }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -1640,6 +1644,8 @@ paths:
         Powers the content calendar. Optional `start`/`end` bound the window; both are
         ISO datetimes. A schedule may link to a publish attempt (`publishId`); editing a
         linked schedule's `scheduledAt` also moves the publish's `publishAt`.
+        Reads sweep: blocked YouTube slots re-try arming, blocked slots whose time
+        passed flip to `failed`, and uploads stuck `queued` past go-live re-fire.
       parameters:
         - name: start
           in: query
@@ -1673,8 +1679,13 @@ paths:
     post:
       summary: Plan a calendar slot for a project
       description: |
-        `publishId` links the slot to a publish attempt; rescheduling the slot later also
-        moves the publish's `publishAt`. Send `publishId: null` to keep it a rough plan.
+        A YouTube slot without an explicit `publishId` is armed automatically: the
+        API creates the linked publish (source video, private until `scheduledAt`)
+        and queues the upload. If it cannot arm yet (no connected channel, no
+        source video), the slot is created as `planned` with `statusDetail` naming
+        the blocker, and every later read/edit re-tries arming. `publishId` links
+        the slot to an existing publish attempt; rescheduling the slot later also
+        moves the publish's `publishAt`.
       requestBody:
         required: true
         content:
@@ -1698,7 +1709,9 @@ paths:
       description: |
         Only the fields sent are changed; `publishId: null` unlinks the publish. Moving
         `scheduledAt` on a linked slot also moves the publish's `publishAt`, unless that
-        publish already went out (409 SCHEDULE_PUBLISH_FINISHED).
+        publish already went out (409 SCHEDULE_PUBLISH_FINISHED). Status is automatic
+        and not patchable: editing a blocked (`planned`/`failed`) YouTube slot re-tries
+        arming its upload on the spot.
       requestBody:
         required: true
         content:
@@ -1714,7 +1727,12 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
     delete:
-      summary: Remove a calendar slot (does not touch a linked publish)
+      summary: Remove a calendar slot (calls off a not-yet-uploaded linked publish)
+      description: |
+        When the slot links an upload that has not reached YouTube yet, that publish
+        (and its queued job) is deleted with it, so nothing fires after the slot is
+        gone. Once the video is on YouTube the publish record stays in the studio as
+        history — deleting a calendar entry never deletes a video.
       responses:
         "204": { description: Slot removed }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -4165,7 +4183,12 @@ components:
 
     ScheduleStatus:
       type: string
-      enum: [planned, scheduled, published, cancelled]
+      enum: [planned, scheduled, published, failed, cancelled]
+      description: |
+        `planned` means the slot wants to upload but is blocked right now (see
+        `statusDetail`); `scheduled` means a publish is armed and waits for the
+        go-public time; `failed` means the upload died or the time passed while
+        still blocked.
 
     Schedule:
       type: object
@@ -4178,6 +4201,11 @@ components:
         platform: { type: string }
         scheduledAt: { type: string, format: date-time }
         status: { $ref: "#/components/schemas/ScheduleStatus" }
+        statusDetail:
+          type: [string, "null"]
+          description: |
+            Why a `planned`/`failed` slot is not uploading (no connected channel,
+            no source video, the publish error). Null while on track.
         publishId: { type: [string, "null"] }
         connectionId: { type: [string, "null"] }
         connectionDisplayName: { type: [string, "null"] }
@@ -4187,23 +4215,28 @@ components:
     ScheduleCreate:
       type: object
       required: [title, scheduledAt]
+      description: |
+        Status is automatic and not accepted here: a slot linked to an existing
+        publish starts `scheduled`, anything else starts `planned` until the API
+        arms its upload (or records the blocker in `statusDetail`).
       properties:
         title: { type: string, maxLength: 140 }
         notes: { type: string, maxLength: 2000 }
         platform: { type: string }
         scheduledAt: { type: string, format: date-time }
-        status: { $ref: "#/components/schemas/ScheduleStatus" }
         publishId: { type: [string, "null"] }
         connectionId: { type: [string, "null"] }
 
     ScheduleUpdate:
       type: object
+      description: |
+        Status is automatic (it follows the linked upload) and deliberately not
+        patchable — there is no `status` field.
       properties:
         title: { type: string, maxLength: 140 }
         notes: { type: string, maxLength: 2000 }
         platform: { type: string }
         scheduledAt: { type: string, format: date-time }
-        status: { $ref: "#/components/schemas/ScheduleStatus" }
         publishId: { type: [string, "null"] }
         connectionId: { type: [string, "null"] }
 

@@ -977,6 +977,7 @@ export type ScheduleStatus =
   | "planned"
   | "scheduled"
   | "published"
+  | "failed"
   | "cancelled";
 
 export interface Schedule {
@@ -989,6 +990,8 @@ export interface Schedule {
   platform: string;
   scheduledAt: string;
   status: ScheduleStatus;
+  /** Why a planned/failed slot is not uploading; null while on track. */
+  statusDetail: string | null;
   /** Link to a publish attempt; rescheduling also moves the publish's `publishAt`. */
   publishId: string | null;
   connectionId: string | null;
@@ -1002,7 +1005,6 @@ export interface ScheduleCreateInput {
   notes?: string;
   platform?: string;
   scheduledAt: string;
-  status?: ScheduleStatus;
   publishId?: string | null;
   connectionId?: string | null;
 }
@@ -1012,7 +1014,6 @@ export interface ScheduleUpdateInput {
   notes?: string;
   platform?: string;
   scheduledAt?: string;
-  status?: ScheduleStatus;
   publishId?: string | null;
   connectionId?: string | null;
 }

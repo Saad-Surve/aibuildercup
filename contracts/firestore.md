@@ -293,7 +293,8 @@ content calendar: what will be posted, from which project, and when.
   "notes": "Thumb B won the poll; use it.",
   "platform": "youtube",
   "scheduledAt": "timestamp",
-  "status": "planned | scheduled | published | cancelled",
+  "status": "planned | scheduled | published | failed | cancelled",
+  "statusDetail": "why a planned/failed slot is not uploading | null",
   "publishId": "publish-id | null",
   "connectionId": "connection-id | null",
   "connectionDisplayName": "Priya Creates | null",
@@ -304,10 +305,16 @@ content calendar: what will be posted, from which project, and when.
 
 Two-way link with publishes: creating a publish with `publishAt` auto-creates a `scheduled`
 entry pointing at it; creating a schedule with `publishId` (wiring a slot to an existing
-upload) and rescheduling a linked entry (`PATCH …/schedules/{id}`) both move the
+upload) starts `scheduled`, and rescheduling a linked entry (`PATCH …/schedules/{id}`) moves the
 publish's `publishAt` (the worker reads it at upload time; linking a finished publish is a
-409); a publish that finishes flips its linked entries to `published`. The month view reads
-across projects by fanning out over the project list (no collection-group index needed).
+409). Status is automatic and never client-set: a YouTube slot without a `publishId` is armed
+by the API (linked publish created and queued) at create time and re-armed on every read/edit
+until it sticks; a slot that cannot arm stays `planned` (`failed` once its time passes) with
+`statusDetail` naming the blocker. A publish that finishes flips its linked entries to
+`published`, one that fails flips them to `failed`. Deleting a slot also deletes a linked
+upload that has not reached YouTube yet (queued job cancelled); deleting a publish detaches
+its slots back to `planned`/`failed`. The month view reads across projects by fanning out
+over the project list (no collection-group index needed).
 The documents sit under the project subtree, so project / account delete covers them.
 
 ### Creator semantic library

@@ -8,7 +8,10 @@ no collection-group index to provision).
 Two-way link with publishes: a schedule may point at a publish attempt (`publishId`).
 Creating a linked entry and rescheduling one both move the publish's `publishAt`
 (the worker reads it at upload time), and `PublishService.mark_status` flips linked
-schedules to `published` when the upload finishes.
+schedules to `published` / `failed` / `cancelled` as the upload resolves. A slot that
+wants an upload but cannot be armed yet is `planned` with a `statusDetail` blocker;
+the schedules API re-tries arming it on every read and write (see
+`app/api/schedules.py`).
 """
 
 import logging
@@ -54,6 +57,7 @@ def _to_schedule(schedule_id: str, data: dict[str, Any]) -> Schedule:
         platform=data.get("platform", "youtube"),
         scheduledAt=data["scheduledAt"],
         status=ScheduleStatus(data.get("status", ScheduleStatus.planned.value)),
+        statusDetail=data.get("statusDetail"),
         publishId=data.get("publishId"),
         connectionId=data.get("connectionId"),
         connectionDisplayName=data.get("connectionDisplayName"),
@@ -83,6 +87,13 @@ class ScheduleService:
                     "Publish not found", details={"publishId": payload.publishId}
                 )
             connection_name = publish.get("connectionDisplayName")
+        # Status is automatic, never client-chosen: a slot wired to an upload waits
+        # for it (`scheduled`), anything else starts blocked (`planned`) until the
+        # schedules API arms it. Trusting a client `status` here once stranded
+        # linked slots on `planned` with a live upload attached.
+        status = (
+            ScheduleStatus.scheduled if payload.publishId else ScheduleStatus.planned
+        )
         schedule_id = uuid4().hex
         now = datetime.now(UTC)
         document: dict[str, Any] = {
@@ -93,7 +104,8 @@ class ScheduleService:
             "notes": payload.notes,
             "platform": payload.platform,
             "scheduledAt": _as_utc(payload.scheduledAt),
-            "status": payload.status.value,
+            "status": status.value,
+            "statusDetail": None,
             "publishId": payload.publishId,
             "connectionId": payload.connectionId,
             "connectionDisplayName": connection_name,
@@ -140,6 +152,7 @@ class ScheduleService:
             "platform": platform,
             "scheduledAt": _as_utc(scheduled_at),
             "status": ScheduleStatus.scheduled.value,
+            "statusDetail": None,
             "publishId": publish_id,
             "connectionId": connection_id,
             "connectionDisplayName": connection_display_name,
@@ -221,8 +234,6 @@ class ScheduleService:
         }
         if "scheduledAt" in changes and isinstance(changes["scheduledAt"], datetime):
             changes["scheduledAt"] = _as_utc(changes["scheduledAt"])
-        if "status" in changes and isinstance(changes["status"], ScheduleStatus):
-            changes["status"] = changes["status"].value
         if "publishId" in changes and changes["publishId"] is not None:
             publish = self.client.get_document(
                 publish_path(owner_uid, project_id, changes["publishId"])
@@ -305,7 +316,11 @@ class ScheduleService:
             try:
                 self.client.update_document(
                     schedule_path(owner_uid, project_id, schedule_id),
-                    {"status": ScheduleStatus.published.value, "updatedAt": now},
+                    {
+                        "status": ScheduleStatus.published.value,
+                        "statusDetail": None,
+                        "updatedAt": now,
+                    },
                 )
             except Exception:  # noqa: BLE001 - a calendar write must not fail the publish
                 logger.warning(
@@ -334,7 +349,11 @@ class ScheduleService:
             try:
                 self.client.update_document(
                     schedule_path(owner_uid, project_id, schedule_id),
-                    {"status": ScheduleStatus.cancelled.value, "updatedAt": now},
+                    {
+                        "status": ScheduleStatus.cancelled.value,
+                        "statusDetail": None,
+                        "updatedAt": now,
+                    },
                 )
             except Exception:  # noqa: BLE001 - a calendar write must not fail the publish
                 logger.warning(
@@ -362,9 +381,163 @@ class ScheduleService:
                 "connectionId": connection_id,
                 "connectionDisplayName": connection_display_name,
                 "status": ScheduleStatus.scheduled.value,
+                "statusDetail": None,
                 "updatedAt": datetime.now(UTC),
             },
         )
+
+    def mark_linked_failed(
+        self, *, owner_uid: str, project_id: str, publish_id: str, message: str | None
+    ) -> None:
+        """Flip linked calendar entries to `failed` when their upload dies.
+
+        Without this a failed upload left its slot on `scheduled` forever, telling
+        the creator a go-live was still coming when nothing was.
+        """
+        rows = self.client.query_collection(
+            schedules_collection_path(owner_uid, project_id),
+            filters=[("publishId", "==", publish_id)],
+            order_by=[],
+            limit=50,
+            offset=0,
+        )
+        now = datetime.now(UTC)
+        for schedule_id, data in rows:
+            if data.get("ownerUid") != owner_uid:
+                continue
+            if data.get("status") in (
+                ScheduleStatus.published.value,
+                ScheduleStatus.cancelled.value,
+            ):
+                continue
+            try:
+                self.client.update_document(
+                    schedule_path(owner_uid, project_id, schedule_id),
+                    {
+                        "status": ScheduleStatus.failed.value,
+                        "statusDetail": message or "The upload failed.",
+                        "updatedAt": now,
+                    },
+                )
+            except Exception:  # noqa: BLE001 - a calendar write must not fail the publish
+                logger.warning(
+                    "schedule: could not mark %s failed for publish %s",
+                    schedule_id,
+                    publish_id,
+                )
+
+    def mark_linked_scheduled(
+        self, *, owner_uid: str, project_id: str, publish_id: str
+    ) -> None:
+        """Back to `scheduled` when a failed upload is retried."""
+        rows = self.client.query_collection(
+            schedules_collection_path(owner_uid, project_id),
+            filters=[("publishId", "==", publish_id)],
+            order_by=[],
+            limit=50,
+            offset=0,
+        )
+        now = datetime.now(UTC)
+        for schedule_id, data in rows:
+            if data.get("ownerUid") != owner_uid:
+                continue
+            if data.get("status") != ScheduleStatus.failed.value:
+                continue
+            try:
+                self.client.update_document(
+                    schedule_path(owner_uid, project_id, schedule_id),
+                    {
+                        "status": ScheduleStatus.scheduled.value,
+                        "statusDetail": None,
+                        "updatedAt": now,
+                    },
+                )
+            except Exception:  # noqa: BLE001 - a calendar write must not fail the retry
+                logger.warning(
+                    "schedule: could not reschedule %s for retried publish %s",
+                    schedule_id,
+                    publish_id,
+                )
+
+    def unlink_publish(self, *, owner_uid: str, project_id: str, publish_id: str) -> None:
+        """Detach slots from a publish that was deleted in the app.
+
+        Without this a deleted upload leaves its slot `scheduled` forever, pointing
+        at a record that no longer exists. Unlinked slots go back to `planned`
+        (`failed` once their time has passed) with an explanation, so editing or
+        simply reading them re-arms a fresh upload.
+        """
+        rows = self.client.query_collection(
+            schedules_collection_path(owner_uid, project_id),
+            filters=[("publishId", "==", publish_id)],
+            order_by=[],
+            limit=50,
+            offset=0,
+        )
+        now = datetime.now(UTC)
+        for schedule_id, data in rows:
+            if data.get("ownerUid") != owner_uid:
+                continue
+            if data.get("status") in (
+                ScheduleStatus.published.value,
+                ScheduleStatus.cancelled.value,
+            ):
+                continue
+            moment = data.get("scheduledAt")
+            past_due = (
+                _as_utc(moment).astimezone(UTC) <= now
+                if isinstance(moment, datetime)
+                else False
+            )
+            try:
+                self.client.update_document(
+                    schedule_path(owner_uid, project_id, schedule_id),
+                    {
+                        "publishId": None,
+                        "connectionId": None,
+                        "connectionDisplayName": None,
+                        "status": (
+                            ScheduleStatus.failed.value
+                            if past_due
+                            else ScheduleStatus.planned.value
+                        ),
+                        "statusDetail": (
+                            "Its upload was deleted — edit this slot to schedule "
+                            "a fresh upload."
+                        ),
+                        "updatedAt": now,
+                    },
+                )
+            except Exception:  # noqa: BLE001 - the publish delete already succeeded
+                logger.warning(
+                    "schedule: could not unlink %s from deleted publish %s",
+                    schedule_id,
+                    publish_id,
+                )
+
+    def mark_blocked(
+        self, *, owner_uid: str, schedule: Schedule, detail: str, past_due: bool
+    ) -> bool:
+        """Record why an unarmed slot is not uploading. Returns True on a change.
+
+        A blocked slot whose time is still ahead stays `planned` (it can arm the
+        moment the blocker clears); one whose time already passed is `failed`.
+        No-ops when nothing changed, so the read-triggered sweep does not rewrite
+        the same explanation on every calendar poll.
+        """
+        next_status = (
+            ScheduleStatus.failed.value if past_due else ScheduleStatus.planned.value
+        )
+        if (
+            schedule.status.value == next_status
+            and (schedule.statusDetail or None) == detail
+        ):
+            return False
+        self.client.update_document(
+            schedule_path(owner_uid, schedule.projectId, schedule.scheduleId),
+            {"status": next_status, "statusDetail": detail, "updatedAt": datetime.now(UTC)},
+        )
+        return True
 
     def _require(
         self, owner_uid: str, project_id: str, schedule_id: str

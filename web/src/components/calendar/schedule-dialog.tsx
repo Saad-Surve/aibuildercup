@@ -41,9 +41,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api-client";
-import { listConnections } from "@/lib/connections";
 import { listProjects } from "@/lib/projects";
-import { createPublish } from "@/lib/publishes";
 import {
   createSchedule,
   deleteSchedule,
@@ -59,6 +57,7 @@ const STATUS_LABEL: Record<ScheduleStatus, string> = {
   planned: "Planned",
   scheduled: "Scheduled",
   published: "Published",
+  failed: "Failed",
   cancelled: "Cancelled",
 };
 
@@ -66,6 +65,7 @@ const STATUS_BADGE: Record<ScheduleStatus, string> = {
   planned: "border-border bg-muted text-muted-foreground",
   scheduled: "border-signal/40 bg-signal/10 text-foreground",
   published: "border-sev-good/40 bg-sev-good/10 text-sev-good",
+  failed: "border-destructive/40 bg-destructive/10 text-destructive",
   cancelled: "border-border bg-muted text-muted-foreground/70",
 };
 
@@ -100,12 +100,6 @@ interface ScheduleDialogProps {
   initialPublishId?: string;
   /** Title for a new slot (an upload title); falls back to the project name. */
   initialTitle?: string;
-  /**
-   * Calendar mode: turn a new YouTube slot into a real scheduled upload.
-   * Creates a `publish` with `publishAt` (which auto-links its own slot), so the
-   * video actually uploads instead of only appearing on the calendar.
-   */
-  createUpload?: boolean;
   trigger?: ReactElement;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -118,7 +112,6 @@ export function ScheduleDialog({
   initialDate,
   initialPublishId,
   initialTitle,
-  createUpload,
   trigger,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
@@ -160,12 +153,6 @@ export function ScheduleDialog({
   });
   const projects = projectsQuery.data?.items ?? [];
 
-  const connectionsQuery = useQuery({
-    queryKey: ["connections"],
-    queryFn: listConnections,
-    enabled: open && Boolean(createUpload) && !editing,
-  });
-
   function invalidate(project: string) {
     void queryClient.invalidateQueries({ queryKey: ["schedules"] });
     void queryClient.invalidateQueries({
@@ -188,75 +175,53 @@ export function ScheduleDialog({
       if (!date) throw new Error("Pick a date for this slot.");
       const scheduledAt = combineLocal(date, time).toISOString();
       if (editing && schedule) {
-        const saved = await updateSchedule(
-          schedule.projectId,
-          schedule.scheduleId,
-          {
-            notes,
-            platform: platform.trim() || "youtube",
-            scheduledAt,
-          },
-        );
-        return { projectId: saved.projectId, upload: false };
+        return updateSchedule(schedule.projectId, schedule.scheduleId, {
+          notes,
+          platform: platform.trim() || "youtube",
+          scheduledAt,
+        });
       }
-      // A calendar-created YouTube slot becomes a real upload: creating the
-      // publish uploads the project's source video and auto-creates the linked
-      // slot (see PublishService.create + the publishes router). Falls back to a
-      // plain planner slot when there is no connected channel / source video.
-      if (createUpload && !initialPublishId && platform.trim() === "youtube") {
-        if (Date.parse(scheduledAt) <= Date.now()) {
-          throw new Error("Pick a time in the future to schedule an upload.");
-        }
-        const items =
-          connectionsQuery.data?.items ??
-          (await connectionsQuery.refetch()).data?.items ??
-          [];
-        const channel = items.find(
-          (item) => item.platform === "youtube" && item.status === "connected",
-        );
-        const project = projects.find(
-          (item) => item.projectId === targetProject,
-        );
-        if (channel && project?.sourceAssetId) {
-          await createPublish(targetProject, {
-            connectionId: channel.connectionId,
-            video: { kind: "source", id: null },
-            title: finalTitle,
-            description: "",
-            privacyStatus: "private",
-            captionFormat: "none",
-            publishAt: scheduledAt,
-          });
-          return { projectId: targetProject, upload: true };
-        }
-      }
-      const saved = await createSchedule(targetProject, {
+      // The backend arms every YouTube slot: it creates the linked upload and
+      // queues it, or keeps the slot planned/failed with `statusDetail` naming
+      // exactly what is missing. There is no silent plan-only fallback.
+      return createSchedule(targetProject, {
         title: finalTitle,
         notes,
         platform: platform.trim() || "youtube",
         scheduledAt,
         publishId: initialPublishId ?? null,
       });
-      return { projectId: saved.projectId, upload: false };
     },
     onSuccess: (saved) => {
       invalidate(saved.projectId);
-      toast.success(
-        editing
-          ? "Slot updated"
-          : saved.upload
-            ? "Upload scheduled"
-            : "Slot scheduled",
-        !editing &&
-          createUpload &&
-          !saved.upload &&
-          platform.trim() === "youtube"
-          ? {
-              description:
-                "Connect a YouTube channel and add a source video to upload this slot automatically.",
-            }
-          : undefined,
-      );
+      const blocked =
+        saved.statusDetail &&
+        (saved.status === "planned" || saved.status === "failed");
+      if (editing) {
+        if (blocked) {
+          toast.warning("Slot updated", {
+            description: saved.statusDetail ?? undefined,
+          });
+        } else {
+          toast.success("Slot updated");
+        }
+      } else if (saved.status === "scheduled") {
+        // A slot time in the past uploads public right away (the go-live was
+        // intended); don't promise a future "goes live" for it.
+        const liveNow =
+          Number(new Date(saved.scheduledAt).getTime()) <= Date.now();
+        toast.success(liveNow ? "Uploading now" : "Upload scheduled", {
+          description: liveNow
+            ? `The video is uploading${saved.connectionDisplayName ? ` to ${saved.connectionDisplayName}` : ""} and will go public as soon as it finishes processing.`
+            : `Goes live ${format(new Date(saved.scheduledAt), "PPp")}${saved.connectionDisplayName ? ` on ${saved.connectionDisplayName}` : ""}.`,
+        });
+      } else if (blocked) {
+        toast.warning("Slot saved", {
+          description: saved.statusDetail ?? undefined,
+        });
+      } else {
+        toast.success("Slot scheduled");
+      }
       setOpen(false);
     },
     onError: (caught) => setError(describe(caught, "Could not save the slot.")),
@@ -293,10 +258,12 @@ export function ScheduleDialog({
             <Badge className={STATUS_BADGE[schedule.status]}>
               {STATUS_LABEL[schedule.status]}
             </Badge>
-            <span className="text-xs text-muted-foreground">
-              Status is automatic — it follows the upload, not a setting.
-            </span>
           </div>
+        ) : null}
+        {editing &&
+        schedule?.statusDetail &&
+        (schedule.status === "planned" || schedule.status === "failed") ? (
+          <p className="text-xs text-destructive">{schedule.statusDetail}</p>
         ) : null}
         {!editing && initialTitle ? (
           <p className="text-sm text-muted-foreground">
@@ -410,9 +377,9 @@ export function ScheduleDialog({
           ) : null}
           {!editing && !initialPublishId ? (
             <p className="text-xs text-muted-foreground">
-              {createUpload
-                ? "Saving uploads this project's video and schedules it to go public at the chosen time."
-                : "A slot alone is just a plan — nothing uploads from here. To put a video on YouTube at this time, use “Schedule for later” in the project's publishing studio, or link an existing upload from the project's Posting schedule card."}
+              {platform.trim() === "youtube"
+                ? "Saving uploads the video and schedules it to go public at the chosen time."
+                : "Slots for this platform are plans only — nothing uploads."}
             </p>
           ) : null}
 

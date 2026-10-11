@@ -359,8 +359,52 @@ async function pollOnce(uid: string): Promise<void> {
         );
         continue;
       }
+      if (schedule.status === "failed" && prev !== "failed") {
+        consider(
+          `schedule:${schedule.scheduleId}:failed`,
+          recentlyUpdated(schedule.updatedAt),
+          () =>
+            pushNotification({
+              id: `schedule:${schedule.scheduleId}:failed`,
+              kind: "schedule",
+              title: `“${schedule.title}” couldn't go live`,
+              body: schedule.statusDetail ?? "Open the calendar for details.",
+              href: "/calendar",
+            }),
+          prev !== undefined,
+        );
+        continue;
+      }
+      // A planned slot is blocked, not armed: warn about the blocker instead of
+      // promising a go-live that is not coming.
+      if (schedule.status === "planned") {
+        const at = new Date(schedule.scheduledAt).getTime();
+        const key = `${schedule.scheduleId}:blocked`;
+        if (
+          !Number.isNaN(at) &&
+          at - now <= UPCOMING_MS &&
+          !seen.reminded[key]
+        ) {
+          seen.reminded[key] = true;
+          consider(
+            `schedule:${schedule.scheduleId}:blocked`,
+            true,
+            () =>
+              pushNotification({
+                id: `schedule:${schedule.scheduleId}:blocked`,
+                kind: "schedule",
+                title: `“${schedule.title}” is blocked`,
+                body:
+                  schedule.statusDetail ?? "Open the calendar for details.",
+                href: "/calendar",
+              }),
+            true,
+          );
+        }
+        continue;
+      }
       if (
-        (schedule.status === "scheduled" || schedule.status === "planned") &&
+        schedule.status === "scheduled" &&
         !seen.reminded[schedule.scheduleId]
       ) {
         const at = new Date(schedule.scheduledAt).getTime();

@@ -631,8 +631,33 @@ class PublishService:
         )
 
     def delete(self, *, owner_uid: str, project_id: str, publish_id: str) -> None:
-        self._require(owner_uid, project_id, publish_id)
+        """Delete an upload attempt and detach its calendar slots.
+
+        A still-queued job is cancelled first so nothing uploads after the record
+        is gone (the worker treats a cancelled job as terminal and skips it).
+        Linked slots go back to `planned`/`failed` with an explanation instead of
+        pointing at a missing publish forever; already-uploaded videos stay on
+        YouTube — deleting the attempt never deletes the video itself.
+        """
+        data = self._require(owner_uid, project_id, publish_id)
+        job_id = data.get("jobId")
+        if job_id and not data.get("youtubeVideoId"):
+            try:
+                self.jobs.cancel(owner_uid=owner_uid, job_id=str(job_id))
+            except (ConflictError, NotFoundError):
+                pass
+            except Exception:  # noqa: BLE001 - the delete must still go through
+                logger.warning(
+                    "publish: could not cancel job %s for deleted publish %s",
+                    job_id,
+                    publish_id,
+                )
         self.client.delete_document(publish_path(owner_uid, project_id, publish_id))
+        from app.services.schedule_service import ScheduleService
+
+        ScheduleService(self.client, projects=self.projects).unlink_publish(
+            owner_uid=owner_uid, project_id=project_id, publish_id=publish_id
+        )
 
     def retry(self, *, owner_uid: str, project_id: str, publish_id: str) -> tuple[Publish, Job]:
         """Re-queue a failed publish. Finished/queued publishes are a conflict."""
@@ -665,6 +690,12 @@ class PublishService:
                 "steps": ["Queued"],
                 "updatedAt": datetime.now(UTC),
             },
+        )
+        # The retry is queued: the calendar slot stops being a failure and waits again.
+        from app.services.schedule_service import ScheduleService
+
+        ScheduleService(self.client, projects=self.projects).mark_linked_scheduled(
+            owner_uid=owner_uid, project_id=project_id, publish_id=publish_id
         )
         return self.get(owner_uid=owner_uid, project_id=project_id, publish_id=publish_id), job
 
@@ -717,6 +748,16 @@ class PublishService:
 
             ScheduleService(self.client, projects=self.projects).mark_linked_cancelled(
                 owner_uid=owner_uid, project_id=project_id, publish_id=publish_id
+            )
+        elif status == PublishStatus.failed:
+            # Died: the calendar slot must say so, not keep promising a go-live.
+            from app.services.schedule_service import ScheduleService
+
+            ScheduleService(self.client, projects=self.projects).mark_linked_failed(
+                owner_uid=owner_uid,
+                project_id=project_id,
+                publish_id=publish_id,
+                message=(error or {}).get("message") if isinstance(error, dict) else None,
             )
 
     def _require(self, owner_uid: str, project_id: str, publish_id: str) -> dict[str, Any]:

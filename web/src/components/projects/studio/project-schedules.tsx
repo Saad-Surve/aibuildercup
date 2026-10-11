@@ -33,6 +33,8 @@ function statusTone(status: Schedule["status"]): string {
     return "border-sev-good/40 bg-sev-good/10 text-sev-good";
   if (status === "scheduled")
     return "border-signal/40 bg-signal/10 text-foreground";
+  if (status === "failed")
+    return "border-destructive/40 bg-destructive/10 text-destructive";
   if (status === "cancelled")
     return "border-border bg-muted text-muted-foreground/70";
   return "border-border bg-muted text-muted-foreground";
@@ -56,6 +58,19 @@ export function ProjectSchedules({
   const schedulesQuery = useQuery({
     queryKey: ["project-schedules", projectId],
     queryFn: () => listProjectSchedules(projectId),
+    // Same live-set as the calendar: keep polling so go-live flips, blockers
+    // clearing, and YouTube deletions all land here without a manual refresh.
+    // Only cancelled and failed are terminal.
+    refetchInterval: (query) => {
+      const items = query.state.data?.items ?? [];
+      const waiting = items.some(
+        (item) =>
+          item.status === "planned" ||
+          item.status === "scheduled" ||
+          item.status === "published",
+      );
+      return waiting ? 60_000 : false;
+    },
   });
   const schedules = schedulesQuery.data?.items ?? [];
   const linkedPublishIds = new Set(
@@ -109,6 +124,13 @@ export function ProjectSchedules({
                         ? ` · ${item.connectionDisplayName}`
                         : ""}
                     </span>
+                    {item.statusDetail &&
+                    (item.status === "planned" ||
+                      item.status === "failed") ? (
+                      <span className="block truncate text-xs text-destructive">
+                        {item.statusDetail}
+                      </span>
+                    ) : null}
                   </span>
                   <Badge
                     className={cn(
