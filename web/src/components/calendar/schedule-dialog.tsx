@@ -14,6 +14,7 @@ import {
   PLATFORM_OPTIONS,
   platformLabel,
 } from "@/components/calendar/platform";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -49,9 +50,24 @@ import {
   updateSchedule,
 } from "@/lib/schedules";
 import { workspaceHref } from "@/lib/studio";
-import type { Schedule } from "@/lib/types";
+import type { Schedule, ScheduleStatus } from "@/lib/types";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
+
+//: Read-only status shown on the slot card; the system sets it, never the user.
+const STATUS_LABEL: Record<ScheduleStatus, string> = {
+  planned: "Planned",
+  scheduled: "Scheduled",
+  published: "Published",
+  cancelled: "Cancelled",
+};
+
+const STATUS_BADGE: Record<ScheduleStatus, string> = {
+  planned: "border-border bg-muted text-muted-foreground",
+  scheduled: "border-signal/40 bg-signal/10 text-foreground",
+  published: "border-sev-good/40 bg-sev-good/10 text-sev-good",
+  cancelled: "border-border bg-muted text-muted-foreground/70",
+};
 
 function describe(error: unknown, fallback: string): string {
   if (error instanceof ApiError) return error.message;
@@ -270,7 +286,17 @@ export function ScheduleDialog({
           <DialogTitle>{editing ? "Edit slot" : "Schedule a slot"}</DialogTitle>
         </DialogHeader>
         {editing && schedule ? (
-          <p className="text-sm text-muted-foreground">{schedule.title}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              {schedule.title}
+            </span>
+            <Badge className={STATUS_BADGE[schedule.status]}>
+              {STATUS_LABEL[schedule.status]}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              Status is automatic — it follows the upload, not a setting.
+            </span>
+          </div>
         ) : null}
         {!editing && initialTitle ? (
           <p className="text-sm text-muted-foreground">

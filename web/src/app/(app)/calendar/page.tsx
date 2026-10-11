@@ -51,7 +51,7 @@ import { workspaceHref } from "@/lib/studio";
 import type { Schedule, ScheduleStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type CalendarView = "month" | "week" | "day";
+type CalendarView = "month" | "week" | "day" | "upcoming";
 
 type DialogState =
   | { mode: "create"; date: Date }
@@ -132,6 +132,9 @@ function windowFor(
       end: endOfWeek(cursor, { weekStartsOn: 0 }),
     };
   }
+  if (view === "upcoming") {
+    return { start: startOfDay(cursor), end: addDays(cursor, 90) };
+  }
   return { start: startOfDay(cursor), end: startOfDay(cursor) };
 }
 
@@ -144,12 +147,14 @@ function titleFor(view: CalendarView, cursor: Date): string {
       ? format(start, "MMMM yyyy")
       : `${format(start, "MMM")} – ${format(end, "MMM yyyy")}`;
   }
+  if (view === "upcoming") return "Upcoming";
   return format(cursor, "EEEE, d MMMM yyyy");
 }
 
 function stepCursor(view: CalendarView, cursor: Date, delta: number): Date {
   if (view === "month") return addMonths(cursor, delta);
   if (view === "week") return addDays(cursor, delta * 7);
+  if (view === "upcoming") return addDays(cursor, delta * 30);
   return addDays(cursor, delta);
 }
 
@@ -553,8 +558,7 @@ function CalendarInner() {
       .toSorted(
         (a, b) =>
           new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
-      )
-      .slice(0, 8);
+      );
   }, [all, now]);
 
   // A linked slot opens itself once its data arrives; closing it dismisses the
@@ -581,13 +585,13 @@ function CalendarInner() {
   const dialogOpen = dialog !== null;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="space-y-6">
       <PageHeader
         title="Content calendar"
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center rounded-lg border border-border p-0.5">
-              {(["month", "week", "day"] as CalendarView[]).map((option) => (
+              {(["month", "week", "day", "upcoming"] as CalendarView[]).map((option) => (
                 <button
                   key={option}
                   type="button"
@@ -617,7 +621,7 @@ function CalendarInner() {
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+      <div>
         <Card>
           <CardContent className="space-y-4 p-4 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -686,6 +690,54 @@ function CalendarInner() {
                 {Array.from({ length: 35 }, (_, index) => (
                   <Skeleton key={index} className="h-24 rounded-lg" />
                 ))}
+              </div>
+            ) : view === "upcoming" ? (
+              <div>
+                {upcoming.length === 0 ? (
+                  <p className="py-10 text-center text-sm text-muted-foreground">
+                    Nothing coming up. Schedule a slot to see it here.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {upcoming.map((item) => {
+                      const meta = STATUS_META[item.status];
+                      return (
+                        <li key={item.scheduleId}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDialog({ mode: "edit", schedule: item })
+                            }
+                            className="flex w-full items-center gap-3 rounded-lg border border-border/60 p-3 text-left transition-colors hover:border-border hover:bg-muted/40"
+                          >
+                            <span
+                              className={cn(
+                                "h-2 w-2 shrink-0 rounded-full",
+                                meta.dot,
+                              )}
+                            />
+                            <PlatformLogo platform={item.platform} />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-medium">
+                                {item.title}
+                              </span>
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {nameOf(item)} ·{" "}
+                                {format(
+                                  new Date(item.scheduledAt),
+                                  "EEE d MMM, HH:mm",
+                                )}
+                              </span>
+                            </span>
+                            <Badge className={cn("shrink-0", meta.badge)}>
+                              {meta.label}
+                            </Badge>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
             ) : view === "day" ? (
               <DayAgenda
@@ -813,62 +865,6 @@ function CalendarInner() {
             ) : null}
           </CardContent>
         </Card>
-
-        <aside className="space-y-4 lg:sticky lg:top-20">
-          <Card>
-            <CardContent className="space-y-3 p-4">
-              <h3 className="font-heading text-sm font-medium">Upcoming</h3>
-              {upcoming.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  Nothing coming up.
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {upcoming.map((item) => {
-                    const meta = STATUS_META[item.status];
-                    return (
-                      <li key={item.scheduleId}>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setDialog({ mode: "edit", schedule: item })
-                          }
-                          className="flex w-full items-start gap-2.5 rounded-lg border border-transparent p-2 text-left transition-colors hover:border-border hover:bg-muted/40"
-                        >
-                          <span
-                            className={cn(
-                              "mt-1.5 h-2 w-2 shrink-0 rounded-full",
-                              meta.dot,
-                            )}
-                          />
-                          <PlatformLogo
-                            platform={item.platform}
-                            className="mt-0.5"
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium">
-                              {item.title}
-                            </span>
-                            <span className="block truncate text-xs text-muted-foreground">
-                              {nameOf(item)} ·{" "}
-                              {format(
-                                new Date(item.scheduledAt),
-                                "d MMM, HH:mm",
-                              )}
-                            </span>
-                          </span>
-                          <Badge className={cn("shrink-0", meta.badge)}>
-                            {meta.label}
-                          </Badge>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </aside>
       </div>
 
       {dialog?.mode === "create" ? (
