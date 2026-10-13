@@ -6,7 +6,7 @@ Public shapes match `contracts/openapi.yaml`; the persisted shapes match
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -269,5 +269,80 @@ class FindingList(BaseModel):
     items: list[Finding]
 
 
+class HeatmapCoverage(BaseModel):
+    """A span a reviewer actually read. Time inside it with no bin had nothing to flag."""
+
+    dimension: AnalysisDimension
+    startMs: int
+    endMs: int
+
+
 class HeatmapResponse(BaseModel):
     bins: list[HeatmapBin]
+    #: Reviewed spans per dimension. Empty for runs created before coverage was recorded.
+    coverage: list[HeatmapCoverage] = Field(default_factory=list)
+
+
+class InterestPoint(BaseModel):
+    """One five-second bin of the predicted-interest curve."""
+
+    startMs: int
+    endMs: int
+    #: Relative interest within this video, 0 (lowest) to 1 (highest). Not retention.
+    value: float = Field(ge=0, le=1)
+    #: The typical drop-off at this point in a video, on the same scale as `value`. Where
+    #: `value` sits above it the content is predicted to beat its place in the video.
+    baseline: float = Field(default=0, ge=0, le=1)
+    #: What pushes this bin up or down, as short phrases ("a payoff", "a long pause").
+    driversUp: list[str] = Field(default_factory=list)
+    driversDown: list[str] = Field(default_factory=list)
+    #: Measured and rated signals: wpm, speechRatio, pauseMs, novelty, and, when the
+    #: Gemini pass ran, hook/payoff/novelty/open_loop/emotion/humor/practical/visual/tangent
+    #: on a 1-5 scale.
+    signals: dict[str, float] = Field(default_factory=dict)
+
+
+class InterestMoment(BaseModel):
+    """A stretch that most beats (peak) or falls short of (dip) the typical drop-off."""
+
+    kind: Literal["peak", "dip"]
+    startMs: int
+    endMs: int
+    value: float
+    drivers: list[str] = Field(default_factory=list)
+    #: Findings from the same run that overlap this moment.
+    findingIds: list[str] = Field(default_factory=list)
+
+
+class InterestCalibration(BaseModel):
+    """How the bundled model scored on held-out public videos."""
+
+    label: str
+    videos: int
+    channels: int
+    testVideos: int
+    heldOutSpearman: float
+    positionBaselineSpearman: float
+    #: Correlation of predicted and true deviation from the typical drop-off: how much
+    #: the content features explain beyond position alone.
+    liftSpearman: float = 0.0
+    peakPrecision: float
+    dipPrecision: float
+    trainedAt: str
+
+
+class InterestCurve(BaseModel):
+    analysisRunId: str
+    status: Literal["ready", "failed"]
+    modelVersion: str = ""
+    #: `transcript+gemini` when the Gemini signal pass ran, else the transcript-only model.
+    featureSource: Literal["transcript+gemini", "transcript"] = "transcript"
+    binMs: int = 5000
+    durationMs: int = 0
+    points: list[InterestPoint] = Field(default_factory=list)
+    peaks: list[InterestMoment] = Field(default_factory=list)
+    dips: list[InterestMoment] = Field(default_factory=list)
+    calibration: InterestCalibration | None = None
+    costEstimateUsd: float = 0.0
+    error: dict[str, Any] | None = None
+    createdAt: datetime | None = None

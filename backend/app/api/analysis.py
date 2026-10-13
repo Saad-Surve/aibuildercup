@@ -28,6 +28,7 @@ from app.schemas.analysis import (
     ContextArtifactUrl,
     FindingList,
     HeatmapResponse,
+    InterestCurve,
     ReviewerRunList,
     Severity,
 )
@@ -186,7 +187,25 @@ def get_analysis_heatmap(
     return HeatmapResponse(
         bins=service.list_bins(
             owner_uid=user.uid, project_id=projectId, analysis_run_id=analysisRunId
-        )
+        ),
+        coverage=service.get_coverage(
+            owner_uid=user.uid, project_id=projectId, analysis_run_id=analysisRunId
+        ),
+    )
+
+
+@router.get(
+    "/projects/{projectId}/analysis/{analysisRunId}/interest",
+    response_model=InterestCurve,
+)
+def get_analysis_interest(
+    projectId: str,
+    analysisRunId: str,
+    user: UserDep,
+    service: ServiceDep,
+) -> InterestCurve:
+    return service.get_interest(
+        owner_uid=user.uid, project_id=projectId, analysis_run_id=analysisRunId
     )
 
 

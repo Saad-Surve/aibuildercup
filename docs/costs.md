@@ -11,6 +11,7 @@ For subscription context and its different denominator, see the
 | Component | Current basis | Example |
 |---|---|---|
 | Gemini review/writing | `gemini-3.8-flash`, global: $0.75/M input tokens, $3.75/M output tokens through 31 December 2026 | 45k input + 9k output/reasoning across nine reviewers: **$0.0675** |
+| Interest-curve signals | `gemini-3.1-flash-lite` (pinned, local and deployed): $0.25/M input, $1.50/M output | Measured mean on long-form creator videos: about 5.2k input + 3.5k output for a 12-minute video, **≈ $0.0066** per analysis |
 | Chirp 3 / STT V2 | Standard recognition: $0.016/audio minute at the initial volume tier | Five minutes, one billed channel: **$0.08** |
 | Draft generation | Same Flash scenario rate; use the actual configured writer/model | 8k input + 2k output/reasoning: **$0.0135** |
 | Thumbnail output | Gemini 3.1 Flash Image, global, approximately $0.067 per 1K output | Four outputs: **$0.268**, before image/text inputs, planning and critique |
@@ -101,6 +102,7 @@ Python floats and metadata occupy more space. This is not measured Firestore sto
 | Thumbnails | Checks prior stored image estimates plus requested count against a separate $5 image budget; max four concepts/request | A flat $0.067 estimate also applies to Pro versions, so it understates Pro/input costs. No shared all-feature ledger. |
 | Embeddings | Up to 200 atomic daily call slots per user; up to 16 missing nodes per index request; 300 nodes/ten images per library | A call-count bound, not a dollar cap. Operator preset publication has a separate explicit call limit. |
 | Veo | Up to two project-owned paid reservations, also bounded by `floor($5 / estimated insert cost)`; one operation per submission, resumable polling | Reservations remain after uncertain/failed work; conservative cost is separate from actual billing. |
+| Interest curve | One signal call per ten minutes of video, at most four per analysis; its estimate is added to the run's `costEstimateUsd`, so it counts toward the analysis ceiling | Skipped entirely when the bundled model's primary head does not use signals, or when the configured model differs from the one the model was trained on. |
 | Concurrency | Four reviewers and four TTS requests by default; one deployed API instance | Controls pressure, not total usage across all workflows. |
 | Cloud budget | ₹8,500 configured budget with notifications and billing-detachment function | Billing data/notifications are delayed. This is a backstop, not an immediate hard cap. |
 

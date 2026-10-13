@@ -163,6 +163,7 @@ export function useProjectEvents(
             ]);
             invalidate(["analysis-heatmap", projectId, message.analysisRunId]);
             invalidate(["analysis-findings", projectId, message.analysisRunId]);
+            invalidate(["analysis-interest", projectId, message.analysisRunId]);
             break;
           }
           case "error":

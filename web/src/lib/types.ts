@@ -463,6 +463,66 @@ export interface HeatmapBin {
   findingIds: string[];
 }
 
+/** A span of the video one reviewer dimension actually read (bins only exist where it flagged). */
+export interface HeatmapCoverage {
+  dimension: AnalysisDimension;
+  startMs: number;
+  endMs: number;
+}
+
+export interface InterestPoint {
+  startMs: number;
+  endMs: number;
+  /** Relative interest within this video, 0 lowest to 1 highest. Not retention. */
+  value: number;
+  /** Typical drop-off at this point in a video, on the same scale as `value`. */
+  baseline?: number;
+  driversUp?: string[];
+  driversDown?: string[];
+  /** wpm, speechRatio, pauseMs, novelty, plus 1-5 Gemini ratings when that pass ran. */
+  signals?: Record<string, number>;
+}
+
+/** A stretch that most beats (peak) or falls short of (dip) the typical drop-off. */
+export interface InterestMoment {
+  kind: "peak" | "dip";
+  startMs: number;
+  endMs: number;
+  value: number;
+  drivers?: string[];
+  findingIds?: string[];
+}
+
+export interface InterestCalibration {
+  label?: string;
+  videos?: number;
+  channels?: number;
+  testVideos?: number;
+  heldOutSpearman?: number;
+  positionBaselineSpearman?: number;
+  /** Correlation of predicted and true deviation from the typical drop-off. */
+  liftSpearman?: number;
+  peakPrecision?: number;
+  dipPrecision?: number;
+  trainedAt?: string;
+}
+
+export interface InterestCurve {
+  analysisRunId: string;
+  status: "ready" | "failed";
+  modelVersion?: string;
+  featureSource?: "transcript+gemini" | "transcript";
+  binMs?: number;
+  durationMs?: number;
+  points: InterestPoint[];
+  peaks?: InterestMoment[];
+  dips?: InterestMoment[];
+  calibration?: InterestCalibration | null;
+  costEstimateUsd?: number;
+  error?: Record<string, unknown> | null;
+  createdAt?: string;
+}
+
 export interface StartAnalysisInput {
   dimensions?: AnalysisDimension[];
   platform?: string;

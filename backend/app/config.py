@@ -94,6 +94,12 @@ class Settings(BaseSettings):
     #: Localization cultural-adaptation pass (the second translation stage). Flash-lite
     #: keeps a long transcript cheap; point it at a stronger Gemini for better prose.
     model_localization: str = "gemini-3.1-flash-lite"
+    #: Predicted-interest curve: the per-bin transcript signals. The bundled model was
+    #: trained on this exact model's ratings (`app/assets/interest/model.json` records it),
+    #: so changing it without retraining shifts the features. Same id locally and deployed.
+    model_interest_signals: str = "gemini-3.1-flash-lite"
+    #: Compute the predicted-interest curve alongside each analysis run.
+    interest_curve_enabled: bool = True
     model_embedding: str = "gemini-embedding-2"
     embedding_dimensions: int = Field(default=768, ge=128, le=3072)
     embedding_daily_call_limit: int = Field(default=200, ge=1, le=200)

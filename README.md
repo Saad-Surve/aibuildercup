@@ -1,8 +1,9 @@
 # Resonance Creator Studio
 
 Resonance turns one video upload into an editorial review. Nine specialist Gemini
-reviewers place findings on a seekable heatmap under the timeline. Each finding links to
-the moment, an explanation and a concrete edit. The same workspace then uses the
+reviewers place findings on a seekable heatmap under the timeline, above a predicted
+audience-interest curve that marks where the content beats or falls short of the typical
+drop-off. Each finding links to the moment, an explanation and a concrete edit. The same workspace then uses the
 creator's earlier work for drafts, thumbnails, localized captions and dubbing, a YouTube
 package, and scheduled publishing.
 
@@ -31,7 +32,7 @@ from facts about the current video.
 
 | Workflow | Implemented behavior |
 |---|---|
-| Review a video | Nine specialist Gemini reviewers examine the transcript and sampled footage: truth/evidence, clarity, pacing/retention, legal/safety, cultural/localization, platform fit, audience/brand, emotional impact and conversion/CTA. Reviewers can request frames or clips through a bounded tool loop; the truth reviewer can opt into Google Search grounding. Findings carry timestamps, explanations and concrete edits, and a five-second heatmap seeks straight to the moment. |
+| Review a video | Nine specialist Gemini reviewers examine the transcript and sampled footage: truth/evidence, clarity, pacing/retention, legal/safety, cultural/localization, platform fit, audience/brand, emotional impact and conversion/CTA. Reviewers can request frames or clips through a bounded tool loop; the truth reviewer can opt into Google Search grounding. Findings carry timestamps, explanations and concrete edits, and a five-second heatmap seeks straight to the moment. Reviewed stretches with nothing to flag are shown as reviewed, not blank. An audience-interest lane, trained on YouTube Most Replayed data with Gemini moment signals, draws a relative interest curve against the typical drop-off. Its peaks and dips link to the overlapping findings. |
 | Work with the transcript | Chirp 3 word timings and speaker labels, optional conservative Gemini cleanup, editable transcript versions, search, SRT/VTT/text export and source-video revisions. |
 | Preserve creator context | A searchable library of attributed passages and thumbnails, embedded with Gemini Embedding 2. Retrieved writing informs initial drafts, and retrieved images become thumbnail style references. An explorable map shows the sources and how they relate semantically. |
 | Write and revise | Brief-driven drafts and scripts, grounded writing chat, editable blocks, version history, inline alternatives and Markdown/text exports. |
@@ -42,7 +43,9 @@ from facts about the current video.
 
 The heatmap is the core interaction. A creator can read a quote, see why it matters, read
 the proposed change, and jump to the matching footage. Scores mark **flagged moments**.
-They are not predicted retention or a calibrated whole-video rating.
+They are not predicted retention or a calibrated whole-video rating. The interest lane
+answers a different question: *where* viewers are likely to lean in or drift. The reviewers
+answer *why*, and *what to change*. The creator decides.
 
 ## How the AI works
 
@@ -69,16 +72,25 @@ creator and how each result is anchored to the source.
    fails, and the run reports where coverage is incomplete.
 6. **Build the heatmap.** Five-second bins aggregate scores weighted by temporal overlap
    and keep finding IDs. A critical observation forces red. Time with no findings gets no
-   score. Selecting a bin filters the findings and seeks the player.
-7. **Ground the writing.** Initial drafts retrieve relevant creator passages, drop shallow
+   score. Each run records which spans every reviewer actually read, so a covered gap shows
+   as "reviewed, nothing flagged" and a failed chunk shows as unreviewed. Selecting a bin
+   filters the findings and seeks the player.
+7. **Predict interest.** In parallel with the reviewers, one bounded Gemini pass (at most
+   four calls) rates every five-second bin for hook, payoff, novelty, open loop, emotion,
+   humour, practical value, on-screen cue and tangent. A ridge model shipped as JSON
+   coefficients combines those ratings with transcript pace, pauses and novelty, and with a
+   position head for the typical drop-off. Peaks and dips are the bins that most beat or
+   fall short of that drop-off, and they link to the overlapping findings. Without the
+   Gemini pass the curve still renders, but no moments are marked.
+8. **Ground the writing.** Initial drafts retrieve relevant creator passages, drop shallow
    excerpts and reorder a bounded set of examples before the writer sees them. The selected
    context is saved for inspection. Thumbnails retrieve original images as style references.
-8. **Prepare media.** Captions render as ASS through FFmpeg. Localization translates the
+9. **Prepare media.** Captions render as ASS through FFmpeg. Localization translates the
    segments, then runs a Gemini adaptation pass over a bundled terminology and trap corpus
    plus the project glossary. TTS output is tempo-adjusted to each segment's window and
    mixed with optional quiet original audio. This is timed synthesis, not lip sync or voice
    cloning.
-9. **Package and publish.** Gemini selects transcript segment indices for listings and
+10. **Package and publish.** Gemini selects transcript segment indices for listings and
    insert suggestions. Code derives the quotes, timestamps and chart values from the source.
    YouTube uses OAuth with PKCE, encrypted tokens and optional scheduled publication.
 
@@ -170,6 +182,7 @@ quantitative results. Editorial quality and creator impact have no independent l
 
 | Measurement | Result | Scope |
 |---|---|---|
+| Interest beyond the typical drop-off | **ρ = 0.17** (95% CI 0.10–0.24); dips in the true bottom quarter **37%**, peaks in the top quarter **35%** (chance 25%) | Grouped CV over 45 unseen creator channels, Most Replayed labels; transcript statistics alone do not beat chance. [Report](evals/interest/README.md) |
 | Intended source ranked first | Semantic **20/20**, keyword fallback **11/20** | 20 curated, author-labeled source-relevance queries on one creator corpus (12 English, 4 Hindi, 4 text-to-image). Labels were assigned before inference. |
 | Retrieval ranking quality | Semantic **MRR@8 1.000**, keyword **0.598** | Same cohort; hit@3 **20/20 vs 12/20**, hit@8 **20/20 vs 15/20**. |
 | Local media probing | **49.9–50.4% lower median time** | Combined metadata probe versus two separate probes, three real videos, seven interleaved repetitions each. |
@@ -261,6 +274,10 @@ carry the creator's own evidence into each downstream asset.
 
 - **Reviewers are prompts over one model.** Format and quote consistency are enforced.
   Factual correctness and severity are not. Confidence fields are not calibrated.
+- **Interest is a proxy, and a weak one.** The curve learns from public Most Replayed graphs
+  (rewatching, not retention) on 45 creator videos plus short brand clips. It sees the
+  transcript, not the frames. It ranks moments within one video and points at places to
+  look. It does not score the video.
 - **Editorial quality is unmeasured.** No blind creator labels or gold-issue set exist yet.
   Finding counts and successful JSON responses are not quality scores.
 - **Retrieval is a bounded scan.** Indexes cap at 300 text nodes and ten images. A provider

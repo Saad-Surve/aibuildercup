@@ -18,11 +18,31 @@ import {
   SEVERITY_DOT_CLASS,
   SEVERITY_LABELS,
 } from "@/lib/analysis";
-import type { AnalysisDimension, HeatmapBin, Severity } from "@/lib/types";
+import {
+  InterestLanes,
+  InterestReadout,
+  LABEL_COLUMN,
+  usableCurve,
+} from "@/components/projects/interest-lanes";
+import type {
+  AnalysisDimension,
+  HeatmapBin,
+  HeatmapCoverage,
+  InterestCurve,
+  InterestMoment,
+  Severity,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const EMPTY_BINS: HeatmapBin[] = [];
 const EMPTY_SEVERITIES: Severity[] = [];
+const EMPTY_COVERAGE: HeatmapCoverage[] = [];
+
+/** What the readout strip is describing: a bin, an interest point, or a gap. */
+type Hover =
+  | { kind: "bin"; bin: HeatmapBin }
+  | { kind: "interest"; index: number }
+  | { kind: "gap"; dimension: AnalysisDimension; covered: boolean };
 
 /*
  * The review ribbon: one signal trace per reviewer dimension, plotted against the
@@ -45,6 +65,9 @@ const EMPTY_SEVERITIES: Severity[] = [];
 
 export function HeatmapTracks({
   bins,
+  coverage = EMPTY_COVERAGE,
+  interest = null,
+  onSelectMoment,
   durationMs,
   dimensions,
   scores,
@@ -55,6 +78,11 @@ export function HeatmapTracks({
   reviewState = "not_started",
 }: {
   bins: HeatmapBin[];
+  /** Spans each dimension read; empty for older runs (gaps then stay blank). */
+  coverage?: HeatmapCoverage[];
+  /** Predicted audience-interest curve; null hides the interest and signal lanes. */
+  interest?: InterestCurve | null;
+  onSelectMoment?: (moment: InterestMoment) => void;
   durationMs: number;
   dimensions: AnalysisDimension[];
   scores: Record<string, number>;
@@ -65,7 +93,42 @@ export function HeatmapTracks({
   severityFilter?: Severity[];
   reviewState?: "not_started" | "running" | "complete" | "incomplete";
 }) {
-  const [hovered, setHovered] = useState<HeatmapBin | null>(null);
+  const [hover, setHover] = useState<Hover | null>(null);
+  const setHovered = useCallback(
+    (bin: HeatmapBin | null) => setHover(bin ? { kind: "bin", bin } : null),
+    [],
+  );
+  const setHoveredGap = useCallback(
+    (gap: { dimension: AnalysisDimension; covered: boolean } | null) =>
+      setHover((current) =>
+        gap === null
+          ? current?.kind === "gap"
+            ? null
+            : current
+          : current?.kind === "gap" &&
+              current.dimension === gap.dimension &&
+              current.covered === gap.covered
+            ? current
+            : { kind: "gap", ...gap },
+      ),
+    [],
+  );
+  const setHoveredPoint = useCallback(
+    (index: number | null) =>
+      setHover(index === null ? null : { kind: "interest", index }),
+    [],
+  );
+
+  const curve = usableCurve(interest);
+  const coverageByDimension = useMemo(() => {
+    const map = new Map<AnalysisDimension, HeatmapCoverage[]>();
+    for (const span of coverage) {
+      const list = map.get(span.dimension) ?? [];
+      list.push(span);
+      map.set(span.dimension, list);
+    }
+    return map;
+  }, [coverage]);
 
   const byDimension = useMemo(() => {
     const map = new Map<AnalysisDimension, HeatmapBin[]>();
@@ -86,7 +149,11 @@ export function HeatmapTracks({
     [bins],
   );
   // Drop a hover that belongs to a previous run rather than showing stale data.
-  const hoveredBin = hovered ? (byId.get(hovered.binId) ?? null) : null;
+  const hoveredBin =
+    hover?.kind === "bin" ? (byId.get(hover.bin.binId) ?? null) : null;
+  const hoveredPoint =
+    hover?.kind === "interest" ? (curve?.points[hover.index] ?? null) : null;
+  const hoveredGap = hover?.kind === "gap" ? hover : null;
   const selectedBin = selectedBinId ? byId.get(selectedBinId) : null;
   const select = useCallback(
     (bin: HeatmapBin) => {
@@ -106,12 +173,27 @@ export function HeatmapTracks({
 
   return (
     <div className="space-y-2">
-      <ReadoutStrip bin={hoveredBin} dimensions={dimensions.length} />
+      <ReadoutStrip
+        bin={hoveredBin}
+        point={hoveredPoint}
+        gap={hoveredGap}
+        dimensions={dimensions.length}
+      />
 
       <div className="overflow-hidden rounded-lg border border-border/70 bg-card/40">
         <TimeRuler ticks={rulerTicks} />
 
         <div className="space-y-[6px] p-1">
+          {curve && onSelectMoment && (
+            <InterestLanes
+              curve={curve}
+              durationMs={durationMs}
+              hoverIndex={hover?.kind === "interest" ? hover.index : null}
+              onHoverIndex={setHoveredPoint}
+              onSeek={onSeek}
+              onSelectMoment={onSelectMoment}
+            />
+          )}
           {bins.length === 0 && (
             <p className="px-2 py-6 text-center text-sm text-muted-foreground">
               {reviewState === "complete"
@@ -130,6 +212,11 @@ export function HeatmapTracks({
                 key={dimension}
                 dimension={dimension}
                 bins={dimensionBins}
+                coverage={
+                  coverage.length > 0
+                    ? (coverageByDimension.get(dimension) ?? EMPTY_COVERAGE)
+                    : null
+                }
                 durationMs={durationMs}
                 score={scores[dimension]}
                 hoveredBinId={
@@ -142,6 +229,7 @@ export function HeatmapTracks({
                 }
                 severityFilter={severityFilter}
                 onHover={setHovered}
+                onHoverGap={setHoveredGap}
                 onSelect={select}
               />
             );
@@ -195,22 +283,29 @@ function TimeRuler({ ticks }: { ticks: number[] }) {
 const TrackRow = memo(function TrackRow({
   dimension,
   bins,
+  coverage,
   durationMs,
   score,
   hoveredBinId,
   selectedBinId,
   severityFilter,
   onHover,
+  onHoverGap,
   onSelect,
 }: {
   dimension: AnalysisDimension;
   bins: HeatmapBin[];
+  /** This dimension's reviewed spans, or null when the run has no coverage data. */
+  coverage: HeatmapCoverage[] | null;
   durationMs: number;
   score: number | undefined;
   hoveredBinId: string | null;
   selectedBinId: string | null;
   severityFilter: Severity[];
   onHover: (bin: HeatmapBin | null) => void;
+  onHoverGap: (
+    gap: { dimension: AnalysisDimension; covered: boolean } | null,
+  ) => void;
   onSelect: (bin: HeatmapBin) => void;
 }) {
   // Roving tabindex: the row is one tab stop, arrows walk its bins.
@@ -228,6 +323,25 @@ const TrackRow = memo(function TrackRow({
     node.addEventListener("mouseleave", leave);
     return () => node.removeEventListener("mouseleave", leave);
   }, [onHover]);
+
+  // Over empty track (not a bin), say whether that time was read. Only when the
+  // run carries coverage; older runs keep the plain blank gap.
+  useEffect(() => {
+    const node = trackRef.current;
+    if (!node || coverage === null) return;
+    const move = (event: MouseEvent) => {
+      if ((event.target as Element).closest("button")) return;
+      const rect = node.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const ms = ((event.clientX - rect.left) / rect.width) * durationMs;
+      onHoverGap({
+        dimension,
+        covered: coverage.some((span) => ms >= span.startMs && ms < span.endMs),
+      });
+    };
+    node.addEventListener("mousemove", move);
+    return () => node.removeEventListener("mousemove", move);
+  }, [coverage, durationMs, dimension, onHoverGap]);
 
   function focusBin(button: HTMLButtonElement, next: number) {
     const clamped = Math.max(0, Math.min(bins.length - 1, next));
@@ -257,7 +371,12 @@ const TrackRow = memo(function TrackRow({
 
   return (
     <div className="flex items-center gap-1.5 sm:gap-2">
-      <span className="w-20 shrink-0 truncate text-[11px] text-muted-foreground sm:w-[8.5rem]">
+      <span
+        className={cn(
+          LABEL_COLUMN,
+          "truncate text-[11px] text-muted-foreground",
+        )}
+      >
         {dimensionLabel(dimension)}
       </span>
 
@@ -265,6 +384,18 @@ const TrackRow = memo(function TrackRow({
         ref={trackRef}
         className="relative h-5 flex-1 overflow-hidden rounded-[3px] bg-muted/60"
       >
+        {/* Read but nothing flagged: a faint tint, so quiet is distinct from unread. */}
+        {coverage?.map((span, index) => (
+          <span
+            key={`${span.startMs}-${index}`}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 bg-foreground/[0.07]"
+            style={{
+              left: `${(span.startMs / durationMs) * 100}%`,
+              width: `${((span.endMs - span.startMs) / durationMs) * 100}%`,
+            }}
+          />
+        ))}
         {bins.map((bin, index) => {
           const left = (bin.startMs / durationMs) * 100;
           const width = ((bin.endMs - bin.startMs) / durationMs) * 100;
@@ -318,17 +449,32 @@ const TrackRow = memo(function TrackRow({
 
 function ReadoutStrip({
   bin,
+  point,
+  gap,
   dimensions,
 }: {
   bin: HeatmapBin | null;
+  point: InterestCurve["points"][number] | null;
+  gap: { dimension: AnalysisDimension; covered: boolean } | null;
   dimensions: number;
 }) {
   return (
     <div
       aria-live="polite"
-      className="tabular flex min-h-8 items-center gap-3 rounded-lg border border-border/70 bg-muted/40 px-3 text-[11px] text-muted-foreground"
+      className="tabular flex min-h-8 flex-wrap items-center gap-x-3 gap-y-0.5 rounded-lg border border-border/70 bg-muted/40 px-3 text-[11px] text-muted-foreground"
     >
-      {bin ? (
+      {point ? (
+        <InterestReadout point={point} />
+      ) : gap ? (
+        <>
+          <span className="text-foreground">
+            {dimensionLabel(gap.dimension)}
+          </span>
+          <span>
+            {gap.covered ? "Reviewed — nothing flagged" : "Not reviewed"}
+          </span>
+        </>
+      ) : bin ? (
         <>
           <span className="text-time">
             {formatDurationMs(bin.startMs)}–{formatDurationMs(bin.endMs)}

@@ -1,10 +1,12 @@
-import { apiFetch } from "@/lib/api-client";
+import { ApiError, apiFetch } from "@/lib/api-client";
 import type {
   AnalysisDimension,
   AnalysisRun,
   Finding,
   HeatmapBin,
   HeatmapColor,
+  HeatmapCoverage,
+  InterestCurve,
   ReviewerRun,
   Severity,
   StartAnalysisInput,
@@ -25,6 +27,8 @@ export interface FindingList {
 
 export interface HeatmapResponse {
   bins: HeatmapBin[];
+  /** Spans each dimension read; empty (or absent) for runs from before coverage. */
+  coverage?: HeatmapCoverage[];
 }
 
 export function listAnalysisRuns(projectId: string): Promise<AnalysisRunList> {
@@ -89,6 +93,24 @@ export function getHeatmap(
   return apiFetch<HeatmapResponse>(
     `/projects/${projectId}/analysis/${analysisRunId}/heatmap`,
   );
+}
+
+/**
+ * The predicted-interest curve, or null when the run has none (older runs, or
+ * the feature is off, both 404). Anything else is a real error.
+ */
+export async function getAnalysisInterest(
+  projectId: string,
+  analysisRunId: string,
+): Promise<InterestCurve | null> {
+  try {
+    return await apiFetch<InterestCurve>(
+      `/projects/${projectId}/analysis/${analysisRunId}/interest`,
+    );
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
 }
 
 export interface ContextArtifactUrl {

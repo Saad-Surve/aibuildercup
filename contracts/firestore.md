@@ -37,7 +37,8 @@ users/{uid}
     ├── analysisRuns/{analysisRunId}
     │   ├── reviewers/{reviewerRunId}
     │   ├── findings/{findingId}
-    │   └── heatmapBins/{binId}
+    │   ├── heatmapBins/{binId}
+    │   └── interest/curve
     ├── localizations/{localizationId}
     ├── glossary/main
     ├── publishes/{publishId}
@@ -134,6 +135,20 @@ entry `{platform, connectionId, externalId, url, status, updatedAt}` on the
 draft document — the two-way link the crosspost sync endpoint pushes later edits
 into. Re-posting replaces the platform's entry; deleting the remote draft clears
 it on the next sync attempt.
+
+## Analysis coverage and the interest curve
+
+`analysisRuns/{analysisRunId}.coverage` is written when a run finishes: an ordered list of
+`{dimension, startMs, endMs}` spans each reviewer actually read (chunks that failed are
+left out). Heatmap bins exist only where a finding exists; time inside a covered span with
+no bin was reviewed and had nothing to flag. Runs created before this field have none.
+
+`analysisRuns/{analysisRunId}/interest/curve` is one document holding the predicted
+relative-interest curve (`InterestCurve` in `openapi.yaml`, plus `ownerUid`): one point
+per five-second bin with `value` in [0, 1], drivers and signals; `peaks` and `dips` with
+overlapping `findingIds`; the bundled model's `calibration`; `featureSource`; and
+`costEstimateUsd`. Values rank moments within that video and are not retention. Both sit
+under the project subtree, so project and account deletion remove them.
 
 ## Thumbnail concept documents
 

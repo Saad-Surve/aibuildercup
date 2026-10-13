@@ -18,3 +18,8 @@ image.png
 .supermemory/
 # YouTube seed media (gathered locally, not committed)
 fixtures/seed
+
+# Interest-model research data (public YouTube metadata/captions, not redistributed)
+evals/interest/raw/
+evals/interest/collector/interest_data_*.zip
+evals/interest/collector/collector.log

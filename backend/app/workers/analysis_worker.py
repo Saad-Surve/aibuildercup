@@ -15,6 +15,7 @@ completed reviewers found.
 import asyncio
 import logging
 from dataclasses import replace
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import BackgroundTasks
@@ -32,8 +33,17 @@ from app.config import Settings, get_settings
 from app.errors import NotFoundError
 from app.events import build_event, topic_for_event
 from app.providers import get_providers
-from app.providers.base import LlmProvider
-from app.schemas.analysis import AnalysisDimension, AnalysisRunStatus
+from app.providers.base import LlmProvider, LlmUsage
+from app.schemas.analysis import (
+    AnalysisDimension,
+    AnalysisRunStatus,
+    Finding,
+    InterestCalibration,
+    InterestCurve,
+    InterestMoment,
+    InterestPoint,
+    Severity,
+)
 from app.schemas.jobs import JobStatus
 from app.services.analysis_service import AnalysisService
 from app.services.cost import estimate_cost_usd
@@ -43,7 +53,15 @@ from app.services.firestore_service import (
     project_object_prefix,
     project_path,
 )
-from app.services.heatmap import aggregate_bins, summarize_findings
+from app.services.heatmap import aggregate_bins, merge_coverage, summarize_findings
+from app.services.interest import (
+    CurveMoment,
+    bin_texts,
+    build_curve,
+    load_model,
+    score_windows,
+    words_from_segments,
+)
 from app.services.job_service import JobService
 from app.services.markdown_repair import normalize_markdown
 from app.services.pubsub_service import PubSubClient, get_pubsub_client
@@ -283,6 +301,21 @@ async def run_analysis(
         context_store=context_store,
         grounding_enabled=settings.truth_grounding_enabled,
     )
+    # The interest curve needs only the transcript, so it runs alongside the reviewers.
+    interest_task = (
+        asyncio.create_task(
+            _predict_interest(
+                llm,
+                settings,
+                segments=segments,
+                duration_ms=transcript.durationMs,
+                title=video_title,
+                language=transcript.language,
+            )
+        )
+        if settings.interest_curve_enabled
+        else None
+    )
     completed: list[DimensionOutcome] = []
     outcome_lock = asyncio.Lock()
     total_dimensions = max(1, len(dimensions))
@@ -324,6 +357,8 @@ async def run_analysis(
         )
     except Exception as exc:  # noqa: BLE001 - record the failure on the job and the run
         logger.exception("analyze job %s: fan-out failed", job_id)
+        if interest_task is not None:
+            interest_task.cancel()
         await asyncio.to_thread(
             jobs.mark_failed,
             owner_uid=owner_uid,
@@ -358,6 +393,14 @@ async def run_analysis(
 
     bins = aggregate_bins(findings, duration_ms=transcript.durationMs)
     summary = summarize_findings(findings)
+    coverage = merge_coverage(
+        {
+            outcome.dimension: outcome.reviewed_spans
+            for outcome in outcomes
+            if outcome.status.value == "succeeded"
+        },
+        duration_ms=transcript.durationMs,
+    )
     await asyncio.to_thread(
         analyses.save_bins,
         owner_uid=owner_uid,
@@ -365,6 +408,38 @@ async def run_analysis(
         analysis_run_id=analysis_run_id,
         bins=bins,
     )
+    interest_usage = LlmUsage()
+    if interest_task is not None:
+        try:
+            prediction = await interest_task
+        except Exception:  # noqa: BLE001 - the curve is an enhancement, never a dependency
+            logger.exception("analyze job %s: interest curve failed", job_id)
+            prediction = None
+        if prediction is not None:
+            curve, interest_usage = prediction
+            curve = _link_findings(curve, findings, analysis_run_id=analysis_run_id)
+            curve = curve.model_copy(
+                update={
+                    "costEstimateUsd": round(
+                        estimate_cost_usd(
+                            interest_usage,
+                            input_price_per_mtok=settings.llm_input_price_per_mtok,
+                            output_price_per_mtok=settings.llm_output_price_per_mtok,
+                        ),
+                        6,
+                    )
+                }
+            )
+            try:
+                await asyncio.to_thread(
+                    analyses.save_interest,
+                    owner_uid=owner_uid,
+                    project_id=project_id,
+                    analysis_run_id=analysis_run_id,
+                    curve=curve,
+                )
+            except Exception:  # noqa: BLE001
+                logger.exception("analyze job %s: could not save interest curve", job_id)
 
     succeeded = [o for o in outcomes if o.status.value == "succeeded"]
     cost_usd = round(
@@ -375,6 +450,11 @@ async def run_analysis(
                 output_price_per_mtok=settings.llm_output_price_per_mtok,
             )
             for outcome in outcomes
+        )
+        + estimate_cost_usd(
+            interest_usage,
+            input_price_per_mtok=settings.llm_input_price_per_mtok,
+            output_price_per_mtok=settings.llm_output_price_per_mtok,
         ),
         6,
     )
@@ -404,6 +484,7 @@ async def run_analysis(
         cost_usd=cost_usd,
         completed_dimensions=[o.dimension for o in succeeded],
         error=error,
+        coverage=coverage,
     )
     if status is AnalysisRunStatus.failed:
         await asyncio.to_thread(
@@ -455,6 +536,153 @@ async def run_analysis(
         cost_usd,
     )
     return analysis_run_id
+
+
+async def _predict_interest(
+    llm: LlmProvider,
+    settings: Settings,
+    *,
+    segments: list[SegmentRef],
+    duration_ms: int,
+    title: str,
+    language: str,
+) -> tuple[InterestCurve, LlmUsage] | None:
+    """Predict the relative-interest curve for this transcript, or None when unavailable.
+
+    The Gemini signal pass runs only when the bundled model chose it in training and the
+    configured model is the one it was trained on; otherwise, or when the pass fails, the
+    transcript-only head runs instead.
+    """
+    model = load_model()
+    if model is None or duration_ms <= 0:
+        return None
+    words = words_from_segments(
+        [(segment.start_ms, segment.end_ms, segment.text) for segment in segments]
+    )
+    usage = LlmUsage()
+    signal_rows = None
+    if not model.uses_signals:
+        pass
+    elif settings.model_interest_signals == model.signal_model:
+        try:
+            signals = await score_windows(
+                llm,
+                model=settings.model_interest_signals,
+                texts=bin_texts(words, duration_ms),
+                title=title,
+                language=language,
+            )
+            signal_rows, usage = signals.rows, signals.usage
+        except Exception:  # noqa: BLE001 - fall back to the transcript-only head
+            logger.warning("interest signal pass failed; using transcript-only model")
+    else:
+        logger.warning(
+            "interest signals model %s differs from trained %s; using transcript-only model",
+            settings.model_interest_signals,
+            model.signal_model,
+        )
+    curve = build_curve(model, words=words, duration_ms=duration_ms, signal_rows=signal_rows)
+    metrics = model.metrics
+    calibration = None
+    if metrics:
+        try:
+            calibration = InterestCalibration(
+                label=str(metrics.get("label") or ""),
+                videos=int(metrics.get("videos") or 0),
+                channels=int(metrics.get("channels") or 0),
+                testVideos=int(metrics.get("testVideos") or 0),
+                heldOutSpearman=float(
+                    metrics.get(
+                        "heldOutSpearman"
+                        if curve.feature_source == "transcript+gemini"
+                        else "transcriptFallbackSpearman",
+                        0.0,
+                    )
+                ),
+                positionBaselineSpearman=float(metrics.get("positionBaselineSpearman") or 0.0),
+                liftSpearman=float(
+                    metrics.get(
+                        "liftSpearman"
+                        if curve.feature_source == "transcript+gemini"
+                        else "transcriptLiftSpearman",
+                        0.0,
+                    )
+                ),
+                peakPrecision=float(metrics.get("peakPrecision") or 0.0),
+                dipPrecision=float(metrics.get("dipPrecision") or 0.0),
+                trainedAt=str(metrics.get("trainedAt") or ""),
+            )
+        except (TypeError, ValueError):
+            calibration = None
+
+    def moment(item: CurveMoment) -> InterestMoment:
+        return InterestMoment(
+            kind="peak" if item.kind == "peak" else "dip",
+            startMs=item.start_ms,
+            endMs=item.end_ms,
+            value=item.value,
+            drivers=list(item.drivers),
+        )
+
+    return (
+        InterestCurve(
+            analysisRunId="",
+            status="ready",
+            modelVersion=model.version,
+            featureSource=(
+                "transcript+gemini" if curve.feature_source == "transcript+gemini" else "transcript"
+            ),
+            durationMs=duration_ms,
+            points=[
+                InterestPoint(
+                    startMs=point.start_ms,
+                    endMs=point.end_ms,
+                    value=point.value,
+                    baseline=point.baseline,
+                    driversUp=list(point.drivers_up),
+                    driversDown=list(point.drivers_down),
+                    signals=point.signals,
+                )
+                for point in curve.points
+            ],
+            peaks=[moment(item) for item in curve.peaks],
+            dips=[moment(item) for item in curve.dips],
+            calibration=calibration,
+            createdAt=datetime.now(UTC),
+        ),
+        usage,
+    )
+
+
+_SEVERITY_RANK = {severity: rank for rank, severity in enumerate(Severity)}
+
+
+def _link_findings(
+    curve: InterestCurve, findings: list[Finding], *, analysis_run_id: str
+) -> InterestCurve:
+    """Attach overlapping findings to each peak and dip, most severe first (at most six).
+
+    Dips link to problems, peaks to strengths and problems alike, so a dip next to a
+    pacing finding explains itself.
+    """
+
+    def overlapping(item: InterestMoment) -> InterestMoment:
+        hits = [
+            finding
+            for finding in findings
+            if finding.startMs < item.endMs and finding.endMs > item.startMs
+            and (item.kind == "peak" or finding.severity is not Severity.none)
+        ]
+        hits.sort(key=lambda f: (-_SEVERITY_RANK[f.severity], f.startMs))
+        return item.model_copy(update={"findingIds": [f.findingId for f in hits[:6]]})
+
+    return curve.model_copy(
+        update={
+            "analysisRunId": analysis_run_id,
+            "peaks": [overlapping(item) for item in curve.peaks],
+            "dips": [overlapping(item) for item in curve.dips],
+        }
+    )
 
 
 def _persist_outcome(

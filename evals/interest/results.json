@@ -1,0 +1,242 @@
+{
+ "generatedAt": "2026-10-13T17:15:20+00:00",
+ "modelVersion": "interest-v1",
+ "featureVersion": "interest-features-v3",
+ "signalModel": "gemini-3.1-flash-lite",
+ "signalPromptVersion": "interest-signals-v2",
+ "primary": "mixed/full",
+ "fallback": "mixed/transcript",
+ "data": {
+  "creator": {
+   "videos": 46,
+   "channels": 44,
+   "signalled": 45,
+   "languages": {
+    "en": 29,
+    "hi": 17
+   },
+   "medianSeconds": 730.5
+  },
+  "corpus": {
+   "videos": 9775,
+   "signalled": 234,
+   "channels": 2106,
+   "medianSeconds": 70.0
+  },
+  "binMs": 5000
+ },
+ "creatorCrossValidation": {
+  "creator/transcript": {
+   "videos": 46,
+   "spearman": 0.2501,
+   "peakPrecision": 0.2977,
+   "dipPrecision": 0.6337,
+   "liftSpearman": 0.0135,
+   "liftPeakPrecision": 0.308,
+   "liftDipPrecision": 0.2714,
+   "liftSpearman95": {
+    "mean": 0.0135,
+    "low": -0.0521,
+    "high": 0.0746
+   },
+   "positionBaseline": {
+    "videos": 46,
+    "spearman": 0.2559,
+    "peakPrecision": 0.2986,
+    "dipPrecision": 0.634
+   }
+  },
+  "mixed/transcript": {
+   "videos": 46,
+   "spearman": 0.2484,
+   "peakPrecision": 0.3353,
+   "dipPrecision": 0.6319,
+   "liftSpearman": 0.0264,
+   "liftPeakPrecision": 0.3098,
+   "liftDipPrecision": 0.2858,
+   "liftSpearman95": {
+    "mean": 0.0264,
+    "low": -0.0351,
+    "high": 0.0835
+   },
+   "positionBaseline": {
+    "videos": 46,
+    "spearman": 0.2498,
+    "peakPrecision": 0.2884,
+    "dipPrecision": 0.634
+   }
+  },
+  "corpus/transcript": {
+   "videos": 46,
+   "spearman": 0.0883,
+   "peakPrecision": 0.2361,
+   "dipPrecision": 0.4215,
+   "liftSpearman": -0.2682,
+   "liftPeakPrecision": 0.1677,
+   "liftDipPrecision": 0.0999,
+   "liftSpearman95": {
+    "mean": -0.2682,
+    "low": -0.3414,
+    "high": -0.1929
+   },
+   "positionBaseline": {
+    "videos": 46,
+    "spearman": 0.0986,
+    "peakPrecision": 0.2199,
+    "dipPrecision": 0.462
+   }
+  },
+  "creator/full": {
+   "videos": 45,
+   "spearman": 0.2963,
+   "peakPrecision": 0.3771,
+   "dipPrecision": 0.6274,
+   "liftSpearman": 0.1279,
+   "liftPeakPrecision": 0.3271,
+   "liftDipPrecision": 0.3667,
+   "liftSpearman95": {
+    "mean": 0.1279,
+    "low": 0.061,
+    "high": 0.1943
+   },
+   "positionBaseline": {
+    "videos": 45,
+    "spearman": 0.2695,
+    "peakPrecision": 0.3019,
+    "dipPrecision": 0.6305
+   }
+  },
+  "mixed/full": {
+   "videos": 45,
+   "spearman": 0.2955,
+   "peakPrecision": 0.4043,
+   "dipPrecision": 0.639,
+   "liftSpearman": 0.1715,
+   "liftPeakPrecision": 0.3535,
+   "liftDipPrecision": 0.3721,
+   "liftSpearman95": {
+    "mean": 0.1715,
+    "low": 0.0985,
+    "high": 0.2411
+   },
+   "positionBaseline": {
+    "videos": 45,
+    "spearman": 0.2585,
+    "peakPrecision": 0.3146,
+    "dipPrecision": 0.6305
+   }
+  }
+ },
+ "corpusHeldOutShortForm": {
+  "transcript": {
+   "videos": 2981,
+   "spearman": 0.3035,
+   "peakPrecision": 0.366,
+   "dipPrecision": 0.785,
+   "liftSpearman": 0.0529,
+   "liftPeakPrecision": 0.2229,
+   "liftDipPrecision": 0.3368,
+   "liftSpearman95": {
+    "mean": 0.0529,
+    "low": 0.04,
+    "high": 0.0656
+   }
+  },
+  "position": {
+   "videos": 2981,
+   "spearman": 0.2999,
+   "peakPrecision": 0.3623,
+   "dipPrecision": 0.7853
+  }
+ },
+ "topWeights": [
+  {
+   "feature": "closing",
+   "weight": -0.1553
+  },
+  {
+   "feature": "practical_rel",
+   "weight": 0.0972
+  },
+  {
+   "feature": "pos_sq",
+   "weight": -0.0968
+  },
+  {
+   "feature": "hook_rel",
+   "weight": 0.089
+  },
+  {
+   "feature": "opening",
+   "weight": 0.0642
+  },
+  {
+   "feature": "payoff_rel",
+   "weight": 0.0615
+  },
+  {
+   "feature": "humor_rel",
+   "weight": 0.0586
+  },
+  {
+   "feature": "pause_max_ctx",
+   "weight": -0.0549
+  },
+  {
+   "feature": "practical_ctx",
+   "weight": 0.0471
+  },
+  {
+   "feature": "open_loop_rel",
+   "weight": -0.0441
+  },
+  {
+   "feature": "speech_ratio_rel",
+   "weight": 0.0424
+  },
+  {
+   "feature": "wpm",
+   "weight": -0.0405
+  },
+  {
+   "feature": "payoff_ctx",
+   "weight": 0.0403
+  },
+  {
+   "feature": "pause_max_rel",
+   "weight": -0.0386
+  },
+  {
+   "feature": "novelty",
+   "weight": -0.0375
+  }
+ ],
+ "transcriptFeatures": [
+  "pos",
+  "pos_sq",
+  "opening",
+  "closing",
+  "pos_x_length",
+  "opening_x_length",
+  "speech_ratio",
+  "wpm",
+  "pause_max",
+  "filler_rate",
+  "question_rate",
+  "number_rate",
+  "you_rate",
+  "novelty_rate",
+  "pace_change"
+ ],
+ "signals": [
+  "hook",
+  "payoff",
+  "novelty",
+  "open_loop",
+  "emotion",
+  "humor",
+  "practical",
+  "visual",
+  "tangent"
+ ]
+}

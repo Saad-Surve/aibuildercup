@@ -352,6 +352,11 @@ def heatmap_bin_path(
     )
 
 
+def interest_curve_path(uid: str, project_id: str, analysis_run_id: str) -> str:
+    """The run's predicted-interest curve: one document, under the run (project delete)."""
+    return f"{analysis_run_path(uid, project_id, analysis_run_id)}/interest/curve"
+
+
 # `users/{uid}/projects/{projectId}/source/{assetId}.{ext}` — the source object layout is
 # itself parseable, which is how the GCS-finalized Pub/Sub handler recovers ownership.
 _SOURCE_OBJECT = re.compile(

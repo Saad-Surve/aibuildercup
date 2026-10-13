@@ -9,7 +9,8 @@ Last updated: 2026-10-13.
 
 ## Status
 
-Resonance Creator Studio is built and deployed: upload → transcript → nine-reviewer heatmap,
+Resonance Creator Studio is built and deployed: upload → transcript → nine-reviewer heatmap
+with a predicted audience-interest lane (in the working tree, not yet deployed),
 drafts with grounded writing, captions, localization and dubbing, thumbnails, packaging with
 optional Veo inserts, YouTube connector with publishing, a content calendar that uploads
 scheduled videos, Medium, Substack and Reddit connectors with cross-posting, creator library
@@ -49,6 +50,19 @@ What is not yet proven is live, end-to-end behavior on the current code. See
   invented scores.
 - Heatmap scores describe flagged moments. They are not retention predictions or calibrated
   quality ratings.
+- Reviewer coverage is recorded per run (`analysisRuns/{id}.coverage`, returned by
+  `GET …/heatmap`). The UI tints covered spans with no bin as "reviewed, nothing flagged".
+  A chunk that failed stays unreviewed. Runs from before 2026-10-13 have no coverage unless
+  they were backfilled.
+- The interest curve (`app/services/interest.py`, `GET …/analysis/{id}/interest`, stored at
+  `analysisRuns/{id}/interest/curve`) is a relative ranking within one video, learned from
+  YouTube Most Replayed graphs. It is not retention. Peaks and dips are chosen on lift over
+  the position head (the typical drop-off), and are marked only when the Gemini signal pass
+  ran, because the transcript-only lift did not beat chance. Method and numbers:
+  `evals/interest/README.md`.
+- The interest model is JSON coefficients in `app/assets/interest/model.json`. To retrain,
+  run `backend/scripts/interest_train.py` (see the eval README). The curve runs alongside
+  the reviewers and never blocks or fails a run.
 - Creator context is kept separate from current-video facts. A persona records preferences, past
   work supplies examples, and neither is treated as fact.
 - Enforcement of read-only demo mode is an environment allowlist (`READ_ONLY_USER_UIDS`), not a
@@ -100,6 +114,12 @@ Writing platforms (Medium, Substack, Reddit), 2026-10-11 to 10-12:
   developer support.
 
 ## Model choices
+
+- Interest signals: `MODEL_INTEREST_SIGNALS=gemini-3.1-flash-lite`, pinned in both
+  environments. The bundled model was trained on that model's ratings
+  (`interest-signals-v2` prompt). If the configured model differs from `signalModel` in
+  `model.json`, inference falls back to the transcript-only head with no moments marked.
+  Change both together and retrain.
 
 - Images: Nano Banana 2 (`gemini-3.1-flash-image`) is the default for thumbnails. It takes a
   video frame as input, edits conversationally, keeps references consistent, and renders text
@@ -259,6 +279,10 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
 - The Docker image for the API. A change to the Dockerfile was reviewed but not built.
 - Browser click-through of the draft editor, drawer, read-only states and mobile workspace.
   Several UI changes were checked by build and reasoning only.
+- The interest lane was checked in a browser (local API and web against live Firestore, demo
+  account): curve, baseline, hover readout, info panel, dip click (seek and filter findings)
+  and coverage tint all worked. A fresh analysis run through the deployed worker has not been
+  run with the curve enabled. Backfill was used for the two demo runs instead.
 - Creator-quality evaluation. No creator labels exist yet. The comparison protocol is in
   `evals/creator-comparison.md`.
 
@@ -334,8 +358,24 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
     decide whether to keep it. Substack `send: true` needs a deliberate product choice. Scheduled
     crossposts would need jobs. Content read-back for style signals is future work.
 18. **Calendar copy.** The landing calendar demo hard-codes November 2026.
+19. **Interest model data.** It is trained on 45 long-form creator videos and a Content
+    Behavior Corpus sample. More creator videos would tighten it. The overnight kit in
+    `evals/interest/collector/` (Windows `run.bat`, tested on macOS only) collects, runs the
+    Gemini signals and zips the result for `interest_train.py train`. Alternatively, resume
+    `interest_collect.py subs` (the YouTube transcript API IP-blocked this machine after
+    about 30 requests on 2026-10-13) or `asr` (local Whisper, about 85 s per video). Then
+    rerun `interest_train.py signals`, `train` and the backfill. A creator's own YouTube
+    Analytics retention (`audienceWatchRatio`) would be a better label once a channel with
+    enough views is connected.
+20. **Interest curve deploy.** Deploy, then run `interest_backfill.py` for any account whose
+    existing runs should show the lane. The two demo runs are already backfilled.
 
 ## Test and local state to clean up
+
+- `evals/interest/raw/` (gitignored) holds the collected metadata, transcripts, Gemini signal
+  cache and corpus parquet files (about 150 MB). Keep it to retrain without recollecting.
+- The two demo-account runs ("yt1" and "My Transcription Project") have backfilled
+  `interest/curve` documents and `coverage` fields in live Firestore.
 
 - Test projects and artifacts from earlier live runs are still in the demo account and possibly in
   the real account. Delete them if unwanted. Deleting a project also removes its stored footage.

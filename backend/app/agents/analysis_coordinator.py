@@ -92,6 +92,9 @@ class DimensionOutcome:
     started_at: datetime | None = None
     finished_at: datetime | None = None
     error: dict[str, Any] | None = None
+    #: Review windows (start_ms, end_ms) of the chunks this reviewer finished. Time inside
+    #: them with no finding was read and had nothing to flag.
+    reviewed_spans: list[tuple[int, int]] = field(default_factory=list)
 
 
 def build_reviewers(
@@ -277,6 +280,7 @@ async def run_dimension(
     grounding_html = ""
     failures: list[str] = []
     successes = 0
+    reviewed_spans: list[tuple[int, int]] = []
 
     for context in contexts:
         async with semaphore:
@@ -310,6 +314,7 @@ async def run_dimension(
         usage = add_usage(usage, result.usage)
         window_start = context.review_start_ms
         window_end = context.review_end_ms
+        reviewed_spans.append((window_start, window_end))
         findings.extend(
             clip_findings_to_window(result.findings, start_ms=window_start, end_ms=window_end)
         )
@@ -369,6 +374,7 @@ async def run_dimension(
         error=(
             {"code": "REVIEWER_PARTIAL", "message": "; ".join(failures)[:500]} if failures else None
         ),
+        reviewed_spans=reviewed_spans,
     )
 
 

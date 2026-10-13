@@ -1271,6 +1271,10 @@ paths:
       - { $ref: "#/components/parameters/AnalysisRunId" }
     get:
       summary: Get UI-ready heatmap bins
+      description: >
+        Bins exist only where a finding touches a five-second window. `coverage` lists the
+        spans each reviewer actually read, so the UI can show "reviewed, nothing flagged"
+        instead of an empty gap. Runs created before coverage was recorded return [].
       responses:
         "200":
           description: OK
@@ -1282,6 +1286,28 @@ paths:
                   bins:
                     type: array
                     items: { $ref: "#/components/schemas/HeatmapBin" }
+                  coverage:
+                    type: array
+                    items: { $ref: "#/components/schemas/HeatmapCoverage" }
+
+  /api/projects/{projectId}/analysis/{analysisRunId}/interest:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/AnalysisRunId" }
+    get:
+      summary: Get the predicted-interest curve for an analysis run
+      description: >
+        Relative interest per five-second bin, predicted from the transcript by a model
+        trained on public YouTube "Most Replayed" curves (`evals/interest/`). Values rank
+        moments within this video. They are not retention, watch time or a cross-video
+        score. 404 when the run has no curve (older runs, or the feature is off).
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InterestCurve" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
   /api/projects/{projectId}/artifacts:
     x-status: planned
@@ -3483,6 +3509,87 @@ components:
         severity: { $ref: "#/components/schemas/Severity" }
         color: { type: string, enum: [green, yellow, orange, red] }
         findingIds: { type: array, items: { type: string } }
+
+    HeatmapCoverage:
+      type: object
+      required: [dimension, startMs, endMs]
+      properties:
+        dimension: { $ref: "#/components/schemas/AnalysisDimension" }
+        startMs: { type: integer }
+        endMs: { type: integer }
+
+    InterestPoint:
+      type: object
+      required: [startMs, endMs, value]
+      properties:
+        startMs: { type: integer }
+        endMs: { type: integer }
+        value:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Relative interest within this video (0 lowest, 1 highest). Not retention.
+        baseline:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: >
+            Typical drop-off at this point in a video, on the same scale as value. Where value
+            is above it, the content is predicted to beat its place in the video.
+        driversUp: { type: array, items: { type: string } }
+        driversDown: { type: array, items: { type: string } }
+        signals:
+          type: object
+          additionalProperties: { type: number }
+          description: >
+            wpm, speechRatio, pauseMs, novelty; plus hook, payoff, novelty, open_loop,
+            emotion, humor, practical, visual, tangent (1-5) when the Gemini pass ran.
+
+    InterestMoment:
+      type: object
+      description: A stretch that most beats (peak) or falls short of (dip) the typical drop-off.
+      required: [kind, startMs, endMs, value]
+      properties:
+        kind: { type: string, enum: [peak, dip] }
+        startMs: { type: integer }
+        endMs: { type: integer }
+        value: { type: number }
+        drivers: { type: array, items: { type: string } }
+        findingIds: { type: array, items: { type: string } }
+
+    InterestCalibration:
+      type: object
+      properties:
+        label: { type: string }
+        videos: { type: integer }
+        channels: { type: integer }
+        testVideos: { type: integer }
+        heldOutSpearman: { type: number }
+        positionBaselineSpearman: { type: number }
+        liftSpearman:
+          type: number
+          description: Correlation of predicted and true deviation from the typical drop-off.
+        peakPrecision: { type: number }
+        dipPrecision: { type: number }
+        trainedAt: { type: string }
+
+    InterestCurve:
+      type: object
+      required: [analysisRunId, status, points]
+      properties:
+        analysisRunId: { type: string }
+        status: { type: string, enum: [ready, failed] }
+        modelVersion: { type: string }
+        featureSource: { type: string, enum: [transcript+gemini, transcript] }
+        binMs: { type: integer }
+        durationMs: { type: integer }
+        points: { type: array, items: { $ref: "#/components/schemas/InterestPoint" } }
+        peaks: { type: array, items: { $ref: "#/components/schemas/InterestMoment" } }
+        dips: { type: array, items: { $ref: "#/components/schemas/InterestMoment" } }
+        calibration: { $ref: "#/components/schemas/InterestCalibration" }
+        costEstimateUsd: { type: number }
+        error: { type: object, nullable: true, additionalProperties: true }
+        createdAt: { type: string, format: date-time }
 
     # --- Realtime WebSocket frames -------------------------------------------------
     # The websocket carries snapshots and progress deltas. Payloads reuse the

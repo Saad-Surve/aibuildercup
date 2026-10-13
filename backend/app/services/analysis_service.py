@@ -33,6 +33,8 @@ from app.schemas.analysis import (
     Finding,
     FindingEvidence,
     HeatmapBin,
+    HeatmapCoverage,
+    InterestCurve,
     ReviewerGroundingSource,
     ReviewerRun,
     ReviewerRunStatus,
@@ -52,6 +54,7 @@ from app.services.firestore_service import (
     finding_path,
     heatmap_bin_path,
     heatmap_bins_collection_path,
+    interest_curve_path,
     project_path,
     reviewer_run_path,
     transcript_path,
@@ -472,6 +475,51 @@ class AnalysisService:
             bins, key=lambda b: (_dimension_order(b.dimension.value), b.startMs)
         )
 
+    def get_coverage(
+        self, *, owner_uid: str, project_id: str, analysis_run_id: str
+    ) -> list[HeatmapCoverage]:
+        """Reviewed spans per dimension; [] for runs created before coverage existed."""
+        run = self.load_run_document(
+            owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+        )
+        spans: list[HeatmapCoverage] = []
+        for entry in run.get("coverage") or []:
+            try:
+                spans.append(HeatmapCoverage.model_validate(entry))
+            except ValueError:
+                continue
+        return spans
+
+    def save_interest(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        analysis_run_id: str,
+        curve: InterestCurve,
+    ) -> None:
+        self.client.set_document(
+            interest_curve_path(owner_uid, project_id, analysis_run_id),
+            {"ownerUid": owner_uid, **curve.model_dump(mode="python")},
+        )
+
+    def get_interest(
+        self, *, owner_uid: str, project_id: str, analysis_run_id: str
+    ) -> InterestCurve:
+        self.load_run_document(
+            owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+        )
+        data = self.client.get_document(
+            interest_curve_path(owner_uid, project_id, analysis_run_id)
+        )
+        if data is None or not is_owner(data, owner_uid):
+            raise NotFoundError(
+                "No interest curve for this analysis run",
+                details={"analysisRunId": analysis_run_id},
+            )
+        data.pop("ownerUid", None)
+        return InterestCurve.model_validate(data)
+
     def spent_usd(self, *, owner_uid: str, project_id: str) -> float:
         """Estimated spend on this project's analysis runs so far."""
         rows = self.client.query_collection(
@@ -644,21 +692,20 @@ class AnalysisService:
         cost_usd: float,
         completed_dimensions: Sequence[AnalysisDimension],
         error: dict[str, Any] | None = None,
+        coverage: Sequence[HeatmapCoverage] | None = None,
     ) -> AnalysisRun:
-        self._update_run(
-            owner_uid,
-            project_id,
-            analysis_run_id,
-            {
-                "status": status.value,
-                "overallScore": summary.overall_score,
-                "scoreByDimension": summary.score_by_dimension,
-                "findingCounts": summary.counts,
-                "costEstimateUsd": cost_usd,
-                "completedDimensions": [d.value for d in completed_dimensions],
-                "error": error,
-            },
-        )
+        update: dict[str, Any] = {
+            "status": status.value,
+            "overallScore": summary.overall_score,
+            "scoreByDimension": summary.score_by_dimension,
+            "findingCounts": summary.counts,
+            "costEstimateUsd": cost_usd,
+            "completedDimensions": [d.value for d in completed_dimensions],
+            "error": error,
+        }
+        if coverage is not None:
+            update["coverage"] = [span.model_dump(mode="json") for span in coverage]
+        self._update_run(owner_uid, project_id, analysis_run_id, update)
         emit_analysis_ready(
             owner_uid,
             project_id,

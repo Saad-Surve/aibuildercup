@@ -24,6 +24,7 @@ from app.schemas.analysis import (
     Finding,
     HeatmapBin,
     HeatmapColor,
+    HeatmapCoverage,
     Severity,
     max_severity,
 )
@@ -170,6 +171,41 @@ def aggregate_bins(
     return [accumulator.to_bin() for accumulator in ordered]
 
 
+def merge_coverage(
+    spans_by_dimension: dict[AnalysisDimension, list[tuple[int, int]]],
+    *,
+    duration_ms: int,
+) -> list[HeatmapCoverage]:
+    """Clamp and merge each dimension's reviewed windows into ordered, disjoint spans.
+
+    A window counts only when its reviewer actually returned for it, so a failed chunk
+    shows as unreviewed rather than as "nothing to flag".
+    """
+    dimension_order = {dimension: i for i, dimension in enumerate(AnalysisDimension)}
+    merged: list[HeatmapCoverage] = []
+    for dimension in sorted(spans_by_dimension, key=lambda d: dimension_order[d]):
+        clamped = sorted(
+            (max(0, start), min(duration_ms, end))
+            for start, end in spans_by_dimension[dimension]
+            if min(duration_ms, end) > max(0, start)
+        )
+        current: list[int] | None = None
+        for start, end in clamped:
+            if current is not None and start <= current[1]:
+                current[1] = max(current[1], end)
+                continue
+            if current is not None:
+                merged.append(
+                    HeatmapCoverage(dimension=dimension, startMs=current[0], endMs=current[1])
+                )
+            current = [start, end]
+        if current is not None:
+            merged.append(
+                HeatmapCoverage(dimension=dimension, startMs=current[0], endMs=current[1])
+            )
+    return merged
+
+
 @dataclass
 class FindingSummary:
     """Roll-up statistics for an analysis run."""
@@ -223,6 +259,7 @@ __all__ = [
     "aggregate_bins",
     "bin_id_for",
     "color_for",
+    "merge_coverage",
     "normalize_span",
     "summarize_findings",
     "worst_severity",

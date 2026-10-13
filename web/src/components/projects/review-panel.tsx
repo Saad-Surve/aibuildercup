@@ -31,6 +31,7 @@ import {
   formatCostUsd,
   formatScore,
   getAnalysisRun,
+  getAnalysisInterest,
   getHeatmap,
   listAnalysisRuns,
   listFindings,
@@ -40,7 +41,12 @@ import {
   SEVERITY_ORDER,
   startAnalysis,
 } from "@/lib/analysis";
-import type { AnalysisDimension, AnalysisRun, Severity } from "@/lib/types";
+import type {
+  AnalysisDimension,
+  AnalysisRun,
+  InterestMoment,
+  Severity,
+} from "@/lib/types";
 import { ANALYSIS_DIMENSIONS } from "@/lib/types";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { WORKSPACE_PANE_SNAP } from "@/lib/workspace";
@@ -74,6 +80,11 @@ export function ReviewPanel({
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [severityFilter, setSeverityFilter] = useState<Severity[]>([]);
   const [selectedBinId, setSelectedBinId] = useState<string | null>(null);
+  // Findings picked from an interest peak/dip; tied to a run so a switch drops it.
+  const [moment, setMoment] = useState<{
+    runId: string;
+    findingIds: string[];
+  } | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
 
   // Same query as the transcript panel, so the two can never disagree about
@@ -142,6 +153,16 @@ export function ReviewPanel({
     refetchIntervalInBackground: true,
   });
 
+  // 404 resolves to null (older run, feature off), so no retry and no error UI.
+  const interestQuery = useQuery({
+    queryKey: ["analysis-interest", projectId, activeRunId],
+    queryFn: () => getAnalysisInterest(projectId, activeRunId as string),
+    enabled: Boolean(activeRunId),
+    refetchInterval: !live && isRunning ? 8000 : false,
+    refetchIntervalInBackground: true,
+    retry: false,
+  });
+
   const findingsQuery = useQuery({
     queryKey: ["analysis-findings", projectId, activeRunId],
     queryFn: () => listFindings(projectId, activeRunId as string),
@@ -168,6 +189,9 @@ export function ReviewPanel({
     void queryClient.invalidateQueries({
       queryKey: ["analysis-findings", projectId, activeRunId],
     });
+    void queryClient.invalidateQueries({
+      queryKey: ["analysis-interest", projectId, activeRunId],
+    });
   }, [activeRunId, runStatus, isRunning, projectId, queryClient]);
 
   const startMutation = useMutation({
@@ -179,6 +203,7 @@ export function ReviewPanel({
     onSuccess: (response) => {
       setStartError(null);
       setSelectedBinId(null);
+      setMoment(null);
       setSeverityFilter([]);
       setSelectedRunId(response.analysisRunId);
       void queryClient.invalidateQueries({
@@ -209,6 +234,17 @@ export function ReviewPanel({
   const laneDimensions: AnalysisDimension[] = run?.requestedDimensions?.length
     ? run.requestedDimensions
     : [...ANALYSIS_DIMENSIONS];
+
+  const momentFindingIds =
+    moment && moment.runId === activeRunId ? moment.findingIds : null;
+
+  function selectMoment(item: InterestMoment) {
+    onSeek(item.startMs);
+    if (activeRunId && item.findingIds && item.findingIds.length > 0) {
+      setSelectedBinId(null);
+      setMoment({ runId: activeRunId, findingIds: item.findingIds });
+    }
+  }
 
   const scores = run?.scoreByDimension ?? {};
   const findingCounts = run?.findingCounts ?? {};
@@ -405,12 +441,18 @@ export function ReviewPanel({
           ) : (
             <HeatmapTracks
               bins={bins}
+              coverage={heatmapQuery.data?.coverage}
+              interest={interestQuery.data ?? null}
+              onSelectMoment={selectMoment}
               durationMs={durationMs}
               dimensions={laneDimensions}
               scores={scores}
               onSeek={onSeek}
               selectedBinId={selectedBin?.binId ?? null}
-              onSelectBin={(bin) => setSelectedBinId(bin?.binId ?? null)}
+              onSelectBin={(bin) => {
+                setMoment(null);
+                setSelectedBinId(bin?.binId ?? null);
+              }}
               severityFilter={severityFilter}
               reviewState={
                 !run
@@ -452,11 +494,14 @@ export function ReviewPanel({
         }
         severityFilter={severityFilter}
         onToggleSeverity={toggleSeverity}
-        selectedFindingIds={selectedBin?.findingIds ?? null}
+        selectedFindingIds={momentFindingIds ?? selectedBin?.findingIds ?? null}
         onSeek={(startMs) => {
           onSeek(startMs);
         }}
-        onClearSelection={() => setSelectedBinId(null)}
+        onClearSelection={() => {
+          setSelectedBinId(null);
+          setMoment(null);
+        }}
       />
     </>
   );
