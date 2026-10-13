@@ -11,7 +11,8 @@ Last updated: 2026-10-13.
 
 Resonance Creator Studio is built and deployed: upload → transcript → nine-reviewer heatmap,
 drafts with grounded writing, captions, localization and dubbing, thumbnails, packaging with
-optional Veo inserts, YouTube connector with publishing, content calendar, creator library
+optional Veo inserts, YouTube connector with publishing, a content calendar that uploads
+scheduled videos, Medium, Substack and Reddit connectors with cross-posting, creator library
 retrieval, and a read-only demo. Feature detail is in `README.md` and `docs/architecture.md`.
 
 What is not yet proven is live, end-to-end behavior on the current code. See
@@ -54,8 +55,49 @@ What is not yet proven is live, end-to-end behavior on the current code. See
   Firestore flag. The demo account is a shared, pre-seeded showcase, and its credentials are not
   secret.
 - The demo sign-in mints a custom token through the backend (`POST /api/demo/session`).
-- Feature flags persist in `localStorage` (`hc-feature-flags`) for now. Moving them to
-  `users/{uid}.preferences.featureFlags` is a call-site-free change.
+- There is no runtime feature-flag system. `web/src/lib/feature-flags.tsx` was removed on
+  2026-10-11. Do not re-add flags without a reason.
+
+Calendar and publishing (2026-10-11 to 10-12):
+
+- Slot status is automatic. Users never set it. A slot is `planned` (no upload), `scheduled`
+  (upload armed), `published`, `failed` (blocked, with `statusDetail`) or `cancelled`.
+- A plan-only slot uploads nothing. Scheduled uploads ride on `publish.publishAt`. A YouTube
+  slot is armed automatically on create, read and edit (`_arm_or_explain`, `_sweep_slots`).
+- A future `publishAt` uploads the video `private` with `publishAt`, and YouTube holds it until
+  then. A past time uploads `public` now.
+- Go-live is lazy. There is no scheduler. `_promote_due` runs on publish list and get, so a
+  scheduled post flips to `published` only while something polls. The calendar and studio poll
+  while any item is non-terminal.
+- YouTube deletions are detected on read, not by a job. `_reconcile_live` runs on publish list and
+  get, and `_reconcile_linked_uploads` runs on the calendar list endpoints. Each live video is
+  re-checked at most every 60s. A deleted video marks the publish `deleted` and cancels its slot.
+- Rescheduling a dead or failed upload re-uploads it (`recreate_for_schedule`). Rescheduling a
+  still-waiting upload moves its go-live time. A live (`published`) upload stays blocked.
+- Deleting a slot cancels a queued upload job that has not reached YouTube. Deleting a publish
+  unlinks its slots. The app never deletes a video on YouTube. A calendar delete keeps a video
+  that is already uploaded.
+- An edit that conflicts with a live upload applies nothing. The conflict check runs before the
+  slot is written.
+- Crossposting shows only connected destinations. Saving or posting a draft always refetches
+  connections and projects, and never trusts cached lists for the upload gate.
+
+Writing platforms (Medium, Substack, Reddit), 2026-10-11 to 10-12:
+
+- Substack has no official write API. Its OAuth server grants only read scopes to public
+  clients, and password login is captcha-gated. The `substack.sid` session cookie is the only path
+  that writes, so the connect flow accepts any paste of it. It also accepts the full cookie header,
+  and a bookmarklet copies the cookie from a Substack tab.
+- Substack drafts are TipTap JSON, not HTML. Posting HTML stores literal tags. The creation call
+  also requires `draft_bylines`, which is the session's own profile id.
+- A posted Substack draft is linked to the local draft (`Draft.linkedPosts`). Sync pushes later
+  edits to the same remote draft. A remote draft deleted outside the app clears the link.
+- Substack `send: true` is irreversible. The UI defaults to draft mode and labels the risk.
+- Medium's API is deprecated. Only legacy tokens work, and no new tokens have been issued since
+  January 2025.
+- Reddit uses official OAuth with permanent refresh. Reddit has no revoke endpoint, so deletion
+  relies on removing the stored secret. New Reddit apps may need manual approval from Reddit's
+  developer support.
 
 ## Model choices
 
@@ -171,6 +213,26 @@ Tooling:
   build.
 - The default Turbopack build can fail in sandboxes that cannot bind a port or resolve Google
   Fonts. Use `bun run build --webpack` there, with network access.
+- Base UI `SelectValue` with no children renders the selected label, not the raw value. Custom
+  render functions must map value to label themselves.
+- `bun run format` reflows about 34 unrelated files, because the repo is not oxfmt-clean. Format
+  only the files you touch.
+
+Local development (observed on the dev machine, 2026-10-11 to 10-12):
+
+- The backend `uvicorn --reload` watcher stalls on this machine. Edits then serve stale code and
+  nothing reports it. Run the backend without `--reload`, restart it after each backend edit, and
+  wait for `Application startup complete` before testing.
+- A dead parent can leave orphaned `multiprocessing.spawn` children holding port 8080. Check for
+  orphans before assuming the reloader is alive.
+- A mid-edit restart can leave a stale `web/.next` cache. The symptom is a `CssSyntaxError` in
+  `package.json` or `globals.css`. Fix it with `rm -rf web/.next` and restart `bun dev`.
+- The local backend needs `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in
+  `backend/.env`. Without them, every publish after the one-hour access token expires fails with
+  `CONNECTION_NEEDS_REAUTH`. The values come from Secret Manager (`youtube-oauth-client-id` and
+  `youtube-oauth-client-secret`), and `backend/.env` is gitignored.
+- A rejected push means `git fetch` and rebase, never force. A force push would discard teammate
+  commits.
 
 ## Verification gaps
 
@@ -182,8 +244,14 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
 - Dubbing and localization against live Translation and TTS.
 - Caption render in the app. The last render check hit an expired demo token mid-session. The
   streaming runner was validated directly.
-- Authenticated calendar flow: create slot, link publish, reschedule, publish completes, slot
-  flips to published.
+- The calendar and publish flows were checked by running backend services against live Firestore
+  and the connected YouTube channel (2026-10-11 to 10-12). These covered upload, go-live,
+  reschedule with re-upload, deletion sync and slot cancellation. They were not run through a
+  signed-in browser session, so the UI path is still unverified.
+- Medium and Reddit have no live test with real credentials. Substack was verified live (draft
+  create, update, read-back and delete) through the backend path.
+- Calendar slot and YouTube video link: a slot shows "Linked upload" but no direct YouTube link.
+  The URL is only on the publish, so it is not verified from the calendar.
 - Draft generation with live Search grounding, and the Search Suggestions panel.
 - Multi-line Markdown in draft variants.
 - Live creator-library indexing on a real folder import. The import path is lint- and
@@ -251,6 +319,21 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
 13. **Optional polish.** Calendar drag-to-move, week view by hour, ICS export. Non-Latin caption
     fonts (only Latin is bundled). A styled caption file alongside the burned MP4. Real FFmpeg
     progress percentages. A Cloud Run Job if renders run alongside requests.
+14. **Scheduler.** Go-live promotion and YouTube-deletion detection both run lazily on reads, so
+    they only happen while someone is polling. Replace them with a real due scan (Cloud
+    Scheduler plus a job) before relying on unattended scheduled posts. The "planned slot never
+    uploads" model is still by design. A sweeper that converts due planned slots is possible
+    future work.
+15. **Calendar to YouTube link.** Denormalize `youtubeUrl` onto the schedule so a slot links to
+    its video directly.
+16. **Public upload audit.** On 2026-10-12 a public upload succeeded on the connected channel, so
+    that client may not be locked to private. Confirm this for other users before the demo claims
+    public posting. The earlier "forced private until audit" note may be out of date.
+17. **Writing platforms.** Live credential pass for Medium, Substack and Reddit with real
+    accounts. Reddit's pre-approval fallback copy is not in the UI. Medium is legacy-token only, so
+    decide whether to keep it. Substack `send: true` needs a deliberate product choice. Scheduled
+    crossposts would need jobs. Content read-back for style signals is future work.
+18. **Calendar copy.** The landing calendar demo hard-codes November 2026.
 
 ## Test and local state to clean up
 
@@ -259,14 +342,20 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
 - Three thumbnail concepts on the `chicken curry` project were left as demo data.
 - Stray debug objects may exist at the bucket root (`debug/lord_*`). Verify before deleting.
 - Local `.logs/` may hold server logs from an earlier session.
+- A live public test video is on the connected YouTube channel: `Yy--rrT5KsY`, titled
+  "Something". It is the recovery upload from 2026-10-11. Delete it on YouTube if unwanted. The
+  app will mark its publish `deleted` on the next read.
+- Earlier test uploads (`ThVr4MD0FhQ`, `jT2-hKGMy2s`, `aQJ0Gx5-ers`, `A7mNFfBRgh8`) were deleted
+  on YouTube. Their publish records show `deleted` and their slots show `cancelled`.
 
 ## Data and provenance
 
 - The creator corpus for the retrieval benchmark is a bounded public snapshot, not an archive.
   Some sources were unavailable (Instagram, the X profile, one LinkedIn post). Those are recorded
   as missing, not fabricated. Auto-generated captions may contain errors.
-- The YouTube connector uses a Google OAuth client. Until the OAuth app passes YouTube's API
-  audit, uploads are forced to private.
+- The YouTube connector uses a Google OAuth client. Uploads from unaudited clients are forced to
+  private by YouTube. A public upload did succeed on the connected channel on 2026-10-12, so
+  check this for each account before relying on it (see open item 16).
 - Local and deployed OAuth tokens are not interchangeable. Local encrypts with a Fernet key from
   `OAUTH_TOKEN_ENCRYPTION_KEY`. Production uses Cloud KMS. A connection made locally reads as
   absent in production, and the reverse.
