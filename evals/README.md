@@ -29,10 +29,9 @@ relevance diagnostic on a known corpus, not an independently adjudicated or held
 | Text → thumbnail | 4 | 4/4 | 3/4 | 1.000 | 0.875 |
 | **All cases** | **20** | **20/20** | **11/20** | **1.000** | **0.598** |
 
-Overall hit@3 was **20/20 versus 12/20**; hit@8 was **20/20 versus 15/20**.
-This demonstrates a useful difference from the existing literal-token fallback on these
-queries, especially when a Hindi request targets English creator writing. It does not
-establish general retrieval accuracy or prove downstream drafts/thumbnails are better.
+Overall hit@3 was **20/20 versus 12/20**; hit@8 was **20/20 versus 15/20**. The gap is
+largest for Hindi requests that target English creator writing. These cases do not establish
+general retrieval accuracy, and they do not show that downstream drafts or thumbnails improve.
 
 The harness imports the production passage builder, vector validator and cosine helper.
 It uses the same query prefix, lexical token overlap and stable score/node-ID ordering as
@@ -41,12 +40,12 @@ cutoff; repeated passages from one item occupy multiple slots. A hit means the i
 source appears at or before the rank; MRR@8 averages the reciprocal of its first rank,
 using zero when absent. It is not passage-level entailment or recall over all useful sources.
 
-Each cohort filters candidate modality. The public library search normally mixes modalities;
-thumbnail retrieval filters images. This diagnostic therefore isolates text and image
-retrieval rather than measuring the complete public API. Image embeddings include a title
-alongside the real image, so text-to-image success cannot be attributed to visual content
-alone. Several queries name a product or source topic. Hard negatives, ambiguous relevance,
-image-only ablations and unrelated creators are the next dataset expansion.
+Each cohort filters candidate modality. The public library search normally mixes modalities,
+and thumbnail retrieval filters to images. The diagnostic therefore isolates text and image
+retrieval and does not exercise the full public API. Image embeddings include a title next to
+the real image, so text-to-image success cannot be credited to visual content alone. Several
+queries name a product or source topic. The next dataset expansion should add hard negatives,
+ambiguous relevance, image-only ablations and unrelated creators.
 
 ## Runtime components
 
@@ -82,13 +81,13 @@ returned identical metadata for every fixture; hashes and samples are in the liv
 | `explainer.mp4` | 538.122 s | 117.23 ms | 58.13 ms | 50.4% |
 | `hindi_education.mp4` | 242.927 s | 118.62 ms | 59.31 ms | 50.0% |
 
-This is a repeated local component comparison. It does not mean transcription or dubbing
-became twice as fast. The avoided second process/scan explains most of the local difference.
+This is a repeated local component comparison. It does not show that transcription or dubbing
+became twice as fast. The avoided second process and scan account for most of the local difference.
 
 ## Frontend payloads
 
-The earlier [optimization handoff](../docs/current-progress/2026-10-10-2245-repository-optimization.md)
-records an inter-build webpack comparison under the same environment:
+The repository optimization pass (October 2026) recorded an inter-build webpack comparison
+under the same environment:
 
 | Exported route | Before gzip bytes | After gzip bytes | Reduction |
 |---|---:|---:|---:|
@@ -141,7 +140,7 @@ The flagship needs two kinds of evidence: correct observations and edits the cre
 actually finds useful. A creator supplied a project and public source-video link; complete
 outputs and creator labels are still pending. No manual gold labels or time-saving
 measurements were supplied. Historical diagnostic reviewer runs are recorded in
-[the reviewer handoff](../docs/current-progress/2026-10-11-1609-reviewer-heatmap-improvements.md);
+the reviewer heatmap handoff in [HANDOFF](../docs/current-progress/HANDOFF.md#open-items);
 they used a fallback model/subsets and cannot validate the complete configured nine-reviewer
 system. Finding counts and successful JSON alone are not quality scores.
 

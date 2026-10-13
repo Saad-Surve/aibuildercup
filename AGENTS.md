@@ -1,193 +1,125 @@
 # AGENTS.md
 
-Guidance for any AI agent (or new engineer) working in this repository. Read this first, then
-`docs/technical-design/README.md`.
+Guidance for AI agents and engineers working in this repo. Start with `README.md` for what the
+product does and what is implemented. For the design, see `docs/technical-design/README.md`.
 
-## 1. What this project is
+## What this is
 
-**Habeas Codus — Creator Helper Studio.** An AI studio where a creator uploads one video and gets:
+Resonance Creator Studio. A creator uploads one video and gets a timestamped transcript and a
+multi-reviewer critique shown as a heatmap under the timeline. Findings link to the moment, an
+explanation and a proposed edit. The same workspace uses the creator's earlier work for drafts,
+thumbnails, localized captions and dubbing, a YouTube package, and scheduled publishing.
 
-1. A timestamped transcript.
-2. A multi-reviewer critique shown as a **heatmap under a timeline** (truth, clarity, structure,
-   legal/safety, cultural/localization, platform fit, and more). This is the flagship feature.
-3. Derivative content: short-form clips, thumbnails, social posts, blogs, localized captions and
-   dubbing.
-4. A project-scoped chat agent that can talk about anything in the project.
+The repo and UI are named Resonance. The GCP project and some resource names are still
+`habeas-codus`. This is a hackathon project: prefer a working demo over polish, and keep the
+architecture clean.
 
-It is a hackathon project. Optimize for a winnable demo, not enterprise polish. But keep the
-architecture clean, because the design already is.
-
-Full design: `docs/technical-design/`. Current state: `docs/current-progress/`.
-
-## Session protocol (read this first)
-
-**On start:** read the most recent file in `docs/current-progress/`. It tells you what already
-exists, what was decided, and what the next step is. Do this before touching anything.
-
-**On finish:** write a new timestamped file in `docs/current-progress/` named
-`YYYY-MM-DD-HHMM-<short-slug>.md`. Record:
-
-- What you did.
-- What changed structurally (contracts, schema, infra).
-- Anything you decided or discovered (gotchas).
-- What is not done and what the next step is.
-
-Do this after every meaningful unit of work, not only at the end of a long session. The progress
-folder is the handoff log between people and agents. If you changed something and did not write a
-note, the next agent starts blind.
-
-## 2. Non-negotiable rules
-
-1. **Contracts first.** `contracts/openapi.yaml` is the frozen API contract. If you change an
-   endpoint, update it. The web client is generated from it. Do not let web and backend drift.
-2. **Never import a Google SDK directly in feature code.** Every external call goes through a
-   provider in `backend/app/providers/`. Feature code never touches a Google SDK directly.
-3. **Use real services.** Development calls the live GCP APIs (Gemini on Agent Platform /
-   Vertex AI, Speech-to-Text, Storage, Firestore). Test uploads with the videos in
-   `fixtures/media/`. Keep paid calls (Veo, Imagen, Gemini Pro) capped.
-4. **Region is `us-central1`, except Speech-to-Text which uses the `us` multi-region** (Chirp 3
-   is GA there). Do not use `us-east1` (Speech-to-Text is not GA there).
-5. **Tooling:** `web/` uses **Bun**. `backend/` uses **uv**. `infra/` uses **Terraform**.
-   Do not introduce npm, pip, poetry, or yarn.
-6. **Never commit secrets.** `.env.local` and `terraform.tfvars` are gitignored. Secrets belong in
-   Secret Manager.
-7. **Do not commit unless the user asks.** Run the verification commands first.
-8. **Read the latest `docs/current-progress/` note before starting, and write a new one before you
-   stop.** See the session protocol above. No exceptions.
-
-## 3. Repository map
+## Repository map
 
 | Path | What | Tooling |
 |---|---|---|
-| `web/` | Next.js frontend | Bun |
-| `backend/` | FastAPI API + workers + agents | uv |
-| `infra/` | Terraform for all GCP resources | Terraform |
-| `contracts/` | OpenAPI, event, Firestore contracts | — |
-| `fixtures/` | Sample media + seed data | — |
-| `corpus/` | Localization glossaries + trap list | — |
-| `docs/technical-design/` | The design | — |
-| `docs/current-progress/` | Timestamped progress notes | — |
+| `web/` | Next.js 16 frontend | Bun |
+| `backend/` | FastAPI API, workers, reviewers, providers | uv |
+| `infra/` | Terraform for GCP resources (`infra/RESOURCES.md` is the inventory) | Terraform |
+| `contracts/` | OpenAPI, Firestore and event contracts | - |
+| `corpus/`, `fixtures/` | Localization corpus, sample media and import examples | - |
+| `evals/` | Benchmarks and their results | - |
+| `docs/` | Architecture, costs, design, and the handoff in `docs/current-progress/HANDOFF.md` | - |
 
-## 4. Commands
-
-### Backend (`backend/`)
+## Commands
 
 ```bash
+# backend/
 uv sync
 cp .env.example .env
 uv run uvicorn app.main:app --reload --port 8080
+uv run ruff check .
+uv run mypy app
 
-uv run ruff check .    # lint
-uv run mypy app        # types
-```
-
-### Web (`web/`)
-
-```bash
+# web/
 bun install
 cp .env.example .env.local
 bun dev
+bun run lint           # oxlint
+bun run lint:eslint    # Next.js eslint config
+bun run build
+bun run format         # oxfmt
 
-bun run build          # build
-bun run lint           # lint (oxlint)
-bun run lint:eslint    # lint with the Next.js eslint config
-bun run format         # format (oxfmt)
-```
-
-### Infra (`infra/`)
-
-```bash
+# infra/
 terraform init
-terraform plan
-terraform apply
+terraform plan         # review before every apply
 ```
 
-## 5. GCP facts
+## Rules
 
-- Project: `habeas-codus`. Region: `us-central1` (except Speech-to-Text, which uses the `us`
-  multi-region because Chirp 3 is GA there).
-- Full resource inventory: `infra/RESOURCES.md`.
-- Firebase web config is in `infra/RESOURCES.md` (public, safe to expose).
-- **Cost safety:** there is a budget (~$100) and a kill switch Cloud Function that detaches billing
-  when spend hits it. Development uses free-tier APIs (Gemini flash, Speech-to-Text) so it should
-  never come close. Do not add services that call paid APIs on a loop without a cap.
-- The most expensive calls are Veo (~$0.15–0.40/sec), Imagen, and Gemini Pro. Keep them behind the
-  cost cap; never call them in a dev loop or demo without a bound.
+1. **Contracts first.** `contracts/openapi.yaml` is the API contract. If an endpoint changes,
+   update the contract in the same change. Web and backend must not drift.
+2. **Providers only.** Feature code never imports a Google SDK. Every external call goes through
+   a provider in `backend/app/providers/`, using the interface in `base.py`.
+3. **Real services, capped spend.** Development calls live GCP APIs. Sample media lives in
+   `fixtures/media/`. Veo, Imagen and Gemini Pro are the expensive calls. Keep them behind the
+   guards in `docs/costs.md`, and never call them in a loop or demo without a bound.
+4. **Regions.** Use `us-central1`, except Speech-to-Text (Chirp 3), which uses the `us`
+   multi-region. Do not use `us-east1`.
+5. **Tooling.** `web/` uses Bun, `backend/` uses uv, `infra/` uses Terraform. Do not add npm,
+   pip, poetry or yarn. Run `bun` only inside `web/`.
+6. **No tests.** Do not add tests or testing libraries to web or backend. Delete any you find.
+7. **Secrets** go in Secret Manager, never in git. `.env.local`, `.env` and `terraform.tfvars`
+   are gitignored.
+8. **Commit only when asked.** Run the verification commands before you report done.
+9. **Handoff.** Read `docs/current-progress/HANDOFF.md` before starting. Update it in place when
+   your change alters contracts, infra, deployed state, open decisions or verification gaps.
+   Keep it current, not chronological. Do not create per-change notes.
 
-## 6. How to build a component (the workflow)
+## Building a feature
 
-When someone asks you to build something, do this:
+1. Find or add the endpoint and document shape in `contracts/openapi.yaml` and
+   `contracts/firestore.md`.
+2. Read the matching section in `docs/technical-design/`.
+3. Backend: router in `app/api/`, logic in `app/services/`, external calls through a provider.
+   Every user-owned read or write checks `ownerUid`.
+4. Frontend: call the API only through `web/src/lib/api-client.ts`. Next.js 16 differs from
+   older versions. Read the bundled docs described in `web/AGENTS.md` first.
+5. Deletion: store project data under `users/{uid}/projects/{projectId}/...` in Firestore, or
+   under `project_object_prefix(uid, projectId)` in Storage. Deleting a project
+   (`ProjectService.delete`) removes both, and deleting an account (`UserService.delete_account`)
+   removes the whole user tree. Anything stored outside those paths must be added to the delete
+   path explicitly.
+6. Run the verification commands above.
 
-1. **Find the contract.** Check `contracts/openapi.yaml` and `contracts/firestore.md` for the
-   endpoint/document shape. If it does not exist, add it there first.
-2. **Read the relevant design section** in `docs/technical-design/` (e.g. `backend-plan.md`,
-   `frontend-plan.md`).
-3. **Backend:** add the router in `app/api/`, the logic in `app/services/`, and use a provider for
-   any external call. Persist via a service, not inline. Every user-owned read/write must check
-   `ownerUid`.
-4. **Frontend:** consume the API through `src/lib/api-client.ts`. Follow the patterns in `web/` —
-   read `web/node_modules/next/dist/docs/` first, this Next.js version differs from older ones.
-5. **Do not add tests.** Never add tests in either web or backend. If you find any tests, delete them. get rid of testing libraries from package.json or uv.lock and keep the working directory clean.
-6. **Wire the delete pathway.** Every new feature must think about deletion. Project data is
-   deleted by Firestore recursive tree + Cloud Storage prefix, so store new project-scoped data
-   under `users/{uid}/projects/{projectId}/...` (Firestore) or the matching object prefix
-   (`project_object_prefix`) and it is covered automatically. Anything stored *outside* those
-   paths (a top-level collection, a different bucket, a third-party record) must be added to the
-   delete path explicitly. `ProjectService.delete` / `UserService.delete_account`
-   are the reference implementations.
-7. **Verify** with the commands in section 4. Do not claim done without running them.
-8. **Update** `contracts/` if the interface changed, and **always** write a new progress note in
-   `docs/current-progress/` before you stop (see the session protocol).
-
-### Provider pattern (the important one)
+Provider usage looks like this:
 
 ```python
-# backend/app/providers/base.py defines the interface.
-# backend/app/providers/llm.py wraps Gemini on Agent Platform (Vertex AI).
-# Feature code calls the provider, never google.genai directly.
 result = await providers.llm.complete_json(
     model=..., prompt_version=..., system=..., user=..., schema=...
 )
 ```
 
-## 7. Workstreams
+## Gotchas
 
-Three engineers, three lanes (see `docs/technical-design/workstreams.md`):
-
-| Person | Owns |
-|---|---|
-| A | `web/` — all UI |
-| B | `backend/` — API, jobs, agents, reviewers |
-| C | `infra/`, `corpus/`, connectors, media, localization, seed |
-
-If you need something from another lane, fake it and keep moving. Never block.
-
-## 8. Gotchas
-
-- GCP has no native hard spending cap. We built a kill switch (`infra/budget.tf`).
-- Cloud Text-to-Speech has no IAM role for synthesis; the enabled API is enough.
-- Pub/Sub ack deadline max is 600 seconds.
-- Speech-to-Text long audio uses **batch** recognition (`chirp_3`, `us` multi-region), not sync.
-  STT V2 cannot auto-detect AAC in MP4/MOV/M4A, so those use an explicit decoding config.
-- Transcription is triggered by the GCS `object finalized` Pub/Sub push
-  (`POST /api/internal/pubsub/video-events`); `POST /assets/{id}/complete` is the fast UX path.
+- Transcription starts from the GCS `object finalized` Pub/Sub push
+  (`POST /api/internal/pubsub/video-events`). `POST /assets/{id}/complete` is the fast UX path.
   Both converge on one idempotent `transcribe` job.
-- Firebase ToS acceptance is console-only.
-- Next.js 16 bundles its own docs and regenerates `web/AGENTS.md`; read them before coding.
-- The Firebase default bucket (`habeas-codus.firebasestorage.app`) is **not** used. The app uses
+- The Firebase default bucket (`habeas-codus.firebasestorage.app`) is not used. The app uses
   `habeas-codus-media`.
-- **Delete is real, not soft.** `DELETE /projects/{id}` removes the Firestore subtree and every
-  GCS object under the project prefix; account deletion removes the whole user tree. Keep new
-  project-scoped data under those paths or it will leak (see workflow step 6).
+- Speech-to-Text long audio uses batch recognition. STT V2 cannot auto-detect AAC in MP4, MOV or
+  M4A, so those files use an explicit decoding config.
+- Firebase Terms of Service acceptance is console-only.
+- Cloud Run runs one instance. Job locks and the realtime hub are process-local, so scaling out
+  needs durable leases first.
+- Deletion is real. Versioned buckets keep noncurrent generations until lifecycle expiry.
+- A GCP budget is not a hard cap. The budget (8,500 INR, about $100) and the billing kill switch
+  (`infra/budget.tf`) are a backstop, and billing data arrives with a delay.
 
-## 9. Where to look
+## Where to look
 
 | Question | File |
 |---|---|
 | Why was a decision made? | `docs/technical-design/README.md` |
-| What is the DB shape? | `docs/technical-design/db-design.md`, `contracts/firestore.md` |
-| What is the API? | `contracts/openapi.yaml`, `docs/technical-design/api-design.md` |
-| What events flow? | `contracts/events.md` |
-| How are external calls made? | `docs/technical-design/backend-plan.md` (provider layer) |
-| What GCP resources exist? | `infra/RESOURCES.md` |
-| What has been done? | `docs/current-progress/` |
+| DB shape | `contracts/firestore.md`, `docs/technical-design/db-design.md` |
+| API | `contracts/openapi.yaml`, `docs/technical-design/api-design.md` |
+| Events | `contracts/events.md` |
+| External calls | `backend/app/providers/`, `docs/technical-design/backend-plan.md` |
+| GCP resources | `infra/RESOURCES.md` |
+| Costs and guards | `docs/costs.md` |
+| What has changed recently, and what is open | `docs/current-progress/HANDOFF.md` |

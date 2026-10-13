@@ -104,7 +104,7 @@ Python floats and metadata occupy more space. This is not measured Firestore sto
 | Concurrency | Four reviewers and four TTS requests by default; one deployed API instance | Controls pressure, not total usage across all workflows. |
 | Cloud budget | ₹8,500 configured budget with notifications and billing-detachment function | Billing data/notifications are delayed. This is a backstop, not an immediate hard cap. |
 
-The [latest production diagnosis](current-progress/2026-10-11-1639-provider-429-diagnosis.md)
+The [production diagnosis](current-progress/HANDOFF.md#open-items)
 found twelve successful STT operations for one upload after polling failures triggered
 resubmissions. Job-document idempotency does not prevent duplicates inside a provider's
 retry loop. Separating submission from polling is a concrete reliability and cost fix;

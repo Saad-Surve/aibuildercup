@@ -145,8 +145,7 @@ six-second 720p Veo request, with an explicitly authorized paid-render flag and 
 two reserved slots per project. The operation name is retained so polling resumes the
 same generation. Source/transcript changes mark previous packaging stale.
 
-The separate [packaging validation handoff](current-progress/2026-10-11-1831-packaging-live-fixes.md)
-records live local listing/suggestion jobs, saved listing edits and a downloaded six-second
+The [handoff](current-progress/HANDOFF.md) records live local listing/suggestion jobs, saved listing edits and a downloaded six-second
 720p callout render, including Hindi visual inspection. These checks are distinct from
 the benchmark dataset. No paid Veo render or full production packaging-to-publication
 flow was exercised for this evaluation. Visual inserts supplement a video; they are
@@ -195,7 +194,7 @@ indexed vector retrieval and bounded calendar queries as library/project counts 
 Direct Storage uploads, versioned evidence, provider separation and typed contracts
 make that evolution practical; they do not prove throughput at production scale.
 
-The latest [429 diagnosis](current-progress/2026-10-11-1639-provider-429-diagnosis.md)
+The [429 diagnosis](current-progress/HANDOFF.md#open-items)
 identifies STT resubmission after polling errors and insufficient image backoff. Those
 issues limit reliability and can waste spend. Their repair is separate from this docs/eval work.
 See [costs](costs.md) for what the current guards cover and what remains unaccounted.

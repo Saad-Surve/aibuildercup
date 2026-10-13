@@ -5,10 +5,10 @@ capability comparison against the inspected Resonance implementation, not a hand
 competitor benchmark. No competitor outputs, creator judgments or measured task times
 have been collected. Feature availability varies by plan, region and rollout.
 
-**Resonance's strongest case is an inspectable editorial workflow:** specialist findings
-link the moment, explanation and proposed edit to the video; attributed creator material
-supports subsequent writing and visual generation. Better advice, faster work and lower
-cost per useful edit remain hypotheses to measure.
+**The workflow the repository supports is an inspectable editorial review.** Specialist
+findings link a moment, its explanation and a proposed edit to the video, and attributed
+creator material feeds later writing and visual generation. Better advice, faster work and
+lower cost per useful edit are untested.
 
 ## Where the workflow differs
 
@@ -22,14 +22,14 @@ cost per useful edit remain hypotheses to measure.
 
 The current review dimensions are truth/evidence, clarity, pacing/retention, legal/safety,
 cultural/localization, platform fit, audience/brand, emotional impact and conversion/CTA.
-These are prompts over a shared model, not nine independent experts. Timestamp/quote
-normalization improves traceability; it does not prove factual correctness or calibrated
-severity. Legal/safety findings require judgment rather than serving as legal advice.
+They are prompts over one shared model. Timestamp and quote normalization improves
+traceability but does not establish factual correctness or calibrated severity. Legal and
+safety findings are editorial judgments, not legal advice.
 
-Creator retrieval is another concrete design choice: initial drafts retrieve attributed
-passages; thumbnails retrieve original images as references; packaging requests creator
-context. **Heatmap reviewers and inline writing alternatives currently do not use semantic
-library retrieval.** Avoid presenting every output as grounded in the creator's history.
+Creator retrieval is a separate design choice. Initial drafts retrieve attributed passages,
+thumbnails retrieve original images as references, and packaging requests creator context.
+**Heatmap reviewers and inline writing alternatives do not use semantic library retrieval.**
+Do not describe every output as grounded in the creator's history.
 See [architecture](architecture.md#creator-memory-and-embeddings) for the consumer boundaries.
 
 ## Price context
@@ -85,19 +85,19 @@ guidance, consultant chat and Auto Fix. [Retensis](https://retensis.com/) advert
 timestamped advice across five dimensions, creator memory, retention predictions and
 YouTube data overlays. Both overlap more directly with editorial review than a clipper
 does. Their prediction/accuracy claims were not independently evaluated here.
-Resonance should not claim to be the only timestamped AI review tool or the only tool
-with creator memory. Its particular combination of review breadth, inspectable evidence,
-creator references and Google Cloud implementation is the defensible demonstration.
+Resonance is not the only timestamped AI review tool, and it is not the only tool with
+creator memory. What sets it apart is the combination: review breadth, inspectable evidence,
+creator references and a Google Cloud implementation.
 
 ## What can be claimed now
 
-The repository demonstrates structured, source-linked editorial review and reusable
-creator references. The [20-query retrieval diagnostic](../evals/README.md) found the
-intended source first in **20/20 semantic versus 11/20 lexical** cases on its curated
-corpus. That compares Resonance's own retrieval methods; it says nothing about competitors.
+The repository shows structured, source-linked editorial review and reusable creator
+references. The [20-query retrieval diagnostic](../evals/README.md) found the intended source
+first in **20/20 semantic versus 11/20 lexical** cases on its curated corpus. That compares
+Resonance's own retrieval methods. It says nothing about competitors.
 
-For an actual advantage claim, use the [creator comparison protocol](../evals/creator-comparison.md):
+Before claiming an advantage, run the [creator comparison protocol](../evals/creator-comparison.md):
 same source and context, competent baselines, complete outputs, human labels, and measured
-review effort including verification of rejected advice. Until then, use “designed to
-make editorial review inspectable,” rather than “more accurate,” “saves hours,” or
-“cheaper than Descript.”
+review effort, including time spent checking rejected advice. Until then, the supported
+wording is "designed to make editorial review inspectable." Do not say "more accurate,"
+"saves hours" or "cheaper than Descript."

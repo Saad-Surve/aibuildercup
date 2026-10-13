@@ -11,9 +11,9 @@ records. Feature code uses providers/adapters; owned data stays under deletion p
 Bun, uv and Terraform are the repository tools. No tests/testing dependencies are added.
 Do not commit without the user's instruction.
 
-Read the newest `docs/current-progress/` note before changing files. Write a timestamped
-handoff after each meaningful unit: work done, structural changes, decisions/gotchas,
-verification scope and next step. Preserve unrelated shared-workspace changes.
+Read `docs/current-progress/HANDOFF.md` before changing files. Update it in place when a change
+alters contracts, infra, deployed state, open decisions or verification gaps. Keep it current,
+not chronological. Preserve unrelated shared-workspace changes.
 
 The earlier three-week plan proposed broader features and additional worker services.
 Current capability/deployment status is in [architecture](../architecture.md), not that

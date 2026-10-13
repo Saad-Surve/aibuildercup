@@ -46,7 +46,7 @@ These are code-supported constraints, not a fresh measurement of production revi
 8. **Review completeness is hard to see.** A dimension with some successful chunks and some failed chunks receives status `succeeded` plus a `REVIEWER_PARTIAL` error. The UI's reviewer count checks status only. A blank track may mean nothing found, missing evidence, or incomplete review.
 9. **Finding confidence is not currently elicited.** It remains in the contract, but is absent from the requested model schema and defaults to 0.5 during normalization. It should not be presented as measured reliability.
 
-An earlier real comparison already exists in `docs/current-progress/2026-09-27-2201-transcript-duration-clamp-and-findings-nudge.md`: a coverage prompt nudge left the total unchanged at 12 findings. That is one historical content sample, not a general result, but it argues against treating more insistent wording as the whole solution.
+An earlier real comparison (September 2026, recorded in git history) found that a coverage prompt nudge left the total unchanged at 12 findings. That is one historical content sample, not a general result, but it argues against treating more insistent wording as the whole solution.
 
 ## GitHub projects worth borrowing from
 

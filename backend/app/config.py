@@ -86,7 +86,7 @@ class Settings(BaseSettings):
     model_research: str = "gemini-3.1-flash-lite"
     #: Images use Gemini image generation ("Nano Banana") on Agent Platform. It accepts
     #: reference images (the creator's real face), edits conversationally, and renders
-    #: legible text, unlike Imagen. See docs/current-progress/2026-10-03-1015.
+    #: legible text, unlike Imagen. See "Model choices" in docs/current-progress/HANDOFF.md.
     model_image: str = "gemini-3.1-flash-image"
     #: Higher-fidelity image model for hero shots; more expensive. Used only when a
     #: request explicitly opts into it.

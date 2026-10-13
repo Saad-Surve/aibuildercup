@@ -59,7 +59,7 @@ falls back to raw speech recognition. The worker can normalize problematic AAC c
 Transcript edits/retranscription and video revision activation preserve source references.
 
 The current provider can resubmit recognition after a polling 429; normalized-audio fallback
-also needs narrower error handling. See [the production diagnosis](../current-progress/2026-10-11-1639-provider-429-diagnosis.md).
+also needs narrower error handling. See [the production diagnosis](../current-progress/HANDOFF.md#open-items).
 Job idempotency does not resolve this upstream duplication issue.
 
 ## 8. Multi-reviewer analysis
@@ -117,8 +117,8 @@ Packaging generates/saves YouTube title/description/tags and source-linked visua
 Chart numbers must occur in quoted source spans; charts/callouts render with FFmpeg.
 Optional six-second Veo inserts use explicit paid authorization, atomic project slots
 and a stored operation name for resumable polling. At most two slots are enabled by default.
-Old source/transcript references mark packaging stale. The separate
-[validation handoff](../current-progress/2026-10-11-1831-packaging-live-fixes.md) records
+Old source/transcript references mark packaging stale. The
+[handoff](../current-progress/HANDOFF.md) records
 live local generation, listing edits and a callout render. Full paid production flow
 was not exercised by the documentation/evaluation run.
 
