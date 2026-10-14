@@ -74,7 +74,20 @@ New job IDs are the first 32 hexadecimal characters of SHA-256 over
 `{ownerUid}/{projectId}/{idempotencyKey}`. The document is created atomically rather than
 overwritten: concurrent requests for the same key converge on one job. Existing random
 job IDs remain readable and are reused through the idempotency-key query. The job document
-shape and project deletion path are unchanged.
+base fields and project deletion path are unchanged.
+
+Transcribe jobs additionally store an internal `sttOperations` map. Its bounded keys are
+`source`, `source_no_diarization`, `normalized`, and `normalized_no_diarization`. Each value
+contains `submissionStarted` (boolean) and `operationName` (string or null). The worker
+records the submission marker before calling STT and the returned operation name immediately
+before polling. Retries and resumed jobs reuse each saved name, including failed operations;
+polling failures never authorize another submission. A marker without a name blocks automatic
+resubmission after an ambiguous transport failure or a crash before persistence. Explicitly
+rejected submissions clear that marker. Only a terminal media rejection permits the normalized
+audio attempt, and only a terminal diarization rejection permits the corresponding plain attempt.
+Resumed jobs go directly to an already-started fallback rather than submitting the original
+request again. These fields are not exposed by the public Job schema. They live under the existing job path
+and are removed by project/account deletion. Requeuing a failed job preserves the map.
 
 ## User document: onboarding and research
 

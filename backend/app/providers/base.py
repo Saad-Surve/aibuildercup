@@ -140,12 +140,18 @@ class LlmProvider(Protocol):
 
 @runtime_checkable
 class SttProvider(Protocol):
-    async def transcribe(
+    async def start(
         self,
         *,
         gcs_uri: str,
         language_codes: list[str],
         model: str,
+        enable_diarization: bool = False,
+        timeout_seconds: float | None = None,
+    ) -> str: ...
+
+    async def wait(
+        self, operation_name: str, *, timeout_seconds: float | None = None
     ) -> dict[str, Any]: ...
 
 

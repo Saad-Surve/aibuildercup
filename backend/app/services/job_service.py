@@ -128,6 +128,28 @@ class JobService:
             return None
         return _to_job(job_id, data)
 
+    def record_stt_attempt(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        job_id: str,
+        attempt_key: str,
+        submission_started: bool,
+        operation_name: str | None = None,
+    ) -> None:
+        """Persist the submission marker/name before the worker polls paid recognition."""
+        data = self.load_for_worker(owner_uid=owner_uid, project_id=project_id, job_id=job_id)
+        operations = dict(data.get("sttOperations") or {})
+        operations[attempt_key] = {
+            "submissionStarted": submission_started,
+            "operationName": operation_name,
+        }
+        self.client.update_document(
+            job_path(owner_uid, project_id, job_id),
+            {"sttOperations": operations, "updatedAt": datetime.now(UTC)},
+        )
+
     def cancel(self, *, owner_uid: str, job_id: str) -> Job:
         """Cancel a queued/running job. Terminal jobs are a conflict."""
         rows = self.client.query_collection_group(

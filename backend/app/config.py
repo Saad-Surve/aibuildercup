@@ -194,10 +194,14 @@ class Settings(BaseSettings):
     # shows the turns. Behind a flag so a model/region that rejects the feature can be switched
     # off with an env var instead of a code change.
     stt_enable_diarization: bool = True
-    # Speech-to-Text is rate-limited per region (150 batch/operation requests per 60s). A burst
-    # returns 429 ResourceExhausted; retry with backoff instead of failing the whole transcription.
-    stt_max_attempts: int = 4
-    stt_retry_base_seconds: float = 3.0
+    # Bound submission-time 429 retries and consecutive transient GetOperation failures.
+    # Polling always reuses the operation name; the total deadline includes deliberate fallbacks.
+    stt_max_attempts: int = Field(default=4, ge=1)
+    stt_retry_base_seconds: float = Field(default=3.0, gt=0)
+    stt_retry_max_seconds: float = Field(default=30.0, gt=0)
+    stt_poll_interval_seconds: float = Field(default=5.0, gt=0)
+    stt_rpc_timeout_seconds: float = Field(default=30.0, gt=0)
+    stt_job_timeout_seconds: float = Field(default=600.0, gt=0)
 
     # Pub/Sub push verification. When `pubsub_push_audience` is set, the internal push endpoint
     # requires a valid Google OIDC token for this audience (the Cloud Run URL) minted by

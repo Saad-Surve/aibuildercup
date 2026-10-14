@@ -14,6 +14,7 @@ is left untouched so retried Pub/Sub deliveries converge.
 import asyncio
 import logging
 import os
+import time
 from typing import Any
 
 from fastapi import BackgroundTasks
@@ -23,7 +24,12 @@ from app.errors import NotFoundError
 from app.events import build_event, topic_for_event
 from app.providers import get_providers
 from app.providers.base import LlmProvider
-from app.providers.stt import SttProvider
+from app.providers.stt import (
+    SttPollingError,
+    SttProvider,
+    SttRecognitionError,
+    SttSubmissionError,
+)
 from app.realtime.events import emit_transcript_ready
 from app.schemas.jobs import JobStatus
 from app.services.asset_service import AssetService
@@ -80,6 +86,10 @@ async def run_transcribe(
         logger.warning("transcribe job %s not found; skipping", job_id)
         return None
 
+    if owner_uid in settings.read_only_user_uids:
+        logger.warning("transcribe job %s belongs to a read-only user; skipping", job_id)
+        return None
+
     if job.get("status") in TERMINAL_STATUSES:
         logger.info("transcribe job %s already %s; skipping", job_id, job.get("status"))
         return _active_transcript_id(firestore, owner_uid, project_id)
@@ -130,59 +140,90 @@ async def run_transcribe(
 
     # Chirp 3 does language-agnostic transcription: "auto" lets the service identify the spoken
     # language (English, Hindi, Hinglish, ...) and report it back, which we persist.
-    language_codes = ["auto"]
-    gcs_uri = stt.gcs_uri_for(asset["storagePath"])
+    deadline = time.monotonic() + settings.stt_job_timeout_seconds
     try:
-        response = await stt.transcribe(
-            gcs_uri=gcs_uri,
-            language_codes=language_codes,
-            model=settings.model_stt,
-            enable_diarization=settings.stt_enable_diarization,
-        )
-    except Exception as exc:  # noqa: BLE001 - worker must record provider failures
-        logger.warning("transcribe job %s: STT failed (%s); trying normalized audio", job_id, exc)
-        await asyncio.to_thread(
-            jobs.update_progress,
-            owner_uid=owner_uid,
-            project_id=project_id,
-            job_id=job_id,
-            percent=30,
-            step="speech_to_text",
-            message="Retrying with normalized audio",
-        )
-        retry_response = await _retry_with_normalized_audio(
-            storage_path=asset["storagePath"],
-            owner_uid=owner_uid,
-            project_id=project_id,
-            job_id=job_id,
-            stt=stt,
-            transcripts=transcripts,
-            jobs=jobs,
-            settings=settings,
-        )
-        if retry_response is None:
-            logger.exception("transcribe job %s: STT failed", job_id)
-            firestore.update_document(
-                asset_path(owner_uid, project_id, asset_id), {"status": "failed"}
-            )
-            await asyncio.to_thread(
-                jobs.mark_failed,
+        operations = job.get("sttOperations") or {}
+        if any(key in operations for key in ("normalized", "normalized_no_diarization")):
+            # Once a deliberate fallback has started, resume it directly. The original
+            # request may have been rejected before an operation was created.
+            resumed = await _retry_with_normalized_audio(
+                storage_path=asset["storagePath"],
                 owner_uid=owner_uid,
                 project_id=project_id,
                 job_id=job_id,
-                message=f"Speech recognition failed: {exc}",
+                job=job,
+                stt=stt,
+                transcripts=transcripts,
+                jobs=jobs,
+                settings=settings,
+                deadline=deadline,
             )
-            # Persist the concrete reason on the project too: the UI loses the job id on
-            # reload and used to fall back to a generic message, so the reason vanished.
-            await asyncio.to_thread(
-                projects.mark_failed,
-                owner_uid=owner_uid,
-                project_id=project_id,
-                message=_failure_message(exc),
-            )
-            return None
-        response = retry_response
-        logger.info("transcribe job %s: normalized-audio retry accepted", job_id)
+            if resumed is None:
+                raise SttRecognitionError("Cannot resume normalized audio.", code=3)
+            response = resumed
+        else:
+            try:
+                response = await _recognize_audio(
+                    gcs_uri=stt.gcs_uri_for(asset["storagePath"]),
+                    attempt_key="source",
+                    owner_uid=owner_uid,
+                    project_id=project_id,
+                    job_id=job_id,
+                    job=job,
+                    jobs=jobs,
+                    stt=stt,
+                    settings=settings,
+                    deadline=deadline,
+                )
+            except SttRecognitionError as exc:
+                if not exc.can_normalize:
+                    raise
+                logger.warning(
+                    "transcribe job %s: audio rejected (%s); trying normalized audio", job_id, exc
+                )
+                await asyncio.to_thread(
+                    jobs.update_progress,
+                    owner_uid=owner_uid,
+                    project_id=project_id,
+                    job_id=job_id,
+                    percent=30,
+                    step="speech_to_text",
+                    message="Retrying with normalized audio",
+                )
+                retry_response = await _retry_with_normalized_audio(
+                    storage_path=asset["storagePath"],
+                    owner_uid=owner_uid,
+                    project_id=project_id,
+                    job_id=job_id,
+                    job=job,
+                    stt=stt,
+                    transcripts=transcripts,
+                    jobs=jobs,
+                    settings=settings,
+                    deadline=deadline,
+                )
+                if retry_response is None:
+                    raise
+                response = retry_response
+                logger.info("transcribe job %s: normalized-audio retry accepted", job_id)
+    except Exception as exc:  # noqa: BLE001 - worker must record provider failures
+        logger.exception("transcribe job %s: STT failed", job_id)
+        firestore.update_document(asset_path(owner_uid, project_id, asset_id), {"status": "failed"})
+        await asyncio.to_thread(
+            jobs.mark_failed,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            job_id=job_id,
+            message=f"Speech recognition failed: {exc}",
+        )
+        # Keep the concrete reason visible after a reload, including resumable polling errors.
+        await asyncio.to_thread(
+            projects.mark_failed,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            message=_failure_message(exc),
+        )
+        return None
 
     media_duration_ms = await _probe_media_duration(
         storage=transcripts.storage,
@@ -322,61 +363,143 @@ async def _probe_media_duration(
     return duration
 
 
+async def _recognize_audio(
+    *,
+    gcs_uri: str,
+    attempt_key: str,
+    owner_uid: str,
+    project_id: str,
+    job_id: str,
+    job: dict[str, Any],
+    jobs: JobService,
+    stt: SttProvider,
+    settings: Settings,
+    deadline: float,
+) -> dict[str, Any]:
+    """Resume saved operations; only a terminal diarization rejection starts a plain attempt."""
+
+    async def recognize(key: str, diarization: bool) -> dict[str, Any]:
+        operations = job.setdefault("sttOperations", {})
+        attempt = operations.get(key) or {}
+        operation_name = attempt.get("operationName")
+        if not operation_name:
+            if attempt.get("submissionStarted"):
+                raise SttSubmissionError(
+                    "A previous STT submission has no saved operation name; "
+                    "automatic resubmission is blocked."
+                )
+            if time.monotonic() >= deadline:
+                raise SttPollingError("STT job deadline expired before submission.")
+
+            async def record(started: bool, name: str | None = None) -> None:
+                await asyncio.to_thread(
+                    jobs.record_stt_attempt,
+                    owner_uid=owner_uid,
+                    project_id=project_id,
+                    job_id=job_id,
+                    attempt_key=key,
+                    submission_started=started,
+                    operation_name=name,
+                )
+                operations[key] = {"submissionStarted": started, "operationName": name}
+
+            await record(True)
+            try:
+                operation_name = await stt.start(
+                    gcs_uri=gcs_uri,
+                    language_codes=["auto"],
+                    model=settings.model_stt,
+                    enable_diarization=diarization,
+                    timeout_seconds=deadline - time.monotonic(),
+                )
+            except SttRecognitionError:
+                # The request was explicitly rejected, so no operation exists.
+                await record(False)
+                raise
+            except SttSubmissionError as exc:
+                if exc.rejected:
+                    await record(False)
+                raise
+            # A failure/crash here leaves the marker set: never silently submit again.
+            await record(True, operation_name)
+        return await stt.wait(operation_name, timeout_seconds=deadline - time.monotonic())
+
+    plain_key = f"{attempt_key}_no_diarization"
+    if plain_key in (job.get("sttOperations") or {}):
+        return await recognize(plain_key, False)
+    try:
+        return await recognize(attempt_key, settings.stt_enable_diarization)
+    except SttRecognitionError as exc:
+        if not settings.stt_enable_diarization or not exc.diarization_rejected:
+            raise
+        logger.warning("STT rejected diarization (%s); retrying without it", exc)
+        return await recognize(plain_key, False)
+
+
 async def _retry_with_normalized_audio(
     *,
     storage_path: str,
     owner_uid: str,
     project_id: str,
     job_id: str,
+    job: dict[str, Any],
     stt: SttProvider,
     transcripts: TranscriptService,
     jobs: JobService,
     settings: Settings,
+    deadline: float,
 ) -> dict[str, Any] | None:
-    """Re-mux a rejected container's AAC track into a clean `.m4a` and retry STT once.
-
-    Returns the STT response, or None when the file is not a normalizable MP4-family
-    container (caller keeps the original STT error). The temp object lives under the
-    project prefix, so project deletion covers it even if cleanup below is skipped.
-    """
+    """Re-mux rejected AAC once; keep staged input while its saved operation may be running."""
     if os.path.splitext(storage_path)[1].lower() not in _NORMALIZE_EXTENSIONS:
         return None
-    try:
-        source = await asyncio.to_thread(transcripts.storage.download_bytes, storage_path)
-    except Exception:  # noqa: BLE001 - fall through to the original STT error
-        logger.warning("transcribe job %s: cannot download source for retry", job_id)
-        return None
-    if len(source) > settings.max_upload_size_bytes:
-        logger.warning("transcribe job %s: source too large to normalize", job_id)
-        return None
-    track = await asyncio.to_thread(extract_aac_track, source)
-    if track is None:
-        logger.warning("transcribe job %s: no AAC-LC track to normalize", job_id)
-        return None
     tmp_path = f"{project_object_prefix(owner_uid, project_id)}transcribe-tmp/{job_id}.m4a"
-    try:
-        normalized = await asyncio.to_thread(mux_m4a, track)
-        await asyncio.to_thread(
-            transcripts.storage.upload_bytes, tmp_path, normalized, content_type="audio/mp4"
-        )
-    except Exception:  # noqa: BLE001 - fall through to the original STT error
-        logger.warning("transcribe job %s: cannot stage normalized audio", job_id)
-        return None
-    try:
-        return await stt.transcribe(
-            gcs_uri=stt.gcs_uri_for(tmp_path),
-            language_codes=["auto"],
-            model=settings.model_stt,
-            enable_diarization=settings.stt_enable_diarization,
-        )
-    except Exception:  # noqa: BLE001 - the retry failed too; keep the first error
-        logger.warning("transcribe job %s: normalized-audio retry failed", job_id)
-        return None
-    finally:
+    operations = job.get("sttOperations") or {}
+    # Reattaching must not replace/delete input still being consumed by a paid operation.
+    if not any(operations.get(key) for key in ("normalized", "normalized_no_diarization")):
         try:
-            await asyncio.to_thread(transcripts.storage.delete_prefix, tmp_path)
-        except Exception:  # noqa: BLE001 - temp is under the project prefix; delete covers it
-            logger.warning("transcribe job %s: cannot clean up normalized audio", job_id)
+            source = await asyncio.to_thread(transcripts.storage.download_bytes, storage_path)
+        except Exception:  # noqa: BLE001 - fall through to the original STT error
+            logger.warning("transcribe job %s: cannot download source for retry", job_id)
+            return None
+        if len(source) > settings.max_upload_size_bytes:
+            logger.warning("transcribe job %s: source too large to normalize", job_id)
+            return None
+        track = await asyncio.to_thread(extract_aac_track, source)
+        if track is None:
+            logger.warning("transcribe job %s: no AAC-LC track to normalize", job_id)
+            return None
+        try:
+            normalized = await asyncio.to_thread(mux_m4a, track)
+            await asyncio.to_thread(
+                transcripts.storage.upload_bytes, tmp_path, normalized, content_type="audio/mp4"
+            )
+        except Exception:  # noqa: BLE001 - fall through to the original STT error
+            logger.warning("transcribe job %s: cannot stage normalized audio", job_id)
+            return None
+    cleanup = False
+    try:
+        response = await _recognize_audio(
+            gcs_uri=stt.gcs_uri_for(tmp_path),
+            attempt_key="normalized",
+            owner_uid=owner_uid,
+            project_id=project_id,
+            job_id=job_id,
+            job=job,
+            stt=stt,
+            jobs=jobs,
+            settings=settings,
+            deadline=deadline,
+        )
+        cleanup = True
+        return response
+    finally:
+        # Polling/persistence/ambiguous submission failures retain input for safe resume.
+        # Project/account deletion also covers this prefix.
+        if cleanup:
+            try:
+                await asyncio.to_thread(transcripts.storage.delete_prefix, tmp_path)
+            except Exception:  # noqa: BLE001 - project deletion covers the staged object
+                logger.warning("transcribe job %s: cannot clean up normalized audio", job_id)
 
 
 def _publish_transcript_ready(

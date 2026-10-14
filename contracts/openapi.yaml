@@ -2833,6 +2833,9 @@ components:
 
     Job:
       type: object
+      description: >-
+        Public job status. Internal transcribe operation names and submission markers remain
+        in Firestore and are preserved when a failed job is requeued.
       properties:
         jobId: { type: string }
         type: { type: string }

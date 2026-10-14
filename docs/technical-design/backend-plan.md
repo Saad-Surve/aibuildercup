@@ -58,9 +58,14 @@ becomes clamped segments and versioned JSON/SRT/VTT. Optional conservative Gemin
 falls back to raw speech recognition. The worker can normalize problematic AAC containers.
 Transcript edits/retranscription and video revision activation preserve source references.
 
-The current provider can resubmit recognition after a polling 429; normalized-audio fallback
-also needs narrower error handling. See [the production diagnosis](../current-progress/HANDOFF.md#open-items).
-Job idempotency does not resolve this upstream duplication issue.
+Submission and polling are separate provider calls. Jobs persist a submission marker and each
+operation name before polling, so resumed workers reattach with GetOperation. Submission retries
+are limited to explicit 429 rejections; polling retries 429/503/deadline errors with bounded
+backoff and jitter, without submitting another batch. One configured deadline covers recognition
+and its deliberate fallbacks per worker invocation. Only terminal audio/container failures permit
+normalization; only terminal diarization rejections permit a plain attempt. Staged normalized
+audio remains available while polling can resume. An ambiguous submission with no saved name
+blocks automatic retry, as with Veo. Worker serialization remains process-local.
 
 ## 8. Multi-reviewer analysis
 
