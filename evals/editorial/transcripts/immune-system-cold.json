@@ -1,0 +1,235 @@
+{
+  "videoId": "immune-system-cold",
+  "language": "en",
+  "durationMs": 143801,
+  "segments": [
+    {
+      "segmentId": "seg-1",
+      "startMs": 600,
+      "endMs": 5631,
+      "text": "Every year, most adults catch two or three colds, and almost nobody knows what"
+    },
+    {
+      "segmentId": "seg-2",
+      "startMs": 5631,
+      "endMs": 9323,
+      "text": "is really happening inside their body while they sniffle."
+    },
+    {
+      "segmentId": "seg-3",
+      "startMs": 9723,
+      "endMs": 14524,
+      "text": "In the next few minutes, you will learn how your immune system fights a"
+    },
+    {
+      "segmentId": "seg-4",
+      "startMs": 14524,
+      "endMs": 18122,
+      "text": "cold, why you feel so awful, and what actually helps."
+    },
+    {
+      "segmentId": "seg-5",
+      "startMs": 19022,
+      "endMs": 20536,
+      "text": "First, the culprit."
+    },
+    {
+      "segmentId": "seg-6",
+      "startMs": 20536,
+      "endMs": 25831,
+      "text": "Colds are caused by viruses, most often a family called rhinoviruses."
+    },
+    {
+      "segmentId": "seg-7",
+      "startMs": 26181,
+      "endMs": 30516,
+      "text": "They enter through your nose, eyes or mouth, and attach to cells in your"
+    },
+    {
+      "segmentId": "seg-8",
+      "startMs": 30516,
+      "endMs": 31349,
+      "text": "upper airway."
+    },
+    {
+      "segmentId": "seg-9",
+      "startMs": 32249,
+      "endMs": 37018,
+      "text": "Your body fights back hard, and that takes a lot of energy, so keep"
+    },
+    {
+      "segmentId": "seg-10",
+      "startMs": 37018,
+      "endMs": 37437,
+      "text": "warm."
+    },
+    {
+      "segmentId": "seg-11",
+      "startMs": 37787,
+      "endMs": 42210,
+      "text": "Always wear a hat in winter, because around eighty percent of your body heat"
+    },
+    {
+      "segmentId": "seg-12",
+      "startMs": 42210,
+      "endMs": 43765,
+      "text": "escapes through your head."
+    },
+    {
+      "segmentId": "seg-13",
+      "startMs": 44665,
+      "endMs": 45878,
+      "text": "Here is the fight."
+    },
+    {
+      "segmentId": "seg-14",
+      "startMs": 45878,
+      "endMs": 50412,
+      "text": "White blood cells detect the virus and release chemical alarm signals."
+    },
+    {
+      "segmentId": "seg-15",
+      "startMs": 50762,
+      "endMs": 53919,
+      "text": "Those signals cause swelling, mucus and fever."
+    },
+    {
+      "segmentId": "seg-16",
+      "startMs": 54269,
+      "endMs": 59176,
+      "text": "That is why you feel awful: the symptoms are mostly your immune system at"
+    },
+    {
+      "segmentId": "seg-17",
+      "startMs": 59176,
+      "endMs": 61034,
+      "text": "work, not the virus itself."
+    },
+    {
+      "segmentId": "seg-18",
+      "startMs": 61934,
+      "endMs": 70349,
+      "text": "At the cellular level, CD8-positive cytotoxic T lymphocytes undergo clonal expansion after antigen presentation"
+    },
+    {
+      "segmentId": "seg-19",
+      "startMs": 70349,
+      "endMs": 76885,
+      "text": "via MHC class one molecules, while interferon-gamma upregulates macrophage activation."
+    },
+    {
+      "segmentId": "seg-20",
+      "startMs": 77785,
+      "endMs": 80789,
+      "text": "Now, the main players are called antibodies."
+    },
+    {
+      "segmentId": "seg-21",
+      "startMs": 80789,
+      "endMs": 83928,
+      "text": "Antibodies are proteins that stick to viruses."
+    },
+    {
+      "segmentId": "seg-22",
+      "startMs": 84528,
+      "endMs": 89015,
+      "text": "In other words, antibodies are little proteins that attach to a virus."
+    },
+    {
+      "segmentId": "seg-23",
+      "startMs": 89615,
+      "endMs": 94166,
+      "text": "Put another way, an antibody is a protein your body makes, and it sticks"
+    },
+    {
+      "segmentId": "seg-24",
+      "startMs": 94166,
+      "endMs": 97407,
+      "text": "onto the virus so that the virus cannot do its job."
+    },
+    {
+      "segmentId": "seg-25",
+      "startMs": 98007,
+      "endMs": 102850,
+      "text": "So again, antibodies are the proteins that stick to viruses and stop them."
+    },
+    {
+      "segmentId": "seg-26",
+      "startMs": 103750,
+      "endMs": 106767,
+      "text": "Most colds last about a week to ten days."
+    },
+    {
+      "segmentId": "seg-27",
+      "startMs": 106767,
+      "endMs": 109931,
+      "text": "Rest, fluids and time are what matter most."
+    },
+    {
+      "segmentId": "seg-28",
+      "startMs": 110831,
+      "endMs": 113604,
+      "text": "You have probably heard about vitamin C."
+    },
+    {
+      "segmentId": "seg-29",
+      "startMs": 113904,
+      "endMs": 118699,
+      "text": "Studies show that taking huge doses of vitamin C cuts the length of every"
+    },
+    {
+      "segmentId": "seg-30",
+      "startMs": 118699,
+      "endMs": 120059,
+      "text": "single cold in half."
+    },
+    {
+      "segmentId": "seg-31",
+      "startMs": 120959,
+      "endMs": 121830,
+      "text": "One more tip."
+    },
+    {
+      "segmentId": "seg-32",
+      "startMs": 121830,
+      "endMs": 126121,
+      "text": "If your child has a high fever that lasts for days, don't bother the"
+    },
+    {
+      "segmentId": "seg-33",
+      "startMs": 126121,
+      "endMs": 126618,
+      "text": "doctor."
+    },
+    {
+      "segmentId": "seg-34",
+      "startMs": 126968,
+      "endMs": 131604,
+      "text": "Just give them a double dose of paracetamol every few hours until it goes"
+    },
+    {
+      "segmentId": "seg-35",
+      "startMs": 131604,
+      "endMs": 131982,
+      "text": "down."
+    },
+    {
+      "segmentId": "seg-36",
+      "startMs": 132882,
+      "endMs": 136401,
+      "text": "If you want to track your symptoms and spot when it is time to"
+    },
+    {
+      "segmentId": "seg-37",
+      "startMs": 136401,
+      "endMs": 140646,
+      "text": "get help, download the free symptom diary from the link in the description."
+    },
+    {
+      "segmentId": "seg-38",
+      "startMs": 140996,
+      "endMs": 142401,
+      "text": "Thanks for watching."
+    }
+  ]
+}

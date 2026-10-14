@@ -1,0 +1,68 @@
+{
+  "id": "python-decorators",
+  "title": "Python Decorators: Write a Timer and a Cache",
+  "voice": "Moira",
+  "rate": 152,
+  "language": "en",
+  "platform": "youtube",
+  "audience": "Developers with a few months of Python experience who have seen the @ syntax but never written a decorator.",
+  "brief": "Practical tutorial. The opening promises viewers will write a timing decorator and a caching decorator. Goal: viewers star the example repo linked in the description.",
+  "issues": [
+    {
+      "id": "D1",
+      "category": "weak_hook",
+      "expectedDimension": "pacing_retention",
+      "description": "The first 15 seconds are vague filler ('a thing in Python... a feature') that never says what decorators do or why the viewer should care."
+    },
+    {
+      "id": "D2",
+      "category": "factual_error",
+      "expectedDimension": "truth_evidence",
+      "description": "Says decorators arrived in Python 3.9 in 2020. They were introduced in Python 2.4 in 2004 (PEP 318)."
+    },
+    {
+      "id": "D3",
+      "category": "tangent",
+      "expectedDimension": "pacing_retention",
+      "description": "A roughly 40-second rant about tabs versus spaces, Neovim and a mechanical keyboard that is unrelated to decorators."
+    },
+    {
+      "id": "D4",
+      "category": "pacing_drag",
+      "expectedDimension": "pacing_retention",
+      "description": "Spends over 30 seconds re-explaining what a function is, in repeated phrasing, to an audience that already writes Python."
+    },
+    {
+      "id": "D5",
+      "category": "broken_promise",
+      "expectedDimension": "pacing_retention",
+      "description": "The opening promises a caching decorator, but only the timing decorator is built; the video ends after asserting 'caching builds on the same idea'."
+    }
+  ],
+  "lines": [
+    {"text": "So, um, today we are going to talk about a thing in Python.", "issues": ["D1"], "pauseMs": 350},
+    {"text": "It's a feature. It's one that people use.", "issues": ["D1"], "pauseMs": 350},
+    {"text": "I think it is a pretty interesting thing, so let's, you know, get into it, I guess.", "issues": ["D1"], "pauseMs": 900},
+    {"text": "By the end of this video, you will write two decorators: one that times any function, and one that caches its results.", "alsoAcceptIssues": ["D5"], "pauseMs": 900},
+    {"text": "Decorators have been part of Python since version three point nine, which came out in twenty twenty, and they have become really popular since.", "issues": ["D2"], "pauseMs": 900},
+    {"text": "Let's start with functions.", "issues": ["D4"], "rate": 126, "pauseMs": 500},
+    {"text": "A function is a block of code that you can call by name.", "issues": ["D4"], "rate": 126, "pauseMs": 500},
+    {"text": "You define it with the def keyword, you give it a name, and then you call it.", "issues": ["D4"], "rate": 126, "pauseMs": 500},
+    {"text": "Remember, a function is just a block of code with a name, so when I call a function, I am running that block of code.", "issues": ["D4"], "rate": 126, "pauseMs": 500},
+    {"text": "So again, you define a function, you name it, and you call it by its name to run the code inside.", "issues": ["D4"], "rate": 126, "pauseMs": 900},
+    {"text": "A decorator is a function that takes another function and returns a new one.", "pauseMs": 350},
+    {"text": "Let's write a timing decorator. We import time, then define timer, which takes a function.", "pauseMs": 350},
+    {"text": "Inside it we define wrapper. Wrapper records the start time, calls the function, records the end time, and prints how long it took.", "pauseMs": 350},
+    {"text": "Then timer returns wrapper. Finally, we put at timer above any function, and that function is timed.", "pauseMs": 900},
+    {"text": "Now, I know some of you will ask what editor I am using, and honestly, this is where I need to rant about tabs versus spaces.", "issues": ["D3"], "pauseMs": 350},
+    {"text": "I think tabs are objectively better, because you can set your own width, and people who use spaces are, frankly, wrong.", "issues": ["D3"], "pauseMs": 350},
+    {"text": "My old team lead used spaces, and we argued about this for two years.", "issues": ["D3"], "pauseMs": 350},
+    {"text": "I use Neovim, by the way, with a custom config, and I have been meaning to make a video about that config.", "issues": ["D3"], "pauseMs": 350},
+    {"text": "I should also do one about my mechanical keyboard, which has these amazing brown switches.", "issues": ["D3"], "pauseMs": 900},
+    {"text": "Okay. Back to decorators.", "pauseMs": 900},
+    {"text": "So that's the timing decorator, and now you know how decorators work.", "issues": ["D5"], "pauseMs": 350},
+    {"text": "Caching builds on exactly the same idea.", "issues": ["D5"], "pauseMs": 600},
+    {"text": "If you want the code, star the example repo linked in the description.", "pauseMs": 350},
+    {"text": "Thanks for watching.", "pauseMs": 600}
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "id": "espresso-basics",
+  "title": "Fix Bitter Home Espresso in Three Steps",
+  "voice": "Samantha",
+  "rate": 152,
+  "language": "en",
+  "platform": "youtube",
+  "audience": "Complete beginners anywhere in the world who just bought their first espresso machine.",
+  "brief": "Teach three fixes for bitter home espresso: grind, dose and water temperature. Goal: viewers join the free newsletter at coffeelab.example/newsletter to get the recipe card.",
+  "issues": [
+    {
+      "id": "A1",
+      "category": "weak_hook",
+      "expectedDimension": "pacing_retention",
+      "description": "The opening spends about 20 seconds on greetings and throat-clearing and never states what the viewer will get; the actual promise only arrives after the intro."
+    },
+    {
+      "id": "A2",
+      "category": "jargon",
+      "expectedDimension": "clarity",
+      "description": "Dense barista jargon (channeling, puck prep, TDS, brew ratio, extraction yield, distribution tool) is used with no explanation for a beginner audience."
+    },
+    {
+      "id": "A3",
+      "category": "tangent",
+      "expectedDimension": "pacing_retention",
+      "description": "A roughly 35-second story about a cousin's wedding in Lisbon has no connection to fixing espresso and stalls the tutorial."
+    },
+    {
+      "id": "A4",
+      "category": "locale_assumption",
+      "expectedDimension": "cultural_localization",
+      "description": "Gives temperature only in Fahrenheit and assumes US retailers (Walmart, Target) and a US cultural reference for a worldwide audience."
+    },
+    {
+      "id": "A5",
+      "category": "missing_cta",
+      "expectedDimension": "conversion_cta",
+      "description": "The brief's goal is newsletter sign-ups, but the video ends with 'Thanks, bye' and never mentions the newsletter or recipe card."
+    }
+  ],
+  "lines": [
+    {"text": "Hey guys, welcome back to the channel, it's me again.", "issues": ["A1"], "pauseMs": 350},
+    {"text": "So, um, today I thought we could maybe talk about a few things related to coffee, and, yeah, we'll just see where it goes.", "issues": ["A1"], "pauseMs": 350},
+    {"text": "Before we start, a quick hello to everybody who is new here, and also to everyone who isn't new here.", "issues": ["A1"], "pauseMs": 900},
+    {"text": "Home espresso tastes bitter for three reasons, and each one takes about a minute to fix.", "pauseMs": 900},
+    {"text": "Reason one: your grind is wrong.", "pauseMs": 300},
+    {"text": "A good shot of espresso takes about twenty-five to thirty seconds to pour.", "pauseMs": 350},
+    {"text": "If it gushes out in ten seconds, grind finer.", "pauseMs": 300},
+    {"text": "If it drips for forty seconds, grind coarser.", "pauseMs": 900},
+    {"text": "Now, to dial in properly, watch for channeling in the puck, since uneven extraction produces a high TDS with sour acidity on the front end.", "issues": ["A2"], "pauseMs": 350},
+    {"text": "If your brew ratio is off, adjust your puck prep, distribution tool and tamp pressure until you hit the target extraction yield.", "issues": ["A2"], "pauseMs": 900},
+    {"text": "Reason two: the amount of coffee in the basket.", "pauseMs": 300},
+    {"text": "Weigh your coffee instead of guessing.", "pauseMs": 300},
+    {"text": "For most home machines, eighteen grams in the basket is a great starting point.", "pauseMs": 900},
+    {"text": "Funny enough, this reminds me of last summer, when my cousin got married in Lisbon.", "issues": ["A3"], "pauseMs": 350},
+    {"text": "Her wedding was in this old convent, and the caterer had the strangest espresso cart I have ever seen.", "issues": ["A3"], "pauseMs": 350},
+    {"text": "It had a little brass bell, and every time somebody ordered, he rang it twice.", "issues": ["A3"], "pauseMs": 350},
+    {"text": "My cousin's husband rang it about forty times just to annoy him.", "issues": ["A3"], "pauseMs": 350},
+    {"text": "I took so many photos of that cart, and one day I'll post them on my second channel.", "issues": ["A3"], "pauseMs": 350},
+    {"text": "My other cousin, who lives in Porto, says Lisbon is overrated, which I think is wrong, because the trams alone are worth the trip.", "issues": ["A3"], "pauseMs": 900},
+    {"text": "Okay, back to coffee.", "pauseMs": 900},
+    {"text": "Reason three: water temperature.", "pauseMs": 300},
+    {"text": "Aim for two hundred degrees Fahrenheit, which any barista in the States will tell you is the sweet spot.", "issues": ["A4"], "pauseMs": 350},
+    {"text": "And if you need a thermometer or a kitchen scale, just grab one at Walmart or Target on your way home.", "issues": ["A4"], "pauseMs": 900},
+    {"text": "So that's it: grind, dose and temperature.", "pauseMs": 350},
+    {"text": "Try them one at a time, and taste the difference after each change.", "pauseMs": 600},
+    {"text": "And that's all I've got.", "issues": ["A5"], "pauseMs": 300},
+    {"text": "Thanks, bye.", "issues": ["A5"], "pauseMs": 600}
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "videoId": "boiled-egg-control",
+  "title": "The Perfect Boiled Egg, Three Ways",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "Home cooks of any country who are new to cooking.",
+  "brief": "Short, friendly kitchen basics. Show three timings for boiled eggs and how to peel them. Goal: viewers subscribe to the channel for more kitchen basics.",
+  "clean": true,
+  "durationMs": 120493,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/boiled-egg-control.json",
+    "scriptSha256": "8f071f9dd90d4a3e4166700b922cd9ef218c28d9ca79c00291b387ce2f7e6935",
+    "media": "media/boiled-egg-control.mp4",
+    "mediaSha256": "ba7d04145062f93c49b865a0d0c7098a66ba4806230436418d4f90bcf5c239af",
+    "tts": "macOS say, voice Tessa, 152 wpm"
+  },
+  "issues": []
+}

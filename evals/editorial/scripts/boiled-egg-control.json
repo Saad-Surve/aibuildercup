@@ -1,0 +1,27 @@
+{
+  "id": "boiled-egg-control",
+  "title": "The Perfect Boiled Egg, Three Ways",
+  "voice": "Tessa",
+  "rate": 152,
+  "language": "en",
+  "platform": "youtube",
+  "audience": "Home cooks of any country who are new to cooking.",
+  "brief": "Short, friendly kitchen basics. Show three timings for boiled eggs and how to peel them. Goal: viewers subscribe to the channel for more kitchen basics.",
+  "issues": [],
+  "lines": [
+    {"text": "Rubbery whites, a grey ring around the yolk, shells that will not come off: boiled eggs go wrong in so many ways, and today I will fix all of them.", "pauseMs": 400},
+    {"text": "You need eggs, a pot, a timer, and a bowl of ice water. That is it.", "pauseMs": 900},
+    {"text": "Bring a pot of water to a gentle boil. Using a spoon, lower your eggs in carefully, straight from the fridge, and start your timer right away.", "pauseMs": 900},
+    {"text": "For a soft, jammy yolk with a just-set white, cook large eggs for six to seven minutes.", "pauseMs": 350},
+    {"text": "For a creamy, almost-set yolk, go to eight minutes.", "pauseMs": 350},
+    {"text": "For a fully firm yolk, cook them for ten to eleven minutes.", "pauseMs": 900},
+    {"text": "Overcooking is what causes that grey-green ring around the yolk, so do not leave the eggs in longer than you need to.", "pauseMs": 900},
+    {"text": "If you live somewhere high up, water boils at a lower temperature, so add a minute or two to each timing.", "pauseMs": 900},
+    {"text": "When the timer goes off, move the eggs straight into the ice water for five minutes. This stops the cooking and makes them easier to peel.", "pauseMs": 900},
+    {"text": "To peel, tap the egg gently on the counter, roll it under your palm, and start peeling at the wide end, where there is a small air pocket.", "pauseMs": 350},
+    {"text": "Very fresh eggs can be harder to peel, so eggs that are a week or so old are a good choice.", "pauseMs": 900},
+    {"text": "Cooked eggs keep in the fridge for up to a week, so you can make a batch and use them in salads, in sandwiches, or just with a pinch of salt.", "pauseMs": 900},
+    {"text": "Those are the three timings to remember: six or seven minutes for jammy, eight for creamy, and ten or eleven for firm.", "pauseMs": 900},
+    {"text": "If this helped, subscribe to the channel for more simple kitchen basics. See you next time.", "pauseMs": 600}
+  ]
+}
