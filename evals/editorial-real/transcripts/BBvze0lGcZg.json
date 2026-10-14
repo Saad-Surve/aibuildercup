@@ -1,0 +1,604 @@
+{
+  "videoId": "BBvze0lGcZg",
+  "language": "en",
+  "durationMs": 376906,
+  "source": {
+    "kind": "local_asr",
+    "model": "mlx-community/whisper-large-v3-turbo",
+    "mlxWhisperVersion": "0.4.3",
+    "conditionOnPreviousText": false,
+    "wordTimestamps": true,
+    "mediaSha256": "85bd44d8a66bab49c8f68c1ac73a2b2c26022c6cda6777c7cfad4a39be1eee8c",
+    "modelRevision": "a4aaeec0636e6fef84abdcbe3544cb2bf7e9f6fb"
+  },
+  "segments": [
+    {
+      "segmentId": "seg-1",
+      "startMs": 0,
+      "endMs": 1080,
+      "text": "Good morning Hank, it's Tuesday."
+    },
+    {
+      "segmentId": "seg-2",
+      "startMs": 1220,
+      "endMs": 4980,
+      "text": "So ever since I started publishing books back in 2005, publishing has been dying."
+    },
+    {
+      "segmentId": "seg-3",
+      "startMs": 5180,
+      "endMs": 7700,
+      "text": "But now some people argue that it's really dying."
+    },
+    {
+      "segmentId": "seg-4",
+      "startMs": 7980,
+      "endMs": 12780,
+      "text": "You know, like the way newspapers and linear television are in long-term structural, probably"
+    },
+    {
+      "segmentId": "seg-5",
+      "startMs": 12780,
+      "endMs": 14160,
+      "text": "inexorable decline."
+    },
+    {
+      "segmentId": "seg-6",
+      "startMs": 14520,
+      "endMs": 15980,
+      "text": "Like, is publishing like that?"
+    },
+    {
+      "segmentId": "seg-7",
+      "startMs": 16080,
+      "endMs": 20440,
+      "text": "And what might that mean for those of us who love books, and also for those of us who write"
+    },
+    {
+      "segmentId": "seg-8",
+      "startMs": 20440,
+      "endMs": 20660,
+      "text": "them?"
+    },
+    {
+      "segmentId": "seg-9",
+      "startMs": 20860,
+      "endMs": 24140,
+      "text": "So first off, it's important to understand that in the scheme of things, book publishing"
+    },
+    {
+      "segmentId": "seg-10",
+      "startMs": 24140,
+      "endMs": 25440,
+      "text": "is a tiny business."
+    },
+    {
+      "segmentId": "seg-11",
+      "startMs": 25440,
+      "endMs": 32740,
+      "text": "Like, the individual video game Call of Duty Black Ops 6 sold more copies than all books"
+    },
+    {
+      "segmentId": "seg-12",
+      "startMs": 32740,
+      "endMs": 36640,
+      "text": "for adults combined in the United States in 2024."
+    },
+    {
+      "segmentId": "seg-13",
+      "startMs": 37060,
+      "endMs": 41040,
+      "text": "About 30% of books published by major publishers sell fewer than a thousand copies."
+    },
+    {
+      "segmentId": "seg-14",
+      "startMs": 41260,
+      "endMs": 45460,
+      "text": "The vast majority, around 90%, sell fewer than 10,000 copies."
+    },
+    {
+      "segmentId": "seg-15",
+      "startMs": 45760,
+      "endMs": 50020,
+      "text": "I mean, the best-selling book of 2024 sold about 1.6 million copies."
+    },
+    {
+      "segmentId": "seg-16",
+      "startMs": 50020,
+      "endMs": 55880,
+      "text": "For context, the best-selling movie of the year sold about 80 million theater seats,"
+    },
+    {
+      "segmentId": "seg-17",
+      "startMs": 56040,
+      "endMs": 59400,
+      "text": "and that's a business that is purported to be in structural decline."
+    },
+    {
+      "segmentId": "seg-18",
+      "startMs": 59720,
+      "endMs": 64100,
+      "text": "Publishing is, and always has been, a small business, but it's one of those businesses"
+    },
+    {
+      "segmentId": "seg-19",
+      "startMs": 64100,
+      "endMs": 69080,
+      "text": "that kind of punches above its weight culturally because we care about stories, and books often"
+    },
+    {
+      "segmentId": "seg-20",
+      "startMs": 69080,
+      "endMs": 70520,
+      "text": "shape our cultural conversations."
+    },
+    {
+      "segmentId": "seg-21",
+      "startMs": 70920,
+      "endMs": 74960,
+      "text": "Now, just to throw a little water on the publishing is dying fire, most American adults still"
+    },
+    {
+      "segmentId": "seg-22",
+      "startMs": 74960,
+      "endMs": 80880,
+      "text": "read books. Like, about 75% of American adults report having read a book in the last year."
+    },
+    {
+      "segmentId": "seg-23",
+      "startMs": 81100,
+      "endMs": 84480,
+      "text": "Younger adults are actually more likely to have read a book in the last year than older"
+    },
+    {
+      "segmentId": "seg-24",
+      "startMs": 84480,
+      "endMs": 89320,
+      "text": "adults. So the idea that, like, TikTok is making reading impossible is a little bit"
+    },
+    {
+      "segmentId": "seg-25",
+      "startMs": 89320,
+      "endMs": 93000,
+      "text": "off-base, although as we'll get to it's also a little bit on-base. Lots of people"
+    },
+    {
+      "segmentId": "seg-26",
+      "startMs": 93000,
+      "endMs": 96860,
+      "text": "still like reading, and some parts of publishing are growing, like audiobooks. People love"
+    },
+    {
+      "segmentId": "seg-27",
+      "startMs": 96860,
+      "endMs": 101700,
+      "text": "reading with their ears. And independent publishing is a growing, if still, small part of the"
+    },
+    {
+      "segmentId": "seg-28",
+      "startMs": 101700,
+      "endMs": 105800,
+      "text": "business. Like, over a million titles will be published independently this year."
+    },
+    {
+      "segmentId": "seg-29",
+      "startMs": 105960,
+      "endMs": 108760,
+      "text": "That of course can mean that it's harder to stand out and get review attention, but"
+    },
+    {
+      "segmentId": "seg-30",
+      "startMs": 108760,
+      "endMs": 112060,
+      "text": "that's starting to change, especially with ebooks, where independent publishing is a"
+    },
+    {
+      "segmentId": "seg-31",
+      "startMs": 112060,
+      "endMs": 116600,
+      "text": "significant part of the market. I mean, one of my favorite writers, Anne Swinfin, self-published"
+    },
+    {
+      "segmentId": "seg-32",
+      "startMs": 116600,
+      "endMs": 120340,
+      "text": "her books. And more and more, it's not just a viable option. For authors with their own"
+    },
+    {
+      "segmentId": "seg-33",
+      "startMs": 120340,
+      "endMs": 125140,
+      "text": "audiences who can pay for editorial services and so on, it can be a preferential option."
+    },
+    {
+      "segmentId": "seg-34",
+      "startMs": 125260,
+      "endMs": 128880,
+      "text": "I think traditional publishers still add a lot of value through the editorial process,"
+    },
+    {
+      "segmentId": "seg-35",
+      "startMs": 128880,
+      "endMs": 134460,
+      "text": "also through marketing and getting distribution into bookstores, which by the way matters more than ever."
+    },
+    {
+      "segmentId": "seg-36",
+      "startMs": 134600,
+      "endMs": 137480,
+      "text": "I mean there are more independent bookstores in the United States today"
+    },
+    {
+      "segmentId": "seg-37",
+      "startMs": 137480,
+      "endMs": 140860,
+      "text": "than there were when Looking for Alaska came out in 2005."
+    },
+    {
+      "segmentId": "seg-38",
+      "startMs": 141280,
+      "endMs": 146240,
+      "text": "And there are more ways to support independent bookstores while shopping online, like for instance using bookshop.org."
+    },
+    {
+      "segmentId": "seg-39",
+      "startMs": 146380,
+      "endMs": 152720,
+      "text": "So like I know the sky is always falling in publishing and as we're about to get to there are real reasons to be concerned right now,"
+    },
+    {
+      "segmentId": "seg-40",
+      "startMs": 152860,
+      "endMs": 155800,
+      "text": "but I also think that people read books. They like them."
+    },
+    {
+      "segmentId": "seg-41",
+      "startMs": 155800,
+      "endMs": 158340,
+      "text": "People don't read books out of charity or obligation."
+    },
+    {
+      "segmentId": "seg-42",
+      "startMs": 158600,
+      "endMs": 161740,
+      "text": "They read books because books add value to their lives."
+    },
+    {
+      "segmentId": "seg-43",
+      "startMs": 161980,
+      "endMs": 163960,
+      "text": "More value than the book costs."
+    },
+    {
+      "segmentId": "seg-44",
+      "startMs": 164300,
+      "endMs": 166940,
+      "text": "All that noted, publishing is in a bit of a decline."
+    },
+    {
+      "segmentId": "seg-45",
+      "startMs": 167180,
+      "endMs": 174380,
+      "text": "Like, year over year sales according to Publishers Weekly for the most recent month are down around 10%, which is pretty dramatic."
+    },
+    {
+      "segmentId": "seg-46",
+      "startMs": 174700,
+      "endMs": 178540,
+      "text": "And look, we all know the internet is starting to change our attention spans."
+    },
+    {
+      "segmentId": "seg-47",
+      "startMs": 178840,
+      "endMs": 184000,
+      "text": "Like, it is harder to read books for lots of us than it was even five years ago."
+    },
+    {
+      "segmentId": "seg-48",
+      "startMs": 184000,
+      "endMs": 187280,
+      "text": "I know that when I'm reading I often feel the siren call of my phone."
+    },
+    {
+      "segmentId": "seg-49",
+      "startMs": 187600,
+      "endMs": 192580,
+      "text": "I'll be reading something and I'll think, oh, I bet there's a Wikipedia page about that, and then I'm off."
+    },
+    {
+      "segmentId": "seg-50",
+      "startMs": 192780,
+      "endMs": 196580,
+      "text": "And while most people indeed report having read at least one book in the last year,"
+    },
+    {
+      "segmentId": "seg-51",
+      "startMs": 196740,
+      "endMs": 199920,
+      "text": "only about 20% report having read at least 10."
+    },
+    {
+      "segmentId": "seg-52",
+      "startMs": 200180,
+      "endMs": 203160,
+      "text": "Also, I do think there is a structural problem here."
+    },
+    {
+      "segmentId": "seg-53",
+      "startMs": 203320,
+      "endMs": 208020,
+      "text": "So my book, The Fault in Our Stars, costs around $8, which I think is a pretty good deal, right?"
+    },
+    {
+      "segmentId": "seg-54",
+      "startMs": 208020,
+      "endMs": 214160,
+      "text": "Like, you get 8 to 10 hours of entertainment, that's less than a dollar per hour of fun, good times."
+    },
+    {
+      "segmentId": "seg-55",
+      "startMs": 214480,
+      "endMs": 218180,
+      "text": "But books used to be, at least in my opinion, one of the best deals in all of entertainment,"
+    },
+    {
+      "segmentId": "seg-56",
+      "startMs": 218420,
+      "endMs": 222980,
+      "text": "and that's just not the case anymore. Right? Like, I remember making a Vlogbrothers video in 2007 or 2008"
+    },
+    {
+      "segmentId": "seg-57",
+      "startMs": 222980,
+      "endMs": 228740,
+      "text": "and being like, a movie costs $10 and you get 2 hours of entertainment, a book costs the same $10"
+    },
+    {
+      "segmentId": "seg-58",
+      "startMs": 228740,
+      "endMs": 236020,
+      "text": "and you get 14 hours of entertainment. Except now, often books don't cost $10, they can cost $27 or $30"
+    },
+    {
+      "segmentId": "seg-59",
+      "startMs": 236020,
+      "endMs": 239480,
+      "text": "dollars for hardcovers. And also, it's definitely no longer the best deal in entertainment,"
+    },
+    {
+      "segmentId": "seg-60",
+      "startMs": 239700,
+      "endMs": 243520,
+      "text": "because TikTok and Instagram are free, at least if you don't count the cost of your attention."
+    },
+    {
+      "segmentId": "seg-61",
+      "startMs": 243800,
+      "endMs": 248000,
+      "text": "So there's no question that the value proposition has changed for readers, and that may be part of"
+    },
+    {
+      "segmentId": "seg-62",
+      "startMs": 248000,
+      "endMs": 252680,
+      "text": "a long-term structural change in how many people read books, and why they read them,"
+    },
+    {
+      "segmentId": "seg-63",
+      "startMs": 252780,
+      "endMs": 256620,
+      "text": "and whether they read them. But the underlying question is, can books compete with TikTok?"
+    },
+    {
+      "segmentId": "seg-64",
+      "startMs": 256900,
+      "endMs": 262740,
+      "text": "And I would argue that at least for some people, they can. TikTok is certainly a better entertainment,"
+    },
+    {
+      "segmentId": "seg-65",
+      "startMs": 262740,
+      "endMs": 266040,
+      "text": "But at least in my experience, books are a deeper entertainment."
+    },
+    {
+      "segmentId": "seg-66",
+      "startMs": 266300,
+      "endMs": 270660,
+      "text": "They allow you to visit rooms in your mind that would otherwise be inaccessible."
+    },
+    {
+      "segmentId": "seg-67",
+      "startMs": 270840,
+      "endMs": 274000,
+      "text": "And I do think you can still compete on depth of experience."
+    },
+    {
+      "segmentId": "seg-68",
+      "startMs": 274240,
+      "endMs": 277100,
+      "text": "Now obviously, books will continue to be a small business."
+    },
+    {
+      "segmentId": "seg-69",
+      "startMs": 277240,
+      "endMs": 280100,
+      "text": "They may even shrink over the next decade some."
+    },
+    {
+      "segmentId": "seg-70",
+      "startMs": 280420,
+      "endMs": 284960,
+      "text": "But I just don't think books will go away the way that I do think that linear television"
+    },
+    {
+      "segmentId": "seg-71",
+      "startMs": 284960,
+      "endMs": 286180,
+      "text": "will probably go away."
+    },
+    {
+      "segmentId": "seg-72",
+      "startMs": 286360,
+      "endMs": 292100,
+      "text": "I mean right now, for about $7, you can acquire Toni Morrison's book Beloved and have your"
+    },
+    {
+      "segmentId": "seg-73",
+      "startMs": 292100,
+      "endMs": 295140,
+      "text": "life absolutely rocked."
+    },
+    {
+      "segmentId": "seg-74",
+      "startMs": 295220,
+      "endMs": 297900,
+      "text": "If you read that book, you'll be thinking about it for decades."
+    },
+    {
+      "segmentId": "seg-75",
+      "startMs": 298180,
+      "endMs": 301820,
+      "text": "There will be individual lines that stick with you, the characters and the plot and"
+    },
+    {
+      "segmentId": "seg-76",
+      "startMs": 301820,
+      "endMs": 303300,
+      "text": "the symbols will stick with you."
+    },
+    {
+      "segmentId": "seg-77",
+      "startMs": 303460,
+      "endMs": 308020,
+      "text": "Also, because of the art form's nature, you are asked to be the co-creator of a book,"
+    },
+    {
+      "segmentId": "seg-78",
+      "startMs": 308120,
+      "endMs": 308260,
+      "text": "right?"
+    },
+    {
+      "segmentId": "seg-79",
+      "startMs": 308360,
+      "endMs": 314360,
+      "text": "Like, even a wildly popular book, you render unique because you bring your own unprecedented"
+    },
+    {
+      "segmentId": "seg-80",
+      "startMs": 314360,
+      "endMs": 315440,
+      "text": "self to it."
+    },
+    {
+      "segmentId": "seg-81",
+      "startMs": 315560,
+      "endMs": 320260,
+      "text": "That's why books can give expression and form to the way down deep stuff that nothing"
+    },
+    {
+      "segmentId": "seg-82",
+      "startMs": 320260,
+      "endMs": 324460,
+      "text": "else can touch that we ourselves can't even touch without the gift of story."
+    },
+    {
+      "segmentId": "seg-83",
+      "startMs": 324700,
+      "endMs": 328580,
+      "text": "On that level, books aren't just a good deal for many of us, they're an essential one."
+    },
+    {
+      "segmentId": "seg-84",
+      "startMs": 328780,
+      "endMs": 332720,
+      "text": "And that's why I think as long as there are people, there will be readers."
+    },
+    {
+      "segmentId": "seg-85",
+      "startMs": 333080,
+      "endMs": 334060,
+      "text": "One last thing, Hank."
+    },
+    {
+      "segmentId": "seg-86",
+      "startMs": 334180,
+      "endMs": 337840,
+      "text": "Every year during the Project for Awesome, there is my favorite perk, the Nerdfighter"
+    },
+    {
+      "segmentId": "seg-87",
+      "startMs": 337840,
+      "endMs": 343140,
+      "text": "Art Perk, where people from around the world make art that's valued at about $30 from"
+    },
+    {
+      "segmentId": "seg-88",
+      "startMs": 343140,
+      "endMs": 346020,
+      "text": "plushies to paintings to knitted stuff."
+    },
+    {
+      "segmentId": "seg-89",
+      "startMs": 346020,
+      "endMs": 350580,
+      "text": "And then your art is sent to someone who gets the Nerdfighter art perk for the P4A."
+    },
+    {
+      "segmentId": "seg-90",
+      "startMs": 350660,
+      "endMs": 352840,
+      "text": "It is a lovely exchange of value."
+    },
+    {
+      "segmentId": "seg-91",
+      "startMs": 353000,
+      "endMs": 358460,
+      "text": "In fact, it captures what the exchange of value ought to be in both books and other forms"
+    },
+    {
+      "segmentId": "seg-92",
+      "startMs": 358460,
+      "endMs": 358880,
+      "text": "of art."
+    },
+    {
+      "segmentId": "seg-93",
+      "startMs": 359060,
+      "endMs": 361600,
+      "text": "And if you want to make something for this year's Nerdfighter art perk, please visit"
+    },
+    {
+      "segmentId": "seg-94",
+      "startMs": 361600,
+      "endMs": 365920,
+      "text": "projectforawesome.com slash physical art by Wednesday, October 29th."
+    },
+    {
+      "segmentId": "seg-95",
+      "startMs": 366060,
+      "endMs": 366960,
+      "text": "Thank you for making art."
+    },
+    {
+      "segmentId": "seg-96",
+      "startMs": 367060,
+      "endMs": 369800,
+      "text": "Thank you for reading and watching and listening to art."
+    },
+    {
+      "segmentId": "seg-97",
+      "startMs": 369940,
+      "endMs": 374380,
+      "text": "One thing I really believe, Hank, is that art will survive as long as we do."
+    },
+    {
+      "segmentId": "seg-98",
+      "startMs": 374960,
+      "endMs": 376580,
+      "text": "Hank, I'll see you on Friday."
+    }
+  ]
+}

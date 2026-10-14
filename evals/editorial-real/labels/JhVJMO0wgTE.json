@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "videoId": "JhVJMO0wgTE",
+  "title": "Henry",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "English-speaking viewers of the creator's public YouTube channel; no private audience brief is available.",
+  "brief": "Tell Henry's tuberculosis treatment story and discuss access to care. This brief is inferred from the public title and spoken introduction; no private creator brief is available.",
+  "clean": false,
+  "partialGold": true,
+  "durationMs": 420560,
+  "source": {
+    "kind": "recorded",
+    "creator": "vlogbrothers",
+    "url": "https://www.youtube.com/watch?v=JhVJMO0wgTE",
+    "license": "Creative Commons Attribution license (reuse allowed)",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "uploadDate": "2023-08-15",
+    "metadata": "manifest.json",
+    "media": "../../fixtures/media/editorial-real/JhVJMO0wgTE.mp4",
+    "mediaSha256": "2c0b7760cc6d140127f498e209a5de763e7c34a676c36e1668d468e334b0ad5d",
+    "evalOnly": true
+  },
+  "issues": [
+    {
+      "id": "JhVJMO0wgTE-C1",
+      "category": "factual_error",
+      "startMs": 255360,
+      "endMs": 261460,
+      "additionalSpans": [],
+      "description": "Important correction: Dr Girum explained to me that Henry was among the first to receive befaquiline but not the first. He was the first to receive a different med that allowed him to safely take bedaquiline. I’m sorry for the error. ",
+      "expectedDimension": "truth_evidence",
+      "source": {
+        "kind": "creator_description_correction",
+        "url": "https://www.youtube.com/watch?v=JhVJMO0wgTE",
+        "quote": "Important correction: Dr Girum explained to me that Henry was among the first to receive befaquiline but not the first. He was the first to receive a different med that allowed him to safely take bedaquiline. I’m sorry for the error. "
+      },
+      "location": {
+        "method": "Inspected local MLX Whisper segments and word timings; not human-audited.",
+        "segmentIds": [
+          "seg-52"
+        ],
+        "spokenText": "Henry became the first person in Sierra Leone to receive the bodaculin-based cocktail,"
+      }
+    }
+  ]
+}

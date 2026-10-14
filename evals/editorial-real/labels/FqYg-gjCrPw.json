@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "videoId": "FqYg-gjCrPw",
+  "title": "Autotune and Pitch Correction - explained for the music listener in -  plain English",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "English-speaking viewers of the creator's public YouTube channel; no private audience brief is available.",
+  "brief": "Explain and demonstrate auto tune and pitch correction for music listeners in plain English. This brief is inferred from the public title and spoken introduction; no private creator brief is available.",
+  "clean": false,
+  "partialGold": true,
+  "durationMs": 964696,
+  "source": {
+    "kind": "recorded",
+    "creator": "Gavin Davies Music",
+    "url": "https://www.youtube.com/watch?v=FqYg-gjCrPw",
+    "license": "Creative Commons Attribution license (reuse allowed)",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "uploadDate": "2026-09-17",
+    "metadata": "manifest.json",
+    "media": "../../fixtures/media/editorial-real/FqYg-gjCrPw.mp4",
+    "mediaSha256": "a063292f5d7f802b589d8a3447192468640397dbf1a0aacd33a95ec3d2105bc7",
+    "evalOnly": false
+  },
+  "issues": [
+    {
+      "id": "FqYg-gjCrPw-C1",
+      "category": "factual_error",
+      "startMs": 318460,
+      "endMs": 321180,
+      "additionalSpans": [
+        {
+          "startMs": 81200,
+          "endMs": 86500
+        },
+        {
+          "startMs": 855540,
+          "endMs": 858900
+        }
+      ],
+      "description": "In my video I mention that the software I am using is from 2015 when it is actually from 2019. The individual components for auto tune and pitch correction were actually introduced in 2009 so a very long time ago. Engineers have been able to fix out of tune vocals for a very long time.",
+      "expectedDimension": "truth_evidence",
+      "source": {
+        "kind": "creator_description_correction",
+        "url": "https://www.youtube.com/watch?v=FqYg-gjCrPw",
+        "quote": "In my video I mention that the software I am using is from 2015 when it is actually from 2019. The individual components for auto tune and pitch correction were actually introduced in 2009 so a very long time ago. Engineers have been able to fix out of tune vocals for a very long time."
+      },
+      "location": {
+        "method": "Inspected local MLX Whisper segments and word timings; not human-audited.",
+        "segmentIds": [
+          "seg-61"
+        ],
+        "spokenText": "versions. This was done in 2015. So I mean, it's old. So here we go. So here's the pitch correction"
+      }
+    }
+  ]
+}

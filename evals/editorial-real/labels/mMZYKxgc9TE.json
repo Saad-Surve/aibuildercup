@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "videoId": "mMZYKxgc9TE",
+  "title": "Ukraine and Russia: What Caused the War?",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "English-speaking viewers of the creator's public YouTube channel; no private audience brief is available.",
+  "brief": "Explain historical and political context for Russia's invasion of Ukraine. This brief is inferred from the public title and spoken introduction; no private creator brief is available.",
+  "clean": false,
+  "partialGold": true,
+  "durationMs": 535290,
+  "source": {
+    "kind": "recorded",
+    "creator": "vlogbrothers",
+    "url": "https://www.youtube.com/watch?v=mMZYKxgc9TE",
+    "license": "Creative Commons Attribution license (reuse allowed)",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "uploadDate": "2022-03-15",
+    "metadata": "manifest.json",
+    "media": "../../fixtures/media/editorial-real/mMZYKxgc9TE.mp4",
+    "mediaSha256": "192722bc27716b69f35a6ed811f285f2600231890507b6201a7106a3f43e7947",
+    "evalOnly": false
+  },
+  "issues": [
+    {
+      "id": "mMZYKxgc9TE-C1",
+      "category": "factual_error",
+      "startMs": 16800,
+      "endMs": 26160,
+      "additionalSpans": [],
+      "description": "The official language of Ukraine is Ukrainian. \"National languages\" as a phrase was confusing. I should've just said that 30% of Ukrainians speak Russian as their first language.",
+      "expectedDimension": "truth_evidence",
+      "source": {
+        "kind": "creator_description_correction",
+        "url": "https://www.youtube.com/watch?v=mMZYKxgc9TE",
+        "quote": "The official language of Ukraine is Ukrainian. \"National languages\" as a phrase was confusing. I should've just said that 30% of Ukrainians speak Russian as their first language. Also, the etymology of \"Ukraine\" is not settled as \"borderlands.\" Many Ukrainian linguists argue that the etymology of Ukraine comes from words meaning \"In My Land,\" not \"borderlands.\" Thirdly, I  misspelled Kyiv as Kiev. If I made further mistakes, let me know and I'll amend here."
+      },
+      "location": {
+        "method": "Inspected local MLX Whisper segments and word timings; not human-audited.",
+        "segmentIds": [
+          "seg-7",
+          "seg-8"
+        ],
+        "spokenText": "The national languages are Ukrainian, which is the first language of about two-thirds of Ukrainians, and also Russian, which is the first language of about 30% of Ukrainians."
+      }
+    },
+    {
+      "id": "mMZYKxgc9TE-C2",
+      "category": "factual_error",
+      "startMs": 261820,
+      "endMs": 267340,
+      "additionalSpans": [],
+      "description": "Also, the etymology of \"Ukraine\" is not settled as \"borderlands.\" Many Ukrainian linguists argue that the etymology of Ukraine comes from words meaning \"In My Land,\" not \"borderlands.\"",
+      "expectedDimension": "truth_evidence",
+      "source": {
+        "kind": "creator_description_correction",
+        "url": "https://www.youtube.com/watch?v=mMZYKxgc9TE",
+        "quote": "The official language of Ukraine is Ukrainian. \"National languages\" as a phrase was confusing. I should've just said that 30% of Ukrainians speak Russian as their first language. Also, the etymology of \"Ukraine\" is not settled as \"borderlands.\" Many Ukrainian linguists argue that the etymology of Ukraine comes from words meaning \"In My Land,\" not \"borderlands.\" Thirdly, I  misspelled Kyiv as Kiev. If I made further mistakes, let me know and I'll amend here."
+      },
+      "location": {
+        "method": "Inspected local MLX Whisper segments and word timings; not human-audited.",
+        "segmentIds": [
+          "seg-57",
+          "seg-58"
+        ],
+        "spokenText": "independence is complicated in a global world, especially when the name of your country literally means borderlands, as Ukraine does."
+      }
+    }
+  ]
+}

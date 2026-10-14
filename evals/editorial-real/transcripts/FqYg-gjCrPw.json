@@ -1,0 +1,1066 @@
+{
+  "videoId": "FqYg-gjCrPw",
+  "language": "en",
+  "durationMs": 964696,
+  "source": {
+    "kind": "local_asr",
+    "model": "mlx-community/whisper-large-v3-turbo",
+    "mlxWhisperVersion": "0.4.3",
+    "conditionOnPreviousText": false,
+    "wordTimestamps": true,
+    "mediaSha256": "a063292f5d7f802b589d8a3447192468640397dbf1a0aacd33a95ec3d2105bc7",
+    "modelRevision": "a4aaeec0636e6fef84abdcbe3544cb2bf7e9f6fb"
+  },
+  "segments": [
+    {
+      "segmentId": "seg-1",
+      "startMs": 0,
+      "endMs": 2840,
+      "text": "Hi there, my name is Gavin Davis and I am a singer-songwriter."
+    },
+    {
+      "segmentId": "seg-2",
+      "startMs": 3120,
+      "endMs": 9260,
+      "text": "So we all talk about pitch correction and we talk about, well, Wings of Pegasus goes into"
+    },
+    {
+      "segmentId": "seg-3",
+      "startMs": 9260,
+      "endMs": 15080,
+      "text": "lots of detail with it, which is very good. Pitch correction he talks about and he also talks about"
+    },
+    {
+      "segmentId": "seg-4",
+      "startMs": 15080,
+      "endMs": 24480,
+      "text": "auto-tune. Now, what we don't talk about is how they do it or how we do it. I tend not to do it,"
+    },
+    {
+      "segmentId": "seg-5",
+      "startMs": 24480,
+      "endMs": 31320,
+      "text": "but I know how to do it. So I'm going to show you very quickly how it's done. Now, this piece of"
+    },
+    {
+      "segmentId": "seg-6",
+      "startMs": 31320,
+      "endMs": 40780,
+      "text": "software was from, I say this piece of software, this DAW Digital Audio Workstation. Workstation?"
+    },
+    {
+      "segmentId": "seg-7",
+      "startMs": 41040,
+      "endMs": 45820,
+      "text": "Yeah, I think that's what it is. Do you know what? I never, oh, anyway, never mind, that's irrelevant,"
+    },
+    {
+      "segmentId": "seg-8",
+      "startMs": 45820,
+      "endMs": 51220,
+      "text": "but it's my thing that I use to create my music. Yes, and I'm waving my hand around, you can't see"
+    },
+    {
+      "segmentId": "seg-9",
+      "startMs": 51220,
+      "endMs": 56420,
+      "text": "because it's in the way. That is fine. So hopefully you can see this clear enough. This is"
+    },
+    {
+      "segmentId": "seg-10",
+      "startMs": 56420,
+      "endMs": 64380,
+      "text": "one of my recordings, one of my songs that I wrote a long time ago. This is just a different version"
+    },
+    {
+      "segmentId": "seg-11",
+      "startMs": 64380,
+      "endMs": 71980,
+      "text": "of it. So what I shall do is I shall attempt to have a look and make sure that it's not going to"
+    },
+    {
+      "segmentId": "seg-12",
+      "startMs": 71980,
+      "endMs": 81200,
+      "text": "blast your ears off, which that would be bad. Cubase, there we go. So it's called Cubase. It's"
+    },
+    {
+      "segmentId": "seg-13",
+      "startMs": 81200,
+      "endMs": 86500,
+      "text": "and I've been using this for a long time, as I say, probably from 2015."
+    },
+    {
+      "segmentId": "seg-14",
+      "startMs": 87040,
+      "endMs": 91620,
+      "text": "So if we play what it is, I'm not going to play all of it."
+    },
+    {
+      "segmentId": "seg-15",
+      "startMs": 91640,
+      "endMs": 96300,
+      "text": "So we've got three tracks of guitar, and we've got one track of vocal."
+    },
+    {
+      "segmentId": "seg-16",
+      "startMs": 96500,
+      "endMs": 99240,
+      "text": "Okay, so I'm just going to play this little bit of it,"
+    },
+    {
+      "segmentId": "seg-17",
+      "startMs": 99460,
+      "endMs": 102760,
+      "text": "just to show you what it should sound like."
+    },
+    {
+      "segmentId": "seg-18",
+      "startMs": 102960,
+      "endMs": 103500,
+      "text": "Here we go."
+    },
+    {
+      "segmentId": "seg-19",
+      "startMs": 104000,
+      "endMs": 106820,
+      "text": "It's so hard not to think of you."
+    },
+    {
+      "segmentId": "seg-20",
+      "startMs": 107000,
+      "endMs": 108860,
+      "text": "I've been such a fool."
+    },
+    {
+      "segmentId": "seg-21",
+      "startMs": 110140,
+      "endMs": 112860,
+      "text": "I've been a fool"
+    },
+    {
+      "segmentId": "seg-22",
+      "startMs": 115560,
+      "endMs": 118420,
+      "text": "I've been a fool"
+    },
+    {
+      "segmentId": "seg-23",
+      "startMs": 120160,
+      "endMs": 121480,
+      "text": "For you"
+    },
+    {
+      "segmentId": "seg-24",
+      "startMs": 126560,
+      "endMs": 130520,
+      "text": "Okay, so that section, that is how it should sound."
+    },
+    {
+      "segmentId": "seg-25",
+      "startMs": 130880,
+      "endMs": 133260,
+      "text": "So let's just isolate the vocal."
+    },
+    {
+      "segmentId": "seg-26",
+      "startMs": 133480,
+      "endMs": 136000,
+      "text": "Let's do a proper Wings of Pegasus bit here."
+    },
+    {
+      "segmentId": "seg-27",
+      "startMs": 136160,
+      "endMs": 138000,
+      "text": "Hey, I'm getting all excited now."
+    },
+    {
+      "segmentId": "seg-28",
+      "startMs": 138860,
+      "endMs": 141480,
+      "text": "Um, uh, right, here we go."
+    },
+    {
+      "segmentId": "seg-29",
+      "startMs": 141580,
+      "endMs": 143040,
+      "text": "So what we do is we mute the guitar."
+    },
+    {
+      "segmentId": "seg-30",
+      "startMs": 143780,
+      "endMs": 147140,
+      "text": "There's three tracks of guitar from three different sources."
+    },
+    {
+      "segmentId": "seg-31",
+      "startMs": 147380,
+      "endMs": 150800,
+      "text": "There's only one guitar, but just from three different sources, three different microphones."
+    },
+    {
+      "segmentId": "seg-32",
+      "startMs": 151000,
+      "endMs": 151340,
+      "text": "There we go."
+    },
+    {
+      "segmentId": "seg-33",
+      "startMs": 151560,
+      "endMs": 153120,
+      "text": "And that's not really very relevant."
+    },
+    {
+      "segmentId": "seg-34",
+      "startMs": 153120,
+      "endMs": 156680,
+      "text": "So we shall go back here and just listen to the vocal."
+    },
+    {
+      "segmentId": "seg-35",
+      "startMs": 158120,
+      "endMs": 161020,
+      "text": "It's so hard not to think of you."
+    },
+    {
+      "segmentId": "seg-36",
+      "startMs": 161200,
+      "endMs": 163120,
+      "text": "I've been such a fool."
+    },
+    {
+      "segmentId": "seg-37",
+      "startMs": 164560,
+      "endMs": 166980,
+      "text": "I've been a fool."
+    },
+    {
+      "segmentId": "seg-38",
+      "startMs": 170060,
+      "endMs": 175780,
+      "text": "I've been a fool for you."
+    },
+    {
+      "segmentId": "seg-39",
+      "startMs": 181720,
+      "endMs": 183920,
+      "text": "Okay, well, I'm being a bit daft there, aren't I?"
+    },
+    {
+      "segmentId": "seg-40",
+      "startMs": 183980,
+      "endMs": 185300,
+      "text": "Because I recorded this live."
+    },
+    {
+      "segmentId": "seg-41",
+      "startMs": 185840,
+      "endMs": 187520,
+      "text": "So if I recorded it live,"
+    },
+    {
+      "segmentId": "seg-42",
+      "startMs": 187540,
+      "endMs": 190520,
+      "text": "then that means there's overspilling to the vocal microphone."
+    },
+    {
+      "segmentId": "seg-43",
+      "startMs": 190840,
+      "endMs": 193320,
+      "text": "Now, the vocal microphones is the top one."
+    },
+    {
+      "segmentId": "seg-44",
+      "startMs": 193420,
+      "endMs": 195280,
+      "text": "As I said, these are all the guitar microphones."
+    },
+    {
+      "segmentId": "seg-45",
+      "startMs": 195280,
+      "endMs": 203340,
+      "text": "um so we are getting a bit of overspill now that sounds in tune to me well it you know i'm not that"
+    },
+    {
+      "segmentId": "seg-46",
+      "startMs": 203340,
+      "endMs": 209040,
+      "text": "i'm going to tune the thing anyway i wouldn't do anyway that's just not what i do but now listen"
+    },
+    {
+      "segmentId": "seg-47",
+      "startMs": 209040,
+      "endMs": 217260,
+      "text": "to this i've recorded this today as in not that long ago and i recorded it deliberately out of"
+    },
+    {
+      "segmentId": "seg-48",
+      "startMs": 217260,
+      "endMs": 225700,
+      "text": "tune which is is really not easy I have to say not for me anyway so it's just the last little"
+    },
+    {
+      "segmentId": "seg-49",
+      "startMs": 225700,
+      "endMs": 239280,
+      "text": "bit here let's listen to it for you okay now let's open this up and hear what it should sound"
+    },
+    {
+      "segmentId": "seg-50",
+      "startMs": 244160,
+      "endMs": 247520,
+      "text": "So let's play that again so you can get a bit of an idea what it should be."
+    },
+    {
+      "segmentId": "seg-51",
+      "startMs": 251460,
+      "endMs": 253000,
+      "text": "So it should be for you."
+    },
+    {
+      "segmentId": "seg-52",
+      "startMs": 255460,
+      "endMs": 259460,
+      "text": "And I've recorded it slightly lower which was a little bit odd."
+    },
+    {
+      "segmentId": "seg-53",
+      "startMs": 262440,
+      "endMs": 262880,
+      "text": "So."
+    },
+    {
+      "segmentId": "seg-54",
+      "startMs": 266080,
+      "endMs": 276280,
+      "text": "so I've gone down just a tiny weeny little bit deliberately so okay so Mr. Mixing Engineer Mr."
+    },
+    {
+      "segmentId": "seg-55",
+      "startMs": 277700,
+      "endMs": 283000,
+      "text": "you know producer and all that sort of stuff he's got sick to death of trying to get the singer to"
+    },
+    {
+      "segmentId": "seg-56",
+      "startMs": 283000,
+      "endMs": 289220,
+      "text": "try and do it properly and at the end of the day this is the only note there's probably a load more"
+    },
+    {
+      "segmentId": "seg-57",
+      "startMs": 289220,
+      "endMs": 295540,
+      "text": "than that but this is the only note that they can't get right so we've got two options uh one"
+    },
+    {
+      "segmentId": "seg-58",
+      "startMs": 295540,
+      "endMs": 303880,
+      "text": "good option and one easy option but very poor okay so the first thing that we're going to do"
+    },
+    {
+      "segmentId": "seg-59",
+      "startMs": 303880,
+      "endMs": 310820,
+      "text": "is we're going to go we're going to try auto tune on it okay so let me open up my auto tune thingy"
+    },
+    {
+      "segmentId": "seg-60",
+      "startMs": 310820,
+      "endMs": 317820,
+      "text": "now again this is a this is a very very limited version of auto tune there are much much better"
+    },
+    {
+      "segmentId": "seg-61",
+      "startMs": 317820,
+      "endMs": 324220,
+      "text": "versions. This was done in 2015. So I mean, it's old. So here we go. So here's the pitch correction"
+    },
+    {
+      "segmentId": "seg-62",
+      "startMs": 324220,
+      "endMs": 330980,
+      "text": "software. Hopefully you can see on the screen. Let me make sure you can see that on the screen."
+    },
+    {
+      "segmentId": "seg-63",
+      "startMs": 331160,
+      "endMs": 335960,
+      "text": "You can. That is good. I don't think it goes any bigger than that. But that's okay. You should be"
+    },
+    {
+      "segmentId": "seg-64",
+      "startMs": 335960,
+      "endMs": 343240,
+      "text": "in 4k anyway. So this is a gadget. It's called pitch correct. And I've put correction male for"
+    },
+    {
+      "segmentId": "seg-65",
+      "startMs": 343240,
+      "endMs": 349480,
+      "text": "excessive. So what you'll notice is the orange bits are where it's going out of"
+    },
+    {
+      "segmentId": "seg-66",
+      "startMs": 349480,
+      "endMs": 353360,
+      "text": "tune. You'll see it in a moment. So what we're going to do is we'll just play back"
+    },
+    {
+      "segmentId": "seg-67",
+      "startMs": 354940,
+      "endMs": 361580,
+      "text": "this little bit here on its own, that's all, and we'll see if this can fix it."
+    },
+    {
+      "segmentId": "seg-68",
+      "startMs": 361800,
+      "endMs": 362120,
+      "text": "Okay?"
+    },
+    {
+      "segmentId": "seg-69",
+      "startMs": 364480,
+      "endMs": 365460,
+      "text": "For you"
+    },
+    {
+      "segmentId": "seg-70",
+      "startMs": 370280,
+      "endMs": 375800,
+      "text": "and it did but do you notice the artifacts at the beginning have a listen this is what"
+    },
+    {
+      "segmentId": "seg-71",
+      "startMs": 375800,
+      "endMs": 381420,
+      "text": "Phil from Wings Pegasus keeps looking at you can hear these things for you"
+    },
+    {
+      "segmentId": "seg-72",
+      "startMs": 382520,
+      "endMs": 388120,
+      "text": "you know it just about makes it doesn't it but do you see the orange bits as well"
+    },
+    {
+      "segmentId": "seg-73",
+      "startMs": 388120,
+      "endMs": 395300,
+      "text": "so the orange bits are where the actual vocal has been recorded the blue bit is where it"
+    },
+    {
+      "segmentId": "seg-74",
+      "startMs": 395300,
+      "endMs": 401320,
+      "text": "wants to be which is right over the right the correct note so listen orange"
+    },
+    {
+      "segmentId": "seg-75",
+      "startMs": 401320,
+      "endMs": 409400,
+      "text": "bits for you the blue is where it should be now let's switch this gadget off and"
+    },
+    {
+      "segmentId": "seg-76",
+      "startMs": 409400,
+      "endMs": 415600,
+      "text": "you can then hear how out of tune it is for you"
+    },
+    {
+      "segmentId": "seg-77",
+      "startMs": 415600,
+      "endMs": 422260,
+      "text": "for you. See we're going down there. Switch the gadget on."
+    },
+    {
+      "segmentId": "seg-78",
+      "startMs": 424700,
+      "endMs": 433820,
+      "text": "For you. Takes it up higher. Switch it off again. Hope you can hear this."
+    },
+    {
+      "segmentId": "seg-79",
+      "startMs": 435520,
+      "endMs": 444500,
+      "text": "For you. Very very slightly down isn't it? Yeah. Okay so if we were to apply"
+    },
+    {
+      "segmentId": "seg-80",
+      "startMs": 445520,
+      "endMs": 450540,
+      "text": "this tool to it then you'd get the artifacts which are the bits at the beginning let's just"
+    },
+    {
+      "segmentId": "seg-81",
+      "startMs": 450540,
+      "endMs": 455680,
+      "text": "show you that once more and we'll put the guitar in as well just so you get a bit of an idea"
+    },
+    {
+      "segmentId": "seg-82",
+      "startMs": 456180,
+      "endMs": 460760,
+      "text": "of how it would sound within mix for you"
+    },
+    {
+      "segmentId": "seg-83",
+      "startMs": 466360,
+      "endMs": 470760,
+      "text": "so that's great I mean that sounds really good but okay we've got to put it with these artifacts"
+    },
+    {
+      "segmentId": "seg-84",
+      "startMs": 470760,
+      "endMs": 478020,
+      "text": "just at the beginning but you might find that a slightly better piece of software than this"
+    },
+    {
+      "segmentId": "seg-85",
+      "startMs": 478020,
+      "endMs": 485040,
+      "text": "you see I would be able to get rid of some of those artifacts as well as I say this this one"
+    },
+    {
+      "segmentId": "seg-86",
+      "startMs": 485040,
+      "endMs": 492020,
+      "text": "comes with Cubase so it's nothing special right okay now if you want to do this properly"
+    },
+    {
+      "segmentId": "seg-87",
+      "startMs": 493300,
+      "endMs": 499780,
+      "text": "and use pitch correction instead of auto tune I mean now I know that said it was pitch correction"
+    },
+    {
+      "segmentId": "seg-88",
+      "startMs": 499780,
+      "endMs": 505600,
+      "text": "it's not it's that's that's what auto tune does the other thing now pitch correction is a slightly"
+    },
+    {
+      "segmentId": "seg-89",
+      "startMs": 505600,
+      "endMs": 514040,
+      "text": "different thing whereby you get the waveform up and you correct it weirdly so let's have another"
+    },
+    {
+      "segmentId": "seg-90",
+      "startMs": 514040,
+      "endMs": 523500,
+      "text": "listen to it again for you okay so i'm happy with that that's all right i wouldn't be happy with it"
+    },
+    {
+      "segmentId": "seg-91",
+      "startMs": 523500,
+      "endMs": 529960,
+      "text": "should I say. I would never use that. So let's get rid of it. So we switch it off. In fact,"
+    },
+    {
+      "segmentId": "seg-92",
+      "startMs": 530100,
+      "endMs": 535560,
+      "text": "I'll say no effect and we'll discard it. So now we're going to leave it and we're scratching our"
+    },
+    {
+      "segmentId": "seg-93",
+      "startMs": 535560,
+      "endMs": 539640,
+      "text": "head now. We're engineers. We're sitting in a booth. We've just done this recording. As I said,"
+    },
+    {
+      "segmentId": "seg-94",
+      "startMs": 539720,
+      "endMs": 544800,
+      "text": "it's the 90th time they've done it and they're getting fed up and they're thinking, I'm going"
+    },
+    {
+      "segmentId": "seg-95",
+      "startMs": 544800,
+      "endMs": 555500,
+      "text": "to have this one for you and everyone in the booth everyone at the mixing desk is like"
+    },
+    {
+      "segmentId": "seg-96",
+      "startMs": 555500,
+      "endMs": 562520,
+      "text": "grating the teeth and like oh my god what can we do with that and the engineer says don't worry"
+    },
+    {
+      "segmentId": "seg-97",
+      "startMs": 562520,
+      "endMs": 568120,
+      "text": "you've had a long day yeah i know you've been having some trouble don't worry off you go i'll"
+    },
+    {
+      "segmentId": "seg-98",
+      "startMs": 568120,
+      "endMs": 573800,
+      "text": "fix it for you don't worry and the and the and the singer looks at the engineer and goes oh thank you"
+    },
+    {
+      "segmentId": "seg-99",
+      "startMs": 573800,
+      "endMs": 580360,
+      "text": "thank you yeah make me sound like I can sing that's a good idea that's what you can do all"
+    },
+    {
+      "segmentId": "seg-100",
+      "startMs": 580360,
+      "endMs": 585780,
+      "text": "right so what we're going to do is going to try and make make the singer as in me think that they"
+    },
+    {
+      "segmentId": "seg-101",
+      "startMs": 585780,
+      "endMs": 596260,
+      "text": "can sing so here is this is an editor this is for pitch correction okay now I've already run this"
+    },
+    {
+      "segmentId": "seg-102",
+      "startMs": 596260,
+      "endMs": 603140,
+      "text": "tool so what you do is you press that button it goes through the the whole of this little bit of"
+    },
+    {
+      "segmentId": "seg-103",
+      "startMs": 605200,
+      "endMs": 613300,
+      "text": "vocal and it gives you options you can move things up and down so that's the note let's play it back"
+    },
+    {
+      "segmentId": "seg-104",
+      "startMs": 613300,
+      "endMs": 619700,
+      "text": "I think it might kick the kick this out of the way when it does it but what I will do is manually"
+    },
+    {
+      "segmentId": "seg-105",
+      "startMs": 619700,
+      "endMs": 630200,
+      "text": "move it into tune so let's listen to it first again for you oh that's terrible isn't it our tune"
+    },
+    {
+      "segmentId": "seg-106",
+      "startMs": 630200,
+      "endMs": 635220,
+      "text": "I'm hoping you can hear that. Okay, so what I'm going to do is I'm going to grab that."
+    },
+    {
+      "segmentId": "seg-107",
+      "startMs": 635740,
+      "endMs": 644500,
+      "text": "Now, let's grab it. Here we go. Where's it gone? It's gone. It's disappeared. Help."
+    },
+    {
+      "segmentId": "seg-108",
+      "startMs": 645460,
+      "endMs": 650920,
+      "text": "There we go. There it is. So that's the note that I'm deliberately out of tune in. In fact,"
+    },
+    {
+      "segmentId": "seg-109",
+      "startMs": 651020,
+      "endMs": 657480,
+      "text": "I'm very deliberately out of tune quite nicely by the looks of it. It's all on your A2. See,"
+    },
+    {
+      "segmentId": "seg-110",
+      "startMs": 657480,
+      "endMs": 662560,
+      "text": "so it needs to go up a little bit. So what we do is we grab that note and we put it up a bit."
+    },
+    {
+      "segmentId": "seg-111",
+      "startMs": 663220,
+      "endMs": 671140,
+      "text": "There you go, that's manual tuning or pitch correction. Now in theory it should be right now,"
+    },
+    {
+      "segmentId": "seg-112",
+      "startMs": 671300,
+      "endMs": 675360,
+      "text": "so let's play it back. For you."
+    },
+    {
+      "segmentId": "seg-113",
+      "startMs": 680280,
+      "endMs": 685200,
+      "text": "Now that, there's a little wobble just there which I'm sure I could fix. Let's have a listen."
+    },
+    {
+      "segmentId": "seg-114",
+      "startMs": 686320,
+      "endMs": 687280,
+      "text": "for you"
+    },
+    {
+      "segmentId": "seg-115",
+      "startMs": 687980,
+      "endMs": 690620,
+      "text": "oh yeah did you hear just that little wobble there"
+    },
+    {
+      "segmentId": "seg-116",
+      "startMs": 691420,
+      "endMs": 696260,
+      "text": "having said that that was that would for me that would probably be if I was doing something"
+    },
+    {
+      "segmentId": "seg-117",
+      "startMs": 696260,
+      "endMs": 702400,
+      "text": "see where it goes down there you see you can't really really fix that little bit there"
+    },
+    {
+      "segmentId": "seg-118",
+      "startMs": 702400,
+      "endMs": 709780,
+      "text": "but you can try and chop it and we chop it there and then what we can do is bring that up as well"
+    },
+    {
+      "segmentId": "seg-119",
+      "startMs": 709780,
+      "endMs": 712600,
+      "text": "See? So all of that now looks nice and level."
+    },
+    {
+      "segmentId": "seg-120",
+      "startMs": 713040,
+      "endMs": 714640,
+      "text": "See? All nice and level."
+    },
+    {
+      "segmentId": "seg-121",
+      "startMs": 714920,
+      "endMs": 716700,
+      "text": "So I'm hoping you can see that."
+    },
+    {
+      "segmentId": "seg-122",
+      "startMs": 717020,
+      "endMs": 718800,
+      "text": "You have to zoom in a bit on your TV or something."
+    },
+    {
+      "segmentId": "seg-123",
+      "startMs": 718920,
+      "endMs": 721400,
+      "text": "Now listen. Now let's see if this has fixed it."
+    },
+    {
+      "segmentId": "seg-124",
+      "startMs": 723560,
+      "endMs": 724520,
+      "text": "For you."
+    },
+    {
+      "segmentId": "seg-125",
+      "startMs": 725440,
+      "endMs": 726860,
+      "text": "There you go. No wobble."
+    },
+    {
+      "segmentId": "seg-126",
+      "startMs": 729720,
+      "endMs": 732880,
+      "text": "OK. So let's have a listen to this just on its own."
+    },
+    {
+      "segmentId": "seg-127",
+      "startMs": 733020,
+      "endMs": 733600,
+      "text": "Just the vocal."
+    },
+    {
+      "segmentId": "seg-128",
+      "startMs": 736740,
+      "endMs": 737700,
+      "text": "For you."
+    },
+    {
+      "segmentId": "seg-129",
+      "startMs": 743180,
+      "endMs": 750980,
+      "text": "now can you see why this is almost impossible to detect because this is the original one"
+    },
+    {
+      "segmentId": "seg-130",
+      "startMs": 750980,
+      "endMs": 754380,
+      "text": "I mean it's got a bit of guitar in it unfortunately but this is the original one"
+    },
+    {
+      "segmentId": "seg-131",
+      "startMs": 756060,
+      "endMs": 756940,
+      "text": "for you"
+    },
+    {
+      "segmentId": "seg-132",
+      "startMs": 761240,
+      "endMs": 766040,
+      "text": "I can't put in a bit of vibrato on that because I you can see there is vibrato on that because"
+    },
+    {
+      "segmentId": "seg-133",
+      "startMs": 766040,
+      "endMs": 770660,
+      "text": "there's like little spikes and troughs and things and there's no vibrato on this one so there's no"
+    },
+    {
+      "segmentId": "seg-134",
+      "startMs": 770660,
+      "endMs": 775460,
+      "text": "worries there however even if I'd have pitch corrected it with vibrato it would still have"
+    },
+    {
+      "segmentId": "seg-135",
+      "startMs": 775460,
+      "endMs": 782680,
+      "text": "had the vibrato on it so let's just listen to that once more for you"
+    },
+    {
+      "segmentId": "seg-136",
+      "startMs": 786880,
+      "endMs": 792100,
+      "text": "in fact if we was to lower this down into the back of the mix and use it as just a bit of an"
+    },
+    {
+      "segmentId": "seg-137",
+      "startMs": 792100,
+      "endMs": 797400,
+      "text": "additional boost to this one it should be in tune let's put the guitar in and everything"
+    },
+    {
+      "segmentId": "seg-138",
+      "startMs": 799560,
+      "endMs": 800480,
+      "text": "for you"
+    },
+    {
+      "segmentId": "seg-139",
+      "startMs": 805040,
+      "endMs": 809780,
+      "text": "okay it's there in the background i didn't quite do it then did i i think i pressed the wrong button"
+    },
+    {
+      "segmentId": "seg-140",
+      "startMs": 809780,
+      "endMs": 813740,
+      "text": "which is one of those things there you go there we go it's all off now so let's"
+    },
+    {
+      "segmentId": "seg-141",
+      "startMs": 813740,
+      "endMs": 819940,
+      "text": "let's have a listen to it all together and see what happens i've been a fool"
+    },
+    {
+      "segmentId": "seg-142",
+      "startMs": 821560,
+      "endMs": 822880,
+      "text": "for you"
+    },
+    {
+      "segmentId": "seg-143",
+      "startMs": 827400,
+      "endMs": 835660,
+      "text": "so it's perfectly in tune so i hope you realize how easy it is to do these things manually"
+    },
+    {
+      "segmentId": "seg-144",
+      "startMs": 835660,
+      "endMs": 845320,
+      "text": "um as you can see now we have all these options if i want to take that note out of tune again"
+    },
+    {
+      "segmentId": "seg-145",
+      "startMs": 846220,
+      "endMs": 848520,
+      "text": "which would be silly to do but I could do."
+    },
+    {
+      "segmentId": "seg-146",
+      "startMs": 848800,
+      "endMs": 850180,
+      "text": "Right, let's put it up there."
+    },
+    {
+      "segmentId": "seg-147",
+      "startMs": 850660,
+      "endMs": 853120,
+      "text": "Let's make it look, be really silly"
+    },
+    {
+      "segmentId": "seg-148",
+      "startMs": 853120,
+      "endMs": 855300,
+      "text": "so you can see what you can do with the software."
+    },
+    {
+      "segmentId": "seg-149",
+      "startMs": 855540,
+      "endMs": 857200,
+      "text": "As I say, this is 2015."
+    },
+    {
+      "segmentId": "seg-150",
+      "startMs": 857440,
+      "endMs": 858900,
+      "text": "This is not new software."
+    },
+    {
+      "segmentId": "seg-151",
+      "startMs": 859400,
+      "endMs": 861320,
+      "text": "We've been able to do this for some time."
+    },
+    {
+      "segmentId": "seg-152",
+      "startMs": 861460,
+      "endMs": 863360,
+      "text": "Now this is going to hopefully sound horrible."
+    },
+    {
+      "segmentId": "seg-153",
+      "startMs": 864240,
+      "endMs": 869680,
+      "text": "I've been a fool for you."
+    },
+    {
+      "segmentId": "seg-154",
+      "startMs": 873680,
+      "endMs": 874920,
+      "text": "That's cringe, isn't it?"
+    },
+    {
+      "segmentId": "seg-155",
+      "startMs": 874920,
+      "endMs": 875900,
+      "text": "That really is cringe."
+    },
+    {
+      "segmentId": "seg-156",
+      "startMs": 876280,
+      "endMs": 879800,
+      "text": "But as you can see, how much you can change it."
+    },
+    {
+      "segmentId": "seg-157",
+      "startMs": 879980,
+      "endMs": 881560,
+      "text": "Just this one here, look."
+    },
+    {
+      "segmentId": "seg-158",
+      "startMs": 881960,
+      "endMs": 883460,
+      "text": "I could make a harmony probably."
+    },
+    {
+      "segmentId": "seg-159",
+      "startMs": 887620,
+      "endMs": 891760,
+      "text": "But it doesn't necessarily sound totally unnatural."
+    },
+    {
+      "segmentId": "seg-160",
+      "startMs": 892660,
+      "endMs": 895160,
+      "text": "Not really, because it's been manually."
+    },
+    {
+      "segmentId": "seg-161",
+      "startMs": 895580,
+      "endMs": 895840,
+      "text": "For you."
+    },
+    {
+      "segmentId": "seg-162",
+      "startMs": 896720,
+      "endMs": 897380,
+      "text": "For you."
+    },
+    {
+      "segmentId": "seg-163",
+      "startMs": 899980,
+      "endMs": 900620,
+      "text": "Huh?"
+    },
+    {
+      "segmentId": "seg-164",
+      "startMs": 901420,
+      "endMs": 907060,
+      "text": "so anyway little short video just to give you a bit of an idea what you can do with pitch correction"
+    },
+    {
+      "segmentId": "seg-165",
+      "startMs": 907980,
+      "endMs": 916480,
+      "text": "and auto tune i hope this has been slightly useful and help you to understand how easy it is to do in"
+    },
+    {
+      "segmentId": "seg-166",
+      "startMs": 916480,
+      "endMs": 922680,
+      "text": "what we call post production you know so we get the singer to sing if we're flogging a dead horse"
+    },
+    {
+      "segmentId": "seg-167",
+      "startMs": 923200,
+      "endMs": 927340,
+      "text": "then we get fed up and if there's only a couple of notes here and there then"
+    },
+    {
+      "segmentId": "seg-168",
+      "startMs": 929040,
+      "endMs": 937680,
+      "text": "some people will use this tool. I won't. I'm nasty and horrid. I keep getting them to sing it until"
+    },
+    {
+      "segmentId": "seg-169",
+      "startMs": 937680,
+      "endMs": 941140,
+      "text": "they actually sing it in tune. Hang on, you're a singer, aren't you? If you're a singer, you can"
+    },
+    {
+      "segmentId": "seg-170",
+      "startMs": 941140,
+      "endMs": 945660,
+      "text": "sing in tune, can't you? Can you not sing in tune? If you can't sing in tune, you're not a singer,"
+    },
+    {
+      "segmentId": "seg-171",
+      "startMs": 945700,
+      "endMs": 952740,
+      "text": "are you? I know that's cruel. That's just the way some people are. Certainly I am. Anyway,"
+    },
+    {
+      "segmentId": "seg-172",
+      "startMs": 952740,
+      "endMs": 956740,
+      "text": "Anyway, if you've enjoyed this, don't forget to like and subscribe."
+    },
+    {
+      "segmentId": "seg-173",
+      "startMs": 958340,
+      "endMs": 959820,
+      "text": "And thank you very much."
+    },
+    {
+      "segmentId": "seg-174",
+      "startMs": 959840,
+      "endMs": 961400,
+      "text": "I'll see you in my next video."
+    },
+    {
+      "segmentId": "seg-175",
+      "startMs": 961840,
+      "endMs": 962520,
+      "text": "Bye for now."
+    }
+  ]
+}

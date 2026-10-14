@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "kind": "creator_corrections_partial_gold",
+  "partialGold": true,
+  "authoredOn": "2026-10-14",
+  "metadataTool": "yt-dlp 2026.08.19 via uvx",
+  "metadataExtractionRequests": 6,
+  "extraSearchRequests": 0,
+  "downloadInvocations": 4,
+  "youtubeHttpRequestCount": null,
+  "requestCountingNote": "Counts top-level yt-dlp video metadata extraction attempts, not internal HTTP requests. Downloads used saved info JSON and made no further metadata extraction.",
+  "licenseGuidanceUrl": "https://support.google.com/youtube/answer/2797468?hl=en",
+  "licenseGuidanceNote": "Current YouTube Creative Commons guidance links CC BY 4.0; yt-dlp license text itself carries no version.",
+  "modelReviewCalls": 0,
+  "cloudSttCalls": 0,
+  "metadataRequests": [
+    {
+      "videoId": "BBvze0lGcZg",
+      "outcome": "verified"
+    },
+    {
+      "videoId": "JhVJMO0wgTE",
+      "outcome": "verified"
+    },
+    {
+      "videoId": "FqYg-gjCrPw",
+      "outcome": "missing license/channel; playable formats available"
+    },
+    {
+      "videoId": "mMZYKxgc9TE",
+      "outcome": "verified"
+    },
+    {
+      "videoId": "FqYg-gjCrPw",
+      "outcome": "web-client extraction failed: no playable formats; no metadata returned"
+    },
+    {
+      "videoId": "FqYg-gjCrPw",
+      "outcome": "verified using web client and --ignore-no-formats-error"
+    }
+  ],
+  "videos": [
+    {
+      "videoId": "BBvze0lGcZg",
+      "creator": "vlogbrothers",
+      "channelUrl": "https://www.youtube.com/channel/UCGaVdbSav8xWuFWTadK6loA",
+      "title": "Is Book Publishing Dying? An Author's Perspective",
+      "url": "https://www.youtube.com/watch?v=BBvze0lGcZg",
+      "license": "Creative Commons Attribution license (reuse allowed)",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "licenseVerifiedAt": "2026-10-14T13:53:33.966717+00:00",
+      "uploadDate": "2025-10-21",
+      "youtubeDurationSeconds": 377,
+      "durationMs": 376906,
+      "description": "In which John discusses the decline of book publishing, and whether it may prove permanent.\nNerdfighter art: http://projectforawesome.com/physicalart\nCORRECTION: All Call of Duty games COMBINED have sold over 500,000,000 copies, not just CoD Black Ops 6. Sorry for the mistake.\n SOURCES:\nPew's most recent survey on U.S. adult reading habits: https://www.pewresearch.org/short-reads/2022/01/06/three-in-ten-americans-now-read-e-books/\n\nPW article on number of copies sold in 2024: https://www.publishersweekly.com/pw/by-topic/industry-news/publisher-news/article/96842-print-book-sales-saw-a-small-sales-increase-in-2024.html\n\nPW article on the somewhat concerning decline in year over year sales this year: https://www.publishersweekly.com/pw/by-topic/industry-news/financial-reporting/article/98843-publishing-sales-hit-a-wall-in-july.html\n\n\n\n----\nSubscribe to our newsletter! https://werehere.beehiiv.com/subscribe\nLearn more about our project to help Partners in Health radically reduce maternal mortality in Sierra Leone: https://www.pih.org/hankandjohn\nIf you're able to donate $2,000 or more to this effort, please join our matching fund: https://pih.org/hankandjohnmatch\nIf you're in Canada, you can donate here: https://pihcanada.org/hankandjohn",
+      "correctionNote": "CORRECTION: All Call of Duty games COMBINED have sold over 500,000,000 copies, not just CoD Black Ops 6. Sorry for the mistake.",
+      "media": "../../fixtures/media/editorial-real/BBvze0lGcZg.mp4",
+      "mediaSha256": "85bd44d8a66bab49c8f68c1ac73a2b2c26022c6cda6777c7cfad4a39be1eee8c",
+      "width": 1280,
+      "height": 720,
+      "evalOnly": false
+    },
+    {
+      "videoId": "JhVJMO0wgTE",
+      "creator": "vlogbrothers",
+      "channelUrl": "https://www.youtube.com/channel/UCGaVdbSav8xWuFWTadK6loA",
+      "title": "Henry",
+      "url": "https://www.youtube.com/watch?v=JhVJMO0wgTE",
+      "license": "Creative Commons Attribution license (reuse allowed)",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "licenseVerifiedAt": "2026-10-14T13:54:38.180912+00:00",
+      "uploadDate": "2023-08-15",
+      "youtubeDurationSeconds": 421,
+      "durationMs": 420560,
+      "description": "In which John at last reveals why he is obsessed with tuberculosis. Links:\nThe YouTube Channel: https://www.youtube.com/@henryreider1446\nThe Discord: https://discord.gg/cDjuvmpvXM\nUPDATE: Henry's fundraiser has wrapped up after achieving all its goals AND THEN SOME. Thanks to all who donated! Please follow Henry's future on his YouTube channel!\n\nImportant correction: Dr Girum explained to me that Henry was among the first to receive befaquiline but not the first. He was the first to receive a different med that allowed him to safely take bedaquiline. I’m sorry for the error. \n\nThanks so, so much to Henry for his openness and generosity and friendship, and to Dr. Girum Tefera and his colleagues at Lakka for working so relentlessly in difficult circumstances to advocate for and treat people living with TB. Thanks also to everyone at Partners in Health for introducing to me to Henry and to their incredibly important work with TB survivors.\n\n----\nSubscribe to our newsletter! http://eepurl.com/Bgi9b\nAnd join the community at http://nerdfighteria.com  \nHelp transcribe videos - http://nerdfighteria.info\nLearn more about our project to help Partners in Health radically reduce maternal mortality in Sierra Leone: https://www.pih.org/hankandjohn\nIf you're able to donate $2,000 or more to this effort, please join our matching fund: https://pih.org/hankandjohnmatch\nIf you're in Canada, you can donate here: https://pihcanada.org/hankandjohn\nJohn's twitter - http://twitter.com/johngreen\nHank's twitter - http://twitter.com/hankgreen\nHank's tumblr - http://edwardspoonhands.tumblr.com",
+      "correctionNote": "Important correction: Dr Girum explained to me that Henry was among the first to receive befaquiline but not the first. He was the first to receive a different med that allowed him to safely take bedaquiline. I’m sorry for the error. ",
+      "media": "../../fixtures/media/editorial-real/JhVJMO0wgTE.mp4",
+      "mediaSha256": "2c0b7760cc6d140127f498e209a5de763e7c34a676c36e1668d468e334b0ad5d",
+      "width": 1280,
+      "height": 720,
+      "evalOnly": true
+    },
+    {
+      "videoId": "FqYg-gjCrPw",
+      "creator": "Gavin Davies Music",
+      "channelUrl": "https://www.youtube.com/channel/UC3co7usechhWcvPko3LlodA",
+      "title": "Autotune and Pitch Correction - explained for the music listener in -  plain English",
+      "url": "https://www.youtube.com/watch?v=FqYg-gjCrPw",
+      "license": "Creative Commons Attribution license (reuse allowed)",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "licenseVerifiedAt": "2026-10-14T13:57:00.601337+00:00",
+      "uploadDate": "2026-09-17",
+      "youtubeDurationSeconds": 965,
+      "durationMs": 964696,
+      "description": "Auto tune and Pitch Correction explained for the music listener in plain English. Have you ever wondered what everyone means when they talk about Auto Tune and Pitch correction software? Well I talk about it in plain English and show easy to understand examples of how it is done.\n\nIn my video I mention that the software I am using is from 2015 when it is actually from 2019. The individual components for auto tune and pitch correction were actually introduced in 2009 so a very long time ago. Engineers have been able to fix out of tune vocals for a very long time.\n\n#autotune #pitchcorrection #musiclovers @wingsofpegasus \n\nIf you would like to listen to my original music then please follow the links on my website, Instagram and Facebook page\nwww.gavindavies.co.uk\nEquipment I use to create my videos\nCanon R10\n16mm Canon Lens\nPronstoor Teleprompter\nNeewer LED lighting\nNeuman TLM 107\nUniversal Audio apollo twin\nCubase\nMicrosoft Windows workstation\nAdobe Premiere Pro\nAdobe Photoshop\nInstruments\nGuitars\nTaylor Big Baby\nPatrick James Eggle Acoustic\nFender Strat USA built\nFender Semi Acoustic Bass\nAria AK45 Classical\nFishman Rare Earth blend pickup\nFender Superchamp x2 valve\nLine 6 Bass amp\nDrums\nKD Shells\nZildjian Cymbals\nSabian Cymbals\nistambul Cymbals\nYamaha Recording Custom snare\nAudix drum microphones\nI buy my gear from\n @ Gear4music",
+      "correctionNote": "In my video I mention that the software I am using is from 2015 when it is actually from 2019. The individual components for auto tune and pitch correction were actually introduced in 2009 so a very long time ago. Engineers have been able to fix out of tune vocals for a very long time.",
+      "media": "../../fixtures/media/editorial-real/FqYg-gjCrPw.mp4",
+      "mediaSha256": "a063292f5d7f802b589d8a3447192468640397dbf1a0aacd33a95ec3d2105bc7",
+      "width": 1280,
+      "height": 720,
+      "evalOnly": false
+    },
+    {
+      "videoId": "mMZYKxgc9TE",
+      "creator": "vlogbrothers",
+      "channelUrl": "https://www.youtube.com/channel/UCGaVdbSav8xWuFWTadK6loA",
+      "title": "Ukraine and Russia: What Caused the War?",
+      "url": "https://www.youtube.com/watch?v=mMZYKxgc9TE",
+      "license": "Creative Commons Attribution license (reuse allowed)",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "licenseVerifiedAt": "2026-10-14T13:55:28.626594+00:00",
+      "uploadDate": "2022-03-15",
+      "youtubeDurationSeconds": 535,
+      "durationMs": 535290,
+      "description": "In which John explores historical and political context to understand what caused the Russian government's invasion of Ukraine, and how we arrived at this awful now. There is a LOT of misinformation in comments, so why not read directly from SOURCES? But first, CORRECTIONS:\n\nThe official language of Ukraine is Ukrainian. \"National languages\" as a phrase was confusing. I should've just said that 30% of Ukrainians speak Russian as their first language. Also, the etymology of \"Ukraine\" is not settled as \"borderlands.\" Many Ukrainian linguists argue that the etymology of Ukraine comes from words meaning \"In My Land,\" not \"borderlands.\" Thirdly, I  misspelled Kyiv as Kiev. If I made further mistakes, let me know and I'll amend here.\n\nNow, SOURCES:\n\nPutin's claims that Ukraine never had \"real statehood\" have been stated in both essays and speeches. Here's some coverage of one such speech: https://time.com/6150046/ukraine-statehood-russia-history-putin/\n\nAnd a fact-check of the same speech: https://www.washingtonpost.com/politics/2022/02/23/fact-checking-putins-speech-ukraine/\n\nIf you want to read Vladimir Putin's essay where he expounds his theory that Ukraine \"was created entirely by Russia,\" you can read Putin's meandering, surreal, ahistorical essay about it here: http://en.kremlin.ru/events/president/news/66181 (This is an insecure site owned by the Kremlin so bear that in mind)\n\nThis article goes into far more detail about Putin's theory of Ukraine's illegitimacy than I could cover in the video: https://www.nytimes.com/2022/02/21/world/europe/putin-ukraine.html\n\nYou can learn about the Holodomor here: https://www.britannica.com/event/Holodomor or at this thoroughly researched wikipedia page: https://en.wikipedia.org/wiki/Holodomor\n\nAnd about Stalin's forced deportation policies here: https://en.wikipedia.org/wiki/Population_transfer_in_the_Soviet_Union\n\nPutin's reference to assault in the context of invading Ukraine: https://www.businessinsider.com/putin-macron-meeting-quote-obscene-lyrics-show-russia-ukraine-demands-2022-2\n\nThe 1991 Independence referendum results: https://en.wikipedia.org/wiki/1991_Ukrainian_independence_referendum\n\n\nHuge thanks to Rosianna Halse Rojas for editing the script and help sourcing images.\n\n----\nSubscribe to our newsletter! https://nerdfighteria.com/nerdfighteria-newsletter\nAnd join the community at http://nerdfighteria.com  \nHelp transcribe videos - http://nerdfighteria.info\nLearn more about our project to help Partners in Health radically reduce maternal mortality in Sierra Leone: https://www.pih.org/hankandjohn\nIf you're able to donate $2,000 or more to this effort, please join our matching fund: https://pih.org/hankandjohnmatch\nJohn's twitter - http://twitter.com/johngreen\nHank's twitter - http://twitter.com/hankgreen\nHank's tumblr - http://edwardspoonhands.tumblr.com",
+      "correctionNote": "The official language of Ukraine is Ukrainian. \"National languages\" as a phrase was confusing. I should've just said that 30% of Ukrainians speak Russian as their first language. Also, the etymology of \"Ukraine\" is not settled as \"borderlands.\" Many Ukrainian linguists argue that the etymology of Ukraine comes from words meaning \"In My Land,\" not \"borderlands.\" Thirdly, I  misspelled Kyiv as Kiev. If I made further mistakes, let me know and I'll amend here.",
+      "media": "../../fixtures/media/editorial-real/mMZYKxgc9TE.mp4",
+      "mediaSha256": "192722bc27716b69f35a6ed811f285f2600231890507b6201a7106a3f43e7947",
+      "width": 1280,
+      "height": 720,
+      "evalOnly": false
+    }
+  ]
+}

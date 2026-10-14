@@ -146,6 +146,8 @@ def score_video(
         "strengthCount": sum(1 for f in findings if f.get("severity") == "none"),
         "variants": {},
     }
+    if label.get("partialGold"):
+        result["partialGold"] = True
     for name, (severity_key, require_dimension) in VARIANTS.items():
         counted = issue_findings(findings, rule[severity_key])
         pairs = match_findings(issues, counted, rule, require_dimension=require_dimension)
@@ -204,6 +206,10 @@ def aggregate_arm(videos: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         "cleanVideos": len(clean),
         "goldIssues": sum(v["issueCount"] for v in flawed),
     }
+    partial_gold = any(v.get("partialGold") for v in videos)
+    if partial_gold:
+        out["partialGoldVideos"] = sum(bool(v.get("partialGold")) for v in videos)
+        out["precisionUnavailableReason"] = "Partial gold: unlabelled real issues may exist."
     for name in VARIANTS:
         matched = sum(v["variants"][name]["matchedCount"] for v in flawed)
         findings = sum(v["variants"][name]["findingCount"] for v in flawed)
@@ -215,8 +221,8 @@ def aggregate_arm(videos: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
             "recall": ratio(matched, gold),
             "recallCi95": wilson(matched, gold),
             "findings": findings,
-            "precision": ratio(matched, findings),
-            "precisionCi95": wilson(matched, findings),
+            "precision": None if partial_gold else ratio(matched, findings),
+            "precisionCi95": None if partial_gold else wilson(matched, findings),
             "unmatchedFindings": findings - matched,
             "cleanControlFindings": clean_findings,
             "cleanControlsFlagged": sum(1 for v in clean if v["variants"][name]["findingCount"]),
@@ -362,13 +368,18 @@ def render_markdown(result: Mapping[str, Any]) -> str:
         agg = data["aggregate"]
         head = agg["headline"]
         err = agg["startErrorMs"]["median"]
+        precision = (
+            "n/a (partial gold)"
+            if agg.get("partialGoldVideos")
+            else f"{head['matched']}/{head['findings']} {pct(head['precision'])}"
+        )
         lines.append(
             f"| {arm} | {head['matched']}/{agg['goldIssues']} "
             f"{pct_ci(head['recall'], head['recallCi95'])} "
             f"| {agg['actionable']['matched']}/{agg['goldIssues']} "
             f"{pct(agg['actionable']['recall'])} "
             f"| {agg['timeOnly']['matched']}/{agg['goldIssues']} {pct(agg['timeOnly']['recall'])} "
-            f"| {head['matched']}/{head['findings']} {pct(head['precision'])} "
+            f"| {precision} "
             f"| {'n/a' if err is None else f'{err / 1000:.1f} s'} "
             f"| {head['cleanControlFindings']} ({head['cleanControlFindingsPerMinute']}) |"
         )
