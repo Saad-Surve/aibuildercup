@@ -1,3 +1,4 @@
+import type { CreatorInterestCalibration } from "@/lib/types";
 import { API_BASE_URL } from "@/lib/api-base";
 import { auth } from "@/lib/firebase";
 
@@ -73,4 +74,18 @@ export async function apiFetchBlob(
     );
   }
   return await response.blob();
+}
+
+/** Channel drop-off calibration; all requests share the authenticated API boundary. */
+export function getInterestCalibration(): Promise<CreatorInterestCalibration> {
+  return apiFetch<CreatorInterestCalibration>("/interest-calibration");
+}
+
+export function calibrateInterest(
+  connectionId: string,
+): Promise<CreatorInterestCalibration> {
+  return apiFetch<CreatorInterestCalibration>("/interest-calibration", {
+    method: "POST",
+    body: JSON.stringify({ connectionId }),
+  });
 }

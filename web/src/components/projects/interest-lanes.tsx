@@ -15,6 +15,7 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
+import { InterestCalibrationPanel } from "@/components/projects/interest-calibration-panel";
 import { formatDurationMs } from "@/lib/analysis";
 import type { InterestCurve, InterestMoment, InterestPoint } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -331,13 +332,20 @@ export function InterestLanes({
         <span className="w-9 shrink-0" aria-hidden="true" />
       </div>
 
+      <p className="text-[10px] text-muted-foreground">
+        {curve.baselineSource?.source === "creator"
+          ? `Channel drop-off · ${curve.baselineSource.channelName ?? "your audience"} · ${curve.baselineSource.videos} videos`
+          : "Generic drop-off"}
+      </p>
+
       {infoOpen && (
-        <p
+        <div
           id={infoId}
           className="rounded-md border border-border/70 bg-muted/40 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground"
         >
-          {infoText(curve)}
-        </p>
+          <p>{infoText(curve)}</p>
+          <InterestCalibrationPanel />
+        </div>
       )}
 
       <SignalLanes
@@ -370,16 +378,32 @@ function infoText(curve: InterestCurve): string {
       "Predicted from the transcript by a model trained on public YouTube videos' Most Replayed data.",
     );
   }
-  parts.push(
-    "The dashed line is the typical drop-off at each point in a video. Peaks (▲) and dips (▼) mark where this video's content is predicted to beat or fall short of it.",
-  );
-  if (typeof calibration?.liftSpearman === "number") {
+  const source = curve.baselineSource;
+  if (source?.source === "creator") {
+    const date = source.calibratedAt
+      ? new Date(source.calibratedAt).toLocaleDateString()
+      : "the last calibration";
     parts.push(
-      `Beyond position alone, the model's deviations correlate with the real ones at ρ = ${calibration.liftSpearman.toFixed(2)}, so treat the markers as places to look, not verdicts.`,
+      `The dashed line uses ${source.channelName ?? "your channel"}'s drop-off shape, blended with the generic head: ${source.videos} videos and ${source.views.toLocaleString()} views, calibrated ${date}. This adapts the drop-off shape to your audience; it does not measure how well the content model fits them. The public-data scores above do not evaluate channel calibration.`,
+    );
+  } else {
+    parts.push(
+      `The dashed line uses the generic drop-off shape. ${source?.reason === "Using the generic drop-off shape." ? "" : (source?.reason ?? "")}`.trim(),
     );
   }
   parts.push(
-    "It ranks moments within this video; it is not retention or a quality score.",
+    "Peaks (▲) and dips (▼) mark where this video's content is predicted to beat or fall short of that baseline.",
+  );
+  if (
+    source?.source !== "creator" &&
+    typeof calibration?.liftSpearman === "number"
+  ) {
+    parts.push(
+      `Beyond position alone, the model's deviations correlate with the real ones at ρ = ${calibration.liftSpearman.toFixed(2)} on public held-out videos.`,
+    );
+  }
+  parts.push(
+    "It ranks moments within this video; it is not a retention prediction or a quality score. Treat the markers as places to look, not verdicts.",
   );
   if (curve.featureSource === "transcript") {
     parts.push("This run used transcript timing and wording only.");

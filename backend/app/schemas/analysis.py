@@ -10,6 +10,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.schemas.interest_calibration import InterestBaselineSource
+
 
 class AnalysisDimension(StrEnum):
     """Reviewer dimensions.
@@ -460,6 +462,7 @@ class InterestCurve(BaseModel):
     peaks: list[InterestMoment] = Field(default_factory=list)
     dips: list[InterestMoment] = Field(default_factory=list)
     calibration: InterestCalibration | None = None
+    baselineSource: InterestBaselineSource = Field(default_factory=InterestBaselineSource)
     costEstimateUsd: float = 0.0
     error: dict[str, Any] | None = None
     createdAt: datetime | None = None

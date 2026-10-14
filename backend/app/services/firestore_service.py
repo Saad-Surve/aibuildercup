@@ -7,6 +7,7 @@ here for convenience.
 """
 
 from collections.abc import Iterable
+from datetime import datetime
 from functools import lru_cache
 from typing import Any, Protocol, runtime_checkable
 
@@ -131,6 +132,10 @@ class FirestoreClient(Protocol):
         self, parent: str, path: str, uid: str, data: dict[str, Any], *, create_only: bool = False
     ) -> bool: ...
 
+    def reserve_owned_cooldown(
+        self, path: str, uid: str, data: dict[str, Any], now: datetime
+    ) -> bool: ...
+
     def set_owned_children(
         self, parent: str, documents: list[tuple[str, dict[str, Any]]], uid: str
     ) -> bool: ...
@@ -216,6 +221,35 @@ class GoogleFirestoreClient:
             return bool(write(self._client.transaction()))
         except AlreadyExists:
             return False
+
+    def reserve_owned_cooldown(
+        self, path: str, uid: str, data: dict[str, Any], now: datetime
+    ) -> bool:
+        """Atomically reserve one rolling cooldown, including across UTC midnight."""
+        from google.cloud import firestore
+
+        if not path.startswith(user_path(uid) + "/") or data.get("ownerUid") != uid:
+            raise ValueError("Cooldown ownership mismatch")
+
+        @firestore.transactional
+        def reserve(transaction: Any) -> bool:
+            user = self._client.document(user_path(uid)).get(transaction=transaction)
+            target = self._client.document(path).get(transaction=transaction)
+            if (
+                not user.exists
+                or user.to_dict().get("deletingAt") is not None
+                or user.to_dict().get("ownerUid", uid) != uid
+            ):
+                return False
+            previous = target.to_dict() or {}
+            if target.exists and (
+                previous.get("ownerUid") != uid or previous.get("nextAllowedAt", now) > now
+            ):
+                return False
+            transaction.set(self._client.document(path), data)
+            return True
+
+        return bool(reserve(self._client.transaction()))
 
     def set_owned_children(
         self, parent: str, documents: list[tuple[str, dict[str, Any]]], uid: str

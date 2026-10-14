@@ -617,6 +617,49 @@ export interface InterestCalibration {
   trainedAt?: string;
 }
 
+export interface CreatorInterestBucket {
+  bucket: "short" | "long";
+  videos: number;
+  views: number;
+  creatorWeight: number;
+}
+
+export interface CreatorInterestCalibration {
+  status:
+    | "not_started"
+    | "calibrating"
+    | "ready"
+    | "insufficient_data"
+    | "failed";
+  connectionId?: string | null;
+  channelId?: string | null;
+  channelName?: string | null;
+  videos: number;
+  views: number;
+  scannedVideos: number;
+  apiRequests: number;
+  buckets: CreatorInterestBucket[];
+  reason?: string | null;
+  attemptedAt?: string | null;
+  calibratedAt?: string | null;
+  nextAllowedAt?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  methodVersion: string;
+}
+
+export interface InterestBaselineSource {
+  source: "generic" | "creator";
+  reason?: string | null;
+  connectionId?: string | null;
+  channelName?: string | null;
+  calibratedAt?: string | null;
+  videos: number;
+  views: number;
+  creatorWeight: number;
+  bucket?: "short" | "long" | null;
+}
+
 export interface InterestCurve {
   analysisRunId: string;
   status: "ready" | "failed";
@@ -628,6 +671,7 @@ export interface InterestCurve {
   peaks?: InterestMoment[];
   dips?: InterestMoment[];
   calibration?: InterestCalibration | null;
+  baselineSource?: InterestBaselineSource;
   costEstimateUsd?: number;
   error?: Record<string, unknown> | null;
   createdAt?: string;

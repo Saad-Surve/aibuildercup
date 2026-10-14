@@ -242,3 +242,32 @@ class SocialProvider(Protocol):
 
 class EmbeddingProvider(Protocol):
     def embed(self, text: str, *, media: MediaPart | None = None) -> list[float]: ...
+
+
+@dataclass(frozen=True)
+class VideoRetention:
+    """Owned YouTube video retention in the requested Analytics date range."""
+
+    duration_seconds: int
+    views: int
+    points: tuple[tuple[float, float], ...]
+
+
+@dataclass(frozen=True)
+class ChannelRetention:
+    videos: tuple[VideoRetention, ...]
+    scanned_videos: int
+    api_requests: int
+
+
+@runtime_checkable
+class YouTubeRetentionProvider(Protocol):
+    def collect(
+        self,
+        *,
+        access_token: str,
+        channel_id: str,
+        uploads_playlist_id: str,
+        start_date: str,
+        end_date: str,
+    ) -> ChannelRetention: ...
