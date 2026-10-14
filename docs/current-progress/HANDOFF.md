@@ -383,12 +383,21 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
   adjudicated 20/20, 33%, $1.39. **The nine-reviewer path is not yet better than one prompt on
   this set.** It matches recall and loses badly on precision and cost. The adjudicator only checks
   high/critical findings against footage, so it removed 5, and it passed a critical "false claim"
-  about a correct fact on the clean control. Phase 3 (in progress, worktrees under
-  `../aibuildercup-wt/`, context in `../aibuildercup-wt/PHASE3.md`) adds an editor pass that keeps,
-  merges or drops findings, an independent held-out set (authored by a different model family,
-  labels committed before any run), and a model-judged audit of the unmatched findings. The five
-  dev videos are now tuning data, so results on them are post-hoc. Constructed TTS media measures
-  planted-flaw detection, not accuracy on real creator videos.
+  about a correct fact on the clean control. Phase 3 added an editor pass (dev precision 31% to
+  74%, post-hoc), a model-judged audit (41 of 51 unmatched reviewer findings were duplicates, 2
+  spurious) and an independent held-out set (`evals/editorial-heldout/`, 6 videos, 22 issues,
+  labels at `6df94ce`). Held-out run `2026-10-14-heldout-flash38`: baseline 18/22, 100%, $0.16;
+  rubric 20/22, 95%, $0.21; reviewers 22/22, 34%, $1.43; **edited 21/22, 78%, clean control 1,
+  $1.49**; edited_adjudicated 20/22, 77%. The editor generalised, but **reviewers plus editor do
+  not beat the rubric prompt** (1 vs 2 discordant issues, lower precision, ~7x cost), and the
+  editor dropped broken-promise findings. The held-out set is now spent for tuning claims.
+  Phase 4 (worktrees under `../aibuildercup-wt/`, context in `../aibuildercup-wt/PHASE4.md`):
+  `feat/editor-v2` (rubric pass as a tenth reviewer, stronger dedupe, broken-promise fix, dev
+  only), `feat/editorial-longform` (independent 10-14 min constructed set, pre-registered) and
+  `feat/editorial-real` (real CC BY creator videos, creator-published corrections as a
+  recall-only answer key; hero demo is vlogbrothers `BBvze0lGcZg`). The coordinator runs both new
+  sets once the editor is frozen. Constructed TTS media measures planted-flaw detection, not
+  accuracy on real creator videos.
 - Everything in "Review loop work on local `main`": decisions, adjudicator v2 prompt, library
   links, rough-cut upload/activate/discard and re-review, comparison on real runs, writer context
   in thumbnails and listings. All pass ruff, mypy, lint and build; live checks were limited to one
