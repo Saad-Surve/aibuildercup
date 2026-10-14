@@ -1,20 +1,21 @@
 # Resonance and creator tools
 
 Public product documentation and USD pricing checked **11 October 2026**. This is a
-capability comparison against the inspected Resonance implementation, not a hands-on
+historical external-product snapshot compared with current Resonance source, not a hands-on
 competitor benchmark. No competitor outputs, creator judgments or measured task times
 have been collected. Feature availability varies by plan, region and rollout.
 
 **The workflow the repository supports is an inspectable editorial review.** Specialist
 findings link a moment, its explanation and a proposed edit to the video, and attributed
-creator material feeds later writing and visual generation. Better advice, faster work and
+creator material feeds later writing and visual generation. Rubric review, editor filtering,
+footage adjudication, creator decisions and re-review make the loop inspectable. Better advice, faster work and
 lower cost per useful edit are untested.
 
 ## Where the workflow differs
 
 | Tool | Established workflow | Resonance's implemented distinction | Where the other tool is stronger |
 |---|---|---|---|
-| **Descript** | Underlord reads scripts, watches video, gives feedback and executes edits; transcript editing, cleanup, clips and media generation. [Product](https://www.descript.com/underlord) | Nine named review dimensions and a five-second seekable heatmap organize critique, evidence and proposed edits. Truth review can request Search grounding; footage tools are bounded. | Actual source-video editing, multicam/layouts, audio repair and finished clips. Resonance suggestions and visual inserts still require an external edit. |
+| **Descript** | Underlord reads scripts, watches video, gives feedback and executes edits; transcript editing, cleanup, clips and media generation. [Product](https://www.descript.com/underlord) | Nine named review dimensions and a five-second seekable heatmap organize critique, evidence and proposed edits. Truth review can request Search grounding; footage tools are bounded. | Multicam/layouts, audio repair and finished clips. Resonance renders bounded creator-selected rough cuts; richer edits still need an external editor. |
 | **OpusClip** | ClipAnything uses visual, audio and sentiment cues to select moments, assemble clips and reframe them; paid workflows include captions and publishing. [Product](https://www.opus.pro/clipanything), [plans](https://www.opus.pro/pricing) | Reviews the source's factual support, clarity, safety and cultural fit as well as pacing; lets the creator inspect and revise specific advice before packaging. | Automated finished shorts, tracking/reframing and broader social distribution. Resonance does not currently cut source shorts automatically. |
 | **YouTube Studio** | Retention from actual viewers; native title/thumbnail experiments; Ask Studio gives channel-aware ideas and feedback on scripts and unpublished videos. [Ask Studio](https://support.google.com/youtube/answer/16291691?hl=en) | An explicit multi-dimension review interface, editable transcript versions, localization glossary and downloadable media in one project. | First-party audience evidence, concurrent experiments and native channel operations. Resonance heatmap scores describe flagged moments, not predicted retention. |
 | **ChatGPT** | Flexible critique, research and drafting; Projects retain files, instructions and shared context. Work can use tools and produce multi-step outputs. [Projects](https://learn.chatgpt.com/docs/projects), [usage](https://learn.chatgpt.com/docs/use-chatgpt) | A predefined video-review pipeline with a persistent player, timed findings, evidence references, revisions and media exports reduces the setup a creator must assemble. | General-purpose reasoning and flexible workflows. A well-prompted, context-rich ChatGPT project is a credible baseline; persistent context is not unique to Resonance. |
@@ -28,6 +29,7 @@ safety findings are editorial judgments, not legal advice.
 
 Creator retrieval is a separate design choice. Initial drafts retrieve attributed passages,
 thumbnails retrieve original images as references, and packaging requests creator context.
+Eligible findings can also receive separately attributed earlier-work examples after review.
 **Heatmap reviewers and inline writing alternatives do not use semantic library retrieval.**
 Do not describe every output as grounded in the creator's history.
 See [architecture](architecture.md#creator-memory-and-embeddings) for the consumer boundaries.
@@ -57,7 +59,8 @@ this affects baseline access, not review quality.
 
 For illustration, ten five-minute reviews with the same assumed token usage sum to
 **$1.475** in Resonance's STT/review components; 100 sum to **$14.75**. Search, footage
-inputs, cleanup, retries, compute, storage, support and other generation are excluded.
+inputs, cleanup, rubric/editor/adjudicator passes, interest signals, library links, retries,
+compute, storage, support and other generation are excluded.
 These figures cannot establish savings against a full subscription or a sustainable
 selling price. Measure total cost per completed review and per creator-accepted edit.
 
@@ -94,7 +97,10 @@ creator references and a Google Cloud implementation.
 The repository shows structured, source-linked editorial review and reusable creator
 references. The [20-query retrieval diagnostic](../evals/README.md) found the intended source
 first in **20/20 semantic versus 11/20 lexical** cases on its curated corpus. That compares
-Resonance's own retrieval methods. It says nothing about competitors.
+Resonance's own retrieval methods. It says nothing about competitors. The editorial harness
+compares plain-prompt, rubric, specialist, edited and adjudicated arms on four sets. Read
+[the results](../evals/README.md) before claiming that more reviewers improve precision or
+usefulness; constructed flaws and real creator corrections have distinct limits.
 
 Before claiming an advantage, run the [creator comparison protocol](../evals/creator-comparison.md):
 same source and context, competent baselines, complete outputs, human labels, and measured

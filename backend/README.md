@@ -30,9 +30,9 @@ YouTube OAuth is optional for editing/reviewing; publishing requires a connected
 | Path | Responsibility |
 |---|---|
 | `app/api/`, `app/schemas/` | Authenticated routes, validation and typed response shapes |
-| `app/providers/` | Gemini text/image/video/embeddings, STT, TTS, translation and public-source acquisition |
+| `app/providers/` | Gemini/media/STT/translation, public sources, Analytics and text-platform calls |
 | `app/services/` | Ownership, persistence, workflow logic, retrieval and media helpers |
-| `app/agents/` | Nine specialist reviewer prompts, normalization and bounded coordinator |
+| `app/agents/` | Specialist/rubric review, editor-v6, adjudicator-v2 and bounded coordination |
 | `app/workers/` | Transcription, analysis, captions, dubbing, thumbnails, packaging and publication |
 | `app/connectors/` | YouTube Data/Analytics adapter |
 | `app/realtime/` | Project progress, subscriptions and process-local WebSocket hub |
@@ -52,7 +52,9 @@ uv run python scripts/estimate_cost.py
 ```
 
 [Evaluation instructions](../evals/README.md) cover bounded live query embedding and
-cached offline replay. No test suite/testing libraries are used in this repository.
+cached offline replay and the editorial harness (`scripts/editorial_eval.py`): development,
+held-out, long-form and real creator sets. Runs default to dry-run; paid execution needs an
+explicit call bound. [HANDOFF.md](../docs/current-progress/HANDOFF.md) records live gaps. No test suite/testing libraries are used in this repository.
 
 [Creator import](../docs/creator-demo-import.md) and
 [public corpus](../docs/creator-public-corpus.md) document collection, validation,

@@ -6,14 +6,17 @@ can be billed. [Costs](../costs.md) and [evals](../../evals/README.md) describe 
 
 ## Local media
 
-`fixtures/media/` is **gitignored**, not a bundle of committed videos. The existing local
-folder includes explainers, Hindi education, technology, finance, workout and travel videos.
+`fixtures/media/` is **gitignored**, not a bundle of committed videos. Available local
+media varies by workstation; the repository does not guarantee a populated folder.
 Use normal upload/transcription to exercise media; do not claim a fresh clone includes these
 originals. Preserve existing files. AAC-in-video inputs use explicit STT decoding.
 
-Constructed chart variants in the local folder are diagnostics, not natural creator mistakes
-or viewer-study results. Their README references a preparation script absent from the current
-tracked tree; verify provenance/media before using them as evidence.
+Constructed fixtures are diagnostics, not natural creator mistakes or viewer-study results.
+The editorial harness in `backend/scripts/editorial_eval.py` reads four separately documented
+sets: [development](../../evals/editorial/README.md), [held-out](../../evals/editorial-heldout/README.md),
+[long-form](../../evals/editorial-longform/README.md) and [real creator](../../evals/editorial-real/README.md).
+Planted-flaw precision/recall and creator-published correction recall answer different questions;
+see each set for provenance, labels, media preparation and reuse limits.
 
 ## Public read-only demo
 

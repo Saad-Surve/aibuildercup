@@ -33,7 +33,10 @@ proxy WebSocket upgrades. Only public configuration belongs in `NEXT_PUBLIC_*` v
 Video projects keep the player visible while modules change. Drafts have a versioned
 editor, writing chat and alternatives. Project events update React Query over a shared
 WebSocket; query caches are cleared when authentication changes. Video/draft workspaces
-and avatar artwork load separately.
+and avatar artwork load separately. Review includes editor/rubric results, footage checks,
+creator decisions, earlier-work examples, rough-cut preview/activation/discard and before/after
+re-review comparison. Draft generation/chat can use linked video context; drafts can cross-post
+to Substack, Medium and Reddit. YouTube publishing exposes attachment warnings.
 
 All HTTP calls pass through `src/lib/api-client.ts`. Feature-specific TypeScript interfaces
 are maintained in `src/lib/types.ts` and must match [OpenAPI](../contracts/openapi.yaml);
@@ -56,4 +59,4 @@ changing framework code; the repository's `AGENTS.md` explains the version-speci
 [Architecture](../docs/architecture.md), [benchmarks](../evals/README.md) and
 [frontend reference](../docs/technical-design/frontend-plan.md) describe implementation
 and limits. Landing-page illustrations are demonstrations, not benchmark results or proof
-of connectors beyond YouTube.
+of live verification. [HANDOFF.md](../docs/current-progress/HANDOFF.md) tracks current gaps.

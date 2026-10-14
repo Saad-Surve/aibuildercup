@@ -60,12 +60,13 @@ Transcript edits/retranscription and video revision activation preserve source r
 
 Submission and polling are separate provider calls. Jobs persist a submission marker and each
 operation name before polling, so resumed workers reattach with GetOperation. Submission retries
-are limited to explicit 429 rejections; polling retries 429/503/deadline errors with bounded
+are limited to explicit 429/503 rejections; polling retries 429/503/deadline errors with bounded
 backoff and jitter, without submitting another batch. One configured deadline covers recognition
 and its deliberate fallbacks per worker invocation. Only terminal audio/container failures permit
 normalization; only terminal diarization rejections permit a plain attempt. Staged normalized
-audio remains available while polling can resume. An ambiguous submission with no saved name
-blocks automatic retry, as with Veo. Worker serialization remains process-local.
+audio remains available while polling can resume. An ambiguous submission with no saved name permits one deliberate resubmission, tracked by
+`ambiguousResubmits`; another unknown outcome blocks further automatic submission. This can
+create one duplicate operation. Worker serialization remains process-local.
 
 ## 8. Multi-reviewer analysis
 
@@ -91,6 +92,13 @@ when distributed across the transcript, and treats rubric/specialist agreement a
 rather than guaranteed correctness.
 Original IDs credit named corroborating reviewers in the finding card.
 Whole-transcript editor input is bounded; all input and output costs are included in the run.
+`editor-v6` applies a concrete-defect threshold before corroboration, preserves supported
+omissions and selects an existing representative in the owning dimension. Original scores,
+quotes and dimensions remain immutable. `adjudicator-v2` then checks selected serious findings
+against actual frames/clips, can downgrade/reject them and reconcile conflicting actions;
+it has no Search tools. Failed/cap-skipped checks remain unchecked. The post-review library
+step adds attributed examples separately from evidence. [Prompt reference](../reviewer-prompts.md)
+and [cost guards](../costs.md#what-the-guards-actually-enforce) give versions and bounds.
 
 These are specialized model prompts, not independent expert consensus. Confidence is not
 calibrated; URL presence/quote validity cannot establish factual correctness. Evaluation
@@ -100,8 +108,21 @@ methods and actual measurement scope are in [evals](../../evals/README.md).
 
 `services/heatmap.py` maps findings into five-second bins, weights overlapping quality
 scores by milliseconds, preserves finding IDs, and forces critical findings red.
-Empty spans have no invented score. `overallScore`/the UI's Flagged moments summary
+Editor-merged/dropped and adjudicator-rejected findings are excluded; adjusted severity is used.
+Empty spans have no invented score; coverage records which reviewer windows succeeded. `overallScore`/the UI's Flagged moments summary
 averages reported observations, not the whole video or predicted retention.
+
+Creator decisions (`accepted`, `revised`, `dismissed`, or cleared) are separate from model
+metadata. `rough_cut.py` builds safe cut/note plans from accepted/revised actions; the worker
+renders/uploads an inactive revision with a derived transcript and no STT. Preview, activation,
+discard, EDL export and fresh re-review are explicit actions. `analysis_compare.py` compares
+completed runs without model calls/writes, aligning cut maps or transcript tokens and retaining
+unmapped footage and uncompared findings. It excludes dismissed/rejected/dropped/merged advice.
+
+The relative-interest curve is separate from review scores. Gemini signals run alongside
+reviewers; creator YouTube Analytics calibration changes only a compatible curve's position
+baseline on read. Bounds and insufficient-data behavior are in
+[architecture](../architecture.md#audience-interest-lane).
 
 ## 10. Draft writing
 
@@ -109,7 +130,9 @@ Brief-driven drafts keep block versions, active version pointers, messages and g
 Initial generation retrieves creator passages; assist supports chat, rewrites, alternatives
 and continuation. Short suggestions do not retrieve the library. Search can ground initial
 writing/chat. A generation error may produce deterministic fallback blocks; ready status
-alone is not proof of successful AI generation. Web exports active or all-version content.
+alone is not proof of successful AI generation. Web exports active or all-version content. An optional source video contributes bounded transcript,
+effective findings, interest moments and persona context, saved for inspection; writing chat
+can also use this context. Thumbnail/listing planning uses the video-context helper too.
 
 ## 11. Media
 
@@ -124,7 +147,11 @@ and preserve revisions; batches cap at four concepts.
 OAuth connects YouTube accounts; content/captions and 28-day audience analytics sync into
 owned Firestore records. Publication uploads source/output media and optionally captions
 and a thumbnail, with future scheduling delegated to YouTube. Month/week calendar entries
-are project-owned. Other platform labels do not imply publishing connectors.
+are project-owned. Calendar labels alone do not publish. Draft cross-posts to Substack, Medium and Reddit use
+synchronous provider calls; Substack supports remote draft updates and platform-side scheduling.
+There is no scheduled local cross-post worker. See [setup](../connectors/text-platforms-setup.md).
+YouTube attachment failures store publish warnings; caption failure after video upload no longer
+fails the whole publication. Calendar promotion/deletion sync runs lazily on reads, not a due scan.
 
 ## 13. Packaging
 
@@ -148,7 +175,8 @@ Human-adjudicated review correctness and accepted-edit value remain unmeasured.
 One API container currently hosts the workers. GitHub Actions deploys Cloud Run at
 max-instances one, 1 GiB and CPU available after responses; web deploys to Firebase Hosting.
 Durable dispatch, distributed leases and shared realtime are prerequisites for multiple
-worker instances. Provisioned service accounts/subscriptions do not imply deployed consumers.
+worker instances. Terraform no longer defines BigQuery datasets or the unused worker
+subscriptions/service accounts. See [HANDOFF.md](../current-progress/HANDOFF.md) for cloud cleanup state.
 
 ## 16. Providers
 

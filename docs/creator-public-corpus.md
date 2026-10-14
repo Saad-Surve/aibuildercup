@@ -66,14 +66,15 @@ CREATOR_PRESET_ENABLED=true
 CREATOR_PRESET_OBJECT=creator-presets/arun-prabhudesai/270c988738ad61ad6fa8b53156c4893e5b52499fea8fcd34386107db8d440533/bundle.zip
 ```
 
-The deployed workflow accepts these as GitHub repository variables. They are configured for
-this corpus; changing the flag requires a deployment. Local development reads backend `.env`.
+The deployment workflow accepts these as GitHub repository variables; changing deployed
+configuration requires a deployment. See [HANDOFF.md](current-progress/HANDOFF.md) for current
+deployed state. Local development reads backend `.env`.
 
 True: library reads automatically install this corpus and precomputed vectors for the existing
 user; draft context and thumbnail retrieval use it. The source is visibly Arun's library with
 honest platform/language/attribution details, without operator instructions in the product.
-False: library, draft context and thumbnail selection use the user's actual synced connections,
-even if an imported corpus remains in their account. Changing the flag never overwrites their
+False: automatic preset installation is skipped. An active folder import still supplies
+library, draft context and thumbnail selection; otherwise the latest synced connection is used. Changing the flag never overwrites their
 persona, credentials or connections. Missing/mismatched configured artifacts return 503 instead
 of silently selecting a different creator. Precomputed publication must match backend model.
 
@@ -90,7 +91,8 @@ semantic search and real related-source cards support exploration.
 User copies are under `users/{uid}/creatorImports/...` and matching Storage user prefixes.
 Account deletion covers originals, semantic chunks, query cache and daily embedding budgets.
 The operator importer `remove` also removes an individual owned copy. While the flag remains
-on, the next library read reinstalls a removed preset. Disable it to return to connections.
+on, the next library read reinstalls a removed preset. Disable it and remove the active owned
+import to return to connections; the flag alone does not change an existing import selection.
 
 Shared immutable versions intentionally survive account deletion. Remove one explicitly:
 

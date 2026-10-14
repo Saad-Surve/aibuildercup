@@ -42,6 +42,8 @@ Google, not the old shared demo password.
 | `GET/POST /projects`, `GET/PATCH/DELETE /projects/{projectId}` | Video/draft project lifecycle |
 | `POST /projects/{projectId}/upload-session` | Signed direct Storage upload session |
 | `GET /projects/{projectId}/assets` | Asset metadata |
+| `DELETE /projects/{projectId}/assets/{assetId}` | Discard inactive rough cut and its derived transcript/reviews |
+| `GET /projects/{projectId}/assets/{assetId}/captions` | Ready revision captions without activation |
 | `POST /projects/{projectId}/assets/{assetId}/complete` | Verify uploaded object and reuse/queue transcription |
 | `GET /projects/{projectId}/assets/{assetId}/download-url` | Short-lived owned media download |
 | `GET /projects/{projectId}/revisions` | Video revision history and associated transcript/review metadata |
@@ -72,13 +74,23 @@ uses the direct Cloud Run socket origin.
 | `GET /{analysisRunId}` | Summary, dimensions, source/transcript/persona versions and cost estimate |
 | `GET /{analysisRunId}/reviewers` | Reviewer status, usage, grounding and tool references |
 | `GET /{analysisRunId}/findings` | Filtered/paginated actionable observations |
-| `GET /{analysisRunId}/heatmap` | Five-second bins with finding IDs |
+| `GET /{analysisRunId}/heatmap` | Five-second bins and reviewed-span coverage |
+| `GET /{analysisRunId}/interest` | Relative-interest curve with compatible creator baseline |
+| `PATCH /{analysisRunId}/findings/{findingId}` | Set/clear accepted, revised or dismissed creator decision |
+| `GET /{analysisRunId}/findings/{findingId}/adjudication/evidence` | Owned frame/clip reference for a footage check |
+| `GET /compare?baseRunId=...&targetRunId=...` | Read-only before/after alignment and issue comparison |
+| `GET/POST /{analysisRunId}/rough-cut/plan` | Read-only safe cut/note preview, including creator selection |
+| `POST /{analysisRunId}/rough-cut` | Render/upload an inactive revision, no STT or paid media generation |
+| `GET /{analysisRunId}/rough-cut/edl` | CMX3600 edit decision list or Markdown plan |
 | `GET /{analysisRunId}/reviewers/{reviewerRunId}/context/{index}` | Owned shared/requested footage download reference |
 
 All nine current dimensions are selectable; six core dimensions are always included.
 Legacy dimensions remain readable on old runs. `partial_failure` retains successful
 findings with incomplete coverage. The score summarizes flagged observations, not
-whole-video quality; source URLs/confidence fields are not independent verification.
+whole-video quality; source URLs/confidence fields are not independent verification. The
+all-rubric pass feeds the editor, then footage adjudication and library enrichment run before
+aggregation. Model-filtered findings remain stored. Decisions do not rewrite reviewer results;
+comparison excludes dismissed advice and reports insufficient alignment/coverage as uncompared.
 
 ## Writing and creator library
 
@@ -122,7 +134,9 @@ and an available project reservation. Source/transcript changes make older recor
 ## Connections, publication and calendar
 
 `/connections` lists owned connectors; `/{platform}/oauth/start` and `/oauth/callback`
-perform OAuth. Only YouTube has a concrete connector. Connection `/sync`, `/content`,
+perform OAuth for YouTube and Reddit. `POST /connections/medium/connect` accepts a legacy
+integration token; `POST /connections/substack/connect` accepts a session cookie. Connection
+`/sync` refreshes identity; YouTube `/content`,
 `/content/sync`, `/audience`, `/audience/sync` expose real channel/content/analytics flows;
 `DELETE /connections/{connectionId}` revokes/removes the connection.
 
@@ -131,7 +145,11 @@ publish records and `/retry` resumes/retries according to worker state. The work
 uploads to YouTube and may attach a thumbnail, caption track or scheduled publish time.
 `GET /schedules` reads the owner's calendar; project `/schedules` creates/lists entries,
 and child `PATCH/DELETE` edits/removes them. Calendar labels beyond YouTube are planning
-metadata, not active publishing integrations.
+metadata; they do not trigger a post. `POST /projects/{projectId}/crossposts` synchronously
+posts drafts to Substack/Medium/Reddit; `/crossposts/sync` updates linked Substack drafts.
+Substack can schedule remotely; local background cross-post scheduling is absent.
+`GET/POST /interest-calibration` reads/refreshes a channel retention baseline with a 24-hour
+user cooldown and bounded Analytics reads. Publish responses include thumbnail/caption warnings.
 
 ## Internal push and future routes
 
@@ -141,5 +159,5 @@ owned assets; generated media does not recursively trigger recognition.
 
 The generic `/projects/{projectId}/artifacts` and video-project chat message paths retain
 `x-status: planned` in OpenAPI and have no registered product router. Automatic shorts,
-account export bundles, generic artifact galleries and non-YouTube connectors are not
+account export bundles and generic artifact galleries are not
 implemented API capabilities. Native FastAPI `/docs` is available only locally.

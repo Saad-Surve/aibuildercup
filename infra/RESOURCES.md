@@ -1,7 +1,11 @@
 # Habeas Codus — Deployed Resources
 
-Human-readable inventory of everything provisioned for the hackathon. Everything here lives in the
-single GCP project `habeas-codus`, region `us-central1`.
+Human-readable inventory of the infrastructure defined in this folder for the single
+GCP project `habeas-codus`, region `us-central1`. This describes Terraform definitions,
+not live cloud state: definitions alone do not prove what is deployed, and the BigQuery
+/ worker cleanup described below was removed from Terraform but still needs a reviewed
+`terraform plan` and apply. Current deployment and pending infrastructure steps are in
+`../docs/current-progress/HANDOFF.md`.
 
 Terraform lives in this folder. Run commands from `infra/`.
 
@@ -68,14 +72,14 @@ gcloud firestore indexes composite create \
 
 ### Topics (the events that flow through the system)
 
-| Topic | Meaning |
-|---|---|
-| `video-events` | A video finished uploading and needs processing. |
-| `transcription-events` | A transcript is ready (or failed). |
-| `analysis-events` | An analysis run was requested / a reviewer finished. |
-| `social-sync-events` | A platform sync was requested. |
-| `artifact-events` | A media artifact (short, thumbnail, etc.) should be generated. |
-| `localization-events` | A localization/dubbing job should run. |
+| Topic | Meaning | Traffic |
+|---|---|---|
+| `video-events` | A video finished uploading and needs processing. | Live: GCS `object finalized` notification → push subscription below. |
+| `transcription-events` | A transcript is ready (or failed). | Published best-effort; no subscribers. |
+| `analysis-events` | An analysis run was requested / a reviewer finished. | Published best-effort; no subscribers. |
+| `social-sync-events` | Mapped in `backend/app/events.py` but never published. | None. |
+| `artifact-events` | Mapped in `backend/app/events.py` but never published. | None. |
+| `localization-events` | Mapped in `backend/app/events.py` but never published. | None. |
 
 ### Dead-letter topic
 
@@ -89,9 +93,10 @@ gcloud firestore indexes composite create \
 
 Only `video-events` has a consumer. The API also publishes `transcription-events` and
 `analysis-events` on a best-effort basis; nothing subscribes to them. `social-sync-events`,
-`artifact-events` and `localization-events` are mapped in `backend/app/events.py` but never
-published. The unused worker subscriptions, their dead-letter topics and the BigQuery datasets
-were removed from Terraform.
+`artifact-events` and `localization-events` exist as topics but are never published.
+BigQuery datasets, unused worker subscriptions, dead-letter topics and five worker service
+accounts were removed from Terraform (`infra/*.tf` has no BigQuery resources); applying
+that removal in the cloud is a separate reviewed step tracked in HANDOFF.md.
 
 ---
 
@@ -129,7 +134,9 @@ credentials in Terraform state.
 | `terraform@habeas-codus` | Manages all the above (bootstrap) |
 | `service-538724167565@gs-project-accounts` | Cloud Storage's own agent; can publish to `video-events` |
 
-The API runs as `creator-studio-api`; workers run inside that service.
+The API runs as `creator-studio-api`; workers run inside that service. Five separate
+worker service accounts were removed from Terraform; only the three above plus the
+bootstrap and Storage-agent identities remain defined.
 
 ---
 
@@ -181,9 +188,13 @@ gcloud billing projects link habeas-codus --billing-account=014B5B-1E8419-7A90A3
 
 ## Enabled APIs
 
-Storage, Firestore, Pub/Sub, Cloud Run, Artifact Registry, Cloud Build, Vertex AI,
-Speech-to-Text, Translation, Text-to-Speech, Secret Manager, Cloud KMS, Cloud Scheduler,
-YouTube Data, YouTube Analytics, Logging, Monitoring, Cloud Trace, Firebase, Identity Toolkit.
+`services.tf` enables only this infrastructure set; anything else the app calls (Gemini
+on Vertex AI / Agent Platform, Speech-to-Text, Translation, Text-to-Speech, YouTube Data
+and Analytics, Firebase/Identity Toolkit, Cloud Scheduler, Logging/Monitoring/Trace,
+Cloud Build) must already be enabled on the project outside this Terraform:
+
+Firestore, Pub/Sub, Cloud Run, Artifact Registry, Cloud Storage, Secret Manager, Cloud
+KMS, Cloud Functions, Eventarc, Billing Budgets.
 
 ---
 

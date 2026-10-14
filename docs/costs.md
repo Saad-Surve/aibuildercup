@@ -1,6 +1,8 @@
 # Cost model
 
-USD list prices checked against Google Cloud on **11 October 2026**. Examples below
+The source uses separate analysis, image, embedding and paid-video guards; no shared all-feature
+ledger exists. USD list prices below were checked on **11 October 2026** and have not been
+rechecked by this documentation refresh. Examples below
 are arithmetic scenarios, not measured invoices or a claim that every workflow is free.
 Credits, free allowances, taxes, currency conversion and discounts are excluded.
 For subscription context and its different denominator, see the
@@ -69,7 +71,10 @@ The [machine-readable result](../evals/results/cost-scenario.json) preserves all
 quantities and rates. These are **partial component subtotals**, not an all-in price:
 Search, image inputs/text output, thumbnail planning/critique, persona research,
 packaging generation, embeddings, compute, storage, egress and retries are omitted.
-No margin, subscription price or profitable unit economics can be inferred from them.
+The scenario also excludes the current rubric, editor, adjudicator, interest signals and
+post-review library stages. It is a reproducible older component scenario, not the current
+end-to-end review price. [Editorial results](../evals/README.md) record actual bounded run
+estimates for those arms. No margin, subscription price or profitable unit economics follows.
 
 ## Compute, storage and network
 
@@ -107,15 +112,17 @@ Python floats and metadata occupy more space. This is not measured Firestore sto
 | Rubric review | At most one one-attempt whole-transcript call/run, with a durable `rubricCalls/00` slot; reviewer model/prices, 100k-character input cap and 16,384 output/reasoning tokens | Reserves 40k input + 16,384 output tokens before admission; oversize or unaffordable input skips this extra review. Failures retain the allowance when usage is unknown. Search query charges are additional. |
 | Editor | At most three one-attempt calls/run (`MAX_EDITOR_CALLS`), one for <=10 minutes, with atomic run-owned reservations; <=100 findings and 100k characters per prompt, max 32,768 output/reasoning tokens, medium thinking by default | `MODEL_EDITOR`/prices fall back to reviewer settings. Each call needs a conservative 32k-input/32,768-output allowance. Every batch sees the whole supplied transcript, bounded by the same input cap. Oversized batches, errors and budget exhaustion leave findings unedited. Search with Truth findings can add query charges beyond the token estimate. |
 | Adjudicator | At most 12 one-attempt calls/run total (`MAX_ADJUDICATOR_CALLS`), including at most four conflict calls (`MAX_CONFLICT_CALLS`); atomic run-owned call slots survive retries. 32k-character prompts, one frame and optionally a ten-second silent clip, max 2,048 output/reasoning tokens; no Search | Uses `MODEL_ADJUDICATOR` or the reviewer model, with optional separate price settings. Each call needs remaining project budget for a conservative 12k input / 2,048 output estimate. Reported usage (or the allowance on uncertain failure) adds to `costEstimateUsd`. Input/media allowance is an estimate, not a billing hard cap. |
+| Channel calibration | At most 40 videos / 43 YouTube requests, 180-second provider deadline, one attempt per user per 24 hours; no Gemini calls | API quota and Firestore I/O still apply; insufficient data consumes the cooldown. |
+| Rough cut / comparison | Deterministic plan, FFmpeg render and derived transcript; comparison makes no model calls or writes | Rendering/storage/egress and a fresh re-review still cost money; this is not free editing. |
 | Concurrency | Four reviewers and four TTS requests by default; one deployed API instance | Controls pressure, not total usage across all workflows. |
 | Cloud budget | ₹8,500 configured budget with notifications and billing-detachment function | Billing data/notifications are delayed. This is a backstop, not an immediate hard cap. |
 
-The [production diagnosis](current-progress/HANDOFF.md#open-items)
-found twelve successful STT operations for one upload after polling failures triggered
-resubmissions. Job-document idempotency does not prevent duplicates inside a provider's
-retry loop. Separating submission from polling is a concrete reliability and cost fix;
-its benefit must be measured after implementation. Image retries currently use a short
-backoff window and do not provide shared pacing across jobs.
+STT now saves operation names before polling and resumes those operations rather than
+resubmitting after polling failures. Explicit submission-time 429/503 responses allow bounded
+retries; one ambiguous-submission resubmit is permitted and can still create a duplicate.
+Polling errors do not trigger normalized-audio fallback. The fix is implemented, with live
+verification status in [HANDOFF.md](current-progress/HANDOFF.md#open-items). Image retry/pacing
+limitations remain. Job idempotency is not an upstream exactly-once billing guarantee.
 
 ## How to report measured spend
 

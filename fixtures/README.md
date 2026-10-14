@@ -13,4 +13,7 @@ bounded live validation. Do not commit third-party media or private transcripts 
 [public corpus](../docs/creator-public-corpus.md) explain preparation/provenance.
 The public demo uses copied real workspace data; no generic `backend/scripts/seed.py`
 exists. [Evaluation cases/results](../evals/README.md) are separate from source originals
-and carry their own hashes, labels and measurement scope.
+and carry their own hashes, labels and measurement scope. The editorial harness uses four
+sets: [development](../evals/editorial/README.md), [held-out](../evals/editorial-heldout/README.md),
+[long-form](../evals/editorial-longform/README.md) and [real creator](../evals/editorial-real/README.md).
+Constructed flaws and recall-only creator corrections have different evaluation limits.

@@ -2,7 +2,8 @@
 
 The project is **`habeas-codus`**. [infra/RESOURCES.md](../../infra/RESOURCES.md) records
 resource names/configuration; Terraform definitions live in `infra/`. This document
-separates provisioned resources from the actual deployed runtime.
+describes Terraform definitions separately from the deployed runtime. [HANDOFF.md](../current-progress/HANDOFF.md)
+records deployment and pending infrastructure changes; definitions alone do not establish cloud state.
 
 ## Regions and authentication
 
@@ -23,8 +24,9 @@ when versions exist. Repository variables can override models, demo and corpus s
 The API currently uses max-instances **one**, min-instances zero, **1 GiB** memory,
 CPU available outside requests, and a 3,600-second request timeout. Transcription,
 analysis, captions, dubbing, thumbnails, packaging and publishing run within that service.
-Separate worker service accounts/subscriptions are provisioned expansion paths; they are
-not proof of independently deployed Cloud Run workers or Jobs.
+Unused worker subscriptions, dead-letter topics and five worker service accounts have been
+removed from Terraform, along with BigQuery datasets. The transcription push identity remains.
+Cloud cleanup requires a reviewed plan and apply; see HANDOFF.md for its current status.
 
 Firebase Hosting rewrites `/api/**` to the regional API and project deep links to the
 static project shell. WebSockets use the direct Cloud Run origin. `next.config.ts` rewrites
@@ -40,8 +42,8 @@ alone do not apply to production static hosting.
 | Terraform state bucket | Remote state, prefix `creator-studio` |
 | Firestore Native | Owned workflow/evidence data and current channel analytics; deny-all direct client rules |
 | Pub/Sub `video-events` | Storage-finalized push to the authenticated API transcription handler |
-| Other topics/subscriptions/DLQs | Pipeline announcements and provisioned expansion infrastructure |
-| BigQuery social/AI/audit datasets | Provisioned tables; no current end-to-end analytics/audit product established |
+| Other pipeline topics | Transcription/analysis announcements without consumers; social/artifact/localization topics have no active publishers |
+| `video-events-dlq` | Dead-letter destination for the retained transcription push subscription |
 
 Buckets enforce uniform access/public-access prevention. Media/corpus versioning retains
 noncurrent generations, with a default 30-day lifecycle; temporary-bucket objects expire
@@ -57,8 +59,8 @@ purged by the current adapter.
 
 OAuth client secrets are in Secret Manager, and persisted OAuth tokens are encrypted with
 Cloud KMS. Local development can use the configured local cipher, which is refused in
-production. Separate named service accounts document least-privilege intended lanes, while
-the current consolidated runtime necessarily needs the roles used by its in-process workers.
+production. The API identity carries permissions needed by its in-process workers. The
+transcription account supplies the push OIDC identity; the deployer publishes the service.
 No secrets belong in Git, public web variables or Terraform variable files.
 
 ## Budget and scale
@@ -83,7 +85,8 @@ terraform plan
 ```
 
 Inspect the plan before applying an authorized infrastructure change. This documentation
-work did not change Terraform, deploy services or run `apply`. Cloud Run/Firebase deployment
+work does not establish live cloud state. `services.tf` enables only its listed infrastructure
+APIs; model, Speech, Translation/TTS, Firebase and YouTube APIs may need separate enablement. Cloud Run/Firebase deployment
 configuration lives in GitHub Actions rather than a Terraform Cloud Run service resource.
 Monitor accepted model operations/retries, job errors, instance lifetime, data operations,
 output storage/egress and billing SKUs. Configured budgets/quotas are not measurements of
