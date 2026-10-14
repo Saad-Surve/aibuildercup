@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "videoId": "nova-x5-review",
+  "title": "Nova X5 Review: Worth 25,000 Rupees?",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "Indian buyers comparing budget smartphones around 25,000 rupees, many buying their first good phone.",
+  "brief": "Help Indian viewers decide between the fictional Nova X5 and its rivals with prices and advice that apply in India. Keep it friendly and encouraging for first-time buyers. Goal: viewers join the Telegram deals channel at nova.example/deals for price-drop alerts.",
+  "clean": false,
+  "durationMs": 230550,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/nova-x5-review.json",
+    "scriptSha256": "51e69383da18adf78ef877933c7afb65563c7aeecca21bc6178985eab95d93dd",
+    "media": "media/nova-x5-review.mp4",
+    "mediaSha256": "c53332e688ee67ee3dacbb66ade706b16e1acd23a8932acde3493339a3cde56d",
+    "tts": "macOS say, voice Rishi, 152 wpm"
+  },
+  "issues": [
+    {
+      "id": "P1",
+      "category": "jargon",
+      "startMs": 41965,
+      "endMs": 61851,
+      "additionalSpans": [],
+      "description": "A string of unexplained spec terms (LTPO AMOLED, UFS 3.1, vapour chamber, PWM dimming, SoC binning) is used with no gloss for a general first-time-buyer audience.",
+      "expectedDimension": "clarity"
+    },
+    {
+      "id": "P2",
+      "category": "unsupported_claim",
+      "startMs": 88063,
+      "endMs": 102923,
+      "additionalSpans": [],
+      "description": "Claims the battery 'easily lasts three days of heavy use' with no test, settings or source cited; a 5,000 mAh phone does not last three days of heavy use.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "P3",
+      "category": "locale_assumption",
+      "startMs": 120524,
+      "endMs": 134338,
+      "additionalSpans": [],
+      "description": "Gives the price only in US dollars and assumes US carriers and stores (Verizon, T-Mobile, Best Buy) although the audience and brief are Indian; the price should be in rupees with Indian retailers.",
+      "expectedDimension": "cultural_localization"
+    },
+    {
+      "id": "P4",
+      "category": "tone_mismatch",
+      "startMs": 151086,
+      "endMs": 167123,
+      "additionalSpans": [],
+      "description": "Sneers at budget buyers ('if you cannot afford a real flagship, I guess this is fine for you people'), which contradicts the brief's friendly, encouraging tone for first-time buyers.",
+      "expectedDimension": "audience_brand"
+    },
+    {
+      "id": "P5",
+      "category": "safety",
+      "startMs": 184087,
+      "endMs": 199427,
+      "additionalSpans": [],
+      "description": "Advises leaving the phone charging under a pillow overnight and says the warmth is normal. Phone makers warn against charging under bedding because trapped heat is a fire risk.",
+      "expectedDimension": "legal_safety"
+    },
+    {
+      "id": "P6",
+      "category": "broken_promise",
+      "startMs": 217099,
+      "endMs": 229150,
+      "additionalSpans": [
+        {
+          "startMs": 9595,
+          "endMs": 18722
+        }
+      ],
+      "description": "Opens by promising a camera comparison with the Pixel at the end of the video, then ends without any camera comparison.",
+      "expectedDimension": "pacing_retention"
+    }
+  ]
+}

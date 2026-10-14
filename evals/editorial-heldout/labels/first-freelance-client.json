@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "videoId": "first-freelance-client",
+  "title": "Your First Freelance Client: A Calm Guide",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "Salaried workers anywhere who want a first freelance client on the side.",
+  "brief": "Give a calm, realistic path to a first freelance client: pick one offer, tell people you know, send a few honest pitches. Keep it encouraging and honest about slow replies. Goal: viewers join the free newsletter at freelance.example/first-client for the pitch template.",
+  "clean": true,
+  "durationMs": 114982,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/first-freelance-client.json",
+    "scriptSha256": "46336243b5cdab65b2b8fd990f7e878b79c9dcbe6644ee0463d16f24e26afe30",
+    "media": "media/first-freelance-client.mp4",
+    "mediaSha256": "ba43670fed888cd96ec30aa5d50f6b11761b00e5cef3bcab4212eb22fe5f5243",
+    "tts": "macOS say, voice Ralph, 152 wpm"
+  },
+  "issues": []
+}

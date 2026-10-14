@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "videoId": "printing-press",
+  "title": "How the Printing Press Changed Europe",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "Curious adults and students worldwide who enjoy short history explainers.",
+  "brief": "Explain how Gutenberg's movable-type press helped ideas spread across Europe, using dates and facts a viewer can verify. Keep it curious and welcoming for non-experts. Goal: viewers subscribe to the channel for more history explainers.",
+  "clean": false,
+  "durationMs": 228846,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/printing-press.json",
+    "scriptSha256": "eebc4944232d655bebaf21af152381bdd68c411cb938b308b29fcb3002ea1f6b",
+    "media": "media/printing-press.mp4",
+    "mediaSha256": "3fe14048bd1aec6569affe0db5b6536fe40cb8acfd0e9478e9893d5e1a64e8c0",
+    "tts": "macOS say, voice Reed, 152 wpm"
+  },
+  "issues": [
+    {
+      "id": "H1",
+      "category": "factual_error",
+      "startMs": 54191,
+      "endMs": 70517,
+      "additionalSpans": [],
+      "description": "Says Gutenberg's famous Bible was printed in 1475. Mainstream sources date the Gutenberg Bible to the mid-1450s, around 1454 to 1455.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "H2",
+      "category": "unsupported_claim",
+      "startMs": 98149,
+      "endMs": 114487,
+      "additionalSpans": [],
+      "description": "Claims that owning a printed book made someone 'twice as likely' to support new ideas, a precise statistic with no study or source cited.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "H3",
+      "category": "jargon",
+      "startMs": 132399,
+      "endMs": 150853,
+      "additionalSpans": [],
+      "description": "Uses specialist terms (incunabula, xylography, textual recension) with no explanation for a non-expert audience.",
+      "expectedDimension": "clarity"
+    },
+    {
+      "id": "H4",
+      "category": "tangent",
+      "startMs": 168980,
+      "endMs": 202296,
+      "additionalSpans": [],
+      "description": "A roughly 30-second digression about the gift shop and coffee near a museum the creator visited has no connection to how the press spread ideas.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "H5",
+      "category": "broken_promise",
+      "startMs": 218739,
+      "endMs": 227446,
+      "additionalSpans": [
+        {
+          "startMs": 9144,
+          "endMs": 18578
+        }
+      ],
+      "description": "Promises three great consequences of the press by the end, then covers only two (religion and science) and never delivers the third.",
+      "expectedDimension": "pacing_retention"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "videoId": "first-four-weeks-lifting",
+  "title": "Start Lifting: Your First Four Weeks",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "Adult beginners who have never followed a lifting programme and feel nervous in the gym.",
+  "brief": "Give a safe, encouraging starter plan: form first, two full-body days a week, rest between sessions. Keep the tone welcoming so nervous beginners feel they belong. Goal: viewers download the free four-week starter workout PDF at lift.example/start.",
+  "clean": false,
+  "durationMs": 229216,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/first-four-weeks-lifting.json",
+    "scriptSha256": "512fc74bde6f680be293a6ed9979756beba2ed620ac397c9c7a170cfb67fad6a",
+    "media": "media/first-four-weeks-lifting.mp4",
+    "mediaSha256": "3bb8aa6acbafe14edf3e7251f3872095aacba8f24e1374c41be3cd66d9700a14",
+    "tts": "macOS say, voice Shelley, 152 wpm"
+  },
+  "issues": [
+    {
+      "id": "S1",
+      "category": "weak_hook",
+      "startMs": 600,
+      "endMs": 27022,
+      "additionalSpans": [],
+      "description": "The opening spends about 20 seconds hedging and never states what the viewer will get; the actual plan is only announced after the intro.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "S2",
+      "category": "safety",
+      "startMs": 113357,
+      "endMs": 128798,
+      "additionalSpans": [],
+      "description": "Advises pushing through sharp joint pain, calling it 'weakness leaving the body'. Mainstream guidance is that sharp joint pain means stop the exercise and get checked, not push through.",
+      "expectedDimension": "legal_safety"
+    },
+    {
+      "id": "S3",
+      "category": "tone_mismatch",
+      "startMs": 146369,
+      "endMs": 160383,
+      "additionalSpans": [],
+      "description": "Mocks beginners who use light weights ('if you are still on the pink two-kilo weights, do not bother showing up'), contradicting the brief's welcoming tone for nervous beginners.",
+      "expectedDimension": "audience_brand"
+    },
+    {
+      "id": "S4",
+      "category": "pacing_drag",
+      "startMs": 178868,
+      "endMs": 206319,
+      "additionalSpans": [],
+      "description": "The same warm-up routine is explained twice in a row, slowly and in full, with no new information, stalling the video for about 25 seconds.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "S5",
+      "category": "missing_cta",
+      "startMs": 223195,
+      "endMs": 227816,
+      "additionalSpans": [],
+      "description": "The brief's goal is downloads of the free starter workout PDF, but the video ends with 'good luck, see you around' and never mentions the PDF.",
+      "expectedDimension": "conversion_cta"
+    }
+  ]
+}
