@@ -69,7 +69,7 @@ from app.services.firestore_service import (
     transcripts_collection_path,
     user_path,
 )
-from app.services.heatmap import FindingSummary, effective_severity
+from app.services.heatmap import FindingSummary, effective_findings, effective_severity
 from app.services.interest_calibration_service import (
     apply_creator_baseline,
     link_calibrated_moments,
@@ -809,8 +809,10 @@ class AnalysisService:
         if curve.baselineSource.source == "creator" and (curve.peaks or curve.dips):
             curve = link_calibrated_moments(
                 curve,
-                self.list_findings(
-                    owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+                effective_findings(
+                    self.list_findings(
+                        owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+                    )
                 ),
             )
         return curve
