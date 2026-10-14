@@ -25,6 +25,7 @@ from app.api import (
     packaging,
     projects,
     publishes,
+    rough_cut,
     schedules,
     thumbnails,
     transcripts,
@@ -185,6 +186,7 @@ def create_app() -> FastAPI:
     app.include_router(ws.router, prefix="/api")
     app.include_router(transcripts.router, prefix="/api")
     app.include_router(captions.router, prefix="/api")
+    app.include_router(rough_cut.router, prefix="/api")
     app.include_router(thumbnails.router, prefix="/api")
     app.include_router(draft.router, prefix="/api")
     app.include_router(localizations.router, prefix="/api")

@@ -12,6 +12,7 @@ export type StudioModuleId =
   | "overview"
   | "transcript"
   | "review"
+  | "rough-cut"
   | "captions"
   | "packaging"
   | "localization"
@@ -46,6 +47,15 @@ export const STUDIO_MODULES: StudioModule[] = [
     description:
       "Nine reviewers score the cut and pin findings to the timeline heatmap.",
     icon: SparklesIcon,
+    needsTranscript: true,
+    ready: true,
+  },
+  {
+    id: "rough-cut",
+    label: "Rough cut",
+    description:
+      "Turn accepted edits into a preview. Compare, decide, and export your edit plan.",
+    icon: FileVideoIcon,
     needsTranscript: true,
     ready: true,
   },

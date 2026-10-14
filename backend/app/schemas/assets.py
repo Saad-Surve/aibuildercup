@@ -3,6 +3,8 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
+from app.schemas.rough_cut import RoughCutMetadata
+
 
 class AssetStatus(StrEnum):
     pending = "pending"
@@ -49,6 +51,7 @@ class Asset(BaseModel):
     durationMs: int | None = None
     #: Source-video revision number; None for non-source assets and legacy sources.
     revision: int | None = None
+    roughCut: RoughCutMetadata | None = None
     createdAt: datetime
     updatedAt: datetime
 

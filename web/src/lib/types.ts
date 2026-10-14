@@ -225,6 +225,7 @@ export type AssetStatus =
   | "deleted";
 
 export interface Asset {
+  roughCut?: RoughCutMetadata | null;
   assetId: string;
   projectId: string;
   type: string;
@@ -602,6 +603,8 @@ export interface InterestCurve {
 }
 
 export interface StartAnalysisInput {
+  /** Review a ready revision without activating it. */
+  assetId?: string;
   dimensions?: AnalysisDimension[];
   platform?: string;
   includeVisualReview?: boolean;
@@ -1273,4 +1276,60 @@ export interface AnalysisComparison {
       note: string;
     } | null;
   };
+}
+
+export interface RoughCutMetadata {
+  sourceAssetId: string;
+  analysisRunId: string;
+  findingIds: string[];
+  keptSegments: {
+    sourceStartMs: number;
+    sourceEndMs: number;
+    outputStartMs: number;
+  }[];
+  removedSpans: {
+    startMs: number;
+    endMs: number;
+    findingId: string;
+    findingIds?: string[];
+  }[];
+  durationMsBefore: number;
+  durationMsAfter: number;
+  insertIds?: string[];
+}
+
+export interface RoughCutPlan extends RoughCutMetadata {
+  inserts: {
+    insertId: string;
+    headline: string;
+    skippedReason: string | null;
+    placements: {
+      insertStartMs: number;
+      outputStartMs: number;
+      outputEndMs: number;
+    }[];
+  }[];
+  findings: {
+    findingId: string;
+    startMs: number;
+    endMs: number;
+    dimension: string;
+    action: string;
+    label: "cut" | "note";
+    labelReason: string;
+    skippedReason: string | null;
+  }[];
+}
+
+export interface RoughCutRequest {
+  findingIds?: string[];
+  labels?: Record<string, "cut" | "note">;
+  insertIds?: string[];
+}
+
+export interface RoughCutAccepted {
+  jobId: string;
+  assetId: string;
+  status: string;
+  plan: RoughCutPlan;
 }

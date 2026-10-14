@@ -333,6 +333,8 @@ class TranscriptService:
         segments: list[dict[str, Any]] | None = None,
         speaker_labels: dict[str, str] | None = None,
         duration_ms: int | None = None,
+        activate: bool = True,
+        storage_prefix: str | None = None,
     ) -> str:
         """Persist a normalised transcript. Returns the transcript id.
 
@@ -354,9 +356,11 @@ class TranscriptService:
             source_asset_id=source_asset_id,
             language=language,
             segments=segments,
-            version=int(project.get("transcriptVersionCounter", 0) or 0) + 1,
+            version=self.next_version(owner_uid=owner_uid, project_id=project_id),
             speaker_labels=speaker_labels,
             duration_ms=duration_ms,
+            activate=activate,
+            storage_prefix=storage_prefix,
         )
 
     def update(
@@ -441,6 +445,8 @@ class TranscriptService:
         version: int,
         speaker_labels: dict[str, str] | None = None,
         duration_ms: int | None = None,
+        activate: bool = True,
+        storage_prefix: str | None = None,
     ) -> str:
         # The caller's real media duration wins when known; otherwise fall back to the
         # last segment so the transcript never outruns the video.
@@ -452,6 +458,13 @@ class TranscriptService:
         storage_path = transcript_object_path(owner_uid, project_id, version)
         vtt_path = transcript_vtt_object_path(owner_uid, project_id, language)
         srt_path = transcript_srt_object_path(owner_uid, project_id, language)
+        if storage_prefix:
+            expected = f"{project_path(owner_uid, project_id)}/"
+            if not storage_prefix.startswith(expected):
+                raise ValueError("Transcript storage prefix must belong to its project")
+            storage_path = f"{storage_prefix}transcript.json"
+            vtt_path = f"{storage_prefix}captions.vtt"
+            srt_path = f"{storage_prefix}captions.srt"
         canonical = {
             "version": version,
             "language": language,
@@ -464,7 +477,7 @@ class TranscriptService:
                     "endMs": s["endMs"],
                     "text": s["text"],
                     "speaker": s.get("speaker"),
-                    "words": [],
+                    "words": s.get("words") or [],
                 }
                 for s in segments
             ],
@@ -475,29 +488,26 @@ class TranscriptService:
         self.storage.upload_text(vtt_path, build_vtt(segments), content_type="text/vtt")
         self.storage.upload_text(srt_path, build_srt(segments), content_type="application/x-subrip")
 
-        self.client.set_document(
-            transcript_path(owner_uid, project_id, transcript_id),
-            {
-                "ownerUid": owner_uid,
-                "projectId": project_id,
-                "sourceAssetId": source_asset_id,
-                "version": version,
-                "status": "ready",
-                "language": language,
-                "storagePath": storage_path,
-                "vttStoragePath": vtt_path,
-                "srtStoragePath": srt_path,
-                "durationMs": duration_ms,
-                "wordCount": sum(len(str(s["text"]).split()) for s in segments),
-                "segmentCount": len(segments),
-                "speakerCount": _speaker_count(segments),
-                "speakerLabels": speaker_labels,
-                "createdAt": now,
-                "updatedAt": now,
-            },
-        )
+        data = {
+            "ownerUid": owner_uid,
+            "projectId": project_id,
+            "sourceAssetId": source_asset_id,
+            "version": version,
+            "status": "ready",
+            "language": language,
+            "storagePath": storage_path,
+            "vttStoragePath": vtt_path,
+            "srtStoragePath": srt_path,
+            "durationMs": duration_ms,
+            "wordCount": sum(len(str(s["text"]).split()) for s in segments),
+            "segmentCount": len(segments),
+            "speakerCount": _speaker_count(segments),
+            "speakerLabels": speaker_labels,
+            "createdAt": now,
+            "updatedAt": now,
+        }
         base = transcript_path(owner_uid, project_id, transcript_id)
-        self.client.set_documents(
+        segment_documents = [
             (
                 f"{base}/segments/{segment['segmentId']}",
                 {
@@ -507,20 +517,38 @@ class TranscriptService:
                     "endMs": segment["endMs"],
                     "text": segment["text"],
                     "speaker": segment.get("speaker"),
+                    "words": segment.get("words") or [],
                     "wordCount": len(segment["text"].split()),
                     "createdAt": now,
                 },
             )
             for segment in segments
-        )
-        self.client.update_document(
-            project_path(owner_uid, project_id),
-            {
-                "activeTranscriptId": transcript_id,
-                "transcriptVersionCounter": version,
-                "updatedAt": now,
-            },
-        )
+        ]
+        if activate:
+            self.client.set_document(base, data)
+            self.client.set_documents(segment_documents)
+            self.client.update_document(
+                project_path(owner_uid, project_id),
+                {
+                    "activeTranscriptId": transcript_id,
+                    "transcriptVersionCounter": version,
+                    "updatedAt": now,
+                },
+            )
+        else:
+            # Every batch checks the surviving parent; a deleted project cannot be recreated.
+            documents = [(base, data), *segment_documents]
+            try:
+                for index in range(0, len(documents), 400):
+                    if not self.client.set_owned_children(
+                        project_path(owner_uid, project_id),
+                        documents[index : index + 400],
+                        owner_uid,
+                    ):
+                        raise NotFoundError("Project was deleted while saving the preview")
+            except Exception:
+                self.client.delete_document_tree(base)
+                raise
         return transcript_id
 
     def next_version(self, *, owner_uid: str, project_id: str) -> int:
@@ -531,5 +559,8 @@ class TranscriptService:
             limit=100,
             offset=0,
         )
+        project = self.client.get_document(project_path(owner_uid, project_id))
+        if project is None or not is_owner(project, owner_uid):
+            raise NotFoundError("Project not found")
         versions = [int(d.get("version", 0)) for _, d in rows if is_owner(d, owner_uid)]
-        return (max(versions, default=0)) + 1
+        return max(int(project.get("transcriptVersionCounter", 0) or 0), *versions, 0) + 1

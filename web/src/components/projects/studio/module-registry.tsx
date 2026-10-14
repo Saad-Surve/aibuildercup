@@ -21,6 +21,7 @@ function ModuleLoading() {
 const loaders = {
   transcript: () => import("@/components/projects/transcript-panel"),
   review: () => import("@/components/projects/review-panel"),
+  "rough-cut": () => import("@/components/projects/studio/rough-cut-module"),
   captions: () => import("@/components/projects/studio/captions-module"),
   packaging: () => import("@/components/projects/studio/packaging-module"),
   localization: () => import("@/components/projects/studio/localization-module"),
@@ -35,6 +36,10 @@ const TranscriptPanel = dynamic(
 );
 const ReviewPanel = dynamic(
   () => loaders.review().then((module) => module.ReviewPanel),
+  { loading: ModuleLoading },
+);
+const RoughCutModule = dynamic(
+  () => loaders["rough-cut"]().then((module) => module.RoughCutModule),
   { loading: ModuleLoading },
 );
 const CaptionsModule = dynamic(
@@ -57,6 +62,7 @@ const PublishingModule = dynamic(
 export const STUDIO_MODULE_COMPONENTS = {
   transcript: TranscriptPanel,
   review: ReviewPanel,
+  "rough-cut": RoughCutModule,
   captions: CaptionsModule,
   packaging: PackagingModule,
   localization: LocalizationModule,

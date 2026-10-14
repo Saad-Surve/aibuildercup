@@ -10,7 +10,7 @@ from typing import Any
 from uuid import uuid4
 
 from app.config import Settings
-from app.errors import BadRequestError, NotFoundError
+from app.errors import BadRequestError, ConflictError, NotFoundError
 from app.realtime.events import emit_project
 from app.schemas.assets import (
     Asset,
@@ -61,6 +61,7 @@ def _to_asset(asset_id: str, data: dict[str, Any]) -> Asset:
         sizeBytes=data.get("sizeBytes", 0),
         durationMs=data.get("durationMs"),
         revision=data.get("revision"),
+        roughCut=data.get("roughCut"),
         createdAt=data["createdAt"],
         updatedAt=data["updatedAt"],
     )
@@ -409,6 +410,8 @@ class AssetService:
         )
         if match is None:
             raise NotFoundError("Revision not found", details={"assetId": asset_id})
+        if data.get("roughCut") and not match.transcriptId:
+            raise ConflictError("The cut's derived transcript is missing. Render a new preview.")
 
         raw = self.client.get_document(project_path(owner_uid, project_id)) or {}
         now = datetime.now(UTC)

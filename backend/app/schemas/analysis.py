@@ -260,6 +260,7 @@ class HeatmapBin(BaseModel):
 
 
 class AnalysisRequest(BaseModel):
+    assetId: str | None = None
     dimensions: list[AnalysisDimension] = Field(default_factory=list)
     platform: str = "youtube"
     includeVisualReview: bool = False

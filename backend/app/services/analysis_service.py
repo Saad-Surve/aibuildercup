@@ -56,6 +56,7 @@ from app.services.firestore_service import (
     analysis_reviewers_collection_path,
     analysis_run_path,
     analysis_runs_collection_path,
+    asset_path,
     finding_path,
     heatmap_bin_path,
     heatmap_bins_collection_path,
@@ -63,6 +64,7 @@ from app.services.firestore_service import (
     project_path,
     reviewer_run_path,
     transcript_path,
+    transcripts_collection_path,
     user_path,
 )
 from app.services.heatmap import FindingSummary
@@ -263,6 +265,31 @@ class AnalysisService:
         if project is None or not is_owner(project, owner_uid):
             raise NotFoundError("Project not found", details={"projectId": project_id})
         transcript_id = project.get("activeTranscriptId")
+        if payload.assetId:
+            asset = self.client.get_document(asset_path(owner_uid, project_id, payload.assetId))
+            if (
+                asset is None
+                or not is_owner(asset, owner_uid)
+                or asset.get("deletedAt") is not None
+            ):
+                raise NotFoundError("Source revision not found")
+            if asset.get("type") != "source_video" or asset.get("status") != "ready":
+                raise ConflictError("Source revision is not ready")
+            candidates = [
+                (tid, data)
+                for tid, data in self.client.query_collection(
+                    transcripts_collection_path(owner_uid, project_id),
+                    filters=[],
+                    order_by=[],
+                    limit=2000,
+                    offset=0,
+                )
+                if is_owner(data, owner_uid)
+                and data.get("sourceAssetId") == payload.assetId
+                and data.get("status") == "ready"
+            ]
+            candidates.sort(key=lambda row: int(row[1].get("version", 0)), reverse=True)
+            transcript_id = candidates[0][0] if candidates else None
         if not transcript_id:
             raise ConflictError(
                 "This project has no transcript to analyse yet.",

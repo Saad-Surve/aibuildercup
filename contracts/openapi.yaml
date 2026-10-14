@@ -1216,6 +1216,115 @@ paths:
         "409": { description: Run unfinished or comparison input exceeds bounded limits }
         "422": { description: Missing or invalid run IDs }
 
+  /api/projects/{projectId}/analysis/{analysisRunId}/rough-cut/plan:
+    get:
+      tags: [analysis]
+      summary: Preview deterministic cut/note labels for accepted and revised findings
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/AnalysisRunId"
+      responses:
+        "200":
+          description: Word/segment-safe plan, including skipped cuts and reasons. No model calls.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoughCutPlan" }
+    post:
+      tags: [analysis]
+      summary: Recalculate a plan with creator labels and selection (read-only, demo allowed)
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/AnalysisRunId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RoughCutRequest" }
+      responses:
+        "200":
+          description: Updated safe plan with skipped reasons; nothing is queued or rendered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoughCutPlan" }
+
+  /api/projects/{projectId}/analysis/{analysisRunId}/rough-cut:
+    post:
+      tags: [analysis]
+      summary: Queue an unactivated rough-cut source revision
+      description: Demo writes are forbidden. Selection must contain accepted/revised findings. Each merged removal span is at most 40 percent of the video. No STT, Veo or image generation.
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/AnalysisRunId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RoughCutRequest" }
+      responses:
+        "202":
+          description: Queued rough_cut job; labels and complete plan are cached on job.input.plan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [jobId, assetId, status, plan]
+                properties:
+                  jobId: { type: string }
+                  assetId: { type: string }
+                  status: { type: string }
+                  plan: { $ref: "#/components/schemas/RoughCutPlan" }
+
+  /api/projects/{projectId}/analysis/{analysisRunId}/rough-cut/edl:
+    get:
+      tags: [analysis]
+      summary: Download the rendered revision's edit decision list or Markdown plan
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/AnalysisRunId"
+        - name: format
+          in: query
+          schema: { type: string, enum: [cmx3600, markdown], default: cmx3600 }
+        - name: assetId
+          in: query
+          description: Specific rough cut; defaults to newest ready cut of this run.
+          schema: { type: string }
+        - name: fps
+          in: query
+          schema: { type: integer, enum: [24, 25, 30, 60], default: 30 }
+      responses:
+        "200":
+          description: Downloadable text, source and sequential record timecodes, non-drop-frame
+          content:
+            text/plain:
+              schema: { type: string }
+            text/markdown:
+              schema: { type: string }
+
+  /api/projects/{projectId}/assets/{assetId}:
+    delete:
+      tags: [uploads]
+      summary: Discard an inactive rough cut and its media, derived transcript and reviews
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "204": { description: Deleted current storage objects and owned documents; bucket noncurrent generations follow lifecycle expiry }
+        "409": { description: Active revisions or revisions with running reviews cannot be discarded }
+
+  /api/projects/{projectId}/assets/{assetId}/captions:
+    get:
+      tags: [uploads]
+      summary: Read captions for a ready source revision without activation
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "200":
+          description: Newest ready owned transcript as WebVTT
+          content:
+            text/vtt:
+              schema: { type: string }
+
   /api/projects/{projectId}/analysis/{analysisRunId}:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
@@ -2947,6 +3056,95 @@ components:
           type: object
           additionalProperties: { type: string }
 
+    RoughCutRequest:
+      type: object
+      properties:
+        findingIds:
+          type: [array, "null"]
+          maxItems: 200
+          items: { type: string }
+          description: Omitted selects all accepted/revised findings; removal labels are cut, others are notes.
+        labels:
+          type: object
+          additionalProperties: { type: string, enum: [cut, note] }
+          description: Creator overrides for selected finding IDs.
+        insertIds:
+          type: array
+          maxItems: 8
+          items: { type: string }
+          description: Optional already-rendered packaging inserts from this source/transcript. Overlay only; no generation or added duration.
+
+    RoughCutMetadata:
+      type: object
+      required: [sourceAssetId, analysisRunId, findingIds, keptSegments, removedSpans, durationMsBefore, durationMsAfter]
+      properties:
+        sourceAssetId: { type: string }
+        analysisRunId: { type: string }
+        findingIds: { type: array, items: { type: string } }
+        keptSegments:
+          type: array
+          items:
+            type: object
+            required: [sourceStartMs, sourceEndMs, outputStartMs]
+            properties:
+              sourceStartMs: { type: integer }
+              sourceEndMs: { type: integer }
+              outputStartMs: { type: integer }
+        removedSpans:
+          type: array
+          description: Merged non-overlapping source spans; findingId is the first contributor, findingIds lists all contributors.
+          items:
+            type: object
+            required: [startMs, endMs, findingId]
+            properties:
+              startMs: { type: integer }
+              endMs: { type: integer }
+              findingId: { type: string }
+              findingIds: { type: array, items: { type: string } }
+        durationMsBefore: { type: integer }
+        durationMsAfter: { type: integer }
+        insertIds: { type: array, items: { type: string } }
+
+    RoughCutPlan:
+      allOf:
+        - $ref: "#/components/schemas/RoughCutMetadata"
+        - type: object
+          required: [findings]
+          properties:
+            inserts:
+              type: array
+              description: Selected existing insert placements, remapped through kept footage.
+              items:
+                type: object
+                required: [insertId, headline, placements, skippedReason]
+                properties:
+                  insertId: { type: string }
+                  headline: { type: string }
+                  skippedReason: { type: [string, "null"] }
+                  placements:
+                    type: array
+                    items:
+                      type: object
+                      required: [insertStartMs, outputStartMs, outputEndMs]
+                      properties:
+                        insertStartMs: { type: integer }
+                        outputStartMs: { type: integer }
+                        outputEndMs: { type: integer }
+            findings:
+              type: array
+              items:
+                type: object
+                required: [findingId, startMs, endMs, dimension, action, label, labelReason, skippedReason]
+                properties:
+                  findingId: { type: string }
+                  startMs: { type: integer }
+                  endMs: { type: integer }
+                  dimension: { type: string }
+                  action: { type: string, description: revisedAction wins when decision is revised }
+                  label: { type: string, enum: [cut, note] }
+                  labelReason: { type: string }
+                  skippedReason: { type: [string, "null"] }
+
     Asset:
       type: object
       properties:
@@ -2962,6 +3160,10 @@ components:
         mimeType: { type: string }
         sizeBytes: { type: integer, format: int64 }
         durationMs: { type: [integer, "null"] }
+        roughCut:
+          anyOf:
+            - $ref: "#/components/schemas/RoughCutMetadata"
+            - type: "null"
         revision:
           type: [integer, "null"]
           description: |
@@ -3525,6 +3727,9 @@ components:
     AnalysisRequest:
       type: object
       properties:
+        assetId:
+          type: [string, "null"]
+          description: Review an owned ready source revision without activating it; pins its newest ready transcript.
         dimensions:
           type: array
           description: |

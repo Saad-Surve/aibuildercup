@@ -71,6 +71,7 @@ export function VideoStudio({
   const {
     transcript: TranscriptPanel,
     review: ReviewPanel,
+    "rough-cut": RoughCutModule,
     captions: CaptionsModule,
     packaging: PackagingModule,
     localization: LocalizationModule,
@@ -307,6 +308,14 @@ export function VideoStudio({
             transcriptShouldPoll={processing && !connected}
           />
         );
+      case "rough-cut":
+        return (
+          <RoughCutModule
+            project={project}
+            onJobId={onJobId}
+            onReview={() => onModuleSelect("review")}
+          />
+        );
       case "captions":
         return (
           <CaptionsModule projectId={projectId} projectName={project.name} />
@@ -361,103 +370,107 @@ export function VideoStudio({
           />
         )}
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
-          <div className="lg:sticky lg:top-20">
-            <Card className={WORKSPACE_PANE_CARD}>
-              <CardHeader className="shrink-0">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Icon
-                      icon={FileVideoIcon}
-                      className="text-muted-foreground"
-                    />
-                    <CardTitle>Source video</CardTitle>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {sourceAsset && (
-                      <VideoRevisions
-                        projectId={projectId}
-                        activeRevision={project.sourceRevision}
-                        revisionCount={project.revisionCount}
-                        onQueued={onJobId}
+        {activeModule === "rough-cut" ? (
+          <div ref={modulePaneRef}>{renderModule()}</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
+            <div className="lg:sticky lg:top-20">
+              <Card className={WORKSPACE_PANE_CARD}>
+                <CardHeader className="shrink-0">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Icon
+                        icon={FileVideoIcon}
+                        className="text-muted-foreground"
                       />
-                    )}
-                    <ProjectStatusBadge status={project.status} />
-                  </div>
-                </div>
-                <CardDescription>
-                  {displayRevision != null
-                    ? `Revision ${displayRevision} · ${effectiveSource.mimeType}`
-                    : effectiveSource.mimeType}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex min-h-0 flex-1 flex-col">
-                <div className="flex min-h-0 flex-1 items-center [&>*]:w-full">
-                  <SourceVideoPlayer
-                    projectId={projectId}
-                    asset={effectiveSource}
-                    onDuration={setDurationMs}
-                    captionLines={captionLines}
-                    coverUrl={project.posterUrl}
-                  />
-                </div>
-                <dl className="mt-3 grid shrink-0 grid-cols-3 gap-2 text-xs">
-                  <div>
-                    <dt className="text-muted-foreground/70">Duration</dt>
-                    <dd className="tabular text-foreground">
-                      {(durationMs ?? effectiveSource.durationMs) != null
-                        ? formatTimestamp(
-                            durationMs ?? effectiveSource.durationMs ?? 0,
-                          )
-                        : "—"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground/70">Size</dt>
-                    <dd className="tabular text-foreground">
-                      {formatBytes(effectiveSource.sizeBytes)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground/70">Uploaded</dt>
-                    <dd className="text-foreground">
-                      {format(
-                        new Date(effectiveSource.createdAt),
-                        "d MMM yyyy",
+                      <CardTitle>Source video</CardTitle>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {sourceAsset && (
+                        <VideoRevisions
+                          projectId={projectId}
+                          activeRevision={project.sourceRevision}
+                          revisionCount={project.revisionCount}
+                          onQueued={onJobId}
+                        />
                       )}
-                    </dd>
+                      <ProjectStatusBadge status={project.status} />
+                    </div>
                   </div>
-                </dl>
-              </CardContent>
-            </Card>
+                  <CardDescription>
+                    {displayRevision != null
+                      ? `Revision ${displayRevision} · ${effectiveSource.mimeType}`
+                      : effectiveSource.mimeType}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex min-h-0 flex-1 flex-col">
+                  <div className="flex min-h-0 flex-1 items-center [&>*]:w-full">
+                    <SourceVideoPlayer
+                      projectId={projectId}
+                      asset={effectiveSource}
+                      onDuration={setDurationMs}
+                      captionLines={captionLines}
+                      coverUrl={project.posterUrl}
+                    />
+                  </div>
+                  <dl className="mt-3 grid shrink-0 grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <dt className="text-muted-foreground/70">Duration</dt>
+                      <dd className="tabular text-foreground">
+                        {(durationMs ?? effectiveSource.durationMs) != null
+                          ? formatTimestamp(
+                              durationMs ?? effectiveSource.durationMs ?? 0,
+                            )
+                          : "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground/70">Size</dt>
+                      <dd className="tabular text-foreground">
+                        {formatBytes(effectiveSource.sizeBytes)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground/70">Uploaded</dt>
+                      <dd className="text-foreground">
+                        {format(
+                          new Date(effectiveSource.createdAt),
+                          "d MMM yyyy",
+                        )}
+                      </dd>
+                    </div>
+                  </dl>
+                </CardContent>
+              </Card>
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-              <DeleteProjectDialog
-                projectId={projectId}
-                projectName={project.name}
-                assetIds={[effectiveSource.assetId]}
-                destructive
-              />
-              {sourceAsset && (
-                <NewRevisionButton
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <DeleteProjectDialog
                   projectId={projectId}
-                  onQueued={onJobId}
-                  variant="default"
+                  projectName={project.name}
+                  assetIds={[effectiveSource.assetId]}
+                  destructive
                 />
-              )}
+                {sourceAsset && (
+                  <NewRevisionButton
+                    projectId={projectId}
+                    onQueued={onJobId}
+                    variant="default"
+                  />
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-6">
-            <div
-              ref={modulePaneRef}
-              className="space-y-6 lg:snap-start lg:snap-always lg:scroll-mt-20"
-            >
-              {renderModule()}
+            <div className="space-y-6">
+              <div
+                ref={modulePaneRef}
+                className="space-y-6 lg:snap-start lg:snap-always lg:scroll-mt-20"
+              >
+                {renderModule()}
+              </div>
+              <div aria-hidden className={WORKSPACE_PANE_STACK_SPACER} />
             </div>
-            <div aria-hidden className={WORKSPACE_PANE_STACK_SPACER} />
           </div>
-        </div>
+        )}
       </div>
     </CaptionPreviewProvider>
   );

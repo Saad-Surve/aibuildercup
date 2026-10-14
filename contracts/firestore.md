@@ -505,3 +505,36 @@ runs without coverage cannot imply resolution. Interest summaries describe durat
 weighted distance above each run's own normalized baseline, not retention improvement
 or calibrated quality. `newIssuesCount` excludes positive Keep observations while
 `newFindingsCount` includes them. No new storage, index, deletion path, paid call or worker is needed.
+
+## Rough-cut previews
+
+`assets/{assetId}` is a ready `source_video` revision with optional `roughCut`:
+`{sourceAssetId, analysisRunId, findingIds, keptSegments: [{sourceStartMs, sourceEndMs,
+outputStartMs}], removedSpans: [{startMs, endMs, findingId, findingIds}],
+durationMsBefore, durationMsAfter, insertIds?}`. `roughCutPlan` additionally snapshots findings with
+`action` (`decision.revisedAction` for revised decisions, otherwise stored `suggestion`),
+`label`, `labelReason`, `skippedReason`. Merged spans
+retain all contributor IDs. The creator explicitly activates via the revision endpoint.
+
+Jobs use type `rough_cut`, `input: {assetId, transcriptId, plan}` (cached deterministic
+labels plus creator overrides), and `output: {assetId, transcriptId, artifactIds, storagePaths}`.
+Media and derived JSON/SRT/VTT live exclusively below
+`users/{uid}/projects/{projectId}/rough-cuts/{assetId}/`. This avoids source-finalized STT
+and keeps exports/captions isolated from the active transcript. The derived transcript is
+a normal owned transcript with sourceAssetId pointing at the new revision. It never
+changes activeTranscriptId. AnalysisRequest.assetId pins that revision's ready transcript
+without activation. Discard refuses active cuts, running reviews and dependent previews,
+deletes related review/transcript document trees, review-context media and the cut storage
+prefix (noncurrent generations expire
+under bucket lifecycle). Project/account recursive deletion already covers these paths.
+
+Only accepted/revised decisions are eligible, read defensively before the findings-loop
+merge. No ambiguous actions are automatically removed. Bounds: 200 selected findings,
+120 ms silence padding without splitting adjacent speech, >=500 ms cuts, <=40% per merged span;
+word boundaries when available, otherwise complete segment boundaries. No STT or paid model calls.
+Optional `plan.insertIds` (at most eight) selects owned ready packaging inserts pinned to
+the same source/transcript. `plan.inserts` caches headline, skippedReason and placements
+`{insertStartMs, outputStartMs, outputEndMs}` through kept footage. The worker revalidates
+each selected insert and overlays its existing video without using its audio or changing
+timeline duration. No insert is generated. `GET assets/{assetId}/captions` reads the latest
+ready owned transcript as WebVTT for comparison players without activating the revision.
