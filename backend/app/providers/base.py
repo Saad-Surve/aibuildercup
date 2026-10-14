@@ -111,8 +111,6 @@ class LlmProvider(Protocol):
         temperature: float | None = None,
         max_attempts: int | None = None,
         max_output_tokens: int | None = None,
-        # Override retries for optional work with a strict request budget.
-        max_attempts: int | None = None,
     ) -> LlmCompletion: ...
 
     async def complete_json_with_tools(

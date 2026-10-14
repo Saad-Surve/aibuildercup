@@ -54,7 +54,6 @@ class LlmProvider:
         temperature: float | None = None,
         max_attempts: int | None = None,
         max_output_tokens: int | None = None,
-        max_attempts: int | None = None,
     ) -> LlmCompletion:
         del prompt_version  # Part of the provider interface; unused by the live call.
         from google.genai import types
@@ -70,7 +69,6 @@ class LlmProvider:
             temperature=temperature,
             max_attempts=max_attempts,
             max_output_tokens=max_output_tokens,
-            max_attempts=max_attempts,
         )
         return _completion_from(result)
 
@@ -194,7 +192,6 @@ class LlmProvider:
         temperature: float | None = None,
         max_attempts: int | None = None,
         max_output_tokens: int | None = None,
-        max_attempts: int | None = None,
     ) -> Any:
         """One `generate_content` call, retrying transient failures."""
         from google.genai import errors as genai_errors
