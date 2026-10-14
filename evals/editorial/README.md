@@ -18,7 +18,9 @@ Results are reported per arm and never pooled across arms. The first four-arm ru
 
 A second, independently authored held-out set lives in `evals/editorial-heldout/`
 (see its README); nobody runs any arm on it until the coordinator does so after the
-editor pass is frozen.
+editor pass is frozen. A third, independently authored long-form set (10-14 minute
+videos with subtler flaws) lives in `evals/editorial-longform/` (see its README);
+the same no-run rule applies to it.
 
 Real CC BY creator videos with creator-published corrections as partial gold: [editorial-real](../editorial-real/README.md) (known-error recall only).
 

@@ -1,0 +1,1099 @@
+{
+  "videoId": "black-holes-guide",
+  "language": "en",
+  "durationMs": 626714,
+  "segments": [
+    {
+      "segmentId": "seg-1",
+      "startMs": 600,
+      "endMs": 4829,
+      "text": "Somewhere out there is a place where gravity wins so completely that not even"
+    },
+    {
+      "segmentId": "seg-2",
+      "startMs": 4829,
+      "endMs": 5970,
+      "text": "light can escape it."
+    },
+    {
+      "segmentId": "seg-3",
+      "startMs": 6320,
+      "endMs": 10916,
+      "text": "Today we are going to understand black holes properly: what they are, how they"
+    },
+    {
+      "segmentId": "seg-4",
+      "startMs": 10916,
+      "endMs": 14521,
+      "text": "form, and what that famous glowing-ring photo actually shows."
+    },
+    {
+      "segmentId": "seg-5",
+      "startMs": 14871,
+      "endMs": 18699,
+      "text": "No maths, no prior physics, just clear pictures in words."
+    },
+    {
+      "segmentId": "seg-6",
+      "startMs": 18699,
+      "endMs": 21409,
+      "text": "Let us start with the simplest question."
+    },
+    {
+      "segmentId": "seg-7",
+      "startMs": 22309,
+      "endMs": 25921,
+      "text": "A black hole is a region where so much matter has been squeezed into"
+    },
+    {
+      "segmentId": "seg-8",
+      "startMs": 25921,
+      "endMs": 28429,
+      "text": "so little space that escape becomes impossible."
+    },
+    {
+      "segmentId": "seg-9",
+      "startMs": 28779,
+      "endMs": 30385,
+      "text": "Think of escape velocity."
+    },
+    {
+      "segmentId": "seg-10",
+      "startMs": 30385,
+      "endMs": 34834,
+      "text": "A rocket must travel about eleven kilometres per second to leave Earth."
+    },
+    {
+      "segmentId": "seg-11",
+      "startMs": 35184,
+      "endMs": 39122,
+      "text": "Near a black hole, the required escape speed is greater than the speed of"
+    },
+    {
+      "segmentId": "seg-12",
+      "startMs": 39122,
+      "endMs": 41571,
+      "text": "light, and nothing travels faster than light."
+    },
+    {
+      "segmentId": "seg-13",
+      "startMs": 41921,
+      "endMs": 46503,
+      "text": "So everything that crosses the boundary, called the event horizon, is trapped."
+    },
+    {
+      "segmentId": "seg-14",
+      "startMs": 46503,
+      "endMs": 49578,
+      "text": "The hole itself is black because no light leaves it."
+    },
+    {
+      "segmentId": "seg-15",
+      "startMs": 50478,
+      "endMs": 54878,
+      "text": "We cannot see the hole directly, so astronomers weigh it by watching stars loop"
+    },
+    {
+      "segmentId": "seg-16",
+      "startMs": 54878,
+      "endMs": 55484,
+      "text": "around it."
+    },
+    {
+      "segmentId": "seg-17",
+      "startMs": 55834,
+      "endMs": 60371,
+      "text": "Near the centre of our galaxy, stars have been tracked racing around something dark"
+    },
+    {
+      "segmentId": "seg-18",
+      "startMs": 60371,
+      "endMs": 62754,
+      "text": "and enormously heavy for over twenty years."
+    },
+    {
+      "segmentId": "seg-19",
+      "startMs": 63104,
+      "endMs": 67019,
+      "text": "Their orbits give away the mass of the invisible thing they circle, the way"
+    },
+    {
+      "segmentId": "seg-20",
+      "startMs": 67019,
+      "endMs": 68254,
+      "text": "planets reveal the Sun."
+    },
+    {
+      "segmentId": "seg-21",
+      "startMs": 68604,
+      "endMs": 72339,
+      "text": "That is how we know a giant black hole sits there, without ever seeing"
+    },
+    {
+      "segmentId": "seg-22",
+      "startMs": 72339,
+      "endMs": 72918,
+      "text": "it itself."
+    },
+    {
+      "segmentId": "seg-23",
+      "startMs": 73818,
+      "endMs": 75724,
+      "text": "How does something like that form?"
+    },
+    {
+      "segmentId": "seg-24",
+      "startMs": 75724,
+      "endMs": 78283,
+      "text": "It starts with the death of a very heavy star."
+    },
+    {
+      "segmentId": "seg-25",
+      "startMs": 78633,
+      "endMs": 83641,
+      "text": "Stars shine because their cores fuse lighter elements into heavier ones, and that energy"
+    },
+    {
+      "segmentId": "seg-26",
+      "startMs": 83641,
+      "endMs": 84653,
+      "text": "holds gravity up."
+    },
+    {
+      "segmentId": "seg-27",
+      "startMs": 85003,
+      "endMs": 88450,
+      "text": "When our own Sun dies in about five billion years, it will run out"
+    },
+    {
+      "segmentId": "seg-28",
+      "startMs": 88450,
+      "endMs": 92156,
+      "text": "of fuel and collapse into a black hole right here in our neighbourhood."
+    },
+    {
+      "segmentId": "seg-29",
+      "startMs": 92506,
+      "endMs": 97085,
+      "text": "Astronomers expect the solar black hole to form quickly, so the planets will have"
+    },
+    {
+      "segmentId": "seg-30",
+      "startMs": 97085,
+      "endMs": 99822,
+      "text": "to cope with our star becoming a bottomless pit."
+    },
+    {
+      "segmentId": "seg-31",
+      "startMs": 100722,
+      "endMs": 105455,
+      "text": "Heavier stars collapse faster and more violently, while smaller ones like the Sun take"
+    },
+    {
+      "segmentId": "seg-32",
+      "startMs": 105455,
+      "endMs": 107195,
+      "text": "the slow road to the same fate."
+    },
+    {
+      "segmentId": "seg-33",
+      "startMs": 107545,
+      "endMs": 111627,
+      "text": "The core gives way, the outer layers drift off into a glowing cloud, and"
+    },
+    {
+      "segmentId": "seg-34",
+      "startMs": 111627,
+      "endMs": 114309,
+      "text": "the crushed remainder stays behind as the hole."
+    },
+    {
+      "segmentId": "seg-35",
+      "startMs": 114659,
+      "endMs": 118977,
+      "text": "For a small star the show is gentler: no giant blast, just a quiet"
+    },
+    {
+      "segmentId": "seg-36",
+      "startMs": 118977,
+      "endMs": 121689,
+      "text": "fading as the collapse slowly takes hold."
+    },
+    {
+      "segmentId": "seg-37",
+      "startMs": 122589,
+      "endMs": 127815,
+      "text": "The biggest explosions also forge the heavy elements: gold, silver and platinum are born"
+    },
+    {
+      "segmentId": "seg-38",
+      "startMs": 127815,
+      "endMs": 129283,
+      "text": "in these stellar deaths."
+    },
+    {
+      "segmentId": "seg-39",
+      "startMs": 129633,
+      "endMs": 133787,
+      "text": "Every gold ring on Earth contains atoms that were thrown across space by an"
+    },
+    {
+      "segmentId": "seg-40",
+      "startMs": 133787,
+      "endMs": 136194,
+      "text": "exploding star long before our Sun existed."
+    },
+    {
+      "segmentId": "seg-41",
+      "startMs": 136544,
+      "endMs": 140858,
+      "text": "You are quite literally wearing stardust, which is a lovely thought to carry into"
+    },
+    {
+      "segmentId": "seg-42",
+      "startMs": 140858,
+      "endMs": 141805,
+      "text": "the next section."
+    },
+    {
+      "segmentId": "seg-43",
+      "startMs": 142155,
+      "endMs": 146195,
+      "text": "The same blasts that seed the universe with elements can leave a crushed core"
+    },
+    {
+      "segmentId": "seg-44",
+      "startMs": 146195,
+      "endMs": 148059,
+      "text": "behind, and that is our black hole."
+    },
+    {
+      "segmentId": "seg-45",
+      "startMs": 148959,
+      "endMs": 152657,
+      "text": "Let us talk about what the space around a black hole looks like, because"
+    },
+    {
+      "segmentId": "seg-46",
+      "startMs": 152657,
+      "endMs": 154835,
+      "text": "the surroundings are the interesting part."
+    },
+    {
+      "segmentId": "seg-47",
+      "startMs": 155185,
+      "endMs": 159745,
+      "text": "Gas spiralling inward forms a hot, glowing disc, and some of it gets funnelled"
+    },
+    {
+      "segmentId": "seg-48",
+      "startMs": 159745,
+      "endMs": 161826,
+      "text": "into powerful jets above and below."
+    },
+    {
+      "segmentId": "seg-49",
+      "startMs": 162176,
+      "endMs": 167792,
+      "text": "The disc structure follows from the Schwarzschild radius scaling, with the Eddington luminosity capping"
+    },
+    {
+      "segmentId": "seg-50",
+      "startMs": 167792,
+      "endMs": 170332,
+      "text": "the magnetorotational instability growth rate."
+    },
+    {
+      "segmentId": "seg-51",
+      "startMs": 170682,
+      "endMs": 176291,
+      "text": "Once the plasma crosses the innermost stable circular orbit, advection dominates and the radiative"
+    },
+    {
+      "segmentId": "seg-52",
+      "startMs": 176291,
+      "endMs": 178613,
+      "text": "efficiency profile steepens accordingly."
+    },
+    {
+      "segmentId": "seg-53",
+      "startMs": 179513,
+      "endMs": 183756,
+      "text": "In everyday words, that only means gas heats up as it spirals in, glowing"
+    },
+    {
+      "segmentId": "seg-54",
+      "startMs": 183756,
+      "endMs": 186109,
+      "text": "brighter the closer it gets to the edge."
+    },
+    {
+      "segmentId": "seg-55",
+      "startMs": 186459,
+      "endMs": 189834,
+      "text": "Friction inside the disc makes it shine, which is why we can see the"
+    },
+    {
+      "segmentId": "seg-56",
+      "startMs": 189834,
+      "endMs": 192422,
+      "text": "neighbourhood of something that is itself invisible."
+    },
+    {
+      "segmentId": "seg-57",
+      "startMs": 193322,
+      "endMs": 197695,
+      "text": "Above and below the disc, some black holes fire out narrow jets of particles"
+    },
+    {
+      "segmentId": "seg-58",
+      "startMs": 197695,
+      "endMs": 199395,
+      "text": "at nearly the speed of light."
+    },
+    {
+      "segmentId": "seg-59",
+      "startMs": 199745,
+      "endMs": 204820,
+      "text": "Twisted magnetic fields act like rails, funnelling a fraction of the infalling gas outward"
+    },
+    {
+      "segmentId": "seg-60",
+      "startMs": 204820,
+      "endMs": 205658,
+      "text": "instead of in."
+    },
+    {
+      "segmentId": "seg-61",
+      "startMs": 206008,
+      "endMs": 210333,
+      "text": "These jets can stretch for thousands of light years, far beyond the galaxy that"
+    },
+    {
+      "segmentId": "seg-62",
+      "startMs": 210333,
+      "endMs": 210983,
+      "text": "hosts them."
+    },
+    {
+      "segmentId": "seg-63",
+      "startMs": 211333,
+      "endMs": 215802,
+      "text": "So a black hole both swallows and sprays: most gas spirals in and glows,"
+    },
+    {
+      "segmentId": "seg-64",
+      "startMs": 215802,
+      "endMs": 218677,
+      "text": "while a lucky fraction escapes along the jets."
+    },
+    {
+      "segmentId": "seg-65",
+      "startMs": 219577,
+      "endMs": 224033,
+      "text": "Black holes also come in wildly different sizes, which is worth keeping straight."
+    },
+    {
+      "segmentId": "seg-66",
+      "startMs": 224383,
+      "endMs": 228114,
+      "text": "The ones left by collapsed stars weigh a few to a few dozen Suns."
+    },
+    {
+      "segmentId": "seg-67",
+      "startMs": 228114,
+      "endMs": 231449,
+      "text": "The monsters at galaxy centres weigh millions to billions."
+    },
+    {
+      "segmentId": "seg-68",
+      "startMs": 231799,
+      "endMs": 237124,
+      "text": "Astronomers are now hunting the missing middleweights, hundreds to thousands of Suns, hiding in"
+    },
+    {
+      "segmentId": "seg-69",
+      "startMs": 237124,
+      "endMs": 238290,
+      "text": "dense star clusters."
+    },
+    {
+      "segmentId": "seg-70",
+      "startMs": 238640,
+      "endMs": 243357,
+      "text": "Same physics at every size, from a city-sized stellar remnant to an engine wider"
+    },
+    {
+      "segmentId": "seg-71",
+      "startMs": 243357,
+      "endMs": 244696,
+      "text": "than our solar system."
+    },
+    {
+      "segmentId": "seg-72",
+      "startMs": 245596,
+      "endMs": 250048,
+      "text": "The middleweights, if confirmed, would fill the gap and show how the monsters grew,"
+    },
+    {
+      "segmentId": "seg-73",
+      "startMs": 250048,
+      "endMs": 251001,
+      "text": "merger by merger."
+    },
+    {
+      "segmentId": "seg-74",
+      "startMs": 251351,
+      "endMs": 256580,
+      "text": "Some may hide in the crowded hearts of globular clusters, tugging almost imperceptibly on"
+    },
+    {
+      "segmentId": "seg-75",
+      "startMs": 256580,
+      "endMs": 257917,
+      "text": "the stars around them."
+    },
+    {
+      "segmentId": "seg-76",
+      "startMs": 258267,
+      "endMs": 262360,
+      "text": "Finding even one would connect the two families and complete the census from the"
+    },
+    {
+      "segmentId": "seg-77",
+      "startMs": 262360,
+      "endMs": 263777,
+      "text": "smallest to the most giant."
+    },
+    {
+      "segmentId": "seg-78",
+      "startMs": 264127,
+      "endMs": 268608,
+      "text": "Until then, the gap itself is a clue, pointing at chapters of cosmic history"
+    },
+    {
+      "segmentId": "seg-79",
+      "startMs": 268608,
+      "endMs": 269887,
+      "text": "we have not read yet."
+    },
+    {
+      "segmentId": "seg-80",
+      "startMs": 270787,
+      "endMs": 276325,
+      "text": "Now, gravity itself is worth picturing clearly, so here is the classic image physicists"
+    },
+    {
+      "segmentId": "seg-81",
+      "startMs": 276325,
+      "endMs": 276639,
+      "text": "use."
+    },
+    {
+      "segmentId": "seg-82",
+      "startMs": 276989,
+      "endMs": 281357,
+      "text": "Picture a stretched trampoline with a heavy bowling ball sitting in the middle, making"
+    },
+    {
+      "segmentId": "seg-83",
+      "startMs": 281357,
+      "endMs": 281960,
+      "text": "a deep dip."
+    },
+    {
+      "segmentId": "seg-84",
+      "startMs": 282310,
+      "endMs": 287057,
+      "text": "Marbles rolled nearby curve around the dip instead of travelling straight, which shows how"
+    },
+    {
+      "segmentId": "seg-85",
+      "startMs": 287057,
+      "endMs": 289196,
+      "text": "mass bends the paths of passing objects."
+    },
+    {
+      "segmentId": "seg-86",
+      "startMs": 289546,
+      "endMs": 293312,
+      "text": "Look at it again: the sheet sags where the ball sits, and small balls"
+    },
+    {
+      "segmentId": "seg-87",
+      "startMs": 293312,
+      "endMs": 296490,
+      "text": "rolling past bend their courses around the sagging region."
+    },
+    {
+      "segmentId": "seg-88",
+      "startMs": 296840,
+      "endMs": 300727,
+      "text": "One more way to see it: the heavy ball dents the surface, and anything"
+    },
+    {
+      "segmentId": "seg-89",
+      "startMs": 300727,
+      "endMs": 304120,
+      "text": "rolling close follows a curved path around the dent it makes."
+    },
+    {
+      "segmentId": "seg-90",
+      "startMs": 304470,
+      "endMs": 308684,
+      "text": "Keep that dented-sheet picture in mind, because we will need exactly that image of"
+    },
+    {
+      "segmentId": "seg-91",
+      "startMs": 308684,
+      "endMs": 310716,
+      "text": "bent paths for everything that follows."
+    },
+    {
+      "segmentId": "seg-92",
+      "startMs": 311616,
+      "endMs": 315223,
+      "text": "A black hole is that dip taken to the extreme: so deep that every"
+    },
+    {
+      "segmentId": "seg-93",
+      "startMs": 315223,
+      "endMs": 317353,
+      "text": "path inside the edge leads further in."
+    },
+    {
+      "segmentId": "seg-94",
+      "startMs": 317703,
+      "endMs": 321524,
+      "text": "This edge is a point of no return, not a surface you could stand"
+    },
+    {
+      "segmentId": "seg-95",
+      "startMs": 321524,
+      "endMs": 321759,
+      "text": "on."
+    },
+    {
+      "segmentId": "seg-96",
+      "startMs": 321759,
+      "endMs": 325047,
+      "text": "Crossing it, there is no direction left that leads out."
+    },
+    {
+      "segmentId": "seg-97",
+      "startMs": 325947,
+      "endMs": 331383,
+      "text": "Falling in would stretch you lengthwise while squeezing you sideways, a process physicists playfully"
+    },
+    {
+      "segmentId": "seg-98",
+      "startMs": 331383,
+      "endMs": 332675,
+      "text": "call spaghettification."
+    },
+    {
+      "segmentId": "seg-99",
+      "startMs": 333025,
+      "endMs": 337358,
+      "text": "For the giant black holes at galaxy centres, that stretching is gentle at the"
+    },
+    {
+      "segmentId": "seg-100",
+      "startMs": 337358,
+      "endMs": 339301,
+      "text": "edge, but the outcome is the same."
+    },
+    {
+      "segmentId": "seg-101",
+      "startMs": 339651,
+      "endMs": 342411,
+      "text": "Nobody has survived a trip inside, of course."
+    },
+    {
+      "segmentId": "seg-102",
+      "startMs": 342411,
+      "endMs": 347095,
+      "text": "Everything we say about the interior is theory built on the maths of gravity."
+    },
+    {
+      "segmentId": "seg-103",
+      "startMs": 347995,
+      "endMs": 353052,
+      "text": "Theory says matter keeps collapsing until our equations give up, a point physicists call"
+    },
+    {
+      "segmentId": "seg-104",
+      "startMs": 353052,
+      "endMs": 354015,
+      "text": "the singularity."
+    },
+    {
+      "segmentId": "seg-105",
+      "startMs": 354365,
+      "endMs": 358361,
+      "text": "That word is really a flag that says our current theories break here, not"
+    },
+    {
+      "segmentId": "seg-106",
+      "startMs": 358361,
+      "endMs": 360304,
+      "text": "a description of a tiny super-ball."
+    },
+    {
+      "segmentId": "seg-107",
+      "startMs": 360654,
+      "endMs": 365654,
+      "text": "A future theory of quantum gravity should describe what actually happens, but nobody has"
+    },
+    {
+      "segmentId": "seg-108",
+      "startMs": 365654,
+      "endMs": 366890,
+      "text": "a tested version yet."
+    },
+    {
+      "segmentId": "seg-109",
+      "startMs": 367240,
+      "endMs": 370499,
+      "text": "So the honest answer to what is inside is that we do not know,"
+    },
+    {
+      "segmentId": "seg-110",
+      "startMs": 370499,
+      "endMs": 373040,
+      "text": "and the edge of our knowledge is clearly marked."
+    },
+    {
+      "segmentId": "seg-111",
+      "startMs": 373940,
+      "endMs": 378027,
+      "text": "That brings us to the deepest puzzle of all, what happens to information about"
+    },
+    {
+      "segmentId": "seg-112",
+      "startMs": 378027,
+      "endMs": 379322,
+      "text": "the things that fall in."
+    },
+    {
+      "segmentId": "seg-113",
+      "startMs": 379672,
+      "endMs": 384676,
+      "text": "Quantum physics says information is never truly destroyed, yet black holes seem to erase"
+    },
+    {
+      "segmentId": "seg-114",
+      "startMs": 384676,
+      "endMs": 386815,
+      "text": "the details of whatever they swallow."
+    },
+    {
+      "segmentId": "seg-115",
+      "startMs": 387165,
+      "endMs": 391909,
+      "text": "The good news is that physicists have now proven that the information escapes through"
+    },
+    {
+      "segmentId": "seg-116",
+      "startMs": 391909,
+      "endMs": 395159,
+      "text": "tiny wormholes, so the paradox is fully solved and closed."
+    },
+    {
+      "segmentId": "seg-117",
+      "startMs": 395509,
+      "endMs": 400679,
+      "text": "The measurements confirm the wormhole-escape route beyond doubt, which means textbooks can treat this"
+    },
+    {
+      "segmentId": "seg-118",
+      "startMs": 400679,
+      "endMs": 402145,
+      "text": "mystery as finished science."
+    },
+    {
+      "segmentId": "seg-119",
+      "startMs": 403045,
+      "endMs": 408286,
+      "text": "Honestly, the puzzle is still open, with several competing ideas and no decisive test"
+    },
+    {
+      "segmentId": "seg-120",
+      "startMs": 408286,
+      "endMs": 408591,
+      "text": "yet."
+    },
+    {
+      "segmentId": "seg-121",
+      "startMs": 408591,
+      "endMs": 412184,
+      "text": "That honest uncertainty is part of what makes it exciting."
+    },
+    {
+      "segmentId": "seg-122",
+      "startMs": 412534,
+      "endMs": 417638,
+      "text": "Different teams favour different answers, and the next generation of observations may finally tell"
+    },
+    {
+      "segmentId": "seg-123",
+      "startMs": 417638,
+      "endMs": 418257,
+      "text": "them apart."
+    },
+    {
+      "segmentId": "seg-124",
+      "startMs": 419157,
+      "endMs": 423364,
+      "text": "Speaking of films, black holes have had quite a career in cinema over the"
+    },
+    {
+      "segmentId": "seg-125",
+      "startMs": 423364,
+      "endMs": 423761,
+      "text": "years."
+    },
+    {
+      "segmentId": "seg-126",
+      "startMs": 424111,
+      "endMs": 428516,
+      "text": "My personal ranking puts the wormhole film with the bookshelf scene first, then the"
+    },
+    {
+      "segmentId": "seg-127",
+      "startMs": 428516,
+      "endMs": 432135,
+      "text": "one with the spinning top ending, then the vampire one set in space."
+    },
+    {
+      "segmentId": "seg-128",
+      "startMs": 432485,
+      "endMs": 436757,
+      "text": "The robots in the first one are superb, all sarcasm and right angles, and"
+    },
+    {
+      "segmentId": "seg-129",
+      "startMs": 436757,
+      "endMs": 439701,
+      "text": "the organ music alone deserves some kind of award."
+    },
+    {
+      "segmentId": "seg-130",
+      "startMs": 440051,
+      "endMs": 444341,
+      "text": "The second film's dream layers still confuse me, though the hallway fight remains the"
+    },
+    {
+      "segmentId": "seg-131",
+      "startMs": 444341,
+      "endMs": 445990,
+      "text": "best action scene of its decade."
+    },
+    {
+      "segmentId": "seg-132",
+      "startMs": 446340,
+      "endMs": 450549,
+      "text": "I rewatch the third every Halloween, and the director's cut ending changes the whole"
+    },
+    {
+      "segmentId": "seg-133",
+      "startMs": 450549,
+      "endMs": 452332,
+      "text": "meaning of the lighthouse sequence."
+    },
+    {
+      "segmentId": "seg-134",
+      "startMs": 453232,
+      "endMs": 458923,
+      "text": "Anyway, Hollywood takes liberties, so let us return to what astronomers have actually seen."
+    },
+    {
+      "segmentId": "seg-135",
+      "startMs": 459823,
+      "endMs": 463125,
+      "text": "In a moment we will look at the famous photo, and I will explain"
+    },
+    {
+      "segmentId": "seg-136",
+      "startMs": 463125,
+      "endMs": 465664,
+      "text": "exactly what that glowing orange ring is made of."
+    },
+    {
+      "segmentId": "seg-137",
+      "startMs": 466014,
+      "endMs": 470578,
+      "text": "One more strange effect first: time itself runs slower in strong gravity."
+    },
+    {
+      "segmentId": "seg-138",
+      "startMs": 470928,
+      "endMs": 474600,
+      "text": "A clock lowered toward a black hole would tick ever more slowly as seen"
+    },
+    {
+      "segmentId": "seg-139",
+      "startMs": 474600,
+      "endMs": 475364,
+      "text": "from far away."
+    },
+    {
+      "segmentId": "seg-140",
+      "startMs": 475714,
+      "endMs": 479218,
+      "text": "An astronaut falling in would seem to freeze at the edge from our view,"
+    },
+    {
+      "segmentId": "seg-141",
+      "startMs": 479218,
+      "endMs": 481602,
+      "text": "fading and reddening as the light struggles out."
+    },
+    {
+      "segmentId": "seg-142",
+      "startMs": 481952,
+      "endMs": 486531,
+      "text": "From the astronaut's own watch, though, the crossing would happen in finite time."
+    },
+    {
+      "segmentId": "seg-143",
+      "startMs": 486531,
+      "endMs": 488936,
+      "text": "Both views are correct in their own frame."
+    },
+    {
+      "segmentId": "seg-144",
+      "startMs": 489836,
+      "endMs": 494970,
+      "text": "In twenty nineteen, a planet-wide network of telescopes photographed the shadow of the giant"
+    },
+    {
+      "segmentId": "seg-145",
+      "startMs": 494970,
+      "endMs": 497013,
+      "text": "black hole in galaxy M eighty-seven."
+    },
+    {
+      "segmentId": "seg-146",
+      "startMs": 497363,
+      "endMs": 503518,
+      "text": "Three years later, the same collaboration imaged our own galaxy's black hole, Sagittarius A-star,"
+    },
+    {
+      "segmentId": "seg-147",
+      "startMs": 503518,
+      "endMs": 505717,
+      "text": "four million times the Sun's mass."
+    },
+    {
+      "segmentId": "seg-148",
+      "startMs": 506067,
+      "endMs": 509938,
+      "text": "Both pictures show a glowing ring around a dark centre, and both teams were"
+    },
+    {
+      "segmentId": "seg-149",
+      "startMs": 509938,
+      "endMs": 511820,
+      "text": "careful about what the images prove."
+    },
+    {
+      "segmentId": "seg-150",
+      "startMs": 512170,
+      "endMs": 516356,
+      "text": "Sharper images are coming, and each one tests our theories a little harder."
+    },
+    {
+      "segmentId": "seg-151",
+      "startMs": 517256,
+      "endMs": 519420,
+      "text": "Could a black hole ever threaten Earth?"
+    },
+    {
+      "segmentId": "seg-152",
+      "startMs": 519420,
+      "endMs": 523152,
+      "text": "The nearest known one is over a thousand light years away, and it is"
+    },
+    {
+      "segmentId": "seg-153",
+      "startMs": 523152,
+      "endMs": 524180,
+      "text": "not coming closer."
+    },
+    {
+      "segmentId": "seg-154",
+      "startMs": 524530,
+      "endMs": 527522,
+      "text": "Black holes do not roam around sucking things up."
+    },
+    {
+      "segmentId": "seg-155",
+      "startMs": 527522,
+      "endMs": 531471,
+      "text": "From a distance, their gravity pulls exactly like any other mass."
+    },
+    {
+      "segmentId": "seg-156",
+      "startMs": 531821,
+      "endMs": 535450,
+      "text": "You would have to aim straight at one to fall in, which, given the"
+    },
+    {
+      "segmentId": "seg-157",
+      "startMs": 535450,
+      "endMs": 537615,
+      "text": "distances, is the least of our worries."
+    },
+    {
+      "segmentId": "seg-158",
+      "startMs": 537965,
+      "endMs": 543104,
+      "text": "They are remote laboratories for extreme physics, not cosmic vacuum cleaners on the loose."
+    },
+    {
+      "segmentId": "seg-159",
+      "startMs": 544004,
+      "endMs": 549184,
+      "text": "Our own galaxy hosts a giant black hole called Sagittarius A-star, weighing about four"
+    },
+    {
+      "segmentId": "seg-160",
+      "startMs": 549184,
+      "endMs": 550019,
+      "text": "million Suns."
+    },
+    {
+      "segmentId": "seg-161",
+      "startMs": 550369,
+      "endMs": 554591,
+      "text": "Stars near the centre have been tracked looping around something dark and heavy for"
+    },
+    {
+      "segmentId": "seg-162",
+      "startMs": 554591,
+      "endMs": 557260,
+      "text": "over twenty years, which is how we know it is there."
+    },
+    {
+      "segmentId": "seg-163",
+      "startMs": 558160,
+      "endMs": 560080,
+      "text": "This is all very simple stuff."
+    },
+    {
+      "segmentId": "seg-164",
+      "startMs": 560080,
+      "endMs": 563484,
+      "text": "Honestly, even a child could follow it without trying."
+    },
+    {
+      "segmentId": "seg-165",
+      "startMs": 563834,
+      "endMs": 566860,
+      "text": "If you got lost anywhere in there, that is on you."
+    },
+    {
+      "segmentId": "seg-166",
+      "startMs": 566860,
+      "endMs": 569350,
+      "text": "Just rewind and try to keep up this time."
+    },
+    {
+      "segmentId": "seg-167",
+      "startMs": 570250,
+      "endMs": 573281,
+      "text": "Genuinely, though, questions are always welcome here."
+    },
+    {
+      "segmentId": "seg-168",
+      "startMs": 573281,
+      "endMs": 577266,
+      "text": "The comments under this series have taught me as much as any textbook."
+    },
+    {
+      "segmentId": "seg-169",
+      "startMs": 577616,
+      "endMs": 581643,
+      "text": "If one picture from today stays with you, the video has done its job,"
+    },
+    {
+      "segmentId": "seg-170",
+      "startMs": 581643,
+      "endMs": 583596,
+      "text": "whatever your starting point was."
+    },
+    {
+      "segmentId": "seg-171",
+      "startMs": 583946,
+      "endMs": 589696,
+      "text": "So to recap: massive stars collapse, the edge traps everything, the glowing surroundings reveal"
+    },
+    {
+      "segmentId": "seg-172",
+      "startMs": 589696,
+      "endMs": 592091,
+      "text": "the invisible, and deep puzzles remain."
+    },
+    {
+      "segmentId": "seg-173",
+      "startMs": 592441,
+      "endMs": 596614,
+      "text": "As for that famous image, it is truly one of the most remarkable pictures"
+    },
+    {
+      "segmentId": "seg-174",
+      "startMs": 596614,
+      "endMs": 600222,
+      "text": "in all of science, and the team behind it deserves every prize."
+    },
+    {
+      "segmentId": "seg-175",
+      "startMs": 600572,
+      "endMs": 605390,
+      "text": "Getting that photo took telescopes across the planet working together as one Earth-sized eye,"
+    },
+    {
+      "segmentId": "seg-176",
+      "startMs": 605390,
+      "endMs": 607084,
+      "text": "which is a stunning achievement."
+    },
+    {
+      "segmentId": "seg-177",
+      "startMs": 607434,
+      "endMs": 611004,
+      "text": "It shows us our universe in a completely new light, and there will be"
+    },
+    {
+      "segmentId": "seg-178",
+      "startMs": 611004,
+      "endMs": 612788,
+      "text": "sharper images in the years ahead."
+    },
+    {
+      "segmentId": "seg-179",
+      "startMs": 613688,
+      "endMs": 617862,
+      "text": "If this gave you a new picture of the darkest objects in nature, subscribe"
+    },
+    {
+      "segmentId": "seg-180",
+      "startMs": 617862,
+      "endMs": 619866,
+      "text": "for the follow-up on neutron stars."
+    },
+    {
+      "segmentId": "seg-181",
+      "startMs": 620216,
+      "endMs": 624454,
+      "text": "Next time: the stellar corpses that spin hundreds of times a second."
+    },
+    {
+      "segmentId": "seg-182",
+      "startMs": 624454,
+      "endMs": 625314,
+      "text": "See you then."
+    }
+  ]
+}

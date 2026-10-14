@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "videoId": "study-smarter-habits",
+  "title": "Study Less, Remember More: Six Habits That Beat Re-Reading",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "School and college students aged fifteen to twenty-two studying in any country.",
+  "brief": "Teach six evidence-based study habits with a concrete example for each. Supportive, non-preachy tone that respects struggling students. Goal: viewers download the free weekly study planner at study.example/planner.",
+  "clean": false,
+  "durationMs": 715303,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/study-smarter-habits.json",
+    "scriptSha256": "267ccad486871d1049a4a304883171d8485c6cf1a2dc28cd97354c6e9851106c",
+    "media": "media/study-smarter-habits.mp4",
+    "mediaSha256": "cfc53db4d0ed446e36278a0206a623c9aa4a2d645a843030695422ca18dc3210",
+    "tts": "macOS say, voice Rocko, 160 wpm"
+  },
+  "issues": [
+    {
+      "id": "H1",
+      "category": "weak_hook",
+      "startMs": 600,
+      "endMs": 26396,
+      "additionalSpans": [],
+      "description": "The opening spends about twenty seconds on filler and throat-clearing without naming the topic; the six habits are only introduced afterwards.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "H2",
+      "category": "factual_error",
+      "startMs": 75025,
+      "endMs": 93317,
+      "additionalSpans": [],
+      "description": "Claims we use only ten percent of our brains and the habits unlock the other ninety. Brain imaging shows virtually all of the brain is active across a normal day; the ten-percent claim is a myth. Correct fact: the whole brain is already in use.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "H3",
+      "category": "unsupported_claim",
+      "startMs": 238274,
+      "endMs": 254329,
+      "additionalSpans": [],
+      "description": "Claims listening to Mozart while revising raises IQ by twenty points permanently. The 1993 Mozart-effect finding was a small temporary boost on one spatial task, not a permanent IQ gain. Correct position: no lasting IQ effect.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "H4",
+      "category": "safety",
+      "startMs": 614588,
+      "endMs": 630556,
+      "additionalSpans": [],
+      "description": "Recommends pulling an all-nighter before every exam fuelled by energy drinks and catching up on sleep after results. Sleep deprivation harms memory consolidation, exam performance and health; regular all-nighters plus excess caffeine are unsafe advice for teenagers.",
+      "expectedDimension": "legal_safety"
+    },
+    {
+      "id": "H5",
+      "category": "tangent",
+      "startMs": 456898,
+      "endMs": 489981,
+      "additionalSpans": [],
+      "description": "A roughly forty-second story about a gaming tournament has nothing to do with study habits and stalls the video.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "H6",
+      "category": "pacing_drag",
+      "startMs": 294024,
+      "endMs": 341573,
+      "additionalSpans": [],
+      "description": "Reads a sample timetable aloud slot by slot, repeating every period twice, stalling the video for over half a minute.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "H7",
+      "category": "broken_promise",
+      "startMs": 677965,
+      "endMs": 700174,
+      "additionalSpans": [
+        {
+          "startMs": 34281,
+          "endMs": 43217
+        }
+      ],
+      "description": "The intro promises the creator's exact seven-day study plan at the end, but the closing never gives any seven-day plan. The promise is never paid off.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "H8",
+      "category": "locale_assumption",
+      "startMs": 516731,
+      "endMs": 533657,
+      "additionalSpans": [],
+      "description": "Treats GPA, SAT prep in junior year and prom weekend as universal for an any-country audience. Correct frame: these are US-specific; most school systems work differently.",
+      "expectedDimension": "cultural_localization"
+    },
+    {
+      "id": "H9",
+      "category": "tone_mismatch",
+      "startMs": 646663,
+      "endMs": 661625,
+      "additionalSpans": [],
+      "description": "A late line calls students who struggle just lazy, clashing with the brief's supportive, non-preachy tone for struggling students.",
+      "expectedDimension": "audience_brand"
+    }
+  ]
+}
