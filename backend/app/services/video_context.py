@@ -6,7 +6,7 @@ the writer prompts can carry: findings the creator accepted (or the severe ones 
 rejected), the predicted-interest peaks, a capped transcript excerpt and the persona.
 
 Everything here is read-only and defensive. Findings are read as stored dicts so the
-`decision` (creator accepted/revised/rejected) and `adjudication` (second-pass verdict)
+`decision` (creator accepted/revised/dismissed) and `adjudication` (second-pass verdict)
 fields are honoured when present and ignored when they are not. Quotes and timestamps come
 from the stored data and the transcript, never from a model.
 """
@@ -104,7 +104,7 @@ def review_findings(
 
     Findings the creator accepted or revised win (a revision's text replaces the original
     suggestion). When none were decided, fall back to high/critical findings that the
-    second-pass adjudicator did not reject. Findings the creator rejected never appear.
+    second-pass adjudicator did not reject. Findings the creator dismissed never appear.
     """
     rows = client.query_collection(
         analysis_findings_collection_path(owner_uid, project_id, run_id),
@@ -117,7 +117,7 @@ def review_findings(
         data
         for _, data in rows
         if data.get("ownerUid") == owner_uid
-        and _decision(data)[0] != "rejected"
+        and _decision(data)[0] not in ("dismissed", "rejected")
         and not _adjudicated_reject(data)
     ]
     chosen = [data for data in owned if _decision(data)[0] in ("accepted", "revised")]
