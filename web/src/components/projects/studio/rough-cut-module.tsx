@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { ReviewComparison } from "@/components/projects/review-comparison";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -51,10 +52,16 @@ export function RoughCutModule({
     queryKey: ["analysis-runs", project.projectId],
     queryFn: () => listAnalysisRuns(project.projectId),
   });
-  const eligible =
+  const completed =
     runs.data?.items.filter(
       (run) => run.status === "ready" || run.status === "partial_failure",
     ) ?? [];
+  // Reviews of the active source come first, so a cut's own re-review never becomes the
+  // default base for another cut.
+  const eligible = [
+    ...completed.filter((run) => run.sourceAssetId === project.sourceAssetId),
+    ...completed.filter((run) => run.sourceAssetId !== project.sourceAssetId),
+  ];
   const runId =
     eligible.find((run) => run.analysisRunId === selectedRun)?.analysisRunId ??
     eligible[0]?.analysisRunId;
@@ -215,6 +222,14 @@ function CutEditor({
         ? false
         : 2000,
   });
+  useEffect(() => {
+    if (reviewJob.data?.status !== "succeeded") return;
+    void client.invalidateQueries({ queryKey: ["analysis-runs", projectId] });
+  }, [reviewJob.data?.status, client, projectId]);
+  const runs = useQuery({
+    queryKey: ["analysis-runs", projectId],
+    queryFn: () => listAnalysisRuns(projectId),
+  });
   const rendering = Boolean(
     pending &&
     !job.error &&
@@ -325,6 +340,15 @@ function CutEditor({
       reviewJob.data.status === "running"),
   );
   const saved = timeline.durationMsBefore - timeline.durationMsAfter;
+  const cutReview = cut
+    ? runs.data?.items
+        .filter(
+          (run) =>
+            run.sourceAssetId === cut.assetId &&
+            (run.status === "ready" || run.status === "partial_failure"),
+        )
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+    : undefined;
 
   return (
     <div className="space-y-5">
@@ -750,6 +774,16 @@ function CutEditor({
           )}
         </CardContent>
       </Card>
+      {cutReview && (
+        <section aria-label="Before and after review" className="space-y-2">
+          <h3 className="text-sm font-medium">Before / after review</h3>
+          <ReviewComparison
+            projectId={projectId}
+            baseRunId={runId}
+            targetRunId={cutReview.analysisRunId}
+          />
+        </section>
+      )}
     </div>
   );
 }
