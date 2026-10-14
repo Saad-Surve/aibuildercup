@@ -11,14 +11,15 @@ differences from unmeasured quality and productivity claims.
 
 ## Predicted audience interest
 
-[Full report](interest/README.md), measured on 13 October 2026. The heatmap's interest lane is
+[Full report](interest/README.md), measured on 13 October 2026 and retrained on 14 October. The heatmap's interest lane is
 a ridge model over transcript features and Gemini per-moment signals. It is labelled with
 YouTube's public Most Replayed graph (normalised within each video, not retention) and trained
-on 45 long-form creator videos plus a Content Behavior Corpus sample. In grouped
+on 87 long-form creator videos plus a Content Behavior Corpus sample. In grouped
 cross-validation over creator channels, its deviations from the typical drop-off correlate
-with the real ones at **ρ = 0.17 (95% CI 0.10–0.24)**. Predicted dips land in the true
-bottom quarter **37%** of the time and peaks in the true top quarter **35%**, against 25% by
-chance. Transcript statistics alone did not beat chance. The Gemini signals carry the effect.
+with the real ones at **ρ = 0.15 (95% CI 0.10–0.20)**. Predicted dips land in the true
+bottom quarter **35%** of the time and peaks in the true top quarter **35%**, against 25% by
+chance. Transcript statistics alone are barely above chance (ρ = 0.07). The Gemini signals
+carry the effect.
 
 ## Creator retrieval: semantic versus keyword fallback
 

@@ -1,4 +1,4 @@
-# Overnight data run (Windows)
+# Overnight data run (Windows or macOS)
 
 This collects public YouTube videos' "Most Replayed" graphs plus timed transcripts, rates every
 five seconds with Gemini, and zips the result. That zip is the training data for the
@@ -7,18 +7,20 @@ collection, then up to an hour of Gemini.
 
 ## One-time setup (about 10 minutes)
 
-1. **Get the repo** on the Windows machine (`git clone` or a copy), then open a terminal in
-   `evals\interest\collector`.
+1. **Get the repo** on the machine (`git clone` or a copy), then open a terminal in
+   `evals/interest/collector` (`evals\interest\collector` on Windows).
 2. **Install the Google Cloud CLI**: <https://cloud.google.com/sdk/docs/install>
+   (macOS: `brew install --cask google-cloud-sdk`; also needs `brew install ffmpeg`).
 3. **Sign in for Gemini** (your account needs Vertex AI User on `habeas-codus`):
    ```bat
    gcloud auth application-default login
    gcloud auth application-default set-quota-project habeas-codus
    ```
-4. **Smoke test** (about 5 minutes; installs `uv` and Python packages on first run):
+4. **Smoke test** (about 5–10 minutes; installs `uv` and Python packages on first run):
    ```bat
    run.bat test
    ```
+   macOS: `./run-macos.sh test` (make it executable once: `chmod +x run-macos.sh`).
    It should end with `"done": 2` (or 1) and `"failed": 0` from the Gemini step.
 
 ## The overnight run
@@ -26,6 +28,10 @@ collection, then up to an hour of Gemini.
 ```bat
 run.bat
 ```
+
+macOS: `./run-macos.sh` (same modes: `test`, `signals`, `zip-only`, `status`;
+tune with e.g. `TARGET=300 HOURS=5 ./run-macos.sh`). Both wrappers keep the
+machine awake while the long phases run (`caffeinate -i` on macOS).
 
 - Keep the laptop **plugged in**. The script stops Windows from sleeping while it runs. If
   the lid-close action is set to "Sleep", leave the lid open.

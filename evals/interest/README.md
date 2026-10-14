@@ -1,16 +1,17 @@
 # Predicted audience interest
 
-Measured on 13 October 2026. The review heatmap only marks moments a reviewer flagged, so
+Measured on 13 October 2026, retrained on 14 October with 87 creator videos (was 46). The review heatmap only marks moments a reviewer flagged, so
 most of a good video has no colour. The interest lane fills every five-second bin with a
 **relative** estimate of where viewers lean in or drift, learned from YouTube's public
 "Most Replayed" graph, and marks the stretches that most beat or fall short of the typical
 drop-off for that point in a video.
 
 **Headline.** On creator channels the model never trained on, the predicted deviations from
-the typical drop-off correlate with the real ones at **ρ = 0.17 (95% CI 0.10–0.24)**.
-Predicted dips land in the true bottom quarter **37%** of the time and peaks in the true top
+the typical drop-off correlate with the real ones at **ρ = 0.15 (95% CI 0.10–0.20)**.
+Predicted dips land in the true bottom quarter **35%** of the time and peaks in the true top
 quarter **35%**, against 25% by chance. Most of that comes from Gemini's per-moment
-signals. Transcript statistics alone (pace, pauses, fillers) do not beat chance.
+signals. Transcript statistics alone (pace, pauses, fillers) are only barely above chance
+(ρ = 0.07 [0.03, 0.12]).
 
 ## What the label is, and is not
 
@@ -24,7 +25,7 @@ says so.
 
 | Source | Videos | Channels | Median length | Role |
 |---|---:|---:|---:|---|
-| Creator set (collected) | 46 | 44 | 12.2 min | Grouped cross-validation over channels, then training |
+| Creator set (collected) | 87 | 81 | 11.9 min | Grouped cross-validation over channels, then training |
 | [Content Behavior Corpus](https://huggingface.co/datasets/behavior-in-the-wild/content-behavior-corpus) (Adobe, MIT) | 9,775 | 2,106 | 70 s | Training data, plus a short-form held-out check |
 
 - **Creator set.** YouTube searches across finance, careers, fitness, tech, cooking, study and
@@ -32,8 +33,8 @@ says so.
   and capped at three videos per channel. Metadata and the graph come from yt-dlp. Transcripts
   are YouTube's original-language ASR track (transcript API), or local Whisper
   (`large-v3-turbo` on Apple silicon) when YouTube blocked caption requests. Whisper downloads
-  audio only, and the audio is deleted after transcription. The split is 29 English and 17
-  Hindi or Hinglish videos. Raw files stay in the gitignored `raw/` folder. Only video IDs
+  audio only, and the audio is deleted after transcription. The split is 60 English, 26
+  Hindi or Hinglish and 1 Telugu video. Raw files stay in the gitignored `raw/` folder. Only video IDs
   ([videos.csv](videos.csv)) and derived results are committed.
 - **Corpus.** Short brand-channel videos with Whisper transcripts and replay markers. Only
   speech-led clips are kept: at least 30 s, at least 80 wpm and at least 10 markers.
@@ -72,11 +73,19 @@ refit on the same training data in each fold. Chance precision is 0.25.
 
 | Recipe | n | ρ | Position ρ | **Lift ρ [95% CI]** | Lift peak precision | Lift dip precision |
 |---|---:|---:|---:|---|---:|---:|
-| Creator, transcript | 46 | 0.250 | 0.256 | 0.013 [−0.052, 0.075] | 0.31 | 0.27 |
-| Corpus + creator, transcript | 46 | 0.248 | 0.250 | 0.026 [−0.035, 0.084] | 0.31 | 0.29 |
-| Corpus only, transcript | 46 | 0.088 | 0.099 | −0.268 [−0.341, −0.193] | 0.17 | 0.10 |
-| Creator, transcript + Gemini | 45 | 0.296 | 0.270 | 0.128 [0.061, 0.194] | 0.33 | 0.37 |
-| **Corpus + creator, transcript + Gemini (shipped)** | 45 | **0.296** | 0.259 | **0.172 [0.099, 0.241]** | **0.35** | **0.37** |
+| Creator, transcript (fallback) | 87 | 0.272 | 0.258 | 0.074 [0.029, 0.120] | 0.31 | 0.31 |
+| Corpus + creator, transcript | 87 | 0.253 | 0.245 | 0.066 [0.029, 0.104] | 0.31 | 0.30 |
+| Corpus only, transcript | 87 | 0.094 | 0.105 | −0.260 [−0.308, −0.208] | 0.16 | 0.11 |
+| Creator, transcript + Gemini | 87 | 0.302 | 0.258 | 0.149 [0.099, 0.197] | 0.37 | 0.34 |
+| **Corpus + creator, transcript + Gemini (shipped)** | 87 | **0.282** | 0.245 | **0.151 [0.101, 0.200]** | **0.35** | **0.35** |
+
+Retrain of 14 October. With 46 creator videos (13 October) the shipped recipe scored lift ρ
+0.172 [0.099, 0.241], peak precision 0.35 and dip precision 0.37. With 87 videos the point
+estimate is slightly lower and the interval about 30% narrower, with the same lower bound. The
+new videos came from a five-hour macOS collector run (`collector/run-macos.sh`) and lean towards
+Hindi smartphone reviews, because that niche was being searched when YouTube blocked captions
+and collection switched to Whisper. The model was rewritten because the larger test population
+makes the estimate more trustworthy, not because the number went up.
 
 Short-form check (corpus-trained, 2,981 clips on held-out corpus channels): transcript ρ 0.304
 against position 0.300, lift ρ 0.053 [0.040, 0.066]. Replay curves of one-minute brand clips
@@ -84,19 +93,20 @@ are almost entirely positional.
 
 What the evidence supports:
 
-1. **Gemini's semantic signals carry the content effect.** Without them the lift interval
-   includes zero. With them it is clearly positive on unseen creators, and adding the
-   signalled corpus clips improves it further.
+1. **Gemini's semantic signals carry the content effect.** Without them the lift is barely
+   above zero (0.07). With them it doubles to 0.15 on unseen creators. Adding the signalled
+   corpus clips no longer changes it (0.151 against 0.149 creator-only).
 2. **Short-form shape does not transfer to long-form.** A position and transcript model
    trained only on the corpus is worse than chance on creator videos. It is used only
    alongside creator data, with both sources weighted equally.
-3. **It is a weak, useful signal, not a verdict.** ρ ≈ 0.3 overall and 0.17 beyond position
+3. **It is a weak, useful signal, not a verdict.** ρ ≈ 0.3 overall and 0.15 beyond position
    mean the markers point at places worth reviewing. The info panel says this in those words.
 
 ## Limits
 
 - **Selection.** The shipped recipe was chosen as the best of five on these same CV results,
-  so its numbers are mildly optimistic. 45 creator videos is a small test population.
+  so its numbers are mildly optimistic. 87 creator videos from 81 channels is still a small
+  test population, and it is skewed towards tech and Hindi-language channels.
 - **Most Replayed is a proxy.** It reflects rewatching and seeking, and it exists only for
   popular videos. A creator's own retention curve (YouTube Analytics `audienceWatchRatio`)
   would be the better label. The connector already holds the scope, but no channel with
@@ -104,7 +114,8 @@ What the evidence supports:
 - **Transcript only.** The model sees no frames or audio energy. Visual moments are only
   visible when the speech points at them.
 - **Fallback.** When the Gemini pass is unavailable, the transcript-only head draws the
-  curve, but no peaks or dips are marked, because its lift did not beat chance.
+  curve, but no peaks or dips are marked, because its lift (0.07) is too weak to point at
+  moments.
 - **Collection terms.** yt-dlp and the transcript API sit outside YouTube's API terms. The
   data was gathered for research evaluation, is not redistributed, and is kept to metadata,
   replay graphs and transcripts.

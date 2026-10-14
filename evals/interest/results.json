@@ -1,21 +1,22 @@
 {
- "generatedAt": "2026-10-13T17:15:20+00:00",
+ "generatedAt": "2026-10-14T11:28:32+00:00",
  "modelVersion": "interest-v1",
  "featureVersion": "interest-features-v3",
  "signalModel": "gemini-3.1-flash-lite",
  "signalPromptVersion": "interest-signals-v2",
  "primary": "mixed/full",
- "fallback": "mixed/transcript",
+ "fallback": "creator/transcript",
  "data": {
   "creator": {
-   "videos": 46,
-   "channels": 44,
-   "signalled": 45,
+   "videos": 87,
+   "channels": 81,
+   "signalled": 87,
    "languages": {
-    "en": 29,
-    "hi": 17
+    "en": 60,
+    "hi": 26,
+    "te": 1
    },
-   "medianSeconds": 730.5
+   "medianSeconds": 711.0
   },
   "corpus": {
    "videos": 9775,
@@ -27,103 +28,103 @@
  },
  "creatorCrossValidation": {
   "creator/transcript": {
-   "videos": 46,
-   "spearman": 0.2501,
-   "peakPrecision": 0.2977,
-   "dipPrecision": 0.6337,
-   "liftSpearman": 0.0135,
-   "liftPeakPrecision": 0.308,
-   "liftDipPrecision": 0.2714,
+   "videos": 87,
+   "spearman": 0.272,
+   "peakPrecision": 0.3453,
+   "dipPrecision": 0.6556,
+   "liftSpearman": 0.0738,
+   "liftPeakPrecision": 0.3137,
+   "liftDipPrecision": 0.3128,
    "liftSpearman95": {
-    "mean": 0.0135,
-    "low": -0.0521,
-    "high": 0.0746
+    "mean": 0.0738,
+    "low": 0.0295,
+    "high": 0.1199
    },
    "positionBaseline": {
-    "videos": 46,
-    "spearman": 0.2559,
-    "peakPrecision": 0.2986,
-    "dipPrecision": 0.634
+    "videos": 87,
+    "spearman": 0.2584,
+    "peakPrecision": 0.2804,
+    "dipPrecision": 0.6542
    }
   },
   "mixed/transcript": {
-   "videos": 46,
-   "spearman": 0.2484,
-   "peakPrecision": 0.3353,
-   "dipPrecision": 0.6319,
-   "liftSpearman": 0.0264,
-   "liftPeakPrecision": 0.3098,
-   "liftDipPrecision": 0.2858,
+   "videos": 87,
+   "spearman": 0.2527,
+   "peakPrecision": 0.3285,
+   "dipPrecision": 0.6522,
+   "liftSpearman": 0.0664,
+   "liftPeakPrecision": 0.3095,
+   "liftDipPrecision": 0.2951,
    "liftSpearman95": {
-    "mean": 0.0264,
-    "low": -0.0351,
-    "high": 0.0835
+    "mean": 0.0664,
+    "low": 0.0288,
+    "high": 0.1044
    },
    "positionBaseline": {
-    "videos": 46,
-    "spearman": 0.2498,
-    "peakPrecision": 0.2884,
-    "dipPrecision": 0.634
+    "videos": 87,
+    "spearman": 0.2448,
+    "peakPrecision": 0.2633,
+    "dipPrecision": 0.6542
    }
   },
   "corpus/transcript": {
-   "videos": 46,
-   "spearman": 0.0883,
-   "peakPrecision": 0.2361,
-   "dipPrecision": 0.4215,
-   "liftSpearman": -0.2682,
-   "liftPeakPrecision": 0.1677,
-   "liftDipPrecision": 0.0999,
+   "videos": 87,
+   "spearman": 0.0941,
+   "peakPrecision": 0.2296,
+   "dipPrecision": 0.4564,
+   "liftSpearman": -0.2598,
+   "liftPeakPrecision": 0.1636,
+   "liftDipPrecision": 0.1078,
    "liftSpearman95": {
-    "mean": -0.2682,
-    "low": -0.3414,
-    "high": -0.1929
+    "mean": -0.2598,
+    "low": -0.308,
+    "high": -0.2081
    },
    "positionBaseline": {
-    "videos": 46,
-    "spearman": 0.0986,
-    "peakPrecision": 0.2199,
-    "dipPrecision": 0.462
+    "videos": 87,
+    "spearman": 0.1048,
+    "peakPrecision": 0.2262,
+    "dipPrecision": 0.4961
    }
   },
   "creator/full": {
-   "videos": 45,
-   "spearman": 0.2963,
-   "peakPrecision": 0.3771,
-   "dipPrecision": 0.6274,
-   "liftSpearman": 0.1279,
-   "liftPeakPrecision": 0.3271,
-   "liftDipPrecision": 0.3667,
+   "videos": 87,
+   "spearman": 0.3019,
+   "peakPrecision": 0.3865,
+   "dipPrecision": 0.6517,
+   "liftSpearman": 0.1491,
+   "liftPeakPrecision": 0.3683,
+   "liftDipPrecision": 0.343,
    "liftSpearman95": {
-    "mean": 0.1279,
-    "low": 0.061,
-    "high": 0.1943
+    "mean": 0.1491,
+    "low": 0.099,
+    "high": 0.1973
    },
    "positionBaseline": {
-    "videos": 45,
-    "spearman": 0.2695,
-    "peakPrecision": 0.3019,
-    "dipPrecision": 0.6305
+    "videos": 87,
+    "spearman": 0.2584,
+    "peakPrecision": 0.2804,
+    "dipPrecision": 0.6542
    }
   },
   "mixed/full": {
-   "videos": 45,
-   "spearman": 0.2955,
-   "peakPrecision": 0.4043,
-   "dipPrecision": 0.639,
-   "liftSpearman": 0.1715,
-   "liftPeakPrecision": 0.3535,
-   "liftDipPrecision": 0.3721,
+   "videos": 87,
+   "spearman": 0.2824,
+   "peakPrecision": 0.3809,
+   "dipPrecision": 0.6478,
+   "liftSpearman": 0.1511,
+   "liftPeakPrecision": 0.3462,
+   "liftDipPrecision": 0.3511,
    "liftSpearman95": {
-    "mean": 0.1715,
-    "low": 0.0985,
-    "high": 0.2411
+    "mean": 0.1511,
+    "low": 0.1009,
+    "high": 0.2003
    },
    "positionBaseline": {
-    "videos": 45,
-    "spearman": 0.2585,
-    "peakPrecision": 0.3146,
-    "dipPrecision": 0.6305
+    "videos": 87,
+    "spearman": 0.2448,
+    "peakPrecision": 0.2633,
+    "dipPrecision": 0.6542
    }
   }
  },
@@ -152,63 +153,63 @@
  "topWeights": [
   {
    "feature": "closing",
-   "weight": -0.1553
-  },
-  {
-   "feature": "practical_rel",
-   "weight": 0.0972
+   "weight": -0.1826
   },
   {
    "feature": "pos_sq",
-   "weight": -0.0968
-  },
-  {
-   "feature": "hook_rel",
-   "weight": 0.089
+   "weight": -0.1039
   },
   {
    "feature": "opening",
-   "weight": 0.0642
+   "weight": 0.0882
+  },
+  {
+   "feature": "practical_rel",
+   "weight": 0.0864
   },
   {
    "feature": "payoff_rel",
-   "weight": 0.0615
+   "weight": 0.0805
+  },
+  {
+   "feature": "hook_rel",
+   "weight": 0.0794
+  },
+  {
+   "feature": "pos_x_length",
+   "weight": 0.0662
   },
   {
    "feature": "humor_rel",
-   "weight": 0.0586
-  },
-  {
-   "feature": "pause_max_ctx",
-   "weight": -0.0549
-  },
-  {
-   "feature": "practical_ctx",
-   "weight": 0.0471
-  },
-  {
-   "feature": "open_loop_rel",
-   "weight": -0.0441
-  },
-  {
-   "feature": "speech_ratio_rel",
-   "weight": 0.0424
-  },
-  {
-   "feature": "wpm",
-   "weight": -0.0405
+   "weight": 0.063
   },
   {
    "feature": "payoff_ctx",
-   "weight": 0.0403
+   "weight": 0.0563
   },
   {
-   "feature": "pause_max_rel",
-   "weight": -0.0386
+   "feature": "pause_max_ctx",
+   "weight": -0.0503
+  },
+  {
+   "feature": "practical_ctx",
+   "weight": 0.0484
+  },
+  {
+   "feature": "wpm_rel",
+   "weight": -0.0481
   },
   {
    "feature": "novelty",
-   "weight": -0.0375
+   "weight": -0.0476
+  },
+  {
+   "feature": "pause_max_rel",
+   "weight": -0.0462
+  },
+  {
+   "feature": "payoff",
+   "weight": -0.0439
   }
  ],
  "transcriptFeatures": [

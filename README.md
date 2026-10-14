@@ -188,7 +188,7 @@ quantitative results. Editorial quality and creator impact have no independent l
 
 | Measurement | Result | Scope |
 |---|---|---|
-| Interest beyond the typical drop-off | **ρ = 0.17** (95% CI 0.10–0.24); dips in the true bottom quarter **37%**, peaks in the top quarter **35%** (chance 25%) | Grouped CV over 45 unseen creator channels, Most Replayed labels; transcript statistics alone do not beat chance. [Report](evals/interest/README.md) |
+| Interest beyond the typical drop-off | **ρ = 0.15** (95% CI 0.10–0.20); dips in the true bottom quarter **35%**, peaks in the top quarter **35%** (chance 25%) | Grouped CV over 87 videos from 81 unseen creator channels, Most Replayed labels; transcript statistics alone reach only ρ = 0.07. [Report](evals/interest/README.md) |
 | Intended source ranked first | Semantic **20/20**, keyword fallback **11/20** | 20 curated, author-labeled source-relevance queries on one creator corpus (12 English, 4 Hindi, 4 text-to-image). Labels were assigned before inference. |
 | Retrieval ranking quality | Semantic **MRR@8 1.000**, keyword **0.598** | Same cohort; hit@3 **20/20 vs 12/20**, hit@8 **20/20 vs 15/20**. |
 | Local media probing | **49.9–50.4% lower median time** | Combined metadata probe versus two separate probes, three real videos, seven interleaved repetitions each. |
@@ -281,7 +281,7 @@ carry the creator's own evidence into each downstream asset.
 - **Reviewers are prompts over one model.** Format and quote consistency are enforced.
   Factual correctness and severity are not. Confidence fields are not calibrated.
 - **Interest is a proxy, and a weak one.** The curve learns from public Most Replayed graphs
-  (rewatching, not retention) on 45 creator videos plus short brand clips. It sees the
+  (rewatching, not retention) on 87 creator videos plus short brand clips. It sees the
   transcript, not the frames. It ranks moments within one video and points at places to
   look. It does not score the video.
 - **Editorial quality is unmeasured.** No blind creator labels or gold-issue set exist yet.

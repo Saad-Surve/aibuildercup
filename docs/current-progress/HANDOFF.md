@@ -56,46 +56,32 @@ worktrees under `../aibuildercup-wt/` and merged into local `main` (`fbc2e80..HE
 - **Publish warnings, STT fix, docs/infra cleanup and the editorial eval harness** (open items 1, 2,
   8 below and "Editorial eval" under Verification gaps).
 
-## Next session: interest model retrain (set up 2026-10-13)
+## Interest model (retrained 2026-10-14, local `main`, not deployed)
 
 The heatmap's "Audience interest" lane and reviewer coverage tint are live (`544700f`,
 deployed with `fbc2e80`). The method and current numbers are in `evals/interest/README.md`.
 
-**Where it stands.** The shipped model (`backend/app/assets/interest/model.json`, recipe
-`mixed/full`) uses creator videos plus a Content Behavior Corpus sample, with Gemini signals.
-On 45 unseen creator channels: lift ρ **0.172 [0.099, 0.241]**, lift peak precision 0.35,
-lift dip precision 0.37 (chance 0.25), overall ρ 0.30 against a position baseline of 0.26.
-Transcript features alone do not beat chance (lift ρ 0.03). Gemini signals carry the effect.
+**Where it stands.** `backend/app/assets/interest/model.json` (recipe `mixed/full`, fallback now
+`creator/transcript`) was retrained on 2026-10-14 with 87 creator videos from 81 channels (was
+46). On unseen creator channels: lift ρ **0.151 [0.101, 0.200]** (was 0.172 [0.099, 0.241]),
+lift peak precision 0.35, lift dip precision 0.35 (chance 0.25), overall ρ 0.28 against a position
+baseline of 0.24. Transcript-only lift is 0.074 [0.029, 0.120]: above zero now, but too weak to
+mark moments, so the fallback still marks none. The demo account's two runs were backfilled with
+the new model (`interest_backfill.py --force`, live Firestore). Production keeps the old model
+until the next deploy.
 
-**Overnight run.** A colleague is running `evals/interest/collector/run.bat` on a CPU-only
-Windows laptop: 7 hours of collection (target 500, expected about 150–300 new creator videos),
-then the Gemini signal pass (capped at 2,000 calls, about $2–4). They will send
-`interest_data_<date>.zip`, which contains `meta/`, `subs/` and `signals/` JSON relative to
-`evals/interest/raw/`.
-
-**Local data on this machine** (gitignored `evals/interest/raw/`, about 146 MB): 283 metadata
-files, 49 creator transcripts (`subs/*.lines.json`), 284 cached Gemini signal files (creator and
-corpus sample), and the corpus parquet files in `raw/cbc/`. Training needs all of it, so do not
-delete it. If it is lost, the collector and training READMEs rebuild it.
-
-**Steps when the zip arrives** (from the repo root):
-
-1. `cd evals/interest/raw && unzip -n <path>/interest_data_*.zip && cd -`. `-n` keeps
-   existing files; the signal cache key matches because the model and prompt are the same.
-2. Count the new data with `ls evals/interest/raw/subs | wc -l`. Any creator video without
-   a signal file still needs the pass:
-   `uv run --project backend --with pyarrow python backend/scripts/interest_train.py signals --max-calls 400 --concurrency 3 --cbc-train 0 --cbc-test 0`
-3. Evaluate without writing:
-   `uv run --project backend --with pyarrow python backend/scripts/interest_train.py train --dry-run`.
-   Compare the `mixed/full` and `creator/full` rows with the numbers above. More creators
-   should narrow the confidence interval.
-4. If the result holds or improves, run the same command without `--dry-run`. It rewrites
-   `model.json`, `evals/interest/results.json` and `videos.csv`. Then update the numbers in
-   `evals/interest/README.md`, `evals/README.md`, the README evidence table and this section.
-5. Refresh the demo curves:
-   `uv run --project backend python backend/scripts/interest_backfill.py --uid demoCreatorHabeasCodus --max-runs 10 --force`
-6. Run the checks (`ruff`, `mypy`, `bun run lint`, `bun run build`) and commit. A push to
-   `main` deploys.
+**Data.** The new videos came from a five-hour run of `evals/interest/collector/run-macos.sh` on
+this machine (zips `interest_data_20261014-1210.zip` and `-1633.zip` in the collector folder,
+gitignored). YouTube IP-blocked captions within the first hour, so most new transcripts are local
+Whisper, at 15–25 minutes per Hindi video on CPU. That is why the run yielded 41 videos rather
+than 150–300, and why the new data leans towards Hindi smartphone reviews. Gitignored
+`evals/interest/raw/` now holds 298 metadata files, 87 creator transcripts and 322 signal files,
+plus the corpus parquet in `raw/cbc/`. Training needs all of it. To add data, rerun the collector
+(it resumes), then `interest_train.py signals …` for unsignalled videos, then
+`interest_train.py train --dry-run` before writing.
+A faster next run on this Mac: `collect.py` uses faster-whisper on CPU, while
+`interest_collect.py asr` uses MLX at about 85 s per video, roughly ten times faster. Collect
+metadata with `collect.py`, then transcribe with the MLX path.
 
 **Gotchas from the build.**
 
@@ -390,12 +376,19 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
 - Creator-quality evaluation. No creator labels exist yet. The comparison protocol is in
   `evals/creator-comparison.md`.
 - Editorial eval: `evals/editorial/` has five constructed videos (20 planted flaws plus a clean
-  control), labels pre-registered at `2e13571`, and four arms (single prompt, single prompt with
-  rubrics, nine reviewers, nine reviewers plus adjudicator) in `backend/scripts/editorial_eval.py`
-  (dry run by default, `--max-calls` enforced, `replay` re-scores with no calls). The first full run
-  on `gemini-3.8-flash` was started 2026-10-14 (`--run-id 2026-10-14-flash38`, log in
-  `.logs/editorial-eval-2026-10-14.log`). Constructed TTS media measures planted-flaw detection, not
-  accuracy on real creator videos.
+  control), labels pre-registered at `2e13571`, and four arms in `backend/scripts/editorial_eval.py`.
+  First full run, `2026-10-14-flash38` on `gemini-3.8-flash` (`evals/results/editorial-2026-10-14-flash38.*`):
+  baseline (one prompt) recall 19/20, precision 95%, clean control 3, $0.12; rubric 14/20, 88%;
+  nine reviewers 20/20 but precision **31%** (45 extra findings), clean control 6, $1.14;
+  adjudicated 20/20, 33%, $1.39. **The nine-reviewer path is not yet better than one prompt on
+  this set.** It matches recall and loses badly on precision and cost. The adjudicator only checks
+  high/critical findings against footage, so it removed 5, and it passed a critical "false claim"
+  about a correct fact on the clean control. Phase 3 (in progress, worktrees under
+  `../aibuildercup-wt/`, context in `../aibuildercup-wt/PHASE3.md`) adds an editor pass that keeps,
+  merges or drops findings, an independent held-out set (authored by a different model family,
+  labels committed before any run), and a model-judged audit of the unmatched findings. The five
+  dev videos are now tuning data, so results on them are post-hoc. Constructed TTS media measures
+  planted-flaw detection, not accuracy on real creator videos.
 - Everything in "Review loop work on local `main`": decisions, adjudicator v2 prompt, library
   links, rough-cut upload/activate/discard and re-review, comparison on real runs, writer context
   in thumbnails and listings. All pass ruff, mypy, lint and build; live checks were limited to one
