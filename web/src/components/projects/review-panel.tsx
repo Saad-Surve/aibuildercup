@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useProjectTranscript } from "@/hooks/use-project-transcript";
 import { ApiError } from "@/lib/api-client";
 import {
+  editorFiltered,
   formatCostUsd,
   formatScore,
   getAnalysisRun,
@@ -403,7 +404,9 @@ export function ReviewPanel({
               {(["accepted", "revised", "dismissed", "open"] as const)
                 .map((status) => {
                   const eligible = findings.filter(
-                    (finding) => finding.adjudication?.verdict !== "reject",
+                    (finding) =>
+                      !editorFiltered(finding) &&
+                      finding.adjudication?.verdict !== "reject",
                   );
                   const count = eligible.filter((finding) =>
                     status === "open"
@@ -492,7 +495,9 @@ export function ReviewPanel({
             />
           )}
 
-          {activeRunId && <GroundingPanel reviewers={reviewers} />}
+          {activeRunId && (
+            <GroundingPanel reviewers={reviewers} editor={run?.editor} />
+          )}
         </CardContent>
       </Card>
 

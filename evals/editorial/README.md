@@ -10,10 +10,11 @@ is scored against labels that were committed before any model ran.
 | `rubric` | The same single call, with all nine reviewers' rubrics pasted in. This is the strongest "just ask Gemini" baseline, and it isolates specialisation from prompt content. |
 | `reviewers` | The production path: transcript chunking, shared frames, footage tools, nine reviewers, per-window normalisation. It reuses `analysis_coordinator`, `reviewer_base` and the worker's frame sampler. It is not a reimplementation. |
 | `adjudicated` | The same `reviewers` findings, checked by the production footage-backed adjudicator. Rejections are excluded and downgrades use adjusted severity for scoring. |
+| `edited` | The same reviewers, then the production `editor-v1` consolidation pass. Drops and merges leave the scoring set; originals remain in raw output. |
+| `edited_adjudicated` | Reviewers → editor → footage adjudicator; reuse joins historical adjudicator verdicts by surviving original finding ID. |
 
-Results are reported per arm and never pooled across arms. No result has been produced yet:
-the full run is the coordinator's job after merging. Only one bounded smoke test of
-`baseline` on the clean control has been run, to prove the pipeline (disclosed below).
+Results are reported per arm and never pooled across arms. The first four-arm run is
+`editorial-2026-10-14-flash38`; the post-hoc editor development run is disclosed below.
 
 ## Layout
 
@@ -87,7 +88,9 @@ the videos. The runner enforces it:
 What is fixed in advance: the videos and labels, the matching rule (below), the headline metric
 (recall and precision over all non-strength findings), the secondary variants (severity at least
 medium; time-only), and the prompts (`reviewers-v5`, `editorial-baseline-v1`). Prompts and rules
-must not be edited after the first scored run.
+must not be edited after the first scored run for confirmatory evaluation. The five original
+videos were explicitly redesignated as a development set before editor tuning; those results
+are post-hoc, and the editor is frozen before the coordinator runs independent held-out data.
 
 ## Matching rule
 
@@ -215,5 +218,82 @@ recorded for replay. Run this arm with live calls only when explicitly authorize
 - **Smoke test, disclosed:** one `baseline` call on `boiled-egg-control` (no flawed video, so no
   label was seen against model output) validated the pipeline: 1 call, 14,069 input and 406 output
   tokens, two Search queries, one finding normalised cleanly. Its output is not in `evals/results/`.
-  The reviewer arm was exercised only offline, with a stub model, to check chunking, frame
-  extraction and wiring; it has not made a live call.
+  The reviewer arm was initially exercised offline for wiring; the later full flash38 run
+  supplies the live reviewer findings reused below.
+
+## Editor pass (dev, post-hoc)
+
+These five videos are the **DEV set**. This is post-hoc tuning on known outputs and labels,
+not confirmatory evidence, natural-video accuracy, or a held-out result. No held-out data or
+branch was read. Label commit remains `2e1357166373beb3d44765c7990311cba4f74f7d`;
+`matching.json` is byte-identical (SHA-256
+`43a7c21d16ab76f5918404bc9a08bc953f9908a793c738f3a605dc94c4d5d7c0`).
+
+The final frozen run is
+[`editorial-2026-10-14-editor-v1-dev`](../results/editorial-2026-10-14-editor-v1-dev.md)
+(JSON and raw output committed alongside it). **Frozen prompt version: `editor-v1`**,
+editor source SHA-256 `6707201628a12375695ee544eaa76b7ae10a15d0b0fdd69d4c6866e628b1c794`.
+Model is `gemini-3.8-flash`, low thinking, input $0.75/M and output $3.75/M.
+All four original arms reuse saved flash38 output. Only five editor calls are new in the final
+run. `edited_adjudicated` joins saved verdicts onto surviving finding IDs; absent means not
+checked. It does not represent a fresh production-order adjudicator run, and its cost retains
+all historical adjudicator calls rather than estimating savings from the newly freed slots.
+
+| Arm | Recall | Precision (flawed videos) | Clean-control findings | Cumulative token cost |
+|---|---:|---:|---:|---:|
+| baseline (reused) | 19/20 (95%) | 19/20 (95%) | 3 | $0.1223 |
+| rubric (reused) | 14/20 (70%) | 14/16 (88%) | 1 | $0.1474 |
+| reviewers (reused) | 20/20 (100%) | 20/65 (31%) | 6 | $1.1437 |
+| adjudicated (reused) | 20/20 (100%) | 20/60 (33%) | 5 | $1.3923 |
+| edited | 20/20 (100%) | 20/27 (74%) | 4 | $1.1990 |
+| edited_adjudicated (saved verdicts) | 20/20 (100%) | 20/26 (77%) | 4 | $1.4475 |
+
+The editor kept 31 issue findings, merged 35 and dropped 5 across all five videos; strengths
+remain unedited and are excluded by the original scorer. No planted issue was lost under the
+pre-registered matcher, including the medium+ variant. Recall's 95% interval is 84–100%;
+precision's intervals and paired results are in the result files. The clean-control goal
+of <=2 was **missed**: four findings remain. The final pass retained the egg-storage objection,
+lowered critical → high, and labelled it verified based on narrower hard-cooked guidance.
+This remains a disputed/known false-positive concern from the audit: Search alone did not
+resolve scope correctly. The minor egg-age ordering note also survived. Do not claim factual
+verification is solved or that the editor matches the single-prompt baseline's precision.
+The repo-star CTA complaint was dropped. The valid unplanted Python return-value finding was
+kept by the editor, then removed by its joined historical adjudicator rejection.
+
+**Development spend: exactly 15 live calls**, each run hard-capped with `--max-calls 5`:
+
+| Dev run | New calls | New token estimate | Notes |
+|---|---:|---:|---|
+| editor-tune1 | 5 | $0.264067 | Default model reasoning; one truncated-JSON batch left unedited. |
+| editor-tune2 | 5 | $0.058736 | Low reasoning; one batch with redundant unchanged severity fields left unedited. |
+| editor-v1-dev (frozen) | 5 | $0.055214 | Zero editor errors; unchanged severity fields normalize to no adjustment. |
+| Total | 15 | $0.378017 | 30 Search queries; charges not included. |
+
+The two intermediate tuning outputs remain local, uncommitted. The first had 20/20 recall,
+20/38 precision (20/36 with joined adjudication), clean=3. The second had 20/20 recall,
+20/39 precision (20/37 with joined adjudication), clean=3. They are repeated observations of
+the same dev videos, not independent samples. At $14/1,000 queries, all 30 queries would add
+$0.42 if billable beyond the shared free allowance; no invoice total is asserted. Final
+results report marginal editor tokens separately from reused historical arm costs.
+
+Reproduce the frozen procedure from `backend/` with a new run ID (paid; bounded):
+
+```bash
+uv run python scripts/editorial_eval.py run \
+  --root ../evals/editorial \
+  --reuse-raw ../evals/results/editorial-2026-10-14-flash38.raw.json \
+  --arms edited,edited_adjudicated --model gemini-3.8-flash \
+  --input-price 0.75 --output-price 3.75 --max-calls 5 \
+  --run-id YOUR-NEW-RUN-ID --execute
+# Zero-call replay, with the same root:
+uv run python scripts/editorial_score.py \
+  ../evals/results/editorial-2026-10-14-editor-v1-dev.raw.json --root ../evals/editorial
+```
+
+`--root` selects labels, transcripts, media, scripts and matching rule for run/replay in both
+scripts. Pre-registration checks use paths under that root, refuse uncommitted inputs, record
+all input hashes for new runs, and reject replay/reuse when recorded inputs or rules differ.
+Each root must be committed inside the current worktree. Existing raw files without whole-input
+hashes can validate labels/matching only. The editor prompt receives creator context, transcript
+and findings, never labels. Production persistence/retries and the review UI were linted,
+type-checked and built, but not exercised against live Firestore or in an authenticated browser.
