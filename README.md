@@ -25,9 +25,10 @@ Google Cloud project and some resource names still use the original name, `habea
 - **Many reviewers without the noise.** Raw multi-reviewer output is 34–41% precise because
   reviewers re-report the same moment through different lenses. The editor stage brings it to
   78–91% on videos it was never tuned on, and shows which reviewers agreed on each finding.
-- **Tested on real mistakes.** A set of real CC BY creator videos uses errors the creators
-  publicly corrected after posting, such as John Green crediting one game with a whole
-  franchise's sales. [Set](evals/editorial-real/README.md)
+- **Tested on real mistakes.** On real CC BY creator videos, Resonance caught errors the
+  creators corrected only after publishing. On John Green's Call of Duty sales mix-up it
+  proposed nearly the same fix he later posted. Across five such errors it tied a single
+  prompt at 3/5. [Set](evals/editorial-real/README.md)
 - **Where viewers lean in or drift.** An audience-interest lane, trained on YouTube Most
   Replayed data with Gemini moment signals, predicts where a video rises above or falls
   below the typical drop-off. On 87 unseen creator videos it correlates with the real
@@ -106,6 +107,7 @@ Full methods, pre-registration commits and raw model responses are in
 |---|---|---|
 | Planted-issue recall, long-form | **31/32 (97%)** at 91% precision, vs 28/32 at 97% for the best single prompt | 5 pre-registered 8–12 min videos, labels committed before any run; difference not yet significant (sign test p = 0.25) |
 | Planted-issue recall, short | 21/22 at 78% (nine reviewers + editor) vs 20/22 at 95% (best single prompt) | 6 pre-registered 2–4 min videos; a tie |
+| Real creator-admitted errors | **3/5**, same as a single prompt; all approaches caught the Call of Duty mix-up | 4 real CC BY videos, errors the creators corrected after publishing; recall only |
 | Editor effect | Precision **34–41% to 78–91%** | Same reviewer output, before and after the editor, on sets it was not tuned on |
 | Interest beyond the typical drop-off | **ρ = 0.15** (95% CI 0.10–0.20); peaks and dips land in the true top/bottom quarter 35% of the time (chance 25%) | Grouped cross-validation over 87 videos from 81 unseen channels; transcript statistics alone reach ρ = 0.07 |
 | Creator retrieval | Semantic **20/20** first-rank hits, keyword fallback 11/20; MRR@8 1.000 vs 0.598 | 20 author-labeled queries on one creator corpus (English, Hindi, text-to-image), labels written before inference |

@@ -1,0 +1,3207 @@
+{
+  "schemaVersion": 1,
+  "kind": "editorial-eval",
+  "runId": "2026-10-14-real-final-flash38",
+  "model": "gemini-3.8-flash",
+  "prices": {
+    "inputPerMTok": 0.75,
+    "outputPerMTok": 3.75
+  },
+  "options": {
+    "arms": [
+      "baseline",
+      "rubric",
+      "reviewers",
+      "edited",
+      "ensemble_edited"
+    ],
+    "root": "evals/editorial-real",
+    "grounding": true,
+    "visualTools": true,
+    "maxCalls": 200,
+    "reviewerConcurrency": 4,
+    "maxVisualContextRequests": 3,
+    "visualToolMaxRounds": 2,
+    "maxAdjudicatorCalls": 12,
+    "maxConflictCalls": 4,
+    "maxEditorCalls": 3,
+    "editorThinkingLevel": "medium"
+  },
+  "promptVersions": {
+    "reviewers": "reviewers-v5",
+    "modelConfig": "analysis-v9",
+    "baseline": "editorial-baseline-v1",
+    "rubric": "rubric-v1",
+    "adjudicator": "adjudicator-v2",
+    "editor": "editor-v6"
+  },
+  "labels": {
+    "commit": "6f1f23f7f78c4e3a09c0f85432fe2ca4d258793d",
+    "commitDate": "2026-10-14T19:44:27+05:30",
+    "dirty": false,
+    "root": "evals/editorial-real",
+    "inputSha256": {
+      "labels/BBvze0lGcZg.json": "be1de9a5d8a5d88570729a94fe09c8c527f47dd982ed98e195f69bd12c8b162c",
+      "labels/FqYg-gjCrPw.json": "49bab3b205bde04a2dd04570ed8cf295f10c6a64ef00e690500722385684c9d8",
+      "labels/JhVJMO0wgTE.json": "af620d726cad7ea01f3ea049e43fee3fc6b549920892f6fccf27836864243ed9",
+      "labels/mMZYKxgc9TE.json": "45d0327f94f853e97dd693f7f4d1c43e0973f982332a9c4565c4e97b599c31ca",
+      "transcripts/BBvze0lGcZg.json": "2f67d5aa7be40c6ad05118be5c028b8e063e54ff67922b85ff2db0200ca583da",
+      "transcripts/FqYg-gjCrPw.json": "3088f15888ed687ebec2699ba1ab92ea3b9560d9d4d203878087999439fa1c45",
+      "transcripts/JhVJMO0wgTE.json": "dcabeb497ad8b9281419748f5a604c220268ea317e0f1e0a93be0908caec2ae7",
+      "transcripts/mMZYKxgc9TE.json": "2963e3698d25c9af25abe037df649ab5c3d529360e5250db82d1b72a332fc317",
+      "matching.json": "43a7c21d16ab76f5918404bc9a08bc953f9908a793c738f3a605dc94c4d5d7c0",
+      "manifest.json": "46e35179d819f5fb9896587cfdf1113c9fcf363e085b85ee549e4b63e6c94ef2"
+    },
+    "labelSha256": {
+      "BBvze0lGcZg": "be1de9a5d8a5d88570729a94fe09c8c527f47dd982ed98e195f69bd12c8b162c",
+      "FqYg-gjCrPw": "49bab3b205bde04a2dd04570ed8cf295f10c6a64ef00e690500722385684c9d8",
+      "JhVJMO0wgTE": "af620d726cad7ea01f3ea049e43fee3fc6b549920892f6fccf27836864243ed9",
+      "mMZYKxgc9TE": "45d0327f94f853e97dd693f7f4d1c43e0973f982332a9c4565c4e97b599c31ca"
+    },
+    "matchingSha256": "43a7c21d16ab76f5918404bc9a08bc953f9908a793c738f3a605dc94c4d5d7c0"
+  },
+  "code": {
+    "revision": "c3bf9a0fddb422df4239366681b0bb2ad4cad7c6",
+    "dirty": true,
+    "sha256": {
+      "backend/scripts/editorial_eval.py": "ae3258a0563fa6e717ffec6b02c40d9fceb44401ddca4a96e4b8ae28551d5e27",
+      "backend/scripts/editorial_score.py": "d6f8c9632daf73b885a4d9c1cb5e0cae8b0a5192f126d96f7c2b80f46b5af748",
+      "backend/app/agents/reviewer_base.py": "cd4bbefb96ff387d550187a6d30a4435196ef4f5160d374a7618b3a58ed57eed",
+      "backend/app/agents/analysis_coordinator.py": "f270b53aa8f551627d68feb6fa81897c78c1e0458bff7a2568b88bf860a70e7f",
+      "backend/app/agents/adjudicator.py": "6d238b0ad195d0a90d9135036b25b6b0d5d8cd63edeb6aadf91e44cc7c271d40",
+      "backend/app/agents/editor.py": "f93a7d7b0685e4d9c15b5c6d57be84fca7cae8e9ce5a207482bdc478df71385f",
+      "backend/app/agents/rubric.py": "0853e1f5f7dd0ba529f2136134de36faad9f693fa539f111a0ae600e136f79ca",
+      "backend/app/agents/reviewer_registry.py": "515147a4d00eb017ed53d61c4884b8d5aa1f47a7bd90eaeb2e735ad0c55b0a01",
+      "backend/app/providers/base.py": "d8e7e46109ad7edb9607ca317e6953b00eb665ccb397edb36a33c5cd33855079",
+      "backend/app/providers/llm.py": "9058df51545e943c40422c97974ba265536e5c496d604b231bb5cbd44c013fd7",
+      "backend/app/config.py": "a8840a5bfb1da9f7d9f02b0278e4eca6d08f26976b7de6d82075cb6323b4791d"
+    }
+  },
+  "matchingRule": {
+    "schemaVersion": 1,
+    "description": "Pre-registered matching rule. A finding can match a gold issue when its time span is within toleranceMs of the issue's span (or one of its additionalSpans) and its dimension is compatible with the issue's category. Matching is one-to-one and greedy.",
+    "toleranceMs": 5000,
+    "issueSeverities": [
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ],
+    "actionableSeverities": [
+      "medium",
+      "high",
+      "critical"
+    ],
+    "categoryDimensions": {
+      "weak_hook": [
+        "pacing_retention",
+        "platform_fit",
+        "audience_brand",
+        "emotional_impact",
+        "clarity"
+      ],
+      "unsupported_claim": [
+        "truth_evidence",
+        "legal_safety"
+      ],
+      "factual_error": [
+        "truth_evidence"
+      ],
+      "jargon": [
+        "clarity",
+        "audience_brand"
+      ],
+      "tangent": [
+        "pacing_retention",
+        "clarity",
+        "platform_fit"
+      ],
+      "pacing_drag": [
+        "pacing_retention",
+        "clarity",
+        "platform_fit"
+      ],
+      "missing_cta": [
+        "conversion_cta",
+        "platform_fit",
+        "audience_brand"
+      ],
+      "safety": [
+        "legal_safety",
+        "truth_evidence"
+      ],
+      "broken_promise": [
+        "pacing_retention",
+        "clarity",
+        "audience_brand",
+        "platform_fit"
+      ],
+      "tone_mismatch": [
+        "audience_brand",
+        "emotional_impact"
+      ],
+      "locale_assumption": [
+        "cultural_localization",
+        "audience_brand"
+      ]
+    }
+  },
+  "labelsUnchangedSinceRun": true,
+  "videos": {
+    "BBvze0lGcZg": {
+      "title": "Is Book Publishing Dying? An Author's Perspective",
+      "durationMs": 376906,
+      "clean": false
+    },
+    "FqYg-gjCrPw": {
+      "title": "Autotune and Pitch Correction - explained for the music listener in -  plain English",
+      "durationMs": 964696,
+      "clean": false
+    },
+    "JhVJMO0wgTE": {
+      "title": "Henry",
+      "durationMs": 420560,
+      "clean": false
+    },
+    "mMZYKxgc9TE": {
+      "title": "Ukraine and Russia: What Caused the War?",
+      "durationMs": 535290,
+      "clean": false
+    }
+  },
+  "arms": {
+    "baseline": {
+      "aggregate": {
+        "flawedVideos": 4,
+        "cleanVideos": 0,
+        "goldIssues": 5,
+        "partialGoldVideos": 4,
+        "precisionUnavailableReason": "Partial gold: unlabelled real issues may exist.",
+        "headline": {
+          "matched": 3,
+          "recall": 0.6,
+          "recallCi95": [
+            0.231,
+            0.882
+          ],
+          "findings": 7,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 4,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "actionable": {
+          "matched": 2,
+          "recall": 0.4,
+          "recallCi95": [
+            0.118,
+            0.769
+          ],
+          "findings": 5,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 3,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "timeOnly": {
+          "matched": 3,
+          "recall": 0.6,
+          "recallCi95": [
+            0.231,
+            0.882
+          ],
+          "findings": 7,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 4,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "startErrorMs": {
+          "median": 0,
+          "mean": 1040,
+          "max": 3120,
+          "n": 3
+        },
+        "byCategory": {
+          "factual_error": {
+            "matched": 3,
+            "total": 5
+          }
+        },
+        "cost": {
+          "inputTokens": 236741,
+          "outputTokens": 14540,
+          "usd": 0.232081,
+          "usdPerVideo": 0.05802,
+          "modelRequests": 4,
+          "searchQueries": 15,
+          "usdPerMatchedIssue": 0.07736,
+          "failedCalls": 0
+        }
+      },
+      "videos": [
+        {
+          "videoId": "BBvze0lGcZg",
+          "clean": false,
+          "durationMs": 376906,
+          "issueCount": 1,
+          "strengthCount": 0,
+          "variants": {
+            "headline": {
+              "findingCount": 1,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 1,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 1,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 40312,
+            "outputTokens": 2360
+          },
+          "modelRequests": 1,
+          "searchQueries": 2,
+          "costUsd": 0.039084,
+          "errors": []
+        },
+        {
+          "videoId": "FqYg-gjCrPw",
+          "clean": false,
+          "durationMs": 964696,
+          "issueCount": 1,
+          "strengthCount": 1,
+          "variants": {
+            "headline": {
+              "findingCount": 2,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 2,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 34000,
+                  "endMs": 47000,
+                  "quote": "this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you know what? I never, oh, anyway,"
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "tone_drift",
+                  "severity": "medium",
+                  "startMs": 938000,
+                  "endMs": 952000,
+                  "quote": "If you're a singer, you can sing in tune, can't you? Can you not sing in tune? If you can't sing in tune, you're not a s"
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 2,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 2,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 34000,
+                  "endMs": 47000,
+                  "quote": "this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you know what? I never, oh, anyway,"
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "tone_drift",
+                  "severity": "medium",
+                  "startMs": 938000,
+                  "endMs": 952000,
+                  "quote": "If you're a singer, you can sing in tune, can't you? Can you not sing in tune? If you can't sing in tune, you're not a s"
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 2,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 2,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 34000,
+                  "endMs": 47000,
+                  "quote": "this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you know what? I never, oh, anyway,"
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "tone_drift",
+                  "severity": "medium",
+                  "startMs": 938000,
+                  "endMs": 952000,
+                  "quote": "If you're a singer, you can sing in tune, can't you? Can you not sing in tune? If you can't sing in tune, you're not a s"
+                }
+              ]
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 97042,
+            "outputTokens": 4617
+          },
+          "modelRequests": 1,
+          "searchQueries": 2,
+          "costUsd": 0.090095,
+          "errors": []
+        },
+        {
+          "videoId": "JhVJMO0wgTE",
+          "clean": false,
+          "durationMs": 420560,
+          "issueCount": 1,
+          "strengthCount": 0,
+          "variants": {
+            "headline": {
+              "findingCount": 2,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 2,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "needs_verification",
+                  "severity": "low",
+                  "startMs": 88720,
+                  "endMs": 94060,
+                  "quote": "deemed too expensive by global health authorities and so people like Henry couldn't access it."
+                },
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "competing_cta_overload",
+                  "severity": "medium",
+                  "startMs": 412080,
+                  "endMs": 417540,
+                  "quote": "Hank, you'll find links to Henry's YouTube and Discord and fundraiser in the doodly-doo below."
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 1,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 1,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "competing_cta_overload",
+                  "severity": "medium",
+                  "startMs": 412080,
+                  "endMs": 417540,
+                  "quote": "Hank, you'll find links to Henry's YouTube and Discord and fundraiser in the doodly-doo below."
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 2,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 2,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "needs_verification",
+                  "severity": "low",
+                  "startMs": 88720,
+                  "endMs": 94060,
+                  "quote": "deemed too expensive by global health authorities and so people like Henry couldn't access it."
+                },
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "competing_cta_overload",
+                  "severity": "medium",
+                  "startMs": 412080,
+                  "endMs": 417540,
+                  "quote": "Hank, you'll find links to Henry's YouTube and Discord and fundraiser in the doodly-doo below."
+                }
+              ]
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 43982,
+            "outputTokens": 3760
+          },
+          "modelRequests": 1,
+          "searchQueries": 4,
+          "costUsd": 0.047087,
+          "errors": []
+        },
+        {
+          "videoId": "mMZYKxgc9TE",
+          "clean": false,
+          "durationMs": 535290,
+          "issueCount": 2,
+          "strengthCount": 1,
+          "variants": {
+            "headline": {
+              "findingCount": 2,
+              "matchedCount": 2,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 3120,
+                  "centerErrorMs": 1560,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 1,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 2,
+              "matchedCount": 2,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 3120,
+                  "centerErrorMs": 1560,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 55405,
+            "outputTokens": 3803
+          },
+          "modelRequests": 1,
+          "searchQueries": 7,
+          "costUsd": 0.055815,
+          "errors": []
+        }
+      ]
+    },
+    "rubric": {
+      "aggregate": {
+        "flawedVideos": 4,
+        "cleanVideos": 0,
+        "goldIssues": 5,
+        "partialGoldVideos": 4,
+        "precisionUnavailableReason": "Partial gold: unlabelled real issues may exist.",
+        "headline": {
+          "matched": 2,
+          "recall": 0.4,
+          "recallCi95": [
+            0.118,
+            0.769
+          ],
+          "findings": 7,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 5,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "actionable": {
+          "matched": 2,
+          "recall": 0.4,
+          "recallCi95": [
+            0.118,
+            0.769
+          ],
+          "findings": 6,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 4,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "timeOnly": {
+          "matched": 2,
+          "recall": 0.4,
+          "recallCi95": [
+            0.118,
+            0.769
+          ],
+          "findings": 7,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 5,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "startErrorMs": {
+          "median": 0,
+          "mean": 0,
+          "max": 0,
+          "n": 2
+        },
+        "byCategory": {
+          "factual_error": {
+            "matched": 2,
+            "total": 5
+          }
+        },
+        "cost": {
+          "inputTokens": 190783,
+          "outputTokens": 14371,
+          "usd": 0.196979,
+          "usdPerVideo": 0.049245,
+          "modelRequests": 4,
+          "searchQueries": 10,
+          "usdPerMatchedIssue": 0.098489,
+          "failedCalls": 2
+        }
+      },
+      "videos": [
+        {
+          "videoId": "BBvze0lGcZg",
+          "clean": false,
+          "durationMs": 376906,
+          "issueCount": 1,
+          "strengthCount": 1,
+          "variants": {
+            "headline": {
+              "findingCount": 2,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 1,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "repeated_setup",
+                  "severity": "low",
+                  "startMs": 146380,
+                  "endMs": 155800,
+                  "quote": "and as we're about to get to there are real reasons to be concerned right now, but I also think that people read books."
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 1,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 2,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 1,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "repeated_setup",
+                  "severity": "low",
+                  "startMs": 146380,
+                  "endMs": 155800,
+                  "quote": "and as we're about to get to there are real reasons to be concerned right now, but I also think that people read books."
+                }
+              ]
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 43461,
+            "outputTokens": 5206
+          },
+          "modelRequests": 1,
+          "searchQueries": 6,
+          "costUsd": 0.052118,
+          "errors": []
+        },
+        {
+          "videoId": "FqYg-gjCrPw",
+          "clean": false,
+          "durationMs": 964696,
+          "issueCount": 1,
+          "strengthCount": 1,
+          "variants": {
+            "headline": {
+              "findingCount": 3,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 3,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you know what? I never, oh, anyway,"
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "momentum_flatline",
+                  "severity": "medium",
+                  "startMs": 181720,
+                  "endMs": 195280,
+                  "quote": "Okay, well, I'm being a bit daft there, aren't I? Because I recorded this live. So if I recorded it live, then that mean"
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 514040,
+                  "quote": "use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's that'"
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 3,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 3,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you know what? I never, oh, anyway,"
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "momentum_flatline",
+                  "severity": "medium",
+                  "startMs": 181720,
+                  "endMs": 195280,
+                  "quote": "Okay, well, I'm being a bit daft there, aren't I? Because I recorded this live. So if I recorded it live, then that mean"
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 514040,
+                  "quote": "use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's that'"
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 3,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 3,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you know what? I never, oh, anyway,"
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "momentum_flatline",
+                  "severity": "medium",
+                  "startMs": 181720,
+                  "endMs": 195280,
+                  "quote": "Okay, well, I'm being a bit daft there, aren't I? Because I recorded this live. So if I recorded it live, then that mean"
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 514040,
+                  "quote": "use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's that'"
+                }
+              ]
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 100191,
+            "outputTokens": 3811
+          },
+          "modelRequests": 1,
+          "searchQueries": 0,
+          "costUsd": 0.089435,
+          "errors": []
+        },
+        {
+          "videoId": "JhVJMO0wgTE",
+          "clean": false,
+          "durationMs": 420560,
+          "issueCount": 1,
+          "strengthCount": 2,
+          "variants": {
+            "headline": {
+              "findingCount": 2,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 1,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "competing_cta_overload",
+                  "severity": "medium",
+                  "startMs": 412080,
+                  "endMs": 417540,
+                  "quote": "Hank, you'll find links to Henry's YouTube and Discord and fundraiser in the doodly-doo below."
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 2,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 1,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "competing_cta_overload",
+                  "severity": "medium",
+                  "startMs": 412080,
+                  "endMs": 417540,
+                  "quote": "Hank, you'll find links to Henry's YouTube and Discord and fundraiser in the doodly-doo below."
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 2,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 1,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "competing_cta_overload",
+                  "severity": "medium",
+                  "startMs": 412080,
+                  "endMs": 417540,
+                  "quote": "Hank, you'll find links to Henry's YouTube and Discord and fundraiser in the doodly-doo below."
+                }
+              ]
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 47131,
+            "outputTokens": 5354
+          },
+          "modelRequests": 1,
+          "searchQueries": 4,
+          "costUsd": 0.055426,
+          "errors": []
+        },
+        {
+          "videoId": "mMZYKxgc9TE",
+          "clean": false,
+          "durationMs": 535290,
+          "issueCount": 2,
+          "strengthCount": 0,
+          "variants": {
+            "headline": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 0,
+            "outputTokens": 0
+          },
+          "modelRequests": 1,
+          "searchQueries": 0,
+          "costUsd": 0.0,
+          "errors": [
+            "ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.', 'status': 'RESOURCE_EXHAUSTED'}}",
+            "ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.', 'status': 'RESOURCE_EXHAUSTED'}}"
+          ]
+        }
+      ]
+    },
+    "reviewers": {
+      "aggregate": {
+        "flawedVideos": 4,
+        "cleanVideos": 0,
+        "goldIssues": 5,
+        "partialGoldVideos": 4,
+        "precisionUnavailableReason": "Partial gold: unlabelled real issues may exist.",
+        "headline": {
+          "matched": 2,
+          "recall": 0.4,
+          "recallCi95": [
+            0.118,
+            0.769
+          ],
+          "findings": 32,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 30,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "actionable": {
+          "matched": 2,
+          "recall": 0.4,
+          "recallCi95": [
+            0.118,
+            0.769
+          ],
+          "findings": 27,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 25,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "timeOnly": {
+          "matched": 3,
+          "recall": 0.6,
+          "recallCi95": [
+            0.231,
+            0.882
+          ],
+          "findings": 32,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 29,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "startErrorMs": {
+          "median": 0,
+          "mean": 0,
+          "max": 0,
+          "n": 2
+        },
+        "byCategory": {
+          "factual_error": {
+            "matched": 2,
+            "total": 5
+          }
+        },
+        "cost": {
+          "inputTokens": 732907,
+          "outputTokens": 142142,
+          "usd": 1.082713,
+          "usdPerVideo": 0.270678,
+          "modelRequests": 50,
+          "searchQueries": 41,
+          "usdPerMatchedIssue": 0.541357,
+          "failedCalls": 0
+        }
+      },
+      "videos": [
+        {
+          "videoId": "BBvze0lGcZg",
+          "clean": false,
+          "durationMs": 376906,
+          "issueCount": 1,
+          "strengthCount": 6,
+          "variants": {
+            "headline": {
+              "findingCount": 4,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 3,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "untranslatable_idiom",
+                  "severity": "medium",
+                  "startMs": 86000,
+                  "endMs": 93000,
+                  "quote": "the idea that, like, TikTok is making reading impossible is a little bit off-base, although as we'll get to it's also a "
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "empathy_gap",
+                  "severity": "low",
+                  "startMs": 120340,
+                  "endMs": 128880,
+                  "quote": "For authors with their own audiences who can pay for editorial services and so on, it can be a preferential option."
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "knowledge_gap",
+                  "severity": "medium",
+                  "startMs": 334180,
+                  "endMs": 350580,
+                  "quote": "Every year during the Project for Awesome, there is my favorite perk, the Nerdfighter Art Perk, where people from around"
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 3,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 2,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "untranslatable_idiom",
+                  "severity": "medium",
+                  "startMs": 86000,
+                  "endMs": 93000,
+                  "quote": "the idea that, like, TikTok is making reading impossible is a little bit off-base, although as we'll get to it's also a "
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "knowledge_gap",
+                  "severity": "medium",
+                  "startMs": 334180,
+                  "endMs": 350580,
+                  "quote": "Every year during the Project for Awesome, there is my favorite perk, the Nerdfighter Art Perk, where people from around"
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 4,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 3,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "untranslatable_idiom",
+                  "severity": "medium",
+                  "startMs": 86000,
+                  "endMs": 93000,
+                  "quote": "the idea that, like, TikTok is making reading impossible is a little bit off-base, although as we'll get to it's also a "
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "empathy_gap",
+                  "severity": "low",
+                  "startMs": 120340,
+                  "endMs": 128880,
+                  "quote": "For authors with their own audiences who can pay for editorial services and so on, it can be a preferential option."
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "knowledge_gap",
+                  "severity": "medium",
+                  "startMs": 334180,
+                  "endMs": 350580,
+                  "quote": "Every year during the Project for Awesome, there is my favorite perk, the Nerdfighter Art Perk, where people from around"
+                }
+              ]
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 135766,
+            "outputTokens": 31637
+          },
+          "modelRequests": 10,
+          "searchQueries": 16,
+          "costUsd": 0.220463,
+          "errors": []
+        },
+        {
+          "videoId": "FqYg-gjCrPw",
+          "clean": false,
+          "durationMs": 964696,
+          "issueCount": 1,
+          "strengthCount": 2,
+          "variants": {
+            "headline": {
+              "findingCount": 14,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 14,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "weak_hook",
+                  "severity": "high",
+                  "startMs": 0,
+                  "endMs": 15080,
+                  "quote": "Hi there, my name is Gavin Davis and I am a singer-songwriter. So we all talk about pitch correction and we talk about, "
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "knowledge_gap",
+                  "severity": "low",
+                  "startMs": 3120,
+                  "endMs": 15080,
+                  "quote": "well, Wings of Pegasus goes into lots of detail with it, which is very good. Pitch correction he talks about"
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "I say this piece of software, this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you k"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "flat",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you know what? I never, oh, anyway,"
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "culture_reference",
+                  "severity": "medium",
+                  "startMs": 133480,
+                  "endMs": 136000,
+                  "quote": "Let's do a proper Wings of Pegasus bit here."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "medium",
+                  "startMs": 370280,
+                  "endMs": 381420,
+                  "quote": "and it did but do you notice the artifacts at the beginning have a listen this is what Phil from Wings Pegasus keeps loo"
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "needs_verification",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 505600,
+                  "quote": "and use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's t"
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "ambiguous_referent",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 514040,
+                  "quote": "now I know that said it was pitch correction it's not it's that's that's what auto tune does the other thing now pitch c"
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "promise_mismatch",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 514040,
+                  "quote": "use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's that'"
+                },
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "premature_outro_dropoff",
+                  "severity": "high",
+                  "startMs": 901420,
+                  "endMs": 952740,
+                  "quote": "so anyway little short video just to give you a bit of an idea what you can do with pitch correction and auto tune"
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "untranslatable_idiom",
+                  "severity": "medium",
+                  "startMs": 920500,
+                  "endMs": 923500,
+                  "quote": "if we're flogging a dead horse"
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "condescending",
+                  "severity": "medium",
+                  "startMs": 937680,
+                  "endMs": 952740,
+                  "quote": "If you're a singer, you can sing in tune, can't you? Can you not sing in tune? If you can't sing in tune, you're not a s"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "emotional_misstep",
+                  "severity": "medium",
+                  "startMs": 937680,
+                  "endMs": 952740,
+                  "quote": "Hang on, you're a singer, aren't you? If you're a singer, you can sing in tune, can't you? Can you not sing in tune? If "
+                },
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "generic_passive_ask",
+                  "severity": "medium",
+                  "startMs": 952740,
+                  "endMs": 956740,
+                  "quote": "Anyway, if you've enjoyed this, don't forget to like and subscribe."
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 13,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 13,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "weak_hook",
+                  "severity": "high",
+                  "startMs": 0,
+                  "endMs": 15080,
+                  "quote": "Hi there, my name is Gavin Davis and I am a singer-songwriter. So we all talk about pitch correction and we talk about, "
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "I say this piece of software, this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you k"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "flat",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you know what? I never, oh, anyway,"
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "culture_reference",
+                  "severity": "medium",
+                  "startMs": 133480,
+                  "endMs": 136000,
+                  "quote": "Let's do a proper Wings of Pegasus bit here."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "medium",
+                  "startMs": 370280,
+                  "endMs": 381420,
+                  "quote": "and it did but do you notice the artifacts at the beginning have a listen this is what Phil from Wings Pegasus keeps loo"
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "needs_verification",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 505600,
+                  "quote": "and use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's t"
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "ambiguous_referent",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 514040,
+                  "quote": "now I know that said it was pitch correction it's not it's that's that's what auto tune does the other thing now pitch c"
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "promise_mismatch",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 514040,
+                  "quote": "use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's that'"
+                },
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "premature_outro_dropoff",
+                  "severity": "high",
+                  "startMs": 901420,
+                  "endMs": 952740,
+                  "quote": "so anyway little short video just to give you a bit of an idea what you can do with pitch correction and auto tune"
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "untranslatable_idiom",
+                  "severity": "medium",
+                  "startMs": 920500,
+                  "endMs": 923500,
+                  "quote": "if we're flogging a dead horse"
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "condescending",
+                  "severity": "medium",
+                  "startMs": 937680,
+                  "endMs": 952740,
+                  "quote": "If you're a singer, you can sing in tune, can't you? Can you not sing in tune? If you can't sing in tune, you're not a s"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "emotional_misstep",
+                  "severity": "medium",
+                  "startMs": 937680,
+                  "endMs": 952740,
+                  "quote": "Hang on, you're a singer, aren't you? If you're a singer, you can sing in tune, can't you? Can you not sing in tune? If "
+                },
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "generic_passive_ask",
+                  "severity": "medium",
+                  "startMs": 952740,
+                  "endMs": 956740,
+                  "quote": "Anyway, if you've enjoyed this, don't forget to like and subscribe."
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 14,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 14,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "weak_hook",
+                  "severity": "high",
+                  "startMs": 0,
+                  "endMs": 15080,
+                  "quote": "Hi there, my name is Gavin Davis and I am a singer-songwriter. So we all talk about pitch correction and we talk about, "
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "knowledge_gap",
+                  "severity": "low",
+                  "startMs": 3120,
+                  "endMs": 15080,
+                  "quote": "well, Wings of Pegasus goes into lots of detail with it, which is very good. Pitch correction he talks about"
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "I say this piece of software, this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you k"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "flat",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you know what? I never, oh, anyway,"
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "culture_reference",
+                  "severity": "medium",
+                  "startMs": 133480,
+                  "endMs": 136000,
+                  "quote": "Let's do a proper Wings of Pegasus bit here."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "medium",
+                  "startMs": 370280,
+                  "endMs": 381420,
+                  "quote": "and it did but do you notice the artifacts at the beginning have a listen this is what Phil from Wings Pegasus keeps loo"
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "needs_verification",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 505600,
+                  "quote": "and use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's t"
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "ambiguous_referent",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 514040,
+                  "quote": "now I know that said it was pitch correction it's not it's that's that's what auto tune does the other thing now pitch c"
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "promise_mismatch",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 514040,
+                  "quote": "use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's that'"
+                },
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "premature_outro_dropoff",
+                  "severity": "high",
+                  "startMs": 901420,
+                  "endMs": 952740,
+                  "quote": "so anyway little short video just to give you a bit of an idea what you can do with pitch correction and auto tune"
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "untranslatable_idiom",
+                  "severity": "medium",
+                  "startMs": 920500,
+                  "endMs": 923500,
+                  "quote": "if we're flogging a dead horse"
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "condescending",
+                  "severity": "medium",
+                  "startMs": 937680,
+                  "endMs": 952740,
+                  "quote": "If you're a singer, you can sing in tune, can't you? Can you not sing in tune? If you can't sing in tune, you're not a s"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "emotional_misstep",
+                  "severity": "medium",
+                  "startMs": 937680,
+                  "endMs": 952740,
+                  "quote": "Hang on, you're a singer, aren't you? If you're a singer, you can sing in tune, can't you? Can you not sing in tune? If "
+                },
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "generic_passive_ask",
+                  "severity": "medium",
+                  "startMs": 952740,
+                  "endMs": 956740,
+                  "quote": "Anyway, if you've enjoyed this, don't forget to like and subscribe."
+                }
+              ]
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 149610,
+            "outputTokens": 38467
+          },
+          "modelRequests": 9,
+          "searchQueries": 2,
+          "costUsd": 0.256459,
+          "errors": []
+        },
+        {
+          "videoId": "JhVJMO0wgTE",
+          "clean": false,
+          "durationMs": 420560,
+          "issueCount": 1,
+          "strengthCount": 8,
+          "variants": {
+            "headline": {
+              "findingCount": 7,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 7,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "knowledge_gap",
+                  "severity": "low",
+                  "startMs": 100200,
+                  "endMs": 106660,
+                  "quote": "Before PIH, if you have MDRT before 2017, it's just you are waiting for the time of your guest."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "ambiguous_referent",
+                  "severity": "low",
+                  "startMs": 135520,
+                  "endMs": 143100,
+                  "quote": "about Dr. Tefer, he'd arrived in Sierra Leone a few months after I first met Henry from his home country of Ethiopia."
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "repeated_setup",
+                  "severity": "medium",
+                  "startMs": 135520,
+                  "endMs": 155040,
+                  "quote": "And he also initially thought that Henry must either be like a staff member or a child of one, because he was just so go"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "emotional_misstep",
+                  "severity": "medium",
+                  "startMs": 303360,
+                  "endMs": 324320,
+                  "quote": "Oh, and he's just started a YouTube channel and a Discord server."
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "ungrounded_superlative",
+                  "severity": "low",
+                  "startMs": 396920,
+                  "endMs": 402700,
+                  "quote": "And unfortunately, all of that is still happening millions of times over to kids around the world."
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "untranslatable_idiom",
+                  "severity": "medium",
+                  "startMs": 412080,
+                  "endMs": 417540,
+                  "quote": "Hank, you'll find links to Henry's YouTube and Discord and fundraiser in the doodly-doo below."
+                },
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "competing_cta_overload",
+                  "severity": "medium",
+                  "startMs": 412080,
+                  "endMs": 417540,
+                  "quote": "Hank, you'll find links to Henry's YouTube and Discord and fundraiser in the doodly-doo below."
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 4,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 4,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "repeated_setup",
+                  "severity": "medium",
+                  "startMs": 135520,
+                  "endMs": 155040,
+                  "quote": "And he also initially thought that Henry must either be like a staff member or a child of one, because he was just so go"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "emotional_misstep",
+                  "severity": "medium",
+                  "startMs": 303360,
+                  "endMs": 324320,
+                  "quote": "Oh, and he's just started a YouTube channel and a Discord server."
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "untranslatable_idiom",
+                  "severity": "medium",
+                  "startMs": 412080,
+                  "endMs": 417540,
+                  "quote": "Hank, you'll find links to Henry's YouTube and Discord and fundraiser in the doodly-doo below."
+                },
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "competing_cta_overload",
+                  "severity": "medium",
+                  "startMs": 412080,
+                  "endMs": 417540,
+                  "quote": "Hank, you'll find links to Henry's YouTube and Discord and fundraiser in the doodly-doo below."
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 7,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 7,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "knowledge_gap",
+                  "severity": "low",
+                  "startMs": 100200,
+                  "endMs": 106660,
+                  "quote": "Before PIH, if you have MDRT before 2017, it's just you are waiting for the time of your guest."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "ambiguous_referent",
+                  "severity": "low",
+                  "startMs": 135520,
+                  "endMs": 143100,
+                  "quote": "about Dr. Tefer, he'd arrived in Sierra Leone a few months after I first met Henry from his home country of Ethiopia."
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "repeated_setup",
+                  "severity": "medium",
+                  "startMs": 135520,
+                  "endMs": 155040,
+                  "quote": "And he also initially thought that Henry must either be like a staff member or a child of one, because he was just so go"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "emotional_misstep",
+                  "severity": "medium",
+                  "startMs": 303360,
+                  "endMs": 324320,
+                  "quote": "Oh, and he's just started a YouTube channel and a Discord server."
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "ungrounded_superlative",
+                  "severity": "low",
+                  "startMs": 396920,
+                  "endMs": 402700,
+                  "quote": "And unfortunately, all of that is still happening millions of times over to kids around the world."
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "untranslatable_idiom",
+                  "severity": "medium",
+                  "startMs": 412080,
+                  "endMs": 417540,
+                  "quote": "Hank, you'll find links to Henry's YouTube and Discord and fundraiser in the doodly-doo below."
+                },
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "competing_cta_overload",
+                  "severity": "medium",
+                  "startMs": 412080,
+                  "endMs": 417540,
+                  "quote": "Hank, you'll find links to Henry's YouTube and Discord and fundraiser in the doodly-doo below."
+                }
+              ]
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 222899,
+            "outputTokens": 34290
+          },
+          "modelRequests": 16,
+          "searchQueries": 8,
+          "costUsd": 0.295762,
+          "errors": []
+        },
+        {
+          "videoId": "mMZYKxgc9TE",
+          "clean": false,
+          "durationMs": 535290,
+          "issueCount": 2,
+          "strengthCount": 10,
+          "variants": {
+            "headline": {
+              "findingCount": 7,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 6,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 1100,
+                  "endMs": 9720,
+                  "quote": "So to understand the unfolding catastrophe in Ukraine, I think it's really important to have some historical and politic"
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "alienating_example",
+                  "severity": "medium",
+                  "startMs": 261600,
+                  "endMs": 267340,
+                  "quote": "especially when the name of your country literally means borderlands, as Ukraine does."
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "translation_trap",
+                  "severity": "medium",
+                  "startMs": 263000,
+                  "endMs": 267340,
+                  "quote": "especially when the name of your country literally means borderlands, as Ukraine does."
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "late_value",
+                  "severity": "medium",
+                  "startMs": 314660,
+                  "endMs": 316760,
+                  "quote": "But here's where we arrive at the crux of the matter."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "dense_clause_overload",
+                  "severity": "medium",
+                  "startMs": 321940,
+                  "endMs": 327180,
+                  "quote": "Russia's leader, Vladimir Putin, has long maintained that Ukraine should never have"
+                },
+                {
+                  "dimension": "legal_safety",
+                  "findingType": "policy_risk",
+                  "severity": "medium",
+                  "startMs": 441000,
+                  "endMs": 444880,
+                  "quote": "which was widely recognized to be a quote from a song about sexually assaulting a corpse."
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 7,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 6,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 1100,
+                  "endMs": 9720,
+                  "quote": "So to understand the unfolding catastrophe in Ukraine, I think it's really important to have some historical and politic"
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "alienating_example",
+                  "severity": "medium",
+                  "startMs": 261600,
+                  "endMs": 267340,
+                  "quote": "especially when the name of your country literally means borderlands, as Ukraine does."
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "translation_trap",
+                  "severity": "medium",
+                  "startMs": 263000,
+                  "endMs": 267340,
+                  "quote": "especially when the name of your country literally means borderlands, as Ukraine does."
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "late_value",
+                  "severity": "medium",
+                  "startMs": 314660,
+                  "endMs": 316760,
+                  "quote": "But here's where we arrive at the crux of the matter."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "dense_clause_overload",
+                  "severity": "medium",
+                  "startMs": 321940,
+                  "endMs": 327180,
+                  "quote": "Russia's leader, Vladimir Putin, has long maintained that Ukraine should never have"
+                },
+                {
+                  "dimension": "legal_safety",
+                  "findingType": "policy_risk",
+                  "severity": "medium",
+                  "startMs": 441000,
+                  "endMs": 444880,
+                  "quote": "which was widely recognized to be a quote from a song about sexually assaulting a corpse."
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 7,
+              "matchedCount": 2,
+              "unmatchedFindingCount": 5,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 220,
+                  "centerErrorMs": 110,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 1100,
+                  "endMs": 9720,
+                  "quote": "So to understand the unfolding catastrophe in Ukraine, I think it's really important to have some historical and politic"
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "translation_trap",
+                  "severity": "medium",
+                  "startMs": 263000,
+                  "endMs": 267340,
+                  "quote": "especially when the name of your country literally means borderlands, as Ukraine does."
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "late_value",
+                  "severity": "medium",
+                  "startMs": 314660,
+                  "endMs": 316760,
+                  "quote": "But here's where we arrive at the crux of the matter."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "dense_clause_overload",
+                  "severity": "medium",
+                  "startMs": 321940,
+                  "endMs": 327180,
+                  "quote": "Russia's leader, Vladimir Putin, has long maintained that Ukraine should never have"
+                },
+                {
+                  "dimension": "legal_safety",
+                  "findingType": "policy_risk",
+                  "severity": "medium",
+                  "startMs": 441000,
+                  "endMs": 444880,
+                  "quote": "which was widely recognized to be a quote from a song about sexually assaulting a corpse."
+                }
+              ]
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 224632,
+            "outputTokens": 37748
+          },
+          "modelRequests": 15,
+          "searchQueries": 15,
+          "costUsd": 0.310029,
+          "errors": []
+        }
+      ]
+    },
+    "edited": {
+      "aggregate": {
+        "flawedVideos": 4,
+        "cleanVideos": 0,
+        "goldIssues": 5,
+        "partialGoldVideos": 4,
+        "precisionUnavailableReason": "Partial gold: unlabelled real issues may exist.",
+        "headline": {
+          "matched": 2,
+          "recall": 0.4,
+          "recallCi95": [
+            0.118,
+            0.769
+          ],
+          "findings": 7,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 5,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "actionable": {
+          "matched": 2,
+          "recall": 0.4,
+          "recallCi95": [
+            0.118,
+            0.769
+          ],
+          "findings": 7,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 5,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "timeOnly": {
+          "matched": 3,
+          "recall": 0.6,
+          "recallCi95": [
+            0.231,
+            0.882
+          ],
+          "findings": 7,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 4,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "startErrorMs": {
+          "median": 0,
+          "mean": 0,
+          "max": 0,
+          "n": 2
+        },
+        "byCategory": {
+          "factual_error": {
+            "matched": 2,
+            "total": 5
+          }
+        },
+        "cost": {
+          "inputTokens": 786152,
+          "outputTokens": 172344,
+          "usd": 1.235905,
+          "usdPerVideo": 0.308976,
+          "modelRequests": 55,
+          "searchQueries": 50,
+          "usdPerMatchedIssue": 0.617953,
+          "failedCalls": 0
+        }
+      },
+      "videos": [
+        {
+          "videoId": "BBvze0lGcZg",
+          "clean": false,
+          "durationMs": 376906,
+          "issueCount": 1,
+          "strengthCount": 6,
+          "variants": {
+            "headline": {
+              "findingCount": 1,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 1,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 1,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 144081,
+            "outputTokens": 34036
+          },
+          "modelRequests": 11,
+          "searchQueries": 18,
+          "costUsd": 0.235696,
+          "errors": []
+        },
+        {
+          "videoId": "FqYg-gjCrPw",
+          "clean": false,
+          "durationMs": 964696,
+          "issueCount": 1,
+          "strengthCount": 2,
+          "variants": {
+            "headline": {
+              "findingCount": 3,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 3,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "I say this piece of software, this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you k"
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "medium",
+                  "startMs": 370280,
+                  "endMs": 381420,
+                  "quote": "and it did but do you notice the artifacts at the beginning have a listen this is what Phil from Wings Pegasus keeps loo"
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "needs_verification",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 505600,
+                  "quote": "and use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's t"
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 3,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 3,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "I say this piece of software, this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you k"
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "medium",
+                  "startMs": 370280,
+                  "endMs": 381420,
+                  "quote": "and it did but do you notice the artifacts at the beginning have a listen this is what Phil from Wings Pegasus keeps loo"
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "needs_verification",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 505600,
+                  "quote": "and use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's t"
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 3,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 3,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "I say this piece of software, this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you k"
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "medium",
+                  "startMs": 370280,
+                  "endMs": 381420,
+                  "quote": "and it did but do you notice the artifacts at the beginning have a listen this is what Phil from Wings Pegasus keeps loo"
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "needs_verification",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 505600,
+                  "quote": "and use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's t"
+                }
+              ]
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 176189,
+            "outputTokens": 56169
+          },
+          "modelRequests": 11,
+          "searchQueries": 4,
+          "costUsd": 0.342776,
+          "errors": []
+        },
+        {
+          "videoId": "JhVJMO0wgTE",
+          "clean": false,
+          "durationMs": 420560,
+          "issueCount": 1,
+          "strengthCount": 8,
+          "variants": {
+            "headline": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 231357,
+            "outputTokens": 38392
+          },
+          "modelRequests": 17,
+          "searchQueries": 8,
+          "costUsd": 0.317488,
+          "errors": []
+        },
+        {
+          "videoId": "mMZYKxgc9TE",
+          "clean": false,
+          "durationMs": 535290,
+          "issueCount": 2,
+          "strengthCount": 10,
+          "variants": {
+            "headline": {
+              "findingCount": 3,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 2,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "translation_trap",
+                  "severity": "medium",
+                  "startMs": 263000,
+                  "endMs": 267340,
+                  "quote": "especially when the name of your country literally means borderlands, as Ukraine does."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "dense_clause_overload",
+                  "severity": "medium",
+                  "startMs": 321940,
+                  "endMs": 327180,
+                  "quote": "Russia's leader, Vladimir Putin, has long maintained that Ukraine should never have"
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 3,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 2,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "translation_trap",
+                  "severity": "medium",
+                  "startMs": 263000,
+                  "endMs": 267340,
+                  "quote": "especially when the name of your country literally means borderlands, as Ukraine does."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "dense_clause_overload",
+                  "severity": "medium",
+                  "startMs": 321940,
+                  "endMs": 327180,
+                  "quote": "Russia's leader, Vladimir Putin, has long maintained that Ukraine should never have"
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 3,
+              "matchedCount": 2,
+              "unmatchedFindingCount": 1,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 1180,
+                  "centerErrorMs": 590,
+                  "matchedDimension": "cultural_localization"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "clarity",
+                  "findingType": "dense_clause_overload",
+                  "severity": "medium",
+                  "startMs": 321940,
+                  "endMs": 327180,
+                  "quote": "Russia's leader, Vladimir Putin, has long maintained that Ukraine should never have"
+                }
+              ]
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 234525,
+            "outputTokens": 43747
+          },
+          "modelRequests": 16,
+          "searchQueries": 20,
+          "costUsd": 0.339945,
+          "errors": []
+        }
+      ]
+    },
+    "ensemble_edited": {
+      "aggregate": {
+        "flawedVideos": 4,
+        "cleanVideos": 0,
+        "goldIssues": 5,
+        "partialGoldVideos": 4,
+        "precisionUnavailableReason": "Partial gold: unlabelled real issues may exist.",
+        "headline": {
+          "matched": 3,
+          "recall": 0.6,
+          "recallCi95": [
+            0.231,
+            0.882
+          ],
+          "findings": 8,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 5,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "actionable": {
+          "matched": 3,
+          "recall": 0.6,
+          "recallCi95": [
+            0.231,
+            0.882
+          ],
+          "findings": 8,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 5,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "timeOnly": {
+          "matched": 4,
+          "recall": 0.8,
+          "recallCi95": [
+            0.376,
+            0.964
+          ],
+          "findings": 8,
+          "precision": null,
+          "precisionCi95": null,
+          "unmatchedFindings": 4,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "startErrorMs": {
+          "median": 0,
+          "mean": 0,
+          "max": 0,
+          "n": 3
+        },
+        "byCategory": {
+          "factual_error": {
+            "matched": 3,
+            "total": 5
+          }
+        },
+        "cost": {
+          "inputTokens": 978702,
+          "outputTokens": 192676,
+          "usd": 1.456562,
+          "usdPerVideo": 0.36414,
+          "modelRequests": 59,
+          "searchQueries": 62,
+          "usdPerMatchedIssue": 0.485521,
+          "failedCalls": 2
+        }
+      },
+      "videos": [
+        {
+          "videoId": "BBvze0lGcZg",
+          "clean": false,
+          "durationMs": 376906,
+          "issueCount": 1,
+          "strengthCount": 7,
+          "variants": {
+            "headline": {
+              "findingCount": 1,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 1,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 1,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "BBvze0lGcZg-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 188193,
+            "outputTokens": 40059
+          },
+          "modelRequests": 12,
+          "searchQueries": 24,
+          "costUsd": 0.291366,
+          "errors": []
+        },
+        {
+          "videoId": "FqYg-gjCrPw",
+          "clean": false,
+          "durationMs": 964696,
+          "issueCount": 1,
+          "strengthCount": 3,
+          "variants": {
+            "headline": {
+              "findingCount": 4,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 4,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "I say this piece of software, this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you k"
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "medium",
+                  "startMs": 370280,
+                  "endMs": 381420,
+                  "quote": "and it did but do you notice the artifacts at the beginning have a listen this is what Phil from Wings Pegasus keeps loo"
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "needs_verification",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 505600,
+                  "quote": "and use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's t"
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "momentum_flatline",
+                  "severity": "medium",
+                  "startMs": 181720,
+                  "endMs": 195280,
+                  "quote": "Okay, well, I'm being a bit daft there, aren't I? Because I recorded this live. So if I recorded it live, then that mean"
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 4,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 4,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "I say this piece of software, this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you k"
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "medium",
+                  "startMs": 370280,
+                  "endMs": 381420,
+                  "quote": "and it did but do you notice the artifacts at the beginning have a listen this is what Phil from Wings Pegasus keeps loo"
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "needs_verification",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 505600,
+                  "quote": "and use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's t"
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "momentum_flatline",
+                  "severity": "medium",
+                  "startMs": 181720,
+                  "endMs": 195280,
+                  "quote": "Okay, well, I'm being a bit daft there, aren't I? Because I recorded this live. So if I recorded it live, then that mean"
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 4,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 4,
+              "issues": [
+                {
+                  "id": "FqYg-gjCrPw-C1",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "generic_throat_clearing",
+                  "severity": "medium",
+                  "startMs": 31320,
+                  "endMs": 51220,
+                  "quote": "I say this piece of software, this DAW Digital Audio Workstation. Workstation? Yeah, I think that's what it is. Do you k"
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "medium",
+                  "startMs": 370280,
+                  "endMs": 381420,
+                  "quote": "and it did but do you notice the artifacts at the beginning have a listen this is what Phil from Wings Pegasus keeps loo"
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "needs_verification",
+                  "severity": "medium",
+                  "startMs": 493300,
+                  "endMs": 505600,
+                  "quote": "and use pitch correction instead of auto tune I mean now I know that said it was pitch correction it's not it's that's t"
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "momentum_flatline",
+                  "severity": "medium",
+                  "startMs": 181720,
+                  "endMs": 195280,
+                  "quote": "Okay, well, I'm being a bit daft there, aren't I? Because I recorded this live. So if I recorded it live, then that mean"
+                }
+              ]
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 277054,
+            "outputTokens": 62784
+          },
+          "modelRequests": 12,
+          "searchQueries": 3,
+          "costUsd": 0.443231,
+          "errors": []
+        },
+        {
+          "videoId": "JhVJMO0wgTE",
+          "clean": false,
+          "durationMs": 420560,
+          "issueCount": 1,
+          "strengthCount": 10,
+          "variants": {
+            "headline": {
+              "findingCount": 1,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 1,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 1,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "JhVJMO0wgTE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 278930,
+            "outputTokens": 45375
+          },
+          "modelRequests": 18,
+          "searchQueries": 16,
+          "costUsd": 0.379354,
+          "errors": []
+        },
+        {
+          "videoId": "mMZYKxgc9TE",
+          "clean": false,
+          "durationMs": 535290,
+          "issueCount": 2,
+          "strengthCount": 10,
+          "variants": {
+            "headline": {
+              "findingCount": 2,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 1,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "translation_trap",
+                  "severity": "medium",
+                  "startMs": 263000,
+                  "endMs": 267340,
+                  "quote": "especially when the name of your country literally means borderlands, as Ukraine does."
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 2,
+              "matchedCount": 1,
+              "unmatchedFindingCount": 1,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "translation_trap",
+                  "severity": "medium",
+                  "startMs": 263000,
+                  "endMs": 267340,
+                  "quote": "especially when the name of your country literally means borderlands, as Ukraine does."
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 2,
+              "matchedCount": 2,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "mMZYKxgc9TE-C1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "mMZYKxgc9TE-C2",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 1180,
+                  "centerErrorMs": 590,
+                  "matchedDimension": "cultural_localization"
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "partialGold": true,
+          "usage": {
+            "inputTokens": 234525,
+            "outputTokens": 44458
+          },
+          "modelRequests": 17,
+          "searchQueries": 19,
+          "costUsd": 0.342611,
+          "errors": [
+            "ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.', 'status': 'RESOURCE_EXHAUSTED'}}",
+            "ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.', 'status': 'RESOURCE_EXHAUSTED'}}"
+          ]
+        }
+      ]
+    }
+  },
+  "paired": {
+    "baseline__vs__rubric": {
+      "both": 1,
+      "onlyFirst": 2,
+      "onlySecond": 1,
+      "neither": 1
+    },
+    "baseline__vs__reviewers": {
+      "both": 2,
+      "onlyFirst": 1,
+      "onlySecond": 0,
+      "neither": 2
+    },
+    "baseline__vs__edited": {
+      "both": 2,
+      "onlyFirst": 1,
+      "onlySecond": 0,
+      "neither": 2
+    },
+    "baseline__vs__ensemble_edited": {
+      "both": 2,
+      "onlyFirst": 1,
+      "onlySecond": 1,
+      "neither": 1
+    },
+    "rubric__vs__reviewers": {
+      "both": 1,
+      "onlyFirst": 1,
+      "onlySecond": 1,
+      "neither": 2
+    },
+    "rubric__vs__edited": {
+      "both": 1,
+      "onlyFirst": 1,
+      "onlySecond": 1,
+      "neither": 2
+    },
+    "rubric__vs__ensemble_edited": {
+      "both": 2,
+      "onlyFirst": 0,
+      "onlySecond": 1,
+      "neither": 2
+    },
+    "reviewers__vs__edited": {
+      "both": 2,
+      "onlyFirst": 0,
+      "onlySecond": 0,
+      "neither": 3
+    },
+    "reviewers__vs__ensemble_edited": {
+      "both": 2,
+      "onlyFirst": 0,
+      "onlySecond": 1,
+      "neither": 2
+    },
+    "edited__vs__ensemble_edited": {
+      "both": 2,
+      "onlyFirst": 0,
+      "onlySecond": 1,
+      "neither": 2
+    }
+  },
+  "newCallCostUsd": 1.841833,
+  "modelCalls": 68
+}

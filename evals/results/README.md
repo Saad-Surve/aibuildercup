@@ -20,7 +20,7 @@ the retrieval benchmark is in [../README.md](../README.md). Prefix every run id 
 |---|---|---|---|
 | `2026-10-14-heldout-flash38` | HELD-OUT (`evals/editorial-heldout`, 6 videos, 22 planted issues), `6df94ce` | baseline, rubric, reviewers, adjudicated, edited, edited_adjudicated | Pre-registered evaluation (run once) of the editor frozen on the dev set. Files: `.md`, `.json`, `.raw.json`, `.evidence/`. |
 | `2026-10-14-longform-final-flash38` | LONG-FORM (`evals/editorial-longform`, 5 long videos, 32 planted issues), `9d48bf5` | baseline, rubric, reviewers, edited, ensemble_edited | Pre-registered evaluation (run once) on long videos with subtler flaws. Files: `.md`, `.json`, `.raw.json`. |
-| `2026-10-14-real-final-flash38` | REAL (`evals/editorial-real`, 4 CC BY creator videos, 5 creator-published corrections, recall only), `6f1f23f` | baseline, rubric, reviewers, edited, ensemble_edited | Pre-registered evaluation (run once). In progress: only `.raw.json` exists (first video, three arms, 13 recorded calls, no editor stage yet). Scored `.json` and `.md` are added when the run completes. |
+| `2026-10-14-real-final-flash38` | REAL (`evals/editorial-real`, 4 CC BY creator videos, 5 creator-published corrections, recall only), `6f1f23f` | baseline, rubric, reviewers, edited, ensemble_edited | Pre-registered evaluation (run once). Resonance 3/5 known errors, one prompt 3/5; the rubric call failed on one video (2 failed calls). |
 
 Each of these may not be re-run or tuned against. Do not read the partial real raw file as a result.
 

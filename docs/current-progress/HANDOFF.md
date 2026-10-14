@@ -391,12 +391,22 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
   $1.49**; edited_adjudicated 20/22, 77%. The editor generalised, but **reviewers plus editor do
   not beat the rubric prompt** (1 vs 2 discordant issues, lower precision, ~7x cost), and the
   editor dropped broken-promise findings. The held-out set is now spent for tuning claims.
-  Phase 4 (worktrees under `../aibuildercup-wt/`, context in `../aibuildercup-wt/PHASE4.md`):
-  `feat/editor-v2` (rubric pass as a tenth reviewer, stronger dedupe, broken-promise fix, dev
-  only), `feat/editorial-longform` (independent 10-14 min constructed set, pre-registered) and
-  `feat/editorial-real` (real CC BY creator videos, creator-published corrections as a
-  recall-only answer key; hero demo is vlogbrothers `BBvze0lGcZg`). The coordinator runs both new
-  sets once the editor is frozen. Constructed TTS media measures planted-flaw detection, not
+  Phase 4 (2026-10-14, merged and deployed): the rubric pass is a tenth reviewer feeding
+  the editor (`ensemble_edited`, the shipped pipeline; frozen `editor-v6`, `rubric-v1`,
+  `reviewers-v5`, `adjudicator-v2`), findings carry `corroboratedBy`. Dev (post-hoc): 20/20,
+  87%, clean 1 vs rubric 19/20, 90%, clean 1. Two new pre-registered sets, each run once:
+  **long-form** (`evals/editorial-longform/`, 5 videos of 8-12 min, 32 issues, labels
+  `9d48bf5`): Resonance **31/32, 91% precision**, clean control 6, $0.44/video; one prompt +
+  rubrics 28/32, 97%, clean 5, $0.08; 3-0 discordant in our favour, not significant (sign
+  test p = 0.25). **Real** (`evals/editorial-real/`, 4 CC BY videos, 5 creator-published
+  corrections, recall only, labels `6f1f23f`): Resonance 3/5, one prompt 3/5 (different
+  errors); all arms caught the Call of Duty claim in the hero `BBvze0lGcZg`; the rubric call
+  failed on the Ukraine video. Honest claim: more recall than a single prompt on long-form at
+  a precision cost, a tie elsewhere. Results summary: `evals/README.md`; run index:
+  `evals/results/README.md`. Demo plan and files live outside the repo in
+  `~/Desktop/resonance-demo/`; the hero project still has to be run once in the deployed app
+  (the app reviews sampled stills, the eval reviewed the whole video).
+  Constructed TTS media measures planted-flaw detection, not
   accuracy on real creator videos.
 - Everything in "Review loop work on local `main`": decisions, adjudicator v2 prompt, library
   links, rough-cut upload/activate/discard and re-review, comparison on real runs, writer context

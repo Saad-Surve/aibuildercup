@@ -5,7 +5,7 @@ model responses, so it can be replayed offline without new model calls.
 
 | Question | Result | Section |
 |---|---|---|
-| Do nine specialist reviewers beat one Gemini prompt? | On pre-registered long-form videos: **31/32 planted issues vs 28/32** for the best single prompt, 91% precision; not yet significant. On short videos, a tie. | [Editorial review](#editorial-review-nine-specialists-versus-one-prompt) |
+| Do nine specialist reviewers beat one Gemini prompt? | On pre-registered long-form videos: **31/32 planted issues vs 28/32** for the best single prompt, 91% precision; not yet significant. On short videos and on 5 real creator-admitted errors, a tie. | [Editorial review](#editorial-review-nine-specialists-versus-one-prompt) |
 | Does the editor stage make multi-reviewer output usable? | Precision **34–41% to 78–91%** on sets it was never tuned on; with the rubric pass, no issue lost on long-form | [Editorial review](#editorial-review-nine-specialists-versus-one-prompt) |
 | Can it predict where viewers lean in or drift? | **ρ = 0.15** (95% CI 0.10–0.20) beyond the typical drop-off, over 87 unseen creator videos | [Audience interest](#predicted-audience-interest) |
 | Does semantic search find the creator's right source? | **20/20** first-rank hits vs 11/20 for keyword fallback | [Creator retrieval](#creator-retrieval-semantic-versus-keyword-fallback) |
@@ -85,7 +85,25 @@ off on longer videos, where one call has more to hold at once.
 
 ### Real creator videos (pre-registered)
 
-Run `2026-10-14-real-final-flash38` is in progress; results are added here when it completes.
+[Report](results/editorial-2026-10-14-real-final-flash38.md). Four real CC BY creator videos
+(6–16 min) with five errors the creators corrected in their descriptions after publishing.
+Only those five are labelled, so this measures recall of known errors; precision cannot be
+computed.
+
+| Approach | Known errors found | USD per video |
+|---|---:|---:|
+| One prompt | 3/5 | $0.058 |
+| One prompt + rubrics | 2/5 (its call failed on one video with two errors) | $0.049 |
+| Nine reviewers | 2/5 | $0.271 |
+| Nine reviewers + editor | 2/5 | $0.309 |
+| **Resonance** | **3/5** | $0.364 |
+
+Every approach caught John Green's Call of Duty sales mix-up, and Resonance's suggested fix
+matched his published correction (say "the franchise", not one game). No approach caught a
+software release year misstated as 2015 instead of 2019, which needs niche product knowledge.
+Resonance and the single prompt tie at 3/5 and found different errors. Five errors is far too
+few to rank approaches; this set shows the pipeline finds real, creator-admitted mistakes, not
+that it beats a single prompt on them.
 
 ### Dev set (post-hoc)
 
