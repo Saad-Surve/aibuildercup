@@ -14,6 +14,7 @@ import { DisabledReason } from "@/components/common/disabled-reason";
 import { FindingsPanel } from "@/components/projects/findings-panel";
 import { GroundingPanel } from "@/components/projects/grounding-panel";
 import { HeatmapTracks } from "@/components/projects/heatmap-tracks";
+import { ReviewComparisonPicker } from "@/components/projects/review-comparison";
 import { ReviewerFootage } from "@/components/projects/reviewer-footage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -343,6 +344,7 @@ export function ReviewPanel({
         </CardHeader>
 
         <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto py-2">
+          <ReviewComparisonPicker projectId={projectId} runs={runs} />
           {startError && (
             <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               <Icon icon={Alert02Icon} className="mt-0.5 size-4 shrink-0" />

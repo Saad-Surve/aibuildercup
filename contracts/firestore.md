@@ -466,3 +466,42 @@ Evidence objects use the existing project-owned pattern
 A lazy evidence endpoint validates ownership and the run prefix before signing the frame
 or clip URL. Project/account deletion covers all documents and media. Final adjudication
 writes patch only model metadata, preserving creator decisions made during review.
+
+## Read-only analysis comparison
+
+`GET /api/projects/{projectId}/analysis/compare?baseRunId=&targetRunId=` creates no
+documents. It reads owned project/run documents, pinned assets and transcripts/segments,
+findings and optional `interest/curve` documents beneath the project. Current raw finding
+`decision` / `adjudication` dictionaries are read defensively: dismissed and rejected
+findings are excluded; accepted/revised base findings form the accepted-fix denominator.
+A valid downgrade's adjustedSeverity is used when rebuilding bins.
+
+A directly related target asset's `roughCut` follows the Phase 2 interface:
+`sourceAssetId`, `analysisRunId`, `findingIds`, ordered `keptSegments` with
+`sourceStartMs`, `sourceEndMs`, `outputStartMs`, `removedSpans` on the source timeline,
+and `durationMsBefore` / `durationMsAfter`. The comparison requires sourceAssetId to
+match the base run asset. Kept output is contiguous, at original speed, and non-overlapping;
+removed spans are derived from the complement of kept segments (metadata is not proof
+that an issue is fixed). Other run pairs fall back to transcript alignment.
+
+Normalized Unicode tokens are aligned with difflib, retaining matching blocks of at
+least three tokens. Token times interpolate within persisted transcript segments.
+Confidence is retained matches divided by the shorter transcript's token count; at
+least six matching tokens and 0.55 confidence are required. Each retained word gives
+a piecewise linear time segment, so the map never interpolates across segment gaps.
+Unmatched target footage stays visible on its own timeline; unmatched source words
+never prove removal. Low confidence, empty speech,
+or over 8,000 tokens preserve separate timelines and mark both sets of findings uncompared.
+Bounds: 2,000 findings per run and 20,000 segments; overflow fails explicitly.
+
+Counts use unique native five-second windows across dimensions with the worst
+critical/high/medium severity per window, so mapped fragments cannot inflate counts.
+Matching is deterministic, same dimension, within 5 s of the base span mapped to target
+time (nearest first). A target observation may preserve several nearby base findings;
+consuming a match cannot imply another issue was fixed. Positive Keep observations
+cannot match issues. Full rough-cut removal resolves a finding; otherwise no match
+resolves only when the target reviewer covered the mapped span. Partial
+runs without coverage cannot imply resolution. Interest summaries describe duration-
+weighted distance above each run's own normalized baseline, not retention improvement
+or calibrated quality. `newIssuesCount` excludes positive Keep observations while
+`newFindingsCount` includes them. No new storage, index, deletion path, paid call or worker is needed.

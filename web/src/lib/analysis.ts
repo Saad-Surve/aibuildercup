@@ -1,5 +1,6 @@
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type {
+  AnalysisComparison,
   AnalysisDimension,
   AnalysisRun,
   Finding,
@@ -44,6 +45,17 @@ export function startAnalysis(
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export function compareAnalysisRuns(
+  projectId: string,
+  baseRunId: string,
+  targetRunId: string,
+): Promise<AnalysisComparison> {
+  const query = new URLSearchParams({ baseRunId, targetRunId });
+  return apiFetch<AnalysisComparison>(
+    `/projects/${encodeURIComponent(projectId)}/analysis/compare?${query}`,
+  );
 }
 
 export function getAnalysisRun(

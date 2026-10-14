@@ -35,6 +35,8 @@ from app.schemas.analysis import (
     ReviewerRunList,
     Severity,
 )
+from app.schemas.analysis_compare import AnalysisComparison
+from app.services.analysis_compare import AnalysisCompareService
 from app.services.analysis_service import (
     AnalysisService,
     ensure_within_budget,
@@ -117,6 +119,26 @@ def start_analysis(
         analysisRunId=run.analysisRunId,
         jobId=job.jobId,
         status=run.status.value,
+    )
+
+
+@router.get("/projects/{projectId}/analysis/compare", response_model=AnalysisComparison)
+def compare_analysis_runs(
+    projectId: str,
+    user: UserDep,
+    service: ServiceDep,
+    baseRunId: Annotated[
+        str, Query(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+    ],
+    targetRunId: Annotated[
+        str, Query(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+    ],
+) -> AnalysisComparison:
+    return AnalysisCompareService(service.client).compare(
+        owner_uid=user.uid,
+        project_id=projectId,
+        base_run_id=baseRunId,
+        target_run_id=targetRunId,
     )
 
 

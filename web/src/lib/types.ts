@@ -1191,3 +1191,86 @@ export interface ScheduleUpdateInput {
 export interface ScheduleList {
   items: Schedule[];
 }
+
+// Read-only comparison; all displayed times are on the base source unless flagged.
+export interface ComparisonSpan {
+  startMs: number;
+  endMs: number;
+}
+
+export interface ComparisonTimeSegment {
+  sourceStartMs: number;
+  sourceEndMs: number;
+  targetStartMs: number;
+  targetEndMs: number;
+}
+
+export interface ComparisonBin extends HeatmapBin {
+  nativeStartMs: number;
+  nativeEndMs: number;
+}
+
+export interface ComparisonRun {
+  runId: string;
+  sourceAssetId: string | null;
+  durationMs: number;
+  status: "ready" | "partial_failure";
+  dimensions: AnalysisDimension[];
+  bins: ComparisonBin[];
+  unmappedBins: ComparisonBin[];
+  coverage: HeatmapCoverage[];
+  interest: (ComparisonSpan & { value: number; baseline: number })[];
+}
+
+export interface ComparisonFinding {
+  status: "resolved" | "persists" | "new" | "uncompared";
+  reason:
+    | "removed"
+    | "no_match"
+    | "matched"
+    | "unmatched_target"
+    | "alignment_uncertain"
+    | "review_incomplete";
+  baseFinding: Finding | null;
+  targetFinding: Finding | null;
+  sourceSpans: ComparisonSpan[];
+  accepted: boolean;
+}
+
+export interface ComparisonBinCounts {
+  total: number;
+  critical: number;
+  high: number;
+  medium: number;
+}
+
+export interface AnalysisComparison {
+  base: ComparisonRun;
+  target: ComparisonRun;
+  alignment: {
+    method: "identity" | "rough_cut" | "transcript" | "unaligned";
+    confidence: number;
+    targetTimeline: "source" | "target";
+    segments: ComparisonTimeSegment[];
+    removedSpans: ComparisonSpan[];
+    note: string;
+  };
+  findings: ComparisonFinding[];
+  summary: {
+    flaggedBinsBefore: ComparisonBinCounts;
+    flaggedBinsAfter: ComparisonBinCounts;
+    durationMsBefore: number;
+    durationMsAfter: number;
+    acceptedFindingsTotal: number;
+    acceptedFindingsResolved: number;
+    newFindingsCount: number;
+    newIssuesCount: number;
+    uncomparedFindingsCount: number;
+    interestChange: {
+      meanAboveBaselineBefore: number;
+      meanAboveBaselineAfter: number;
+      delta: number;
+      note: string;
+    } | null;
+  };
+}

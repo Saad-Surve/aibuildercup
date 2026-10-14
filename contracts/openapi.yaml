@@ -1185,6 +1185,37 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/projects/{projectId}/analysis/compare:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      summary: Compare two completed reviews without model calls or writes
+      description: |
+        Both runs and their pinned assets/transcripts must belong to the owned project.
+        Bins are rebuilt excluding rejected adjudications and dismissed decisions.
+        Flagged counts are unique native five-second windows across dimensions, using
+        the worst critical/high/medium severity in each window, not finding counts.
+        Target bins map to the base source timeline through a directly related roughCut
+        or normalized transcript-token sequence alignment. Weak alignment preserves the
+        target timeline. Unmapped inserted footage is returned separately and never hidden.
+        Each base finding matches the nearest target finding in the same dimension
+        within 5 seconds of its span mapped to target time. One target observation
+        can preserve multiple nearby base findings. Positive Keep observations cannot match issues.
+        Uncompared findings cannot inflate resolved counts when mapping or coverage is missing.
+      parameters:
+        - { name: baseRunId, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9_-]+$' } }
+        - { name: targetRunId, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9_-]+$' } }
+      responses:
+        "200":
+          description: Before/after comparison on the base source timeline where possible
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisComparison" }
+        "400": { description: Identical run IDs }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Run unfinished or comparison input exceeds bounded limits }
+        "422": { description: Missing or invalid run IDs }
+
   /api/projects/{projectId}/analysis/{analysisRunId}:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
@@ -1938,6 +1969,112 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
 
   schemas:
+    ComparisonSpan:
+      type: object
+      required: [startMs, endMs]
+      properties:
+        startMs: { type: integer }
+        endMs: { type: integer }
+    ComparisonTimeSegment:
+      type: object
+      required: [sourceStartMs, sourceEndMs, targetStartMs, targetEndMs]
+      properties:
+        sourceStartMs: { type: integer }
+        sourceEndMs: { type: integer }
+        targetStartMs: { type: integer }
+        targetEndMs: { type: integer }
+    ComparisonAlignment:
+      type: object
+      required: [method, confidence, targetTimeline, segments, removedSpans, note]
+      properties:
+        method: { type: string, enum: [identity, rough_cut, transcript, unaligned] }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        targetTimeline: { type: string, enum: [source, target] }
+        segments: { type: array, items: { $ref: "#/components/schemas/ComparisonTimeSegment" } }
+        removedSpans: { type: array, items: { $ref: "#/components/schemas/ComparisonSpan" } }
+        note: { type: string }
+    ComparisonBin:
+      allOf:
+        - { $ref: "#/components/schemas/HeatmapBin" }
+        - type: object
+          required: [nativeStartMs, nativeEndMs]
+          properties:
+            nativeStartMs: { type: integer }
+            nativeEndMs: { type: integer }
+    ComparisonInterestPoint:
+      type: object
+      required: [startMs, endMs, value, baseline]
+      properties:
+        startMs: { type: integer }
+        endMs: { type: integer }
+        value: { type: number }
+        baseline: { type: number }
+    ComparisonRun:
+      type: object
+      required: [runId, sourceAssetId, durationMs, status, dimensions, bins, unmappedBins, coverage, interest]
+      properties:
+        runId: { type: string }
+        sourceAssetId: { type: [string, "null"] }
+        durationMs: { type: integer }
+        status: { type: string, enum: [ready, partial_failure] }
+        dimensions: { type: array, items: { $ref: "#/components/schemas/AnalysisDimension" } }
+        bins: { type: array, items: { $ref: "#/components/schemas/ComparisonBin" } }
+        unmappedBins:
+          description: Target-only portions on their own native timeline; empty if all mapped.
+          type: array
+          items: { $ref: "#/components/schemas/ComparisonBin" }
+        coverage: { type: array, items: { $ref: "#/components/schemas/HeatmapCoverage" } }
+        interest: { type: array, items: { $ref: "#/components/schemas/ComparisonInterestPoint" } }
+    ComparisonFinding:
+      type: object
+      required: [status, reason, baseFinding, targetFinding, sourceSpans, accepted]
+      properties:
+        status: { type: string, enum: [resolved, persists, new, uncompared] }
+        reason: { type: string, enum: [removed, no_match, matched, unmatched_target, alignment_uncertain, review_incomplete] }
+        baseFinding: { anyOf: [{ $ref: "#/components/schemas/Finding" }, { type: "null" }] }
+        targetFinding: { anyOf: [{ $ref: "#/components/schemas/Finding" }, { type: "null" }] }
+        sourceSpans: { type: array, items: { $ref: "#/components/schemas/ComparisonSpan" } }
+        accepted: { type: boolean, description: Base decision is accepted or revised }
+    ComparisonBinCounts:
+      type: object
+      required: [total, critical, high, medium]
+      properties:
+        total: { type: integer }
+        critical: { type: integer }
+        high: { type: integer }
+        medium: { type: integer }
+    ComparisonInterestChange:
+      type: object
+      required: [meanAboveBaselineBefore, meanAboveBaselineAfter, delta, note]
+      properties:
+        meanAboveBaselineBefore: { type: number }
+        meanAboveBaselineAfter: { type: number }
+        delta: { type: number }
+        note: { type: string }
+    ComparisonSummary:
+      type: object
+      required: [flaggedBinsBefore, flaggedBinsAfter, durationMsBefore, durationMsAfter, acceptedFindingsTotal, acceptedFindingsResolved, newFindingsCount, newIssuesCount, uncomparedFindingsCount, interestChange]
+      properties:
+        flaggedBinsBefore: { $ref: "#/components/schemas/ComparisonBinCounts" }
+        flaggedBinsAfter: { $ref: "#/components/schemas/ComparisonBinCounts" }
+        durationMsBefore: { type: integer }
+        durationMsAfter: { type: integer }
+        acceptedFindingsTotal: { type: integer }
+        acceptedFindingsResolved: { type: integer }
+        newFindingsCount: { type: integer }
+        newIssuesCount: { type: integer, description: New findings excluding positive Keep observations }
+        uncomparedFindingsCount: { type: integer }
+        interestChange: { anyOf: [{ $ref: "#/components/schemas/ComparisonInterestChange" }, { type: "null" }] }
+    AnalysisComparison:
+      type: object
+      required: [base, target, summary, alignment, findings]
+      properties:
+        base: { $ref: "#/components/schemas/ComparisonRun" }
+        target: { $ref: "#/components/schemas/ComparisonRun" }
+        summary: { $ref: "#/components/schemas/ComparisonSummary" }
+        alignment: { $ref: "#/components/schemas/ComparisonAlignment" }
+        findings: { type: array, items: { $ref: "#/components/schemas/ComparisonFinding" } }
+
     PackagingBrief:
       {
         "properties": {

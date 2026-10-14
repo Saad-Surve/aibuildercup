@@ -29,12 +29,15 @@ export function SourceVideoPlayer({
   projectId,
   asset,
   onDuration,
+  seekScope,
   captionLines,
   coverUrl,
 }: {
   projectId: string;
   asset: Asset;
   onDuration?: (durationMs: number) => void;
+  /** Isolate comparison players from the workspace seek event. */
+  seekScope?: string;
   /** Transcript lines shown in the caption preview overlay, if a style is active. */
   captionLines?: string[];
   /** Applied thumbnail cover; preferred over the captured frame poster. */
@@ -117,6 +120,7 @@ export function SourceVideoPlayer({
             mimeType={asset.mimeType}
             poster={poster}
             onDuration={onDuration}
+            seekScope={seekScope}
           />
         ) : (
           <Skeleton className="aspect-video w-full rounded-none" />
@@ -144,12 +148,14 @@ function StudioPlayer({
   mimeType,
   poster,
   onDuration,
+  seekScope,
 }: {
   projectId: string;
   src: string;
   mimeType: string;
   poster: string | null;
   onDuration?: (durationMs: number) => void;
+  seekScope?: string;
 }) {
   // The <video> element is created imperatively and owned by video.js, never by
   // React. Letting React render it led to the player disposing the node out from
@@ -229,9 +235,14 @@ function StudioPlayer({
   useEffect(() => {
     const onSeek = (event: Event) => {
       const detail = (
-        event as CustomEvent<{ projectId: string; seconds: number }>
+        event as CustomEvent<{
+          projectId: string;
+          seconds: number;
+          seekScope?: string;
+        }>
       ).detail;
-      if (detail.projectId !== projectId) return;
+      if (detail.projectId !== projectId || detail.seekScope !== seekScope)
+        return;
       const player = playerRef.current;
       if (player && Number.isFinite(detail.seconds)) {
         player.currentTime(Math.max(0, detail.seconds));
@@ -239,7 +250,7 @@ function StudioPlayer({
     };
     window.addEventListener("creator-studio:seek", onSeek);
     return () => window.removeEventListener("creator-studio:seek", onSeek);
-  }, [projectId]);
+  }, [projectId, seekScope]);
 
   return <div ref={containerRef} className="w-full" />;
 }

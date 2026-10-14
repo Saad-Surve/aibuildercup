@@ -42,7 +42,12 @@ const EMPTY_COVERAGE: HeatmapCoverage[] = [];
 type Hover =
   | { kind: "bin"; bin: HeatmapBin }
   | { kind: "interest"; index: number }
-  | { kind: "gap"; dimension: AnalysisDimension; covered: boolean };
+  | {
+      kind: "gap";
+      dimension: AnalysisDimension;
+      covered: boolean;
+      removed?: boolean;
+    };
 
 /*
  * The review ribbon: one signal trace per reviewer dimension, plotted against the
@@ -65,6 +70,7 @@ type Hover =
 
 export function HeatmapTracks({
   bins,
+  removedSpans,
   coverage = EMPTY_COVERAGE,
   interest = null,
   onSelectMoment,
@@ -78,6 +84,8 @@ export function HeatmapTracks({
   reviewState = "not_started",
 }: {
   bins: HeatmapBin[];
+  /** Source spans omitted from a rough cut, hatched across every lane. */
+  removedSpans?: { startMs: number; endMs: number }[];
   /** Spans each dimension read; empty for older runs (gaps then stay blank). */
   coverage?: HeatmapCoverage[];
   /** Predicted audience-interest curve; null hides the interest and signal lanes. */
@@ -99,7 +107,13 @@ export function HeatmapTracks({
     [],
   );
   const setHoveredGap = useCallback(
-    (gap: { dimension: AnalysisDimension; covered: boolean } | null) =>
+    (
+      gap: {
+        dimension: AnalysisDimension;
+        covered: boolean;
+        removed?: boolean;
+      } | null,
+    ) =>
       setHover((current) =>
         gap === null
           ? current?.kind === "gap"
@@ -107,7 +121,8 @@ export function HeatmapTracks({
             : current
           : current?.kind === "gap" &&
               current.dimension === gap.dimension &&
-              current.covered === gap.covered
+              current.covered === gap.covered &&
+              current.removed === gap.removed
             ? current
             : { kind: "gap", ...gap },
       ),
@@ -212,6 +227,7 @@ export function HeatmapTracks({
                 key={dimension}
                 dimension={dimension}
                 bins={dimensionBins}
+                removedSpans={removedSpans}
                 coverage={
                   coverage.length > 0
                     ? (coverageByDimension.get(dimension) ?? EMPTY_COVERAGE)
@@ -283,6 +299,7 @@ function TimeRuler({ ticks }: { ticks: number[] }) {
 const TrackRow = memo(function TrackRow({
   dimension,
   bins,
+  removedSpans,
   coverage,
   durationMs,
   score,
@@ -295,6 +312,7 @@ const TrackRow = memo(function TrackRow({
 }: {
   dimension: AnalysisDimension;
   bins: HeatmapBin[];
+  removedSpans?: { startMs: number; endMs: number }[];
   /** This dimension's reviewed spans, or null when the run has no coverage data. */
   coverage: HeatmapCoverage[] | null;
   durationMs: number;
@@ -304,7 +322,11 @@ const TrackRow = memo(function TrackRow({
   severityFilter: Severity[];
   onHover: (bin: HeatmapBin | null) => void;
   onHoverGap: (
-    gap: { dimension: AnalysisDimension; covered: boolean } | null,
+    gap: {
+      dimension: AnalysisDimension;
+      covered: boolean;
+      removed?: boolean;
+    } | null,
   ) => void;
   onSelect: (bin: HeatmapBin) => void;
 }) {
@@ -328,7 +350,7 @@ const TrackRow = memo(function TrackRow({
   // run carries coverage; older runs keep the plain blank gap.
   useEffect(() => {
     const node = trackRef.current;
-    if (!node || coverage === null) return;
+    if (!node || (coverage === null && !removedSpans?.length)) return;
     const move = (event: MouseEvent) => {
       if ((event.target as Element).closest("button")) return;
       const rect = node.getBoundingClientRect();
@@ -336,12 +358,17 @@ const TrackRow = memo(function TrackRow({
       const ms = ((event.clientX - rect.left) / rect.width) * durationMs;
       onHoverGap({
         dimension,
-        covered: coverage.some((span) => ms >= span.startMs && ms < span.endMs),
+        covered:
+          coverage?.some((span) => ms >= span.startMs && ms < span.endMs) ??
+          false,
+        removed: removedSpans?.some(
+          (span) => ms >= span.startMs && ms < span.endMs,
+        ),
       });
     };
     node.addEventListener("mousemove", move);
     return () => node.removeEventListener("mousemove", move);
-  }, [coverage, durationMs, dimension, onHoverGap]);
+  }, [coverage, removedSpans, durationMs, dimension, onHoverGap]);
 
   function focusBin(button: HTMLButtonElement, next: number) {
     const clamped = Math.max(0, Math.min(bins.length - 1, next));
@@ -393,6 +420,19 @@ const TrackRow = memo(function TrackRow({
             style={{
               left: `${(span.startMs / durationMs) * 100}%`,
               width: `${((span.endMs - span.startMs) / durationMs) * 100}%`,
+            }}
+          />
+        ))}
+        {removedSpans?.map((span) => (
+          <span
+            key={`removed-${span.startMs}`}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 opacity-60"
+            style={{
+              left: `${(span.startMs / durationMs) * 100}%`,
+              width: `${((span.endMs - span.startMs) / durationMs) * 100}%`,
+              background:
+                "repeating-linear-gradient(135deg, transparent 0 3px, var(--muted-foreground) 3px 4px)",
             }}
           />
         ))}
@@ -455,7 +495,11 @@ function ReadoutStrip({
 }: {
   bin: HeatmapBin | null;
   point: InterestCurve["points"][number] | null;
-  gap: { dimension: AnalysisDimension; covered: boolean } | null;
+  gap: {
+    dimension: AnalysisDimension;
+    covered: boolean;
+    removed?: boolean;
+  } | null;
   dimensions: number;
 }) {
   return (
@@ -471,7 +515,11 @@ function ReadoutStrip({
             {dimensionLabel(gap.dimension)}
           </span>
           <span>
-            {gap.covered ? "Reviewed — nothing flagged" : "Not reviewed"}
+            {gap.removed
+              ? "Removed from after video"
+              : gap.covered
+                ? "Reviewed — nothing flagged"
+                : "Not reviewed"}
           </span>
         </>
       ) : bin ? (
