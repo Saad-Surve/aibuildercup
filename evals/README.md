@@ -1,13 +1,153 @@
 # Evaluation evidence
 
-Measured on 11 October 2026. **Retrieval and local processing have quantitative results;
-editorial quality and creator impact do not yet have independent labels.** Costs are
-explicit scenarios in [docs/costs.md](../docs/costs.md), not invoices.
+What we measured, how, and what it does and does not show. Every result links to its raw
+model responses, so it can be replayed offline without new model calls.
 
-The [creator comparison protocol](creator-comparison.md) records the supplied project/video
-and the data needed for a fair study against other tools. The
-[market comparison](../docs/competitive-comparison.md) separates implemented workflow
-differences from unmeasured quality and productivity claims.
+| Question | Result | Section |
+|---|---|---|
+| Do nine specialist reviewers beat one Gemini prompt? | On pre-registered long-form videos: **31/32 planted issues vs 28/32** for the best single prompt, 91% precision; not yet significant. On short videos, a tie. | [Editorial review](#editorial-review-nine-specialists-versus-one-prompt) |
+| Does the editor stage make multi-reviewer output usable? | Precision **34–41% to 78–91%** on sets it was never tuned on; with the rubric pass, no issue lost on long-form | [Editorial review](#editorial-review-nine-specialists-versus-one-prompt) |
+| Can it predict where viewers lean in or drift? | **ρ = 0.15** (95% CI 0.10–0.20) beyond the typical drop-off, over 87 unseen creator videos | [Audience interest](#predicted-audience-interest) |
+| Does semantic search find the creator's right source? | **20/20** first-rank hits vs 11/20 for keyword fallback | [Creator retrieval](#creator-retrieval-semantic-versus-keyword-fallback) |
+
+Costs are explicit scenarios in [docs/costs.md](../docs/costs.md), not invoices. Every run
+file is indexed in [results/README.md](results/README.md). The
+[creator comparison protocol](creator-comparison.md) and
+[market comparison](../docs/competitive-comparison.md) cover what is not yet measured
+against other tools.
+
+## Editorial review: nine specialists versus one prompt
+
+The question every judge should ask: **why not just ask Gemini?** We tested it with a
+gold-issue benchmark. Videos carry planted flaws in 11 categories (wrong facts, unsupported
+claims, safety, jargon, tangents, pacing drag, weak hooks, broken promises, locale
+assumptions, tone, missing calls to action) plus clean controls with nothing to find. Every
+approach reviews the same videos with the same model (`gemini-3.8-flash`, Search grounding
+on), and is scored with one fixed matching rule ([matching.json](editorial/matching.json):
+same dimension, start within 5 seconds, one finding per issue).
+
+| Approach | What it is |
+|---|---|
+| One prompt | One Gemini call over the whole video and transcript |
+| One prompt + rubrics | The same call with all nine reviewer rubrics pasted in: the strongest single-prompt baseline |
+| Nine reviewers | The nine specialist reviewers, raw |
+| Nine reviewers + editor | An editor stage merges duplicates and drops weak findings |
+| **Resonance** | Nine reviewers plus the rubric pass as a tenth, then the editor (`ensemble_edited`, the shipped pipeline) |
+
+**How we kept it honest.** Labels for every set are committed before any model sees the
+videos, and the harness refuses to run if they changed. The prompts were tuned only on the
+DEV set and frozen before the later sets ran. The HELD-OUT and LONG-FORM sets were authored by
+a different model family with no access to the reviewer prompts. Each pre-registered set was
+run once.
+
+| Set | Videos | Issues | Labels committed | Role |
+|---|---:|---:|---|---|
+| [DEV](editorial/README.md) | 5 short (2–3 min) | 20 | `2e13571` | Tuning; results are post-hoc |
+| [HELD-OUT](editorial-heldout/README.md) | 6 short (2–4 min) | 22 | `6df94ce` | First independent test |
+| [LONG-FORM](editorial-longform/README.md) | 5 long (8–12 min) | 32 | `9d48bf5` | Independent test at real creator length |
+| [REAL](editorial-real/README.md) | 4 real CC BY creator videos (6–16 min) | 5 | `6f1f23f` | Errors the creators publicly corrected; recall only |
+
+### Long-form (pre-registered, frozen pipeline)
+
+[Report](results/editorial-2026-10-14-longform-final-flash38.md). Precision counts any
+finding that matches no planted issue as wrong, so it is a lower bound.
+
+| Approach | Recall | Precision | Clean-control findings | USD per video |
+|---|---:|---:|---:|---:|
+| One prompt | 27/32 (84%) | 100% | 2 | $0.069 |
+| One prompt + rubrics | 28/32 (88%) | 97% | 5 | $0.080 |
+| Nine reviewers | 31/32 (97%) | 41% | 14 | $0.276 |
+| Nine reviewers + editor | 29/32 (91%) | 88% | 4 | $0.342 |
+| **Resonance** | **31/32 (97%)** | **91%** | 6 | $0.436 |
+
+Resonance found every issue the best single prompt found, plus three it missed (paired by
+issue: 3 versus 0), including pacing drag and unsupported claims. The editor cut the raw
+reviewer output from 75 findings to 34 without losing an issue. With 32 issues, a 3–0 split is
+**not statistically significant** (exact sign test p = 0.25); it is a consistent direction, not
+proof. Resonance costs about five times the single prompt per video.
+
+### Held-out (pre-registered, short videos)
+
+[Report](results/editorial-2026-10-14-heldout-flash38.md). This run predates the rubric pass,
+so it has no Resonance row; the editor was version 1.
+
+| Approach | Recall | Precision | Clean-control findings | USD per video |
+|---|---:|---:|---:|---:|
+| One prompt | 18/22 (82%) | 100% | 3 | $0.026 |
+| One prompt + rubrics | 20/22 (91%) | 95% | 2 | $0.035 |
+| Nine reviewers | 22/22 (100%) | 34% | 5 | $0.239 |
+| Nine reviewers + editor | 21/22 (96%) | 78% | 1 | $0.249 |
+
+On short videos the strongest single prompt **matched** the reviewers: 2 issues only the
+editor arm found, 1 only the single prompt found. This result is why the rubric pass became a
+tenth reviewer, and why we built the long-form set to test our hypothesis that specialists pay
+off on longer videos, where one call has more to hold at once.
+
+### Real creator videos (pre-registered)
+
+Run `2026-10-14-real-final-flash38` is in progress; results are added here when it completes.
+
+### Dev set (post-hoc)
+
+[Final dev run](results/editorial-2026-10-14-editor-v2-dev-v6.md). Tuned on these videos, so
+these numbers show the tuning target, not generalisation: one prompt + rubrics 19/20 at 90%
+precision; Resonance 20/20 at 87%, one clean-control finding each. A model-judged
+[audit](results/editorial-2026-10-14-flash38.audit.md) of the first dev run found that 41 of
+51 unmatched reviewer findings were the same planted issue reported through another
+reviewer's lens, and only 2 were wrong. That is what the editor was built to remove.
+
+### What this supports, and what it does not
+
+- Supported: on pre-registered long-form videos, the shipped pipeline caught more planted
+  issues than the best single prompt, missed none that it caught, and kept precision at 91%.
+- Supported: the editor turns raw multi-reviewer output (34–41% precision) into usable
+  output (78–91%) on sets it was never tuned on. On its own it dropped one or two real
+  issues per set; adding the rubric pass as a tenth reviewer recovered them on long-form.
+- Not supported: a significant accuracy advantage. The sets are small (5–6 videos each), and
+  on short videos a single prompt matched us.
+- Not measured: accuracy on unconstructed creator videos beyond creator-admitted errors,
+  usefulness of the proposed edits, and time saved. Constructed videos use synthetic speech
+  over a plain background, so footage-based checks are barely exercised.
+
+### Still to measure: creator-judged quality
+
+The flagship needs two kinds of evidence: correct observations and edits the creator
+actually finds useful. A creator supplied a project and public source-video link; complete
+outputs and creator labels are still pending. No manual gold labels or time-saving
+measurements were supplied. Historical diagnostic reviewer runs are recorded in
+the reviewer heatmap handoff in [HANDOFF](../docs/current-progress/HANDOFF.md#open-items);
+they used a fallback model/subsets and cannot validate the complete configured nine-reviewer
+system. Finding counts and successful JSON alone are not quality scores.
+
+A bounded first quality study can use six short videos: English and Hindi/Hinglish examples
+of a factual explainer, a buying recommendation and a clean control. Include intentional
+errors **and correct claims**, label relevant spans/actions before generation, pin source,
+transcript, persona, model, location and prompt versions, and report failures. Have two
+independent editors score outputs blind to configuration. Resolve disagreements openly.
+Do not count the supplied persona or model self-critique as independent judgment.
+
+| Area | Metric and denominator | What it establishes |
+|---|---|---|
+| Reliability | Successful reviewer/chunk calls ÷ attempted calls; complete runs ÷ started runs; p50/p95 time to first finding and completion | Whether useful results arrive consistently, including errors/retries |
+| Review correctness | Supported/actionable issue findings ÷ all emitted issue findings | Precision, adjudicated against transcript, footage and cited sources |
+| Missed issues | Gold issues matched by one supported finding ÷ all gold issues | Recall; match once within the same dimension using span IoU ≥0.5, with separately declared point-event tolerance |
+| False alarms | Unsupported high/critical findings per video minute; proportion of clean controls wrongly flagged | Over-warning and harmful advice |
+| Evidence | Nonempty speech quotes matching cited spans ÷ nonempty speech quotes; citations that entail the claim ÷ citations checked | Quote consistency versus actual factual support; report omitted/visual evidence separately |
+| Advice quality | Specific executable edits ÷ issue findings; creator-accepted useful edits ÷ proposed edits | Practical value, preserving language, intent and voice |
+| Redundancy | Semantically repeated advice ÷ issue findings, judged across dimensions | Whether nine reviewers create unnecessary work |
+| Stability | Matched findings across two pinned runs; severity agreement on matched spans | Stochastic variation, not truth |
+| Cost | Total attributable model/API/compute cost ÷ completed reviews and ÷ accepted useful edits | Efficiency with a meaningful denominator |
+
+Use one-to-one gold/prediction matching so duplicate findings cannot inflate recall.
+Report per dimension and per video, not only a pooled average; show sample counts and
+bootstrap uncertainty by video when a representative dataset is large enough. Repeated
+runs of the same six videos do not create more independent videos.
+
+Useful ablations are transcript-only versus sampled footage, Search on/off for truth,
+and initial writing with/without retrieved history. Keep everything else pinned and use
+identical human judgments. Base review calls are `9 × chunks`; tools, grounding and
+provider retries can add requests. Cap each study's calls and monitor spend before launching
+another batch; current project estimates are not an atomic all-feature spending limit.
 
 ## Predicted audience interest
 
@@ -145,52 +285,6 @@ See [collection/import instructions](../docs/creator-public-corpus.md) to prepar
 Recollecting changing public sources creates a different corpus; hashes must match to
 reproduce this exact result. Query vectors remain in `.tmp/evals/query-vectors.json`.
 The report shares IDs/ranks, not full third-party transcripts or private credentials.
-
-## Editorial quality: protocol, not results
-
-A gold-issue harness now exists for a first, small version of this study: see
-[editorial/README.md](editorial/README.md). It compares one Gemini prompt against the nine
-reviewers on constructed videos with 20 planted flaws and a clean control, with labels committed
-before any run. It has produced no results yet, and it is a constructed benchmark, not the
-independent-editor study described below.
-
-The flagship needs two kinds of evidence: correct observations and edits the creator
-actually finds useful. A creator supplied a project and public source-video link; complete
-outputs and creator labels are still pending. No manual gold labels or time-saving
-measurements were supplied. Historical diagnostic reviewer runs are recorded in
-the reviewer heatmap handoff in [HANDOFF](../docs/current-progress/HANDOFF.md#open-items);
-they used a fallback model/subsets and cannot validate the complete configured nine-reviewer
-system. Finding counts and successful JSON alone are not quality scores.
-
-A bounded first quality study can use six short videos: English and Hindi/Hinglish examples
-of a factual explainer, a buying recommendation and a clean control. Include intentional
-errors **and correct claims**, label relevant spans/actions before generation, pin source,
-transcript, persona, model, location and prompt versions, and report failures. Have two
-independent editors score outputs blind to configuration. Resolve disagreements openly.
-Do not count the supplied persona or model self-critique as independent judgment.
-
-| Area | Metric and denominator | What it establishes |
-|---|---|---|
-| Reliability | Successful reviewer/chunk calls ÷ attempted calls; complete runs ÷ started runs; p50/p95 time to first finding and completion | Whether useful results arrive consistently, including errors/retries |
-| Review correctness | Supported/actionable issue findings ÷ all emitted issue findings | Precision, adjudicated against transcript, footage and cited sources |
-| Missed issues | Gold issues matched by one supported finding ÷ all gold issues | Recall; match once within the same dimension using span IoU ≥0.5, with separately declared point-event tolerance |
-| False alarms | Unsupported high/critical findings per video minute; proportion of clean controls wrongly flagged | Over-warning and harmful advice |
-| Evidence | Nonempty speech quotes matching cited spans ÷ nonempty speech quotes; citations that entail the claim ÷ citations checked | Quote consistency versus actual factual support; report omitted/visual evidence separately |
-| Advice quality | Specific executable edits ÷ issue findings; creator-accepted useful edits ÷ proposed edits | Practical value, preserving language, intent and voice |
-| Redundancy | Semantically repeated advice ÷ issue findings, judged across dimensions | Whether nine reviewers create unnecessary work |
-| Stability | Matched findings across two pinned runs; severity agreement on matched spans | Stochastic variation, not truth |
-| Cost | Total attributable model/API/compute cost ÷ completed reviews and ÷ accepted useful edits | Efficiency with a meaningful denominator |
-
-Use one-to-one gold/prediction matching so duplicate findings cannot inflate recall.
-Report per dimension and per video, not only a pooled average; show sample counts and
-bootstrap uncertainty by video when a representative dataset is large enough. Repeated
-runs of the same six videos do not create more independent videos.
-
-Useful ablations are transcript-only versus sampled footage, Search on/off for truth,
-and initial writing with/without retrieved history. Keep everything else pinned and use
-identical human judgments. Base review calls are `9 × chunks`; tools, grounding and
-provider retries can add requests. Cap each study's calls and monitor spend before launching
-another batch; current project estimates are not an atomic all-feature spending limit.
 
 ## Other outcomes to measure
 

@@ -23,7 +23,7 @@ architecture clean.
 | `infra/` | Terraform for GCP resources (`infra/RESOURCES.md` is the inventory) | Terraform |
 | `contracts/` | OpenAPI, Firestore and event contracts | - |
 | `corpus/`, `fixtures/` | Localization corpus, sample media and import examples | - |
-| `evals/` | Benchmarks and their results | - |
+| `evals/` | Editorial benchmark sets (dev, held-out, long-form, real), interest model, retrieval cases; `evals/results/README.md` indexes every run | - |
 | `docs/` | Architecture, costs, design, and the handoff in `docs/current-progress/HANDOFF.md` | - |
 
 ## Commands
@@ -108,6 +108,9 @@ result = await providers.llm.complete_json(
 - Cloud Run runs one instance. Job locks and the realtime hub are process-local, so scaling out
   needs durable leases first.
 - Deletion is real. Versioned buckets keep noncurrent generations until lifecycle expiry.
+- Editorial eval sets are pre-registered. Tune only on `evals/editorial/` (dev). Never tune
+  prompts against `evals/editorial-heldout/`, `editorial-longform/` or `editorial-real/`, or
+  read their results while tuning; bump prompt versions when prompts change.
 - A GCP budget is not a hard cap. The budget (8,500 INR, about $100) and the billing kill switch
   (`infra/budget.tf`) are a backstop, and billing data arrives with a delay.
 
