@@ -1,7 +1,7 @@
-# Local setup: Habeas Codus (Creator Helper Studio)
+# Local setup: Resonance Creator Studio
 
 This guide takes you from a clean machine to a running local app: `web/` talking to
-`backend/`. Both use the real Google Cloud services: Gemini on Agent Platform (Vertex AI),
+`backend/`. The GCP project is still named `habeas-codus`. Both use the real Google Cloud services: Gemini on Agent Platform (Vertex AI),
 Speech-to-Text, Cloud Storage, Firestore, Pub/Sub and Firebase Auth.
 
 > Read `AGENTS.md` first, then `docs/technical-design/README.md`. This guide only covers
@@ -189,11 +189,14 @@ CORPUS_BUCKET=habeas-codus-corpus
 VERTEX_LOCATION=global          # cheapest Gemini endpoint
 MODEL_REVIEWER=gemini-3.1-flash-lite
 MODEL_ORCHESTRATOR=gemini-3.1-flash-lite
-MODEL_WRITER=gemini-3.1-flash-lite
+MODEL_WRITER=gemini-3.8-flash
 MODEL_TRANSCRIPT_REPAIR=gemini-3.1-flash-lite
 MODEL_STT=chirp_3
 STT_REGION=us                   # Chirp 3 is GA in the `us` multi-region, not us-central1
 REVIEW_VISUAL_TOOLS_ENABLED=true
+MAX_ADJUDICATOR_CALLS=12        # footage checks per run, incl. up to 4 conflict calls
+MAX_EDITOR_CALLS=3              # editor consolidation passes per run
+INTEREST_CURVE_ENABLED=true     # audience-interest lane alongside reviewers
 FFMPEG_PATH=ffmpeg
 FFPROBE_PATH=ffprobe
 ```
@@ -268,9 +271,8 @@ bun dev
 
 - Open <http://localhost:3000>.
 - Sign in with Google. The first time, an onboarding flow runs. After that you can create a
-  project and upload a video. Test files live in `fixtures/media/` (for example
-  `career_advice.mp4`, `hindi_education.mp4`, `cooking_recipe.mp4`). `fixtures/media` is
-  gitignored, so if the folder is empty, get the sample videos from a teammate.
+  project and upload a video. `fixtures/media/` is gitignored and varies by workstation,
+  so if the folder is empty, get a sample video from a teammate — any short MP4 works.
 
 ### Lint and typecheck
 
@@ -322,10 +324,11 @@ bootstrap. Terraform assumes some pieces already exist.
    **Authentication → Settings → Authorized domains**.
 6. **Register a Web app** in Firebase (Project settings → Your apps → Web) and copy the config
    values into `web/.env.local`.
-7. **Enable the required APIs.** `services.tf` does this for you. If you apply by hand, enable:
-   Storage, Firestore, Pub/Sub, BigQuery, Cloud Run, Artifact Registry, Cloud Build, Vertex AI,
-   Speech-to-Text, Translation, Secret Manager, Cloud KMS, Cloud Scheduler, Firebase and
-   Identity Toolkit.
+7. **Enable the required APIs.** `services.tf` enables the infrastructure set only
+   (Firestore, Pub/Sub, Cloud KMS, Secret Manager, Storage, Cloud Run, Artifact Registry,
+   Cloud Functions, Eventarc, Billing Budgets). If you apply by hand, also enable:
+   Vertex AI, Speech-to-Text, Translation, Text-to-Speech, Secret Manager, Cloud KMS,
+   Firebase and Identity Toolkit, plus YouTube Data/Analytics if you connect channels.
 8. **Vertex AI model access.** Make sure the Gemini models set in `.env` are callable from the
    project. The Agent Platform spend cap is console-only, so set it below your budget.
 
@@ -357,8 +360,9 @@ budget_amount            = "100"
 > `infra/backend.tf`, and the budget and kill-switch expectations, before you apply.
 
 Terraform provisions the buckets, Firestore database, composite index, rules release, Pub/Sub
-topics and subscriptions, BigQuery datasets, KMS keyring, empty secrets, service accounts and
-IAM, Artifact Registry, the budget and the kill switch. The resource inventory is in
+topics and the transcription push subscription, KMS keyring, empty secrets, service accounts and
+IAM, Artifact Registry, the budget and the kill switch. It defines no BigQuery datasets and no
+separate worker services. The resource inventory is in
 `infra/RESOURCES.md`.
 
 Terraform has historically not applied one thing: the Firestore rules and index. The local ADC
@@ -490,8 +494,10 @@ cd infra && terraform apply   # or: gcloud firestore fields ... see firestore_in
 4. Watch the publish history card move from queued to uploading (with progress) to YouTube
    processing to published, with an "Open on YouTube" link.
 
-> **Unverified API client.** Until the OAuth app passes YouTube's API audit, every upload is
-> locked to **private**, whatever visibility you request. This is expected. Use a test channel.
+> **Unverified API client.** Uploads from an unaudited OAuth client may be locked to
+> **private** by YouTube, whatever visibility you request. A public upload did succeed
+> on the connected channel on 2026-10-12, so confirm the behavior per account rather
+> than relying on either outcome. Use a test channel.
 
 ---
 

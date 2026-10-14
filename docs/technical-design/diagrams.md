@@ -32,8 +32,9 @@ flowchart LR
     Alerts --> Guard[Cloud Function: billing backstop]
 ```
 
-BigQuery and extra worker/event infrastructure are provisioned for expansion. They are
-not on the current channel-analytics path. Regions: infrastructure/Veo `us-central1`,
+BigQuery datasets and unused worker subscriptions/accounts are absent from current Terraform.
+Only the transcription push subscription remains; channel analytics use Firestore. Cloud
+cleanup status is in [HANDOFF.md](../current-progress/HANDOFF.md). Regions: infrastructure/Veo `us-central1`,
 Chirp `us`, Gemini configurable `global` by default.
 
 ## Upload and review
@@ -47,6 +48,9 @@ sequenceDiagram
     participant PS as Pub/Sub
     participant STT as Chirp 3
     participant Review as Nine Gemini reviewers
+    participant Rubric as All-rubric review
+    participant Editor as Editor
+    participant Check as Footage adjudicator
     participant FS as Firestore
     Creator->>UI: Upload a video
     UI->>API: Request owned upload session
@@ -65,13 +69,29 @@ sequenceDiagram
         Review->>Review: Google Search / bounded frame and clip tools
     end
     Review-->>API: Structured findings, usage, sources and partial errors
-    API->>FS: Persist findings, reviewer state and five-second bins
+    API->>API: Normalize quotes, spans and duplicate advice
+    API->>Rubric: Whole transcript, all nine rubrics, sampled stills
+    Rubric-->>API: Additional observations in existing dimensions
+    API->>Editor: Consolidate all observations
+    Editor-->>API: Keep, merge or drop; immutable originals
+    API->>Check: Selected serious findings and actual footage
+    Check-->>API: Confirm, downgrade, reject or reconcile
+    API->>API: Attach eligible earlier-work examples
+    API->>FS: Persist model metadata, findings, coverage and five-second bins
     API-->>UI: WebSocket progress, REST results
-    Creator->>UI: Select finding and seek to footage
+    Creator->>UI: Seek, accept, revise or dismiss finding
+    UI->>API: Preview and render selected safe cuts / edit notes
+    API->>GCS: Upload inactive rough-cut revision
+    API->>FS: Derived transcript and cut map; no STT
+    Creator->>UI: Preview then activate or discard
+    UI->>API: Re-review active revision
+    API-->>UI: Compare aligned before/after runs; retain uncompared issues
 ```
 
-Job idempotency is separate from provider retry safety. STT polling/resubmission issues
-are documented in the latest diagnosis; this diagram does not imply exactly-once billing.
+Job idempotency is separate from provider retry safety. STT saves operation names and resumes
+polling without submitting again. One ambiguous-submission resubmit is allowed; exactly-once
+billing is not guaranteed. Interest prediction runs alongside reviewers; optional channel
+retention calibration blends only the baseline on compatible curve reads.
 
 ## Creator retrieval
 
@@ -87,6 +107,7 @@ flowchart LR
     Cosine --> Draft[Relevant examples in initial writing]
     Cosine --> Thumbnail[Original thumbnail style references]
     Cosine --> Package[Packaging creator context]
+    Cosine --> Earlier[Separate earlier-work examples on eligible findings]
     Saved --> PCA[Deterministic PCA: approximate 2D map]
     PCA --> Inspector[Source inspector and related evidence]
     Cosine --> Inspector
@@ -128,8 +149,10 @@ flowchart LR
 
 Visual inserts are downloadable supplementary assets; they are not spliced into the source
 or selectable as a finished source-video revision. Generated footage
-has a bounded paid path; the evaluation did not render it. Publishing remains a separate
-creator action and requires a real connected YouTube account.
+has a bounded paid path; current live verification is recorded in HANDOFF.md. Publishing remains a separate
+creator action and requires a real connected YouTube account. Packaging does not assemble
+inserts; the rough-cut path can place selected existing inserts. Drafts cross-post synchronously
+to Substack/Medium/Reddit through their providers, separately from YouTube publication.
 
 ## Deletion
 

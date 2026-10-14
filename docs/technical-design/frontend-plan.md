@@ -74,6 +74,17 @@ suggestion; exact quotes and source/footage evidence can expand. Strengths use K
 Severity filters reduce noise. Blank/incomplete tracks stay visible rather than implying
 unreported moments were graded. Flagged moments replaces a misleading overall-quality label.
 Historical runs retain their original dimensions/scores and stale-transcript warnings.
+The rubric supplies observations in the same nine lanes. Editor verdicts and corroborating
+reviewers, adjudicator checks/evidence and separate creator accept/revise/dismiss controls
+make the filtering inspectable. Library examples appear as **From your earlier work**, not
+as current-video evidence. The audience-interest lane is relative prediction with a generic
+or calibrated channel baseline, separate from reviewer scores.
+
+Accepted/revised actions feed a safe rough-cut preview with cut/note labels and optional
+existing inserts. Rendered/uploaded revisions are previewed before activation; inactive cuts
+can be discarded or exported as an EDL. Re-review compares two runs on aligned timelines,
+showing persisting/new/resolved/uncompared issues and unmatched footage. Missing alignment
+or coverage never counts as a resolved finding.
 
 ## 11. Thumbnails and packaging
 
@@ -96,14 +107,19 @@ Settings connects YouTube through OAuth, syncs channel content/audience and disp
 The creator library shows PCA-positioned passages/thumbnail tiles, keyboard-accessible
 source rows, semantic search, topic/modality filters, attribution and real cosine-related
 sources. Projection distance is approximate. The calendar offers month/week planning and
-links YouTube publish schedules; other platform labels are planning metadata.
+links YouTube publish schedules; other platform labels are planning metadata. Writing-platform
+cards connect Substack, Medium and Reddit; draft cross-post dialogs use those accounts.
+YouTube Analytics calibration can replace a compatible curve's baseline with a blended channel
+shape; insufficient data preserves the generic baseline. Publishing displays attachment warnings.
 
 ## 14. Draft writing
 
 The free-flow document uses optimistic edits and debounced persistence. Immutable block
 versions make rewrites/alternatives reversible. Chat/grounding and selected creator-context
 panels sit alongside the editor; Markdown/text and all-version exports preserve selected
-text. Draft writing chat exists; generic video-project chat does not.
+text. An optional source-video selection gives generation/chat bounded transcript, review and
+interest context, with an inspector for the selected material. Draft writing chat exists;
+generic video-project chat does not. Cross-posting is synchronous; Substack can schedule remotely.
 
 ## 15. Realtime and hosting
 

@@ -5,11 +5,11 @@ login. Applying an import writes to real Firestore and Cloud Storage using Appli
 Default Credentials; validation/dry runs do not. Import does not run models or create a
 publishing connection. The demo's API write restrictions remain enforced.
 
-**Current source selection:** the runtime uses synced YouTube content when
-`CREATOR_PRESET_ENABLED=false`. When true, it installs the configured precomputed preset,
-which takes precedence over a manually imported folder. To serve a new supplied corpus,
-publish/configure it using [the preset workflow](creator-public-corpus.md#collect-and-publish).
-The commands below manage owned import records; importing alone does not switch runtime retrieval.
+**Current source selection:** an active folder import takes precedence over synced YouTube
+content. `CREATOR_PRESET_ENABLED=false` skips automatic preset installation; it does not disable
+manual imports. When true, the configured precomputed preset is ensured on library reads and
+can replace the active import. To serve a different automatic corpus, use
+[the preset workflow](creator-public-corpus.md#collect-and-publish).
 
 ## Folder
 
@@ -65,7 +65,8 @@ Reimporting unchanged material reuses its content revision. Changed content beco
 revision; only the selected revision is retrieved. Previous revisions remain until removal.
 Different bundles can coexist; the last successfully imported bundle is marked active.
 No real connections are changed. The configured preset can replace that selection on the
-next library read. Disable the preset flag to return to synced channel examples.
+next library read. To return to synced channel examples, disable the preset and remove
+the active import; disabling the flag alone leaves it selected.
 
 Preview removal, then explicitly delete it:
 
@@ -81,7 +82,7 @@ project is deleted; old thumbnail previews disappear gracefully when the origina
 
 ## How imported material is used
 
-- When selected by the preset workflow, draft generation receives creator bio, video
+- When selected as the active import, draft generation receives creator bio, video
   transcript examples and authored writing.
 - Thumbnail generation can retrieve imported creator thumbnails as image references.
 - Draft context API identifies `sourceType: folder_import`; it returns written examples and
@@ -109,8 +110,9 @@ endpoint. No video/audio embeddings or crawler calls run during import. Index an
 calls share a 200-call per-user daily allowance, including failed attempts. GET/map browsing
 never calls a model. Six text passages per source, up to ten thumbnails and 300 total nodes
 enter the demo index; the page reports omitted passages. Unchanged content/model settings
-reuse the saved vectors. Republish/reconfigure a changed preset, or disable it and sync
-a channel to change current retrieval; old revisions never enter current retrieval.
+reuse the saved vectors. Import a new active revision with the preset disabled, or
+republish/reconfigure an automatic preset. To select a synced channel instead, also remove
+the active import; old revisions never enter current retrieval.
 
 Account setup now offers the same YouTube connection controls before the profile questions,
 with public links alongside them. OAuth returns to that step with the links saved. Public-link
@@ -120,7 +122,7 @@ already indexed library; use the operator account to prepare indexing before han
 
 ## Automatic prepared corpus source
 
-The backend source flag now controls whether an imported corpus participates in retrieval.
+The backend preset flag controls automatic installation, not whether imports participate.
 See [public corpus setup](creator-public-corpus.md) for collection, precomputed Gemini vectors,
 GCS publication, automatic installation and returning to connected accounts. Folder import
-alone does not override real connections when `CREATOR_PRESET_ENABLED=false`.
+takes precedence over synced connections even when `CREATOR_PRESET_ENABLED=false`.

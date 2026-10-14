@@ -1,7 +1,12 @@
 # Connecting Medium, Substack, and Reddit — detailed setup
 
 All three live in the app under **Settings → Writing platforms** (and the same
-cards appear during onboarding). What each one needs, step by step, is below.
+cards appear during onboarding). Connecting authorizes a destination; posting happens
+from a written draft and completes synchronously in one provider call. Wire shapes are
+in [OpenAPI](../../contracts/openapi.yaml): `POST /api/connections/medium/connect`,
+`POST /api/connections/substack/connect`, OAuth under `/api/connections/{youtube|reddit}/oauth/*`,
+`POST /api/projects/{projectId}/crossposts` and `/crossposts/sync` (draft sync is
+Substack-only; other platforms return 400). What each one needs, step by step, is below.
 Honest limits first: only Reddit has a healthy official OAuth. Medium's API is
 deprecated and Substack's is unofficial — both still work, with the caveats
 spelled out per platform.
@@ -102,4 +107,6 @@ send-replies toggle, nsfw/spoiler flags. Live URL comes straight back.
 Open any written draft → **Post to Medium / Substack / Reddit** (under the
 header). Pick the platform, pick the connected account, adjust title/body —
 both prefill from the draft — choose the safe default or go public, Post. The
-result line links straight to the live post or draft.
+result line links straight to the live post or draft. Later draft edits can be
+pushed into the linked Substack draft via sync; reposting is the path when the
+remote draft was deleted outside the app.

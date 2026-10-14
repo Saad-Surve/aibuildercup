@@ -34,7 +34,6 @@ Charts and callouts render to silent H.264 MP4 with Pillow-drawn geometry and
 FFmpeg/libass-shaped text. Both landscape and portrait are supported. Full source evidence
 remains in the panel; long on-screen quotes use a short excerpt. B-roll uses
 `veo-3.1-fast-generate-001` through the video provider in `us-central1`, at 720p without audio.
-The proposed `gemini-omni-1.1` name could not be verified as a callable video model.
 
 Footage direction follows the [researched Veo guidance](../research/veo-source-style-2026-10-11.md).
 An observation pass sees only source footage and records palette, lighting, framing, texture,
@@ -58,7 +57,8 @@ new billable calls. Poll timeout exposes a resume action.
 
 Ready clips have a signed playback/download URL. Creators download and add them in their
 video editor. This feature does not splice the inserts into the source video or cut automatic
-shorts. Individual insert deletion removes its record and Storage prefix. All packaging
+shorts. Selected existing inserts can be placed by the separate rough-cut renderer, with
+explicit creator selection. Individual insert deletion removes its record and Storage prefix. All packaging
 records, jobs, paid reservations and media use the existing user/project-owned paths.
 Project/account deletion marks the parent before removing objects, rejects subsequent
 ownership-checked writes, and lets the packaging worker remove a late upload. Versioned
