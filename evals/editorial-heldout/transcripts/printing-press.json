@@ -1,7 +1,7 @@
 {
   "videoId": "printing-press",
   "language": "en",
-  "durationMs": 228846,
+  "durationMs": 230106,
   "segments": [
     {
       "segmentId": "seg-1",
@@ -90,229 +90,229 @@
     {
       "segmentId": "seg-15",
       "startMs": 63373,
-      "endMs": 69400,
-      "text": "About one hundred and eighty copies were printed, and a handful still survive in"
+      "endMs": 69438,
+      "text": "About one hundred and eighty copies were printed, and around fifty of them survive"
     },
     {
       "segmentId": "seg-16",
-      "startMs": 69400,
-      "endMs": 70517,
-      "text": "museums today."
+      "startMs": 69438,
+      "endMs": 71777,
+      "text": "in libraries and museums today."
     },
     {
       "segmentId": "seg-17",
-      "startMs": 71417,
-      "endMs": 77709,
+      "startMs": 72677,
+      "endMs": 78969,
       "text": "From Mainz, the new craft spread: printers set up shops in other German cities,"
     },
     {
       "segmentId": "seg-18",
-      "startMs": 77709,
-      "endMs": 79752,
+      "startMs": 78969,
+      "endMs": 81013,
       "text": "then in Italy and France."
     },
     {
       "segmentId": "seg-19",
-      "startMs": 80102,
-      "endMs": 85907,
+      "startMs": 81363,
+      "endMs": 87168,
       "text": "Within a few decades, presses were running in scores of European towns, and books"
     },
     {
       "segmentId": "seg-20",
-      "startMs": 85907,
-      "endMs": 89166,
+      "startMs": 87168,
+      "endMs": 90426,
       "text": "poured out in numbers nobody had seen before."
     },
     {
       "segmentId": "seg-21",
-      "startMs": 89516,
-      "endMs": 94869,
+      "startMs": 90776,
+      "endMs": 96131,
       "text": "Where books once numbered in the hundreds, now tens of thousands of copies could"
     },
     {
       "segmentId": "seg-22",
-      "startMs": 94869,
-      "endMs": 97249,
+      "startMs": 96131,
+      "endMs": 98510,
       "text": "reach readers across the continent."
     },
     {
       "segmentId": "seg-23",
-      "startMs": 98149,
-      "endMs": 103760,
+      "startMs": 99410,
+      "endMs": 105021,
       "text": "Researchers have shown that owning even one printed book made a person twice as"
     },
     {
       "segmentId": "seg-24",
-      "startMs": 103760,
-      "endMs": 105790,
+      "startMs": 105021,
+      "endMs": 107051,
       "text": "likely to support new ideas."
     },
     {
       "segmentId": "seg-25",
-      "startMs": 106140,
-      "endMs": 113777,
+      "startMs": 107401,
+      "endMs": 115038,
       "text": "That single statistic explains the whole century: print turned readers into reformers, almost on"
     },
     {
       "segmentId": "seg-26",
-      "startMs": 113777,
-      "endMs": 114487,
+      "startMs": 115038,
+      "endMs": 115748,
       "text": "its own."
     },
     {
       "segmentId": "seg-27",
-      "startMs": 115387,
-      "endMs": 118440,
+      "startMs": 116648,
+      "endMs": 119701,
       "text": "The first great consequence was religion."
     },
     {
       "segmentId": "seg-28",
-      "startMs": 118440,
-      "endMs": 123965,
+      "startMs": 119701,
+      "endMs": 125226,
       "text": "Luther's ideas travelled faster than anyone trying to stop them could ride."
     },
     {
       "segmentId": "seg-29",
-      "startMs": 124315,
-      "endMs": 129654,
+      "startMs": 125576,
+      "endMs": 130912,
       "text": "Pamphlets printed in one city were being read in another within weeks, which had"
     },
     {
       "segmentId": "seg-30",
-      "startMs": 129654,
-      "endMs": 131499,
+      "startMs": 130912,
+      "endMs": 132759,
       "text": "never been possible before."
     },
     {
       "segmentId": "seg-31",
-      "startMs": 132399,
-      "endMs": 140928,
+      "startMs": 133659,
+      "endMs": 142188,
       "text": "Scholars track this through incunabula catalogues, comparing xylography with type, and through textual recension"
     },
     {
       "segmentId": "seg-32",
-      "startMs": 140928,
-      "endMs": 142665,
+      "startMs": 142188,
+      "endMs": 143926,
       "text": "of surviving editions."
     },
     {
       "segmentId": "seg-33",
-      "startMs": 143015,
-      "endMs": 149763,
+      "startMs": 144276,
+      "endMs": 151024,
       "text": "The stemmata alone settle most disputes about which edition came first, as any bibliographer"
     },
     {
       "segmentId": "seg-34",
-      "startMs": 149763,
-      "endMs": 150853,
+      "startMs": 151024,
+      "endMs": 152114,
       "text": "will tell you."
     },
     {
       "segmentId": "seg-35",
-      "startMs": 151753,
-      "endMs": 154832,
+      "startMs": 153014,
+      "endMs": 156092,
       "text": "The second great consequence was science."
     },
     {
       "segmentId": "seg-36",
-      "startMs": 154832,
-      "endMs": 159962,
+      "startMs": 156092,
+      "endMs": 161222,
       "text": "Researchers in different countries could finally read the same texts."
     },
     {
       "segmentId": "seg-37",
-      "startMs": 160312,
-      "endMs": 165378,
+      "startMs": 161572,
+      "endMs": 166638,
       "text": "A discovery printed in Venice could be argued with in Paris the same year,"
     },
     {
       "segmentId": "seg-38",
-      "startMs": 165378,
-      "endMs": 168080,
+      "startMs": 166638,
+      "endMs": 169340,
       "text": "and knowledge began to build on itself."
     },
     {
       "segmentId": "seg-39",
-      "startMs": 168980,
-      "endMs": 174120,
+      "startMs": 170240,
+      "endMs": 175380,
       "text": "This reminds me of the printing museum I visited last year, which had the"
     },
     {
       "segmentId": "seg-40",
-      "startMs": 174120,
-      "endMs": 177177,
+      "startMs": 175380,
+      "endMs": 178437,
       "text": "loveliest little gift shop by the entrance."
     },
     {
       "segmentId": "seg-41",
-      "startMs": 177527,
-      "endMs": 183258,
+      "startMs": 178787,
+      "endMs": 184519,
       "text": "I bought a replica page, a fridge magnet shaped like a capital letter, and"
     },
     {
       "segmentId": "seg-42",
-      "startMs": 183258,
-      "endMs": 186162,
+      "startMs": 184519,
+      "endMs": 187423,
       "text": "a tote bag I still use for groceries."
     },
     {
       "segmentId": "seg-43",
-      "startMs": 186512,
-      "endMs": 191231,
+      "startMs": 187773,
+      "endMs": 192491,
       "text": "There was a coffee place right next door with excellent cake, and I sat"
     },
     {
       "segmentId": "seg-44",
-      "startMs": 191231,
-      "endMs": 193657,
+      "startMs": 192491,
+      "endMs": 194917,
       "text": "there for an hour watching the rain."
     },
     {
       "segmentId": "seg-45",
-      "startMs": 194007,
-      "endMs": 200877,
+      "startMs": 195267,
+      "endMs": 202137,
       "text": "I think about that cake whenever anyone mentions museums, which, again, has nothing to"
     },
     {
       "segmentId": "seg-46",
-      "startMs": 200877,
-      "endMs": 202296,
+      "startMs": 202137,
+      "endMs": 203556,
       "text": "do with printing."
     },
     {
       "segmentId": "seg-47",
-      "startMs": 203196,
-      "endMs": 210514,
+      "startMs": 204456,
+      "endMs": 211774,
       "text": "So: one machine, reusable letters, and ideas that could suddenly travel faster than any"
     },
     {
       "segmentId": "seg-48",
-      "startMs": 210514,
-      "endMs": 211427,
+      "startMs": 211774,
+      "endMs": 212687,
       "text": "messenger."
     },
     {
       "segmentId": "seg-49",
-      "startMs": 211777,
-      "endMs": 217897,
+      "startMs": 213037,
+      "endMs": 219157,
       "text": "Religion and science both changed course, and that is why this invention still matters"
     },
     {
       "segmentId": "seg-50",
-      "startMs": 217897,
-      "endMs": 218389,
+      "startMs": 219157,
+      "endMs": 219649,
       "text": "today."
     },
     {
       "segmentId": "seg-51",
-      "startMs": 218739,
-      "endMs": 225027,
+      "startMs": 219999,
+      "endMs": 226288,
       "text": "If you enjoyed this, subscribe to the channel for more history explainers every week."
     },
     {
       "segmentId": "seg-52",
-      "startMs": 225377,
-      "endMs": 227446,
+      "startMs": 226638,
+      "endMs": 228706,
       "text": "See you in the next one."
     }
   ]

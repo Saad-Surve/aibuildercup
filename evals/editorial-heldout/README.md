@@ -69,6 +69,14 @@ The labels, transcripts, media, scripts and `matching.json` were committed befor
 any model saw the videos, and no model, reviewer, or eval arm was run on them
 during authoring.
 
-**Pre-registration commit: `d6ee085efdb2fafc8cd9dd1ee5a6cec02528e5b6`.** Quote the commit when reporting
+**Pre-registration commit: the commit titled "fix(evals): correct a survivor count in the
+held-out printing-press script"** (it directly follows `d6ee085`). Before any model saw the set,
+the coordinator's review found one loose fact outside the planted flaws in `printing-press` ("a
+handful still survive", where about 49 Gutenberg Bibles survive). A strict Truth reviewer could
+fairly flag it, which would count as an unplanted false positive. The line was corrected to "around
+fifty", and that video was rebuilt (spans shifted by about 1.3 s). No other file changed.
+`d6ee085` is the original authoring commit.
+
+**Use the commit above as the pre-registration commit.** Quote the commit when reporting
 held-out results; if the labels change after a run, the run is void. The matching
 rule, headline metric and other variants are those of the dev set's pre-registration.
