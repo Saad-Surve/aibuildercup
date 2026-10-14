@@ -12,6 +12,7 @@ timeline with exact pauses, burns a plain caption video with FFmpeg, and writes 
 No network and no model calls. The labels must be committed before any model run.
 
     cd backend && uv run python scripts/editorial_build_media.py [--only boiled-egg-control]
+    cd backend && uv run python scripts/editorial_build_media.py --root ../evals/editorial-heldout
 """
 
 import argparse
@@ -280,15 +281,17 @@ def build_one(script_path: Path, *, out_dir: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--only", help="Build one script id.")
-    parser.add_argument("--out", type=Path, default=EDITORIAL)
+    parser.add_argument("--root", type=Path, default=EDITORIAL)
+    parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
-    scripts = sorted((EDITORIAL / "scripts").glob("*.json"))
+    out_dir = args.out if args.out else args.root
+    scripts = sorted((out_dir / "scripts").glob("*.json"))
     if args.only:
         scripts = [path for path in scripts if path.stem == args.only]
     if not scripts:
         raise SystemExit("no scripts matched")
     for script_path in scripts:
-        build_one(script_path, out_dir=args.out)
+        build_one(script_path, out_dir=out_dir)
 
 
 if __name__ == "__main__":

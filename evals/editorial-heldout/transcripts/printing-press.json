@@ -1,0 +1,319 @@
+{
+  "videoId": "printing-press",
+  "language": "en",
+  "durationMs": 230106,
+  "segments": [
+    {
+      "segmentId": "seg-1",
+      "startMs": 600,
+      "endMs": 6240,
+      "text": "Before this machine, every book in Europe was copied by hand, and one book"
+    },
+    {
+      "segmentId": "seg-2",
+      "startMs": 6240,
+      "endMs": 8794,
+      "text": "could take a monk an entire year."
+    },
+    {
+      "segmentId": "seg-3",
+      "startMs": 9144,
+      "endMs": 14566,
+      "text": "In the next few minutes you will see exactly how one invention changed that,"
+    },
+    {
+      "segmentId": "seg-4",
+      "startMs": 14566,
+      "endMs": 18578,
+      "text": "and I will give you three great consequences by the end."
+    },
+    {
+      "segmentId": "seg-5",
+      "startMs": 18928,
+      "endMs": 25107,
+      "text": "This is the story of Gutenberg's movable-type printing press, and how it helped ideas"
+    },
+    {
+      "segmentId": "seg-6",
+      "startMs": 25107,
+      "endMs": 26546,
+      "text": "race across Europe."
+    },
+    {
+      "segmentId": "seg-7",
+      "startMs": 27446,
+      "endMs": 34924,
+      "text": "Around 1440, in the German city of Mainz, a goldsmith named Johannes Gutenberg had"
+    },
+    {
+      "segmentId": "seg-8",
+      "startMs": 34924,
+      "endMs": 36545,
+      "text": "a practical idea."
+    },
+    {
+      "segmentId": "seg-9",
+      "startMs": 36895,
+      "endMs": 42793,
+      "text": "Instead of carving a whole page, he cast single letters in metal, arranged them"
+    },
+    {
+      "segmentId": "seg-10",
+      "startMs": 42793,
+      "endMs": 46479,
+      "text": "into words, inked them, and pressed paper on top."
+    },
+    {
+      "segmentId": "seg-11",
+      "startMs": 46829,
+      "endMs": 52722,
+      "text": "Each letter could be reused thousands of times, which made printing fast enough to"
+    },
+    {
+      "segmentId": "seg-12",
+      "startMs": 52722,
+      "endMs": 53291,
+      "text": "matter."
+    },
+    {
+      "segmentId": "seg-13",
+      "startMs": 54191,
+      "endMs": 60327,
+      "text": "His most famous book, the great Gutenberg Bible, rolled off the press in fourteen"
+    },
+    {
+      "segmentId": "seg-14",
+      "startMs": 60327,
+      "endMs": 63023,
+      "text": "seventy-five, and it was beautiful."
+    },
+    {
+      "segmentId": "seg-15",
+      "startMs": 63373,
+      "endMs": 69438,
+      "text": "About one hundred and eighty copies were printed, and around fifty of them survive"
+    },
+    {
+      "segmentId": "seg-16",
+      "startMs": 69438,
+      "endMs": 71777,
+      "text": "in libraries and museums today."
+    },
+    {
+      "segmentId": "seg-17",
+      "startMs": 72677,
+      "endMs": 78969,
+      "text": "From Mainz, the new craft spread: printers set up shops in other German cities,"
+    },
+    {
+      "segmentId": "seg-18",
+      "startMs": 78969,
+      "endMs": 81013,
+      "text": "then in Italy and France."
+    },
+    {
+      "segmentId": "seg-19",
+      "startMs": 81363,
+      "endMs": 87168,
+      "text": "Within a few decades, presses were running in scores of European towns, and books"
+    },
+    {
+      "segmentId": "seg-20",
+      "startMs": 87168,
+      "endMs": 90426,
+      "text": "poured out in numbers nobody had seen before."
+    },
+    {
+      "segmentId": "seg-21",
+      "startMs": 90776,
+      "endMs": 96131,
+      "text": "Where books once numbered in the hundreds, now tens of thousands of copies could"
+    },
+    {
+      "segmentId": "seg-22",
+      "startMs": 96131,
+      "endMs": 98510,
+      "text": "reach readers across the continent."
+    },
+    {
+      "segmentId": "seg-23",
+      "startMs": 99410,
+      "endMs": 105021,
+      "text": "Researchers have shown that owning even one printed book made a person twice as"
+    },
+    {
+      "segmentId": "seg-24",
+      "startMs": 105021,
+      "endMs": 107051,
+      "text": "likely to support new ideas."
+    },
+    {
+      "segmentId": "seg-25",
+      "startMs": 107401,
+      "endMs": 115038,
+      "text": "That single statistic explains the whole century: print turned readers into reformers, almost on"
+    },
+    {
+      "segmentId": "seg-26",
+      "startMs": 115038,
+      "endMs": 115748,
+      "text": "its own."
+    },
+    {
+      "segmentId": "seg-27",
+      "startMs": 116648,
+      "endMs": 119701,
+      "text": "The first great consequence was religion."
+    },
+    {
+      "segmentId": "seg-28",
+      "startMs": 119701,
+      "endMs": 125226,
+      "text": "Luther's ideas travelled faster than anyone trying to stop them could ride."
+    },
+    {
+      "segmentId": "seg-29",
+      "startMs": 125576,
+      "endMs": 130912,
+      "text": "Pamphlets printed in one city were being read in another within weeks, which had"
+    },
+    {
+      "segmentId": "seg-30",
+      "startMs": 130912,
+      "endMs": 132759,
+      "text": "never been possible before."
+    },
+    {
+      "segmentId": "seg-31",
+      "startMs": 133659,
+      "endMs": 142188,
+      "text": "Scholars track this through incunabula catalogues, comparing xylography with type, and through textual recension"
+    },
+    {
+      "segmentId": "seg-32",
+      "startMs": 142188,
+      "endMs": 143926,
+      "text": "of surviving editions."
+    },
+    {
+      "segmentId": "seg-33",
+      "startMs": 144276,
+      "endMs": 151024,
+      "text": "The stemmata alone settle most disputes about which edition came first, as any bibliographer"
+    },
+    {
+      "segmentId": "seg-34",
+      "startMs": 151024,
+      "endMs": 152114,
+      "text": "will tell you."
+    },
+    {
+      "segmentId": "seg-35",
+      "startMs": 153014,
+      "endMs": 156092,
+      "text": "The second great consequence was science."
+    },
+    {
+      "segmentId": "seg-36",
+      "startMs": 156092,
+      "endMs": 161222,
+      "text": "Researchers in different countries could finally read the same texts."
+    },
+    {
+      "segmentId": "seg-37",
+      "startMs": 161572,
+      "endMs": 166638,
+      "text": "A discovery printed in Venice could be argued with in Paris the same year,"
+    },
+    {
+      "segmentId": "seg-38",
+      "startMs": 166638,
+      "endMs": 169340,
+      "text": "and knowledge began to build on itself."
+    },
+    {
+      "segmentId": "seg-39",
+      "startMs": 170240,
+      "endMs": 175380,
+      "text": "This reminds me of the printing museum I visited last year, which had the"
+    },
+    {
+      "segmentId": "seg-40",
+      "startMs": 175380,
+      "endMs": 178437,
+      "text": "loveliest little gift shop by the entrance."
+    },
+    {
+      "segmentId": "seg-41",
+      "startMs": 178787,
+      "endMs": 184519,
+      "text": "I bought a replica page, a fridge magnet shaped like a capital letter, and"
+    },
+    {
+      "segmentId": "seg-42",
+      "startMs": 184519,
+      "endMs": 187423,
+      "text": "a tote bag I still use for groceries."
+    },
+    {
+      "segmentId": "seg-43",
+      "startMs": 187773,
+      "endMs": 192491,
+      "text": "There was a coffee place right next door with excellent cake, and I sat"
+    },
+    {
+      "segmentId": "seg-44",
+      "startMs": 192491,
+      "endMs": 194917,
+      "text": "there for an hour watching the rain."
+    },
+    {
+      "segmentId": "seg-45",
+      "startMs": 195267,
+      "endMs": 202137,
+      "text": "I think about that cake whenever anyone mentions museums, which, again, has nothing to"
+    },
+    {
+      "segmentId": "seg-46",
+      "startMs": 202137,
+      "endMs": 203556,
+      "text": "do with printing."
+    },
+    {
+      "segmentId": "seg-47",
+      "startMs": 204456,
+      "endMs": 211774,
+      "text": "So: one machine, reusable letters, and ideas that could suddenly travel faster than any"
+    },
+    {
+      "segmentId": "seg-48",
+      "startMs": 211774,
+      "endMs": 212687,
+      "text": "messenger."
+    },
+    {
+      "segmentId": "seg-49",
+      "startMs": 213037,
+      "endMs": 219157,
+      "text": "Religion and science both changed course, and that is why this invention still matters"
+    },
+    {
+      "segmentId": "seg-50",
+      "startMs": 219157,
+      "endMs": 219649,
+      "text": "today."
+    },
+    {
+      "segmentId": "seg-51",
+      "startMs": 219999,
+      "endMs": 226288,
+      "text": "If you enjoyed this, subscribe to the channel for more history explainers every week."
+    },
+    {
+      "segmentId": "seg-52",
+      "startMs": 226638,
+      "endMs": 228706,
+      "text": "See you in the next one."
+    }
+  ]
+}

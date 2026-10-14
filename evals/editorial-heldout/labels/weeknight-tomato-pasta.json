@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "videoId": "weeknight-tomato-pasta",
+  "title": "Weeknight Tomato Pasta That Actually Works",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "Home cooks of any country who want one reliable weeknight dinner.",
+  "brief": "Teach one simple tomato pasta a beginner can cook on a weeknight in about twenty minutes, with food-safe habits throughout. Goal: viewers subscribe to the channel for more weeknight dinners.",
+  "clean": true,
+  "durationMs": 132270,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/weeknight-tomato-pasta.json",
+    "scriptSha256": "62245edf8624ddd86ecddf4fe3ec41d822d2656342622a6390b1628a00a5ac24",
+    "media": "media/weeknight-tomato-pasta.mp4",
+    "mediaSha256": "6d4f11c7307f11d6497aef40461814e9aa6a469f06a446cf80422eb135c1b4cf",
+    "tts": "macOS say, voice Sandy, 152 wpm"
+  },
+  "issues": []
+}

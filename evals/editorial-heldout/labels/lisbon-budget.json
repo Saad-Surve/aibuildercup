@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "videoId": "lisbon-budget",
+  "title": "Three Days in Lisbon on 300 Euros",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "Budget travellers anywhere in the world planning a first trip to Portugal.",
+  "brief": "Show a realistic three-day Lisbon plan that stays under 300 euros excluding flights, with real prices a viewer can check. Goal: viewers download the free budget spreadsheet at lisbon.example/spreadsheet to plan their own trip.",
+  "clean": false,
+  "durationMs": 205423,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/lisbon-budget.json",
+    "scriptSha256": "101e6cab4bfd7c1609fe3450f00dd993b554f163c8ed98e6af97e3603a0f00a0",
+    "media": "media/lisbon-budget.mp4",
+    "mediaSha256": "012964419a5b50e0fd13f06370ff08a7c916dce9c414daea4482110b044916ee",
+    "tts": "macOS say, voice Kathy, 152 wpm"
+  },
+  "issues": [
+    {
+      "id": "L1",
+      "category": "weak_hook",
+      "startMs": 600,
+      "endMs": 21019,
+      "additionalSpans": [],
+      "description": "The opening spends about 20 seconds on greetings and throat-clearing and never states what the viewer will get; the actual plan is only announced after the intro.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "L2",
+      "category": "factual_error",
+      "startMs": 41298,
+      "endMs": 48826,
+      "additionalSpans": [],
+      "description": "Claims the flight from London to Lisbon takes about 45 minutes. In reality scheduled London to Lisbon flights take about two and a half hours.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "L3",
+      "category": "tangent",
+      "startMs": 83091,
+      "endMs": 108515,
+      "additionalSpans": [],
+      "description": "A roughly 30-second story about a street cat the creator followed has no connection to the budget plan and stalls the video.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "L4",
+      "category": "pacing_drag",
+      "startMs": 132465,
+      "endMs": 160954,
+      "additionalSpans": [],
+      "description": "The same daily costs are added up three times in a row, slowly and out loud, with no new information, stalling the video for about 25 seconds.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "L5",
+      "category": "locale_assumption",
+      "startMs": 174935,
+      "endMs": 188006,
+      "additionalSpans": [],
+      "description": "Gives costs only in US dollars and assumes US-only references (a night out in Austin, paying roommates over Zelle) for a worldwide audience the brief addresses.",
+      "expectedDimension": "cultural_localization"
+    },
+    {
+      "id": "L6",
+      "category": "missing_cta",
+      "startMs": 201173,
+      "endMs": 204023,
+      "additionalSpans": [],
+      "description": "The brief's goal is downloads of the free budget spreadsheet, but the video ends with 'that's my trip, bye' and never mentions the spreadsheet.",
+      "expectedDimension": "conversion_cta"
+    }
+  ]
+}

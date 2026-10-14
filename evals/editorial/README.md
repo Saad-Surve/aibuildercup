@@ -15,6 +15,10 @@ Results are reported per arm and never pooled across arms. No result has been pr
 the full run is the coordinator's job after merging. Only one bounded smoke test of
 `baseline` on the clean control has been run, to prove the pipeline (disclosed below).
 
+A second, independently authored held-out set lives in `evals/editorial-heldout/`
+(see its README); nobody runs any arm on it until the coordinator does so after the
+editor pass is frozen.
+
 ## Layout
 
 | Path | Contents |
