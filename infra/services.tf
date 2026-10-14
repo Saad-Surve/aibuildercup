@@ -2,7 +2,6 @@ resource "google_project_service" "required" {
   for_each = toset([
     "firestore.googleapis.com",
     "pubsub.googleapis.com",
-    "bigquery.googleapis.com",
     "cloudkms.googleapis.com",
     "secretmanager.googleapis.com",
     "storage.googleapis.com",

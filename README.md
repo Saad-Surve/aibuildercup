@@ -38,7 +38,7 @@ from facts about the current video.
 | Write and revise | Brief-driven drafts and scripts, grounded writing chat, editable blocks, version history, inline alternatives and Markdown/text exports. |
 | Prepare media | Five caption styles with live preview and FFmpeg burn-in; translation, terminology and cultural adaptation, and timed dubbing across a 25-language voice catalog. Thumbnails use source frames and creator references, with critique, revisions and downloads. |
 | Package the video | Editable or generated YouTube listings and source-linked visual insert suggestions. Charts and callouts render locally with FFmpeg. An optional six-second illustrative shot uses bounded Veo requests grounded in the source's observed look. See the [validation scope](docs/architecture.md#packaging). |
-| Publish and plan | YouTube OAuth, content/caption and audience sync, video upload with optional thumbnail and captions, scheduled YouTube publication, and a month/week content calendar. |
+| Publish and plan | YouTube OAuth, content/caption and audience sync, video upload with optional thumbnail and captions, scheduled YouTube publication, and a month/week content calendar. Written drafts can be cross-posted to Substack (session cookie, since Substack has no write API), Medium (legacy integration tokens only) and Reddit (OAuth). |
 | Own the workspace | Google sign-in, a researched and editable persona, avatars, project revisions, job progress over WebSocket, and project/account deletion. The shared demo is read-only. |
 
 The heatmap is the core interaction. A creator can read a quote, see why it matters, read
@@ -155,7 +155,7 @@ Credentials, so feature code never touches a Google SDK directly.
 | Cloud Run | FastAPI plus the current background workers; one instance, CPU available outside requests |
 | Firestore | Users, revisions, jobs, findings, heatmaps, drafts, connectors, library vectors and schedules |
 | Cloud Storage | Signed uploads/downloads for source media, transcripts, thumbnails, rendered captions, dubs and evidence |
-| Pub/Sub | Storage-finalized transcription trigger and pipeline announcements |
+| Pub/Sub | Storage-finalized transcription trigger; best-effort transcript and analysis announcements with no subscribers |
 | Gemini on Vertex AI / Agent Platform | Structured review, writing, research, cleanup, adaptation, packaging and thumbnail critique |
 | Gemini Embedding 2 | Text and image embeddings for creator evidence retrieval |
 | Gemini image generation | Thumbnail generation and conversational revisions |
@@ -171,8 +171,8 @@ Credentials, so feature code never touches a Google SDK directly.
 Regional infrastructure is in `us-central1`. Speech-to-Text uses the `us` multi-region,
 where Chirp 3 is GA. Gemini uses the configured `global` endpoint, and Veo is regional.
 Terraform defines the infrastructure, and GitHub Actions deploys without long-lived CI
-keys. BigQuery datasets and extra event subscriptions are provisioned for future use. No
-dashboards or separately deployed workers run on them yet.
+keys. Terraform provisions no BigQuery datasets or separate worker service accounts. Workers run
+inside the single Cloud Run service.
 
 ## Evidence
 
@@ -294,7 +294,9 @@ carry the creator's own evidence into each downstream asset.
   lifecycle expiry. Shared immutable preset archives survive user deletion by design.
 - **Media scope.** Dubbing is timed synthesis, not lip sync or voice cloning. Visual inserts
   supplement a video and are not spliced into it. Automatic source shorts, video-project chat
-  and connectors beyond YouTube are not implemented.
+  are not implemented. Video publishing is YouTube only. Written cross-posting covers
+  Substack, Medium and Reddit. Medium no longer issues new tokens, and Substack relies on an
+  unofficial session cookie. Cross-posts run immediately and are not scheduled.
 
 ## Run locally
 
@@ -350,6 +352,6 @@ bun run build
 | `docs/` | Architecture, cost model, comparison, technical references and the handoff | — |
 
 The current code is described in [docs/architecture.md](docs/architecture.md). Decisions,
-deployment state and open items are in [docs/current-progress/HANDOFF.md](docs/current-progress/HANDOFF.md). Automatic shorts, video-project chat and publishing beyond YouTube are not built.
+deployment state and open items are in [docs/current-progress/HANDOFF.md](docs/current-progress/HANDOFF.md). Automatic shorts, video-project chat and video publishing beyond YouTube are not built.
 Draft writing chat is. The live deployment may lag the working tree, and historical demo
 analyses keep the prompts and dimensions they were created with.

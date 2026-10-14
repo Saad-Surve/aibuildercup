@@ -23,7 +23,7 @@ Terraform lives in this folder. Run commands from `infra/`.
 | Bucket | What goes in it | Notes |
 |---|---|---|
 | `habeas-codus-media` | Source videos, transcripts, captions, thumbnails, clips, persona files | Versioning on. CORS allows localhost:3000/8080 plus the deployed web origins. The API signs V4 upload URLs via IAM signBlob, so `creator-studio-api` has `roles/iam.serviceAccountTokenCreator` on itself. This is the one the browser uploads to. |
-| `habeas-codus-raw-social` | Raw JSON dumps from YouTube/Meta connectors | Never read by the browser. |
+| `habeas-codus-raw-social` | Reserved for raw connector dumps; the backend does not use it yet | Never read by the browser. |
 | `habeas-codus-temp` | Scratch space for FFmpeg (extracted clips, frames, audio) | Auto-deleted after 7 days. |
 | `habeas-codus-exports` | Zipped bundles the user downloads | |
 | `habeas-codus-corpus` | Localization glossaries and the "trap list" (TSV) | Versioned. Backs the translation differentiator. |
@@ -44,7 +44,7 @@ All buckets: uniform bucket-level access on, public access prevention enforced.
 | Composite index | `projects`: `ownerUid` ASC, `updatedAt` DESC (COLLECTION scope). Required by `GET /projects`. |
 
 Firestore is the **control plane**: users, projects, jobs, transcripts, findings, artifacts,
-chat, persona. Big media lives in Cloud Storage, analytics live in BigQuery. See
+chat, persona. Big media lives in Cloud Storage. See
 `../docs/technical-design/db-design.md`.
 
 Rules and the index are declared in `firestore_rules.tf` and `firestore_indexes.tf`. Applied
@@ -77,31 +77,21 @@ gcloud firestore indexes composite create \
 | `artifact-events` | A media artifact (short, thumbnail, etc.) should be generated. |
 | `localization-events` | A localization/dubbing job should run. |
 
-### Dead-letter topics (where poison messages go after 5 tries)
+### Dead-letter topic
 
-`video-events-dlq`, `analysis-events-dlq`, `social-sync-events-dlq`, `artifact-events-dlq`
+`video-events-dlq` (poison messages after 5 tries).
 
 ### Subscriptions (who listens)
 
 | Subscription | Topic | Consumer |
 |---|---|---|
-| `transcribe-worker-sub` | `video-events` | Transcribe worker |
-| `analysis-worker-sub` | `analysis-events` | Analysis worker |
-| `social-sync-worker-sub` | `social-sync-events` | Social sync worker |
-| `media-worker-sub` | `artifact-events` | Media (FFmpeg) worker |
-| `localization-worker-sub` | `localization-events` | Localization worker |
+| `transcribe-worker-sub` | `video-events` | Push to `POST /api/internal/pubsub/video-events` on the API (OIDC as `creator-studio-transcribe`) |
 
-Ack deadline is 600s on all of them.
-
----
-
-## BigQuery
-
-| Dataset | Tables | Purpose |
-|---|---|---|
-| `creator_studio_social` | `posts`, `metrics`, `comments`, `audience_aggregates` | Normalized platform data pulled by the connectors. |
-| `creator_studio_ai` | `comment_sentiment`, `agent_runs`, `glossary_terms`, `translation_traps` | Sentiment results, model usage/cost, and the localization corpus. |
-| `creator_studio_audit` | `data_access_events` | Who touched what. |
+Only `video-events` has a consumer. The API also publishes `transcription-events` and
+`analysis-events` on a best-effort basis; nothing subscribes to them. `social-sync-events`,
+`artifact-events` and `localization-events` are mapped in `backend/app/events.py` but never
+published. The unused worker subscriptions, their dead-letter topics and the BigQuery datasets
+were removed from Terraform.
 
 ---
 
@@ -123,7 +113,7 @@ credentials in Terraform state.
 |---|---|
 | `youtube-oauth-client-id` | YouTube OAuth client ID |
 | `youtube-oauth-client-secret` | YouTube OAuth client secret |
-| `meta-app-id` | Meta app ID |
+| `meta-app-id` | Meta app ID (not used by the backend yet) |
 | `meta-app-secret` | Meta app secret |
 | `session-signing-secret` | Signs server sessions |
 
@@ -133,17 +123,13 @@ credentials in Terraform state.
 
 | Account | What it can do |
 |---|---|
-| `creator-studio-api` | Firestore read/write, GCS objects, Pub/Sub publish, secret access, Vertex AI, KMS encrypt/decrypt |
-| `creator-studio-transcribe` | GCS read/write, Firestore write, Pub/Sub pub/sub, Speech-to-Text |
-| `creator-studio-analysis` | GCS read, Firestore read/write, Vertex AI, Pub/Sub pub/sub |
-| `creator-studio-social-sync` | Secret access, KMS decrypt, BigQuery write, GCS object create, Firestore read, Pub/Sub subscribe |
-| `creator-studio-media` | GCS read/write, Firestore write, Pub/Sub pub/sub |
-| `creator-studio-localization` | GCS read/write, Translation, Vertex AI, Firestore write, Pub/Sub subscribe |
+| `creator-studio-api` | Firestore read/write, GCS objects, Pub/Sub publish, secret access, Vertex AI, KMS encrypt/decrypt, Speech-to-Text, Firebase Auth admin |
+| `creator-studio-transcribe` | Identity for the Pub/Sub push subscription's OIDC token (plus GCS, Firestore, Pub/Sub and Speech roles) |
 | `creator-studio-deployer` | Push images to Artifact Registry, deploy Cloud Run |
 | `terraform@habeas-codus` | Manages all the above (bootstrap) |
 | `service-538724167565@gs-project-accounts` | Cloud Storage's own agent; can publish to `video-events` |
 
-Each runtime account is meant to be attached to exactly one Cloud Run service/job.
+The API runs as `creator-studio-api`; workers run inside that service.
 
 ---
 
@@ -151,7 +137,7 @@ Each runtime account is meant to be attached to exactly one Cloud Run service/jo
 
 | Repo | Purpose |
 |---|---|
-| `creator-studio-containers` | Docker images for the API and all workers. |
+| `creator-studio-containers` | Docker images for the API (workers run inside it). |
 
 Full image path: `us-central1-docker.pkg.dev/habeas-codus/creator-studio-containers`
 
@@ -195,7 +181,7 @@ gcloud billing projects link habeas-codus --billing-account=014B5B-1E8419-7A90A3
 
 ## Enabled APIs
 
-Storage, Firestore, Pub/Sub, BigQuery, Cloud Run, Artifact Registry, Cloud Build, Vertex AI,
+Storage, Firestore, Pub/Sub, Cloud Run, Artifact Registry, Cloud Build, Vertex AI,
 Speech-to-Text, Translation, Text-to-Speech, Secret Manager, Cloud KMS, Cloud Scheduler,
 YouTube Data, YouTube Analytics, Logging, Monitoring, Cloud Trace, Firebase, Identity Toolkit.
 
@@ -266,8 +252,7 @@ it.
 | `firestore.tf` | Firestore database |
 | `firestore_indexes.tf` | Composite indexes (projects list) |
 | `firestore_rules.tf` | Firestore security rules ruleset + release |
-| `pubsub.tf` | Topics, DLQs, subscriptions |
-| `bigquery.tf` | Datasets and tables |
+| `pubsub.tf` | Topics, DLQ, transcription push subscription, GCS notification |
 | `kms.tf` | Keyring and key |
 | `secrets.tf` | Secret containers |
 | `service_accounts.tf` | Runtime service accounts |
@@ -275,7 +260,7 @@ it.
 | `artifact_registry.tf` | Container repo |
 | `budget.tf` | Budget, notification topic, kill switch function and IAM |
 | `killswitch/main.py` | Kill switch source |
-| `outputs.tf` | Bucket names, datasets, SA emails, etc. |
+| `outputs.tf` | Bucket names, topics, SA emails, etc. |
 
 ## Common commands
 

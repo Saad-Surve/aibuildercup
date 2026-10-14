@@ -27,7 +27,7 @@ different roles; they are not interchangeable evidence.
 | Cloud Run | FastAPI plus the current background workers; one instance, 1 GiB, CPU available outside requests | `.github/workflows/deploy.yml` |
 | Firestore | Users, revisions, jobs, findings, heatmaps, drafts, connectors, library vectors and schedules | `services/firestore_service.py`, [contract](../contracts/firestore.md) |
 | Cloud Storage | Signed uploads/downloads; source media, transcripts, thumbnails, rendered captions, dubs and evidence | `services/storage_service.py` |
-| Pub/Sub | Storage-finalized transcription trigger and pipeline announcements | `workers/pubsub_handlers.py`, `infra/pubsub.tf` |
+| Pub/Sub | Storage-finalized transcription trigger; best-effort transcript and analysis announcements with no subscribers | `workers/pubsub_handlers.py`, `infra/pubsub.tf` |
 | Gemini on Vertex AI / Agent Platform | Structured review, writing, research, cleanup, adaptation, packaging and thumbnail critique | `providers/llm.py` |
 | Gemini Embedding 2 | Text/image embeddings for creator evidence retrieval | `providers/embeddings.py` |
 | Gemini image generation | Thumbnail generation and conversational revisions | `providers/imagegen.py` |
@@ -42,9 +42,8 @@ different roles; they are not interchangeable evidence.
 
 Infrastructure and media are regional in `us-central1`. Chirp 3 uses the `us`
 multi-region; Gemini uses `VERTEX_LOCATION=global` by default; Veo is regional.
-BigQuery datasets, extra service accounts and several event subscriptions are provisioned
-for the broader design. Their existence does not mean separate deployed worker services,
-sentiment analysis or BigQuery dashboards are implemented.
+Workers run inside the single Cloud Run service. There are no separate worker services,
+BigQuery datasets or sentiment pipeline.
 
 ## Upload, transcription and review
 
@@ -162,7 +161,10 @@ videos/captions and audience aggregates. Publication stages media, optionally at
 a thumbnail and captions, and can pass a future publish time to YouTube. The calendar
 stores creator schedules; labels for other platforms are planning destinations, not
 implemented publishing connectors. Draft projects are a writing workflow, separate
-from uploading video to YouTube.
+from uploading video to YouTube. A finished draft can be cross-posted synchronously to
+Substack (session cookie, since Substack has no write API), Medium (legacy integration
+tokens only) or Reddit (OAuth) through `providers/substack.py`, `providers/medium.py` and
+`providers/reddit.py`. Cross-posts are not scheduled or run as jobs.
 
 Firebase ID tokens authenticate requests. Owned documents are nested under
 `users/{uid}` and checked against the requester; direct browser Firestore access is denied.

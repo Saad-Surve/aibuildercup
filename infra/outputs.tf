@@ -2,14 +2,6 @@ output "buckets" {
   value = { for k, b in google_storage_bucket.buckets : k => b.name }
 }
 
-output "bigquery_datasets" {
-  value = {
-    social = google_bigquery_dataset.social.dataset_id
-    ai     = google_bigquery_dataset.ai.dataset_id
-    audit  = google_bigquery_dataset.audit.dataset_id
-  }
-}
-
 output "pubsub_topics" {
   value = { for k, t in google_pubsub_topic.topics : k => t.name }
 }

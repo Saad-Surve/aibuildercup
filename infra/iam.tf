@@ -22,34 +22,6 @@ locals {
       "roles/pubsub.subscriber",
       "roles/speech.client",
     ]
-    analysis = [
-      "roles/storage.objectViewer",
-      "roles/datastore.user",
-      "roles/aiplatform.user",
-      "roles/pubsub.publisher",
-      "roles/pubsub.subscriber",
-    ]
-    social_sync = [
-      "roles/secretmanager.secretAccessor",
-      "roles/cloudkms.cryptoKeyDecrypter",
-      "roles/bigquery.dataEditor",
-      "roles/storage.objectCreator",
-      "roles/datastore.viewer",
-      "roles/pubsub.subscriber",
-    ]
-    media = [
-      "roles/storage.objectAdmin",
-      "roles/datastore.user",
-      "roles/pubsub.publisher",
-      "roles/pubsub.subscriber",
-    ]
-    localization = [
-      "roles/storage.objectAdmin",
-      "roles/cloudtranslate.user",
-      "roles/aiplatform.user",
-      "roles/datastore.user",
-      "roles/pubsub.subscriber",
-    ]
     deployer = [
       "roles/artifactregistry.writer",
       "roles/run.admin",

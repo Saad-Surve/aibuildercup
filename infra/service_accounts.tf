@@ -1,13 +1,8 @@
 locals {
   runtime_sas = {
-    api          = "creator-studio-api"
-    transcribe   = "creator-studio-transcribe"
-    analysis     = "creator-studio-analysis"
-    social_sync  = "creator-studio-social-sync"
-    media        = "creator-studio-media"
-    localization = "creator-studio-localization"
-    deployer     = "creator-studio-deployer"
-    web          = "creator-studio-web"
+    api        = "creator-studio-api"
+    transcribe = "creator-studio-transcribe"
+    deployer   = "creator-studio-deployer"
   }
 }
 
