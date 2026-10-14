@@ -159,8 +159,8 @@ YouTube uses OAuth with expiring state and PKCE; refresh/access tokens are encry
 before persistence and decrypted only for connector use. The connector reads channel
 videos/captions and audience aggregates. Publication stages media, optionally attaches
 a thumbnail and captions, and can pass a future publish time to YouTube. The calendar
-stores creator schedules; labels for other platforms are planning destinations, not
-implemented publishing connectors. Draft projects are a writing workflow, separate
+stores creator schedules; calendar slots for platforms other than YouTube are
+planning labels and never post automatically. Draft projects are a writing workflow, separate
 from uploading video to YouTube. A finished draft can be cross-posted synchronously to
 Substack (session cookie, since Substack has no write API), Medium (legacy integration
 tokens only) or Reddit (OAuth) through `providers/substack.py`, `providers/medium.py` and
