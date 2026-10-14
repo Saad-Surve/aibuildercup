@@ -29,6 +29,9 @@ import { DRAFT_FORMAT_OPTIONS } from "@/lib/drafts";
 import { LANGUAGE_OPTIONS, languageLabel } from "@/lib/onboarding";
 import type { DraftBrief, DraftFormat } from "@/lib/types";
 
+/** Select items need a non-empty value, so "no video" is a sentinel. */
+const NO_VIDEO = "__none__";
+
 const FORMAT_CHIPS = DRAFT_FORMAT_OPTIONS.map((option) => ({
   value: option.value,
   label: option.label,
@@ -46,6 +49,7 @@ export function DraftBriefDialog({
   pending,
   onSubmit,
   title,
+  videos,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -53,6 +57,8 @@ export function DraftBriefDialog({
   pending: boolean;
   onSubmit: (brief: DraftBrief) => void;
   title: string;
+  /** The creator's video projects, offered as a source for the writer to draw on. */
+  videos: { projectId: string; name: string }[];
 }) {
   const [brief, setBrief] = useState<DraftBrief>(initial);
 
@@ -157,6 +163,41 @@ export function DraftBriefDialog({
               </SelectContent>
             </Select>
           </Field>
+
+          {videos.length > 0 ? (
+            <Field>
+              <FieldLabel htmlFor="brief-video">Draw on a video</FieldLabel>
+              <Select
+                value={brief.sourceProjectId || NO_VIDEO}
+                onValueChange={(value) =>
+                  update({
+                    sourceProjectId: value === NO_VIDEO ? "" : String(value),
+                  })
+                }
+              >
+                <SelectTrigger id="brief-video" className="w-full">
+                  <SelectValue placeholder="None">
+                    {(value: unknown) =>
+                      videos.find((video) => video.projectId === value)?.name ??
+                      "None"
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_VIDEO}>None</SelectItem>
+                  {videos.map((video) => (
+                    <SelectItem key={video.projectId} value={video.projectId}>
+                      {video.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Uses that video&apos;s transcript, accepted review findings and
+                interest peaks. Needs a finished transcript.
+              </p>
+            </Field>
+          ) : null}
 
           <Field>
             <FieldLabel htmlFor="brief-instructions">Extra notes</FieldLabel>

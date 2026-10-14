@@ -51,6 +51,8 @@ class LlmProvider:
         schema: dict[str, Any],
         media: Sequence[MediaPart] = (),
         grounding: bool = False,
+        temperature: float | None = None,
+        max_output_tokens: int | None = None,
     ) -> LlmCompletion:
         del prompt_version  # Part of the provider interface; unused by the live call.
         from google.genai import types
@@ -63,6 +65,8 @@ class LlmProvider:
             schema=schema,
             function_declarations=None,
             grounding=grounding,
+            temperature=temperature,
+            max_output_tokens=max_output_tokens,
         )
         return _completion_from(result)
 
@@ -183,6 +187,8 @@ class LlmProvider:
         schema: dict[str, Any],
         function_declarations: list[Any] | None,
         grounding: bool = False,
+        temperature: float | None = None,
+        max_output_tokens: int | None = None,
     ) -> Any:
         """One `generate_content` call, retrying transient failures."""
         from google.genai import errors as genai_errors
@@ -200,6 +206,10 @@ class LlmProvider:
             "response_mime_type": "application/json",
             "response_schema": schema,
         }
+        if temperature is not None:
+            config["temperature"] = temperature
+        if max_output_tokens is not None:
+            config["max_output_tokens"] = max_output_tokens
         tool_entries: list[Any] = []
         if function_declarations:
             # Declarations only: we execute the calls ourselves (plain `generate_content`

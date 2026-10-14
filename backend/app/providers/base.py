@@ -106,6 +106,10 @@ class LlmProvider(Protocol):
         media: Sequence[MediaPart] = (),
         # When set, give the model Google Search grounding.
         grounding: bool = False,
+        # Sampling controls. None leaves the model default. `max_output_tokens` also bounds
+        # thinking tokens, so leave headroom above the expected JSON size.
+        temperature: float | None = None,
+        max_output_tokens: int | None = None,
     ) -> LlmCompletion: ...
 
     async def complete_json_with_tools(

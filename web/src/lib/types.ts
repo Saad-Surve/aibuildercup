@@ -146,6 +146,18 @@ export interface DraftBrief {
   language: string;
   instructions: string;
   targetWords: number;
+  /** Video project whose transcript and review the writer draws on; "" for none. */
+  sourceProjectId: string;
+}
+
+export interface DraftVideoContext {
+  projectId: string;
+  projectName: string;
+  /** `chosen` in the brief, or `linked` because the video was made from this draft. */
+  source: "chosen" | "linked";
+  findingCount: number;
+  peakCount: number;
+  usedPersona: boolean;
 }
 
 export interface DraftVersion {
@@ -190,8 +202,11 @@ export interface Draft {
   brief: DraftBrief;
   blocks: DraftBlock[];
   messages: DraftMessage[];
+  /** Actionable reason when `status` is "failed"; cleared by the next success. */
   error: string | null;
   summary: DraftSummary;
+  /** The video review the last generation used; null when it used none. */
+  videoContext: DraftVideoContext | null;
   /** Latest grounded research (generation or assist); null when the draft used none. */
   grounding: DraftGrounding | null;
   /** Platform drafts posted from here, one per platform (Substack links are syncable). */

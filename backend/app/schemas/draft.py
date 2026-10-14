@@ -49,6 +49,9 @@ class DraftBrief(BaseModel):
     instructions: str = ""
     #: Target length hint in words; 0 means "let the model decide".
     targetWords: int = 0
+    #: A video project of the same owner whose transcript and review the writer draws on.
+    #: Empty means "none chosen"; a video made from this draft is still used automatically.
+    sourceProjectId: str = ""
 
 
 class DraftVersion(BaseModel):
@@ -91,6 +94,18 @@ class DraftGrounding(BaseModel):
     updatedAt: datetime | None = None
 
 
+class DraftVideoContext(BaseModel):
+    """Which video's transcript and review the last generation drew on, for the studio."""
+
+    projectId: str
+    projectName: str = ""
+    #: `chosen` from the brief, or `linked` because the video was made from this draft.
+    source: Literal["chosen", "linked"] = "linked"
+    findingCount: int = 0
+    peakCount: int = 0
+    usedPersona: bool = False
+
+
 class DraftSummary(BaseModel):
     """Small denormalised copy kept on the project for list cards."""
 
@@ -124,8 +139,12 @@ class Draft(BaseModel):
     brief: DraftBrief = Field(default_factory=DraftBrief)
     blocks: list[DraftBlock] = Field(default_factory=list)
     messages: list[DraftMessage] = Field(default_factory=list)
+    #: Why the last generation failed, as an actionable message. Set with `status: failed`
+    #: (the previous blocks, if any, are left untouched) and cleared by the next success.
     error: str | None = None
     summary: DraftSummary = Field(default_factory=DraftSummary)
+    #: The video review the last generation used; null when it used none.
+    videoContext: DraftVideoContext | None = None
     #: Latest grounded research (generation or assist), for the studio's sources panel.
     grounding: DraftGrounding | None = None
     #: Platform drafts posted from here, keyed by platform upstream (one each).
@@ -145,6 +164,8 @@ class GenerateDraftRequest(BaseModel):
     language: str | None = None
     instructions: str | None = None
     targetWords: int | None = None
+    #: Pass an empty string to stop drawing on a previously chosen video.
+    sourceProjectId: str | None = Field(default=None, max_length=200)
 
 
 class SaveDraftRequest(BaseModel):

@@ -34,6 +34,7 @@ from app.providers.base import ImageGenProvider, LlmProvider, MediaPart
 from app.providers.imagegen import ImageGenError
 from app.schemas.jobs import JobStatus
 from app.schemas.thumbnails import ThumbnailCritique, ThumbnailVersion
+from app.schemas.transcripts import TranscriptSegment
 from app.services.analysis_service import AnalysisService
 from app.services.channel_content_service import ChannelContentService
 from app.services.creator_import_service import CreatorImportService
@@ -49,6 +50,7 @@ from app.services.project_service import ProjectService
 from app.services.storage_service import StorageClient, get_storage_client
 from app.services.thumbnail_service import ThumbnailService
 from app.services.transcript_service import TranscriptService
+from app.services.video_context import PERSONA_NOTE, build_review_context, persona_preferences
 from app.services.video_tools import MediaToolkit, VideoToolError, format_timestamp
 from app.workers.guard import serialize_job
 
@@ -58,7 +60,7 @@ TERMINAL_STATUSES = frozenset(
     {JobStatus.succeeded.value, JobStatus.failed.value, JobStatus.cancelled.value}
 )
 
-THUMBNAIL_PLAN_PROMPT_VERSION = "thumbnail-plan-v1"
+THUMBNAIL_PLAN_PROMPT_VERSION = "thumbnail-plan-v2"
 THUMBNAIL_CRITIQUE_PROMPT_VERSION = "thumbnail-critique-v1"
 
 _SOURCE_URL_TTL_SECONDS = 3600
@@ -77,7 +79,13 @@ PLAN_SYSTEM = (
     "background, framing, and use of the headline. The presenter must be the person from the "
     "reference frames when references are available.\n"
     "- `timestampMs` is the single best moment in the video to take the presenter's face from. "
-    "Prefer expressive, on-camera moments; use the findings and transcript to choose.\n"
+    "Prefer expressive, on-camera moments; use the findings and transcript to choose. When "
+    "`interestPeaks` are supplied, prefer a moment inside or next to a peak: that is where the "
+    "video is predicted to hold attention best.\n"
+    "- When `strongestHook` or `strengthsToKeep` are supplied, build at least one concept on that "
+    "real line or moment. `reviewFindings` are problems reviewers found; do not make a promise "
+    "the findings say the video fails to keep.\n"
+    "- `creatorPersona` holds the creator's preferences, not facts about the video.\n"
     "- `rationale` is one or two sentences to the CREATOR explaining why this works, citing the "
     "specific evidence (a finding, a quote, a retention moment) — not generic praise.\n"
     "- Every concept must take a distinct angle. Return exactly the requested number."
@@ -202,7 +210,6 @@ async def run_thumbnail_generation(
                 projects=projects,
                 thumbnails=thumbnails,
                 transcripts=transcripts,
-                analysis=analysis,
                 content=content,
                 firestore=firestore,
                 storage=storage,
@@ -248,7 +255,6 @@ async def _generate_batch(
     projects: ProjectService,
     thumbnails: ThumbnailService,
     transcripts: TranscriptService,
-    analysis: AnalysisService,
     content: ChannelContentService,
     firestore: FirestoreClient,
     storage: StorageClient,
@@ -257,13 +263,13 @@ async def _generate_batch(
     settings: Settings,
 ) -> None:
     project = await asyncio.to_thread(projects.get, owner_uid=owner_uid, project_id=project_id)
-    duration_ms, transcript_view = _transcript_view(
+    duration_ms, transcript_view, segments = _transcript_view(
         transcripts=transcripts, owner_uid=owner_uid, project_id=project_id
     )
-    findings = _finding_view(
-        analysis=analysis, firestore=firestore, owner_uid=owner_uid, project_id=project_id
+    review = _review_view(
+        firestore=firestore, owner_uid=owner_uid, project_id=project_id, segments=segments
     )
-    persona = _persona_markdown(firestore=firestore, storage=storage, owner_uid=owner_uid)
+    persona = persona_preferences(firestore, storage, owner_uid, max_chars=4000)
     # The creator's own past thumbnails, as image-model style references (best-effort).
     creator_references: list[MediaPart] = []
     try:
@@ -329,7 +335,7 @@ async def _generate_batch(
             brief=str(payload.get("brief") or ""),
             duration_ms=duration_ms,
             transcript_view=transcript_view,
-            findings=findings,
+            review=review,
         )
         version_numbers = [1] * len(thumbnail_ids)
         concept_aspects = [str(payload.get("aspect") or settings.imagegen_default_aspect)] * len(
@@ -601,7 +607,7 @@ async def _plan(
     brief: str,
     duration_ms: int,
     transcript_view: list[dict[str, Any]],
-    findings: list[dict[str, Any]],
+    review: dict[str, Any],
 ) -> list[dict[str, Any]]:
     context: dict[str, Any] = {
         "task": f"Plan {count} distinct thumbnail concepts.",
@@ -615,9 +621,11 @@ async def _plan(
         },
         "creatorBrief": brief,
         "transcript": transcript_view,
-        "reviewerFindings": findings,
-        "creatorPersona": persona,
+        # reviewFindings, strengthsToKeep, interestPeaks, strongestHook (each only if present).
+        **review,
     }
+    if persona:
+        context["creatorPersona"] = {"note": PERSONA_NOTE, "preferences": persona}
     try:
         completion = await llm.complete_json(
             model=settings.model_writer,
@@ -874,12 +882,12 @@ def _build_edit_prompt(*, instruction: str) -> str:
 
 def _transcript_view(
     *, transcripts: TranscriptService, owner_uid: str, project_id: str
-) -> tuple[int, list[dict[str, Any]]]:
+) -> tuple[int, list[dict[str, Any]], list[TranscriptSegment]]:
     try:
         transcript = transcripts.get(owner_uid=owner_uid, project_id=project_id)
     except Exception:  # noqa: BLE001 - a project without a transcript can still be planned
         logger.info("thumbnail: no transcript available")
-        return 0, []
+        return 0, [], []
     segments = transcript.segments
     # Bound the prompt: the opening (the hook) plus an evenly spaced sample.
     head = segments[:30]
@@ -899,72 +907,24 @@ def _transcript_view(
                 "text": segment.text,
             }
         )
-    return transcript.durationMs, view
+    return transcript.durationMs, view, segments
 
 
-def _finding_view(
+def _review_view(
     *,
-    analysis: AnalysisService,
     firestore: FirestoreClient,
     owner_uid: str,
     project_id: str,
-) -> list[dict[str, Any]]:
-    project = firestore.get_document(project_path(owner_uid, project_id)) or {}
-    analysis_run_id = project.get("activeAnalysisRunId")
-    if not analysis_run_id:
-        return []
-    try:
-        findings = analysis.list_findings(
-            owner_uid=owner_uid,
-            project_id=project_id,
-            analysis_run_id=str(analysis_run_id),
-        )
-    except Exception:  # noqa: BLE001 - findings are context, not a dependency
-        return []
-    ranked = sorted(
-        findings,
-        key=lambda finding: (-_severity_rank(finding.severity.value), finding.startMs),
+    segments: list[TranscriptSegment],
+) -> dict[str, Any]:
+    """Findings, strengths, interest peaks and the strongest hook from the latest review."""
+    return build_review_context(
+        firestore, owner_uid, project_id, segments=segments, max_findings=12
     )
-    view: list[dict[str, Any]] = []
-    for finding in ranked[:12]:
-        view.append(
-            {
-                "dimension": finding.dimension.value,
-                "severity": finding.severity.value,
-                "score": finding.score,
-                "startMs": finding.startMs,
-                "endMs": finding.endMs,
-                "quote": finding.evidence.quote[:280],
-                "suggestion": finding.suggestion[:280],
-            }
-        )
-    return view
 
 
 def _hook_text(transcript_view: list[dict[str, Any]]) -> str:
     return " ".join(str(item.get("text") or "") for item in transcript_view[:4]).strip()[:400]
-
-
-def _persona_markdown(*, firestore: FirestoreClient, storage: StorageClient, owner_uid: str) -> str:
-    user = firestore.get_document(f"users/{owner_uid}") or {}
-    persona = user.get("persona") or {}
-    storage_path = persona.get("storagePath")
-    if not storage_path:
-        return ""
-    try:
-        return storage.download_text(str(storage_path))[:4000]
-    except Exception:  # noqa: BLE001
-        return ""
-
-
-def _severity_rank(value: str) -> int:
-    return {
-        "critical": 4,
-        "high": 3,
-        "medium": 2,
-        "low": 1,
-        "none": 0,
-    }.get(value, 0)
 
 
 # --------------------------------------------------------------------- helpers

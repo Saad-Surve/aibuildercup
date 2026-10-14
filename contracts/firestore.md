@@ -130,6 +130,12 @@ back by `GET /projects/{id}/draft/context` for the studio's "Style evidence" pan
 also keeps `grounding` (the newest grounded call's `queries`, `sources`, and
 `searchSuggestions`), read back with the draft for the studio's "Grounded with Google Search"
 panel. It sits under the project subtree, so project / account delete covers it.
+`brief.sourceProjectId` optionally names a video project whose transcript excerpt, accepted
+review findings, predicted-interest peaks and persona the writer draws on (a video made from
+the draft is used when none is chosen); `videoContext` records which video, and how many
+findings and peaks, the last generation used. A generation that cannot use the model sets
+`status: "failed"` and an actionable `error`, leaves the previous `blocks[]` untouched, and
+never substitutes canned text. Saving edited blocks on a failed draft returns it to `ready`.
 Posting a Substack draft/schedule from the studio records one `linkedPosts[]`
 entry `{platform, connectionId, externalId, url, status, updatedAt}` on the
 draft document — the two-way link the crosspost sync endpoint pushes later edits

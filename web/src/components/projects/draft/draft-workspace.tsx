@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Alert02Icon,
   ArrowRight01Icon,
   FileVideoIcon,
   PencilEdit02Icon,
@@ -22,6 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CrosspostCard } from "@/components/projects/draft/crosspost-card";
 import { DraftBriefDialog } from "@/components/projects/draft/draft-brief-dialog";
@@ -186,6 +188,9 @@ export function DraftWorkspace({
       setBriefOpen(false);
       void queryClient.invalidateQueries({ queryKey: ["projects"] });
       void queryClient.invalidateQueries({ queryKey: ["draft-context", projectId] });
+      if (next.status === "failed") {
+        toast.error(next.error ?? "The draft could not be generated.");
+      }
     },
     onError: (error) =>
       toast.error(describe(error, "Could not generate the draft.")),
@@ -402,6 +407,9 @@ export function DraftWorkspace({
   const generating =
     generateMutation.isPending || draft.status === "generating";
   const empty = draft.blocks.length === 0;
+  const videoChoices = (videosQuery.data?.items ?? []).filter(
+    (item) => item.kind === "video",
+  );
 
   return (
     <div className="space-y-6">
@@ -457,6 +465,46 @@ export function DraftWorkspace({
           <CrosspostCard projectId={projectId} />
         </span>
       </div>
+
+      {draft.status === "failed" && !generating ? (
+        <Alert variant="destructive">
+          <Icon icon={Alert02Icon} />
+          <AlertTitle>
+            {empty
+              ? "The draft was not generated"
+              : "The last generation failed. Your existing draft is unchanged"}
+          </AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>
+              {draft.error ?? "The writing model did not respond."}
+            </span>
+            <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={() => setBriefOpen(true)}
+                disabled={readOnly}
+              >
+                Edit brief &amp; retry
+              </Button>
+            </DisabledReason>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {draft.videoContext && !generating ? (
+        <p className="text-xs text-muted-foreground">
+          Drew on {draft.videoContext.projectName || "a video"}
+          {draft.videoContext.source === "linked" ? " (made from this draft)" : ""}
+          {": "}
+          {draft.videoContext.findingCount} review finding
+          {draft.videoContext.findingCount === 1 ? "" : "s"},{" "}
+          {draft.videoContext.peakCount} interest peak
+          {draft.videoContext.peakCount === 1 ? "" : "s"}
+          {draft.videoContext.usedPersona ? ", your persona" : ""}.
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
         {generating ? (
@@ -555,6 +603,7 @@ export function DraftWorkspace({
         initial={draft.brief}
         pending={generating}
         onSubmit={regenerate}
+        videos={videoChoices}
         title={empty ? "Write a brief" : "Edit brief & regenerate"}
       />
     </div>

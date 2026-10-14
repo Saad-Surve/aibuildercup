@@ -92,12 +92,15 @@ def get_transcript_service() -> TranscriptService:
 
 def get_draft_service() -> DraftService:
     client = get_firestore_client()
+    storage = get_storage_client()
     return DraftService(
         client,
         projects=ProjectService(client),
         llm=get_providers().llm,
         content=get_channel_content_service(),
         settings=get_settings(),
+        transcripts=TranscriptService(client, storage=storage),
+        storage=storage,
     )
 
 

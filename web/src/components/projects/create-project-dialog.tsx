@@ -167,6 +167,7 @@ export function CreateProjectDialog() {
               language: primaryLanguage,
               instructions: instructions.trim(),
               targetWords: 0,
+              sourceProjectId: "",
             },
           }),
     });

@@ -3806,6 +3806,10 @@ components:
     DraftStatus:
       type: string
       enum: [empty, generating, ready, failed]
+      description: |
+        `failed` means the last generation could not reach or use the writing model; `error`
+        says why. Generation never substitutes canned text: any previous blocks are kept and
+        the creator retries from the brief.
 
     DraftBlockType:
       type: string
@@ -3824,6 +3828,12 @@ components:
         targetWords:
           type: integer
           description: Target length hint in words; 0 lets the model decide.
+        sourceProjectId:
+          type: string
+          description: |
+            A video project of the same owner whose transcript, accepted review findings,
+            predicted-interest peaks and persona the writer draws on. Empty means none chosen;
+            a video made from this draft (its `sourceDraftId`) is still used automatically.
 
     DraftVersion:
       type: object
@@ -3875,8 +3885,13 @@ components:
         messages:
           type: array
           items: { $ref: "#/components/schemas/DraftMessage" }
-        error: { type: [string, "null"] }
+        error:
+          type: [string, "null"]
+          description: Actionable reason when `status` is `failed`; cleared by the next success.
         summary: { $ref: "#/components/schemas/DraftSummary" }
+        videoContext:
+          oneOf: [{ $ref: "#/components/schemas/DraftVideoContext" }, { type: "null" }]
+          description: The video review the last generation used; null when it used none.
         grounding: { oneOf: [{ $ref: "#/components/schemas/DraftGrounding" }, { type: "null" }] }
         linkedPosts:
           type: array
@@ -3886,6 +3901,19 @@ components:
             draft/schedule link is what the sync endpoint pushes edits into.
         createdAt: { type: [string, "null"], format: date-time }
         updatedAt: { type: [string, "null"], format: date-time }
+
+    DraftVideoContext:
+      type: object
+      properties:
+        projectId: { type: string }
+        projectName: { type: string }
+        source:
+          type: string
+          enum: [chosen, linked]
+          description: "`chosen` in the brief, or `linked` because the video was made from this draft."
+        findingCount: { type: integer }
+        peakCount: { type: integer }
+        usedPersona: { type: boolean }
 
     LinkedExternalPost:
       type: object
@@ -3928,6 +3956,10 @@ components:
         language: { type: [string, "null"] }
         instructions: { type: [string, "null"] }
         targetWords: { type: [integer, "null"] }
+        sourceProjectId:
+          type: [string, "null"]
+          maxLength: 200
+          description: Empty string stops drawing on a previously chosen video.
 
     SaveDraftRequest:
       type: object
