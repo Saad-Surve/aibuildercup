@@ -22,6 +22,7 @@ from app.dependencies import (
     current_user,
     get_channel_content_service,
     get_connection_service,
+    get_interest_calibration_service,
 )
 from app.schemas.connections import (
     AudienceProfile,
@@ -33,13 +34,32 @@ from app.schemas.connections import (
     OAuthStartResponse,
     SubstackConnectRequest,
 )
+from app.schemas.interest_calibration import CalibrateInterestRequest, CreatorInterestCalibration
 from app.services.channel_content_service import ChannelContentService
 from app.services.connection_service import ConnectionService
+from app.services.interest_calibration_service import InterestCalibrationService
 
 router = APIRouter(tags=["connections"])
 
 UserDep = Annotated[AuthenticatedUser, Depends(current_user)]
 ServiceDep = Annotated[ConnectionService, Depends(get_connection_service)]
+
+
+CalibrationDep = Annotated[InterestCalibrationService, Depends(get_interest_calibration_service)]
+
+
+@router.get("/interest-calibration", response_model=CreatorInterestCalibration)
+def get_interest_calibration(user: UserDep, service: CalibrationDep) -> CreatorInterestCalibration:
+    return service.get(owner_uid=user.uid)
+
+
+@router.post("/interest-calibration", response_model=CreatorInterestCalibration)
+def calibrate_interest(
+    payload: CalibrateInterestRequest,
+    user: UserDep,
+    service: CalibrationDep,
+) -> CreatorInterestCalibration:
+    return service.calibrate(owner_uid=user.uid, connection_id=payload.connectionId)
 
 
 @router.get("/connections", response_model=ConnectionList)

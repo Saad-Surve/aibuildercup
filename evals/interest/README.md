@@ -99,8 +99,9 @@ What the evidence supports:
   so its numbers are mildly optimistic. 45 creator videos is a small test population.
 - **Most Replayed is a proxy.** It reflects rewatching and seeking, and it exists only for
   popular videos. A creator's own retention curve (YouTube Analytics `audienceWatchRatio`)
-  would be the better label. The connector already holds the scope, but no channel with
-  enough views was available.
+  would be the better label for retention prediction. Channel calibration now uses this
+  label for the position baseline only (see below); it does not retrain or validate the
+  content model. The live channel available for verification had insufficient data.
 - **Transcript only.** The model sees no frames or audio energy. Visual moments are only
   visible when the speech points at them.
 - **Fallback.** When the Gemini pass is unavailable, the transcript-only head draws the
@@ -108,6 +109,69 @@ What the evidence supports:
 - **Collection terms.** yt-dlp and the transcript API sit outside YouTube's API terms. The
   data was gathered for research evaluation, is not redistributed, and is kept to metadata,
   replay graphs and transcripts.
+
+## Channel drop-off calibration (v1)
+
+The interest info panel offers **Calibrate to my channel** when YouTube is connected.
+It reads the owner's most recent 40 uploads through the official Data API and queries
+`audienceWatchRatio` by `elapsedVideoTimeRatio` through YouTube Analytics, targeting the
+explicit connected channel ID. Views and retention use the same 365-day window, ending
+three days ago to allow for reporting delay. No transcripts, caption downloads, scraping,
+Gemini calls or YouTube writes are involved. The optional transcript/Gemini fit check is
+not implemented: caption availability and additional model calls would complicate this
+baseline-only feature. No additional scopes are requested.
+
+There are two duration buckets: up to three minutes, and longer. A bucket needs three
+videos of at least 30 seconds, each with >=100 report-period views and >=90 finite retention
+points covering 1–99% of elapsed time without large gaps; flat curves are excluded. Each
+curve is interpolated onto 100 evenly spaced positions and z-scored within the video, to
+match the generic replay model's units. The channel head is a weighted mean, with each
+video weighted `min(1, views / 1000)`. Shrinkage uses ten generic video equivalents:
+`channelWeight = sum(video weights) / (sum(video weights) + 10)`. A viral upload cannot
+outweigh all the others; sparse data stays close to the generic head. Counts, views,
+bucket weights, date, insufficiency reasons and the next allowed attempt are visible.
+
+The provider makes at most **43 YouTube requests** (one playlist page, one metadata batch,
+one views report, up to forty retention reports), with no retries and a 180-second read
+budget. A Firestore transaction reserves **one attempt per rolling 24 hours per user**,
+across channels, including failures and UTC midnight. The demo is blocked in middleware
+and in the service. All storage is under `users/{uid}`; source writes also check the
+connection and account deletion markers. Disconnecting disables that head, and account
+deletion already removes calibration and cooldown records.
+
+Existing runs apply the chosen head **at read time**, using only saved curve points and
+three calibration/connection document reads. The saved baseline recovers its shared
+prediction scale from the pinned generic model; a version/training-date mismatch or
+missing/degenerate baseline falls back with a re-review explanation. The content scores
+and driver explanations remain from the original model; the drop-off baseline changes,
+then lift peaks/dips are reselected and linked to overlapping owned findings (one extra
+findings query when markers exist). Saved runs remain generic snapshots, and no inference
+or Firestore writes happen on these reads. Transcript-only runs still have no markers.
+One selected channel applies across the workspace; a new attempt replaces its previous
+active calibration, even if the new attempt fails or has insufficient data.
+
+**Interpretation.** This adapts the drop-off shape to the creator's audience. Retention
+and replay are different behaviours, even after within-video normalization. It is still
+not a retention prediction, and there is no evidence yet that this baseline improves the
+content model's ranking. The public-data metrics above do not evaluate channel calibration.
+Recent-upload selection and the two broad duration buckets may poorly represent mixed
+channels, new formats, live streams or very long videos. YouTube can withhold low-traffic
+retention reports, so small channels may keep the generic head.
+
+**Verification, 14 October 2026.** Read-only provider calls on the channel used by the
+previous calendar checks made exactly **5 YouTube requests**: one `playlistItems.list`,
+one `videos.list`, one Analytics views report and two retention reports. The channel had
+two uploads and zero qualifying curves, so the stored/read-back state was
+`insufficient_data`; a second service attempt was rejected by the live cooldown. One
+OAuth token refresh was needed (outside the five YouTube requests). The local passphrase
+cipher initially did not match the stored KMS tokens; rerunning the already reserved
+attempt with KMS succeeded. No YouTube writes and **0 Gemini calls** were made.
+A fabricated 40-video response verified the 43-request bound, column-name parsing,
+shrinkage, minimum data rule, flat-curve rejection, read-time baseline/marker changes,
+original-curve preservation, finding links, old-model fallback, ownership, demo blocking
+and cooldown. The signed-in read-only demo info panel was checked in the collaborative browser, and
+an authenticated calibration POST was rejected with HTTP 403 before reaching the provider.
+A channel with sufficient live retention and the editable calibration UI remain unverified.
 
 ## Reproduce
 

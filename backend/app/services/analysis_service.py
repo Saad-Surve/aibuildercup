@@ -68,6 +68,10 @@ from app.services.firestore_service import (
     user_path,
 )
 from app.services.heatmap import FindingSummary
+from app.services.interest_calibration_service import (
+    apply_creator_baseline,
+    link_calibrated_moments,
+)
 from app.services.job_service import JobService
 
 logger = logging.getLogger(__name__)
@@ -718,7 +722,17 @@ class AnalysisService:
                 details={"analysisRunId": analysis_run_id},
             )
         data.pop("ownerUid", None)
-        return InterestCurve.model_validate(data)
+        curve = apply_creator_baseline(
+            self.client, owner_uid=owner_uid, curve=InterestCurve.model_validate(data)
+        )
+        if curve.baselineSource.source == "creator" and (curve.peaks or curve.dips):
+            curve = link_calibrated_moments(
+                curve,
+                self.list_findings(
+                    owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+                ),
+            )
+        return curve
 
     def adjudicator_spent_usd(
         self, *, owner_uid: str, project_id: str, analysis_run_id: str

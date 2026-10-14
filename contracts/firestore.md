@@ -324,6 +324,40 @@ traffic, top videos) written by `POST /connections/{id}/audience/sync`.
 post-login redirect path, expiry). The callback runs without Firebase auth and finds the record
 by state via a collection-group query, then deletes it. Expired states are deleted on lookup.
 
+## Creator interest calibration
+
+`users/{uid}/connections/{connectionId}/interestCalibration/current` stores channel calibration plus
+`ownerUid`, matching `CreatorInterestCalibration` in OpenAPI. `heads` is private storage:
+keys `short` (<=180 seconds) and `long`, each with a 100-point `shape` at positions
+0.005, 0.015, ..., 0.995, and `videos`, `views`, `creatorWeight`. Each shape averages
+within-video z-scored `audienceWatchRatio` curves, with video weight
+`min(1, report-period views / 1000)`. Each bucket needs three usable videos (each >=100
+views, >=90 complete retention points spanning 0.01..0.99, non-flat). Creator weight is
+sum(video weights) / (sum(video weights) + 10); remaining weight is the bundled generic
+position head evaluated for the current video's length. Raw retention reports, titles,
+video IDs and transcripts are not persisted. Counts/views include all usable videos,
+even when one bucket has too few to fit. Missing, failed, disconnected and unmatched
+buckets use the generic head. A new attempt replaces the previous calibration.
+
+`users/{uid}/interestCalibrationAttempts/current` atomically reserves a calibration
+attempt with `{ownerUid, connectionId, attemptedAt, nextAllowedAt}`. One transaction checks
+the existing reservation and user ownership/deletion marker before replacing it, enforcing
+a rolling 24-hour cooldown across channels and UTC midnight. Failures and interruptions
+consume the attempt. `users/{uid}/interestCalibration/current` stores the active
+`{ownerUid, connectionId}` selection; one channel is active for the whole workspace.
+Calibration writes use ownership/deletion-checked transactions; the final write also
+checks the connection. Read-only users are rejected in both middleware and the service.
+Account recursive deletion covers these collections; disconnecting disables the retained
+calibration.
+
+Saved interest curves remain generic snapshots. `GET .../interest` substitutes the
+creator baseline and reselects/relinks lift peaks/dips in memory, without writes or
+Gemini calls. `baselineSource` in the response explains the chosen head, bucket, counts,
+blend weight and date or generic fallback reason. Legacy curves recover their shared
+prediction scale from the saved baseline and the pinned generic model. A model version
+or training-date mismatch, missing baseline or degenerate scale keeps the original curve.
+This adapts drop-off shape only, and has no measured retention-prediction accuracy.
+
 ## Publishes
 
 `users/{uid}/projects/{projectId}/publishes/{publishId}` is one attempt to push a project to a

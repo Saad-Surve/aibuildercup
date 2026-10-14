@@ -10,6 +10,7 @@ from app.auth.firebase import delete_user as firebase_delete_user
 from app.auth.firebase import verify_id_token
 from app.config import get_settings
 from app.providers import get_providers
+from app.providers.youtube_analytics import YouTubeAnalyticsProvider
 from app.services.analysis_service import AnalysisService
 from app.services.asset_service import AssetService
 from app.services.caption_service import CaptionRenderService
@@ -21,6 +22,7 @@ from app.services.crosspost_service import CrosspostService
 from app.services.draft_service import DraftService
 from app.services.firestore_service import get_firestore_client
 from app.services.glossary_service import GlossaryService
+from app.services.interest_calibration_service import InterestCalibrationService
 from app.services.job_service import JobService
 from app.services.localization_service import LocalizationService
 from app.services.packaging_service import PackagingService
@@ -215,6 +217,15 @@ def get_creator_library_service() -> CreatorLibraryService:
         imports=CreatorImportService(client, storage=storage),
         connections=get_connection_service(),
         embeddings=get_providers().embeddings,
+        settings=get_settings(),
+    )
+
+
+def get_interest_calibration_service() -> InterestCalibrationService:
+    return InterestCalibrationService(
+        get_firestore_client(),
+        connections=get_connection_service(),
+        provider=YouTubeAnalyticsProvider(),
         settings=get_settings(),
     )
 

@@ -1781,6 +1781,53 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /api/interest-calibration:
+    get:
+      tags: [connections]
+      summary: Read the owner's channel drop-off calibration
+      responses:
+        "200":
+          description: Current calibration, or not_started. No YouTube calls.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CreatorInterestCalibration" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [connections]
+      summary: Calibrate the interest baseline to a connected YouTube channel
+      description: |
+        Synchronously reads at most 40 recent uploads and their retention over the last 365
+        days, ending three days ago. At most 43 read-only YouTube requests, no retries,
+        a 180-second provider deadline and no Gemini calls. One attempt per rolling 24 hours
+        per owner, across channels, including failed attempts. Demo writes are forbidden.
+        Fits separate <=180-second and longer position shapes, each requiring at least
+        three videos with >=100 views and a complete non-flat retention curve. Normalizes
+        retention within each video and shrinks toward the generic position head with ten
+        prior video equivalents. This changes the baseline and lift markers, not the content
+        model; it is not retention prediction or evidence of improved model accuracy.
+        Existing compatible saved curves apply it on read without new model calls. A failed
+        or insufficient attempt uses the generic head. Replaces the owner's previous calibration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [connectionId]
+              properties:
+                connectionId: { type: string, minLength: 1, maxLength: 128 }
+      responses:
+        "200":
+          description: Ready, insufficient_data or failed; provider errors are recorded with a reason.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CreatorInterestCalibration" }
+        "400": { description: Missing Analytics scope or invalid channel }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: Read-only demo account }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Cooldown or account/connection removed during calibration }
+
   /api/connections/{connectionId}/audience:
     get:
       summary: The connected channel's YouTube Analytics profile (summary, demographics, traffic)
@@ -4102,6 +4149,50 @@ components:
         dipPrecision: { type: number }
         trainedAt: { type: string }
 
+    CreatorInterestBucket:
+      type: object
+      required: [bucket, videos, views, creatorWeight]
+      properties:
+        bucket: { type: string, enum: [short, long] }
+        videos: { type: integer }
+        views: { type: integer, description: Views in the same date range as the retention reports. }
+        creatorWeight: { type: number, minimum: 0, maximum: 1 }
+
+    CreatorInterestCalibration:
+      type: object
+      required: [status, videos, views, scannedVideos, apiRequests, buckets]
+      properties:
+        status: { type: string, enum: [not_started, calibrating, ready, insufficient_data, failed] }
+        connectionId: { type: string, nullable: true }
+        channelName: { type: string, nullable: true }
+        channelId: { type: string, nullable: true }
+        videos: { type: integer, description: Usable videos across both duration buckets. }
+        views: { type: integer }
+        scannedVideos: { type: integer }
+        apiRequests: { type: integer }
+        buckets: { type: array, items: { $ref: "#/components/schemas/CreatorInterestBucket" } }
+        reason: { type: string, nullable: true }
+        attemptedAt: { type: string, format: date-time, nullable: true }
+        calibratedAt: { type: string, format: date-time, nullable: true }
+        nextAllowedAt: { type: string, format: date-time, nullable: true }
+        startDate: { type: string, nullable: true }
+        endDate: { type: string, nullable: true }
+        methodVersion: { type: string }
+
+    InterestBaselineSource:
+      type: object
+      required: [source]
+      properties:
+        source: { type: string, enum: [generic, creator] }
+        reason: { type: string, nullable: true }
+        connectionId: { type: string, nullable: true }
+        channelName: { type: string, nullable: true }
+        calibratedAt: { type: string, format: date-time, nullable: true }
+        videos: { type: integer }
+        views: { type: integer }
+        creatorWeight: { type: number }
+        bucket: { type: string, enum: [short, long], nullable: true }
+
     InterestCurve:
       type: object
       required: [analysisRunId, status, points]
@@ -4116,6 +4207,7 @@ components:
         peaks: { type: array, items: { $ref: "#/components/schemas/InterestMoment" } }
         dips: { type: array, items: { $ref: "#/components/schemas/InterestMoment" } }
         calibration: { $ref: "#/components/schemas/InterestCalibration" }
+        baselineSource: { $ref: "#/components/schemas/InterestBaselineSource" }
         costEstimateUsd: { type: number }
         error: { type: object, nullable: true, additionalProperties: true }
         createdAt: { type: string, format: date-time }
