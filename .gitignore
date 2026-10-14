@@ -17,7 +17,6 @@ image.png
 # Local Supermemory instance (PGlite data, runtime, per-project API key)
 .supermemory/
 # YouTube seed media (gathered locally, not committed)
-fixtures/seed
 
 # Interest-model research data (public YouTube metadata/captions, not redistributed)
 evals/interest/raw/

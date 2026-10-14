@@ -16,7 +16,6 @@ older timestamped progress notes retain the decisions and validation available a
 | [Infrastructure](infra-plan.md) | Terraform, CI/CD, regions, security, resource roles and scale constraints |
 | [Fixtures and demo](mock-and-seed.md) | Real local media, read-only demo and creator import |
 | [Localization corpus](localization-corpus.md) | Bundled terminology/traps, project glossary and adaptation |
-| [Workstreams](workstreams.md) | Repository ownership and collaboration rules |
 
 Wire payloads are defined by [OpenAPI](../../contracts/openapi.yaml); persisted shapes by
 [Firestore contracts](../../contracts/firestore.md), schemas and service write paths.
