@@ -1,0 +1,538 @@
+{
+  "videoId": "JhVJMO0wgTE",
+  "language": "en",
+  "durationMs": 420560,
+  "source": {
+    "kind": "local_asr",
+    "model": "mlx-community/whisper-large-v3-turbo",
+    "mlxWhisperVersion": "0.4.3",
+    "conditionOnPreviousText": false,
+    "wordTimestamps": true,
+    "mediaSha256": "2c0b7760cc6d140127f498e209a5de763e7c34a676c36e1668d468e334b0ad5d",
+    "modelRevision": "a4aaeec0636e6fef84abdcbe3544cb2bf7e9f6fb"
+  },
+  "segments": [
+    {
+      "segmentId": "seg-1",
+      "startMs": 0,
+      "endMs": 4880,
+      "text": "Good morning, Hick, it's Tuesday. So people often ask me why I'm obsessed with tuberculosis, and this is why."
+    },
+    {
+      "segmentId": "seg-2",
+      "startMs": 5200,
+      "endMs": 14920,
+      "text": "In 2019, I visited the Lacat Tuberculosis Hospital in Sierra Leone and met this boy, Henry, who shares a name with my son and seemed about the same age."
+    },
+    {
+      "segmentId": "seg-3",
+      "startMs": 15200,
+      "endMs": 20560,
+      "text": "Henry immediately began walking me around the hospital, showing me the grounds and introducing me to various staff members,"
+    },
+    {
+      "segmentId": "seg-4",
+      "startMs": 20640,
+      "endMs": 26220,
+      "text": "and I thought he must be like a child of a nurse or something, but when I spoke later to one of the doctors, he told me,"
+    },
+    {
+      "segmentId": "seg-5",
+      "startMs": 26220,
+      "endMs": 30200,
+      "text": "Henry is a patient and one we're very concerned about."
+    },
+    {
+      "segmentId": "seg-6",
+      "startMs": 30600,
+      "endMs": 33320,
+      "text": "It turns out that Henry was not 9 years old like my son."
+    },
+    {
+      "segmentId": "seg-7",
+      "startMs": 33580,
+      "endMs": 38100,
+      "text": "He was 16. It's just that his body had been ravaged by tuberculosis."
+    },
+    {
+      "segmentId": "seg-8",
+      "startMs": 38520,
+      "endMs": 41460,
+      "text": "So after I found out Henry was a patient, I asked him how he was feeling."
+    },
+    {
+      "segmentId": "seg-9",
+      "startMs": 42660,
+      "endMs": 44660,
+      "text": "But that turned out to be false hope."
+    },
+    {
+      "segmentId": "seg-10",
+      "startMs": 44920,
+      "endMs": 46980,
+      "text": "Henry had been a great student before getting sick."
+    },
+    {
+      "segmentId": "seg-11",
+      "startMs": 47140,
+      "endMs": 53240,
+      "text": "He dreamt of attending university, and his mother, Isatu, worked incredibly hard to pay for his school fees."
+    },
+    {
+      "segmentId": "seg-12",
+      "startMs": 53240,
+      "endMs": 57540,
+      "text": "She ran a small business selling scented oils and perfumes at a local market."
+    },
+    {
+      "segmentId": "seg-13",
+      "startMs": 57720,
+      "endMs": 63680,
+      "text": "But by the time I met Henry, he was completely out of school and had been a full-time patient at Le Ca for more than two months,"
+    },
+    {
+      "segmentId": "seg-14",
+      "startMs": 63780,
+      "endMs": 67940,
+      "text": "receiving these injections to treat his multi-drug resistant tuberculosis."
+    },
+    {
+      "segmentId": "seg-15",
+      "startMs": 68260,
+      "endMs": 73840,
+      "text": "The injection treatment is super toxic. It causes permanent hearing loss in up to 20% of patients."
+    },
+    {
+      "segmentId": "seg-16",
+      "startMs": 73840,
+      "endMs": 79280,
+      "text": "It can also cause liver and kidney failure, but it was the only option available to Henry."
+    },
+    {
+      "segmentId": "seg-17",
+      "startMs": 79280,
+      "endMs": 84140,
+      "text": "Now, there was a better and less toxic treatment protocol involving the drug bedaquiline that"
+    },
+    {
+      "segmentId": "seg-18",
+      "startMs": 84140,
+      "endMs": 88720,
+      "text": "had been available for years in the United States and other rich countries, but it was"
+    },
+    {
+      "segmentId": "seg-19",
+      "startMs": 88720,
+      "endMs": 93720,
+      "text": "deemed too expensive by global health authorities and so people like Henry couldn't access"
+    },
+    {
+      "segmentId": "seg-20",
+      "startMs": 93720,
+      "endMs": 94060,
+      "text": "it."
+    },
+    {
+      "segmentId": "seg-21",
+      "startMs": 94180,
+      "endMs": 98860,
+      "text": "In fact, even the injections were relatively new in Sierra Leone at the time, as Dr. Jeroen"
+    },
+    {
+      "segmentId": "seg-22",
+      "startMs": 98860,
+      "endMs": 100120,
+      "text": "Teferra explained to me."
+    },
+    {
+      "segmentId": "seg-23",
+      "startMs": 100200,
+      "endMs": 106180,
+      "text": "Before PIH, if you have MDRT before 2017, it's just you are waiting for the time of"
+    },
+    {
+      "segmentId": "seg-24",
+      "startMs": 106180,
+      "endMs": 106660,
+      "text": "your guest."
+    },
+    {
+      "segmentId": "seg-25",
+      "startMs": 106660,
+      "endMs": 112120,
+      "text": "And so the injections were an improvement, but unfortunately they were not working for Henry."
+    },
+    {
+      "segmentId": "seg-26",
+      "startMs": 112360,
+      "endMs": 118420,
+      "text": "He began losing weight, the swelling from the TB invading his lymph nodes erupted into"
+    },
+    {
+      "segmentId": "seg-27",
+      "startMs": 118420,
+      "endMs": 123640,
+      "text": "open wounds, and he was hemorrhaging so much blood that he required blood transfusions."
+    },
+    {
+      "segmentId": "seg-28",
+      "startMs": 123900,
+      "endMs": 127780,
+      "text": "His mother, Isatu, had to pay the equivalent of thousands of dollars to support Henry's"
+    },
+    {
+      "segmentId": "seg-29",
+      "startMs": 127780,
+      "endMs": 132520,
+      "text": "treatment, finding blood for blood transfusions and other supplies that he needed, and in"
+    },
+    {
+      "segmentId": "seg-30",
+      "startMs": 132520,
+      "endMs": 135520,
+      "text": "the process, she lost her business and her apartment."
+    },
+    {
+      "segmentId": "seg-31",
+      "startMs": 135520,
+      "endMs": 143100,
+      "text": "But right, about Dr. Tefer, he'd arrived in Sierra Leone a few months after I first met Henry from his home country of Ethiopia."
+    },
+    {
+      "segmentId": "seg-32",
+      "startMs": 143580,
+      "endMs": 148900,
+      "text": "And he also initially thought that Henry must either be like a staff member or a child of one,"
+    },
+    {
+      "segmentId": "seg-33",
+      "startMs": 149000,
+      "endMs": 155040,
+      "text": "because he was just so good at encouraging the other patients, and he was so friendly and always helping everyone."
+    },
+    {
+      "segmentId": "seg-34",
+      "startMs": 155280,
+      "endMs": 160620,
+      "text": "But when he saw Henry's lab work, he became very, very concerned because the injectables had clearly failed."
+    },
+    {
+      "segmentId": "seg-35",
+      "startMs": 160620,
+      "endMs": 167140,
+      "text": "He later told me, when I saw that we have no option, that's when I thought we're going to lose this young kid."
+    },
+    {
+      "segmentId": "seg-36",
+      "startMs": 167480,
+      "endMs": 170800,
+      "text": "And Henry knew how sick he was, and he also knew what it meant,"
+    },
+    {
+      "segmentId": "seg-37",
+      "startMs": 171060,
+      "endMs": 177440,
+      "text": "because he'd seen his best friend at Le Ca die of multidrug-resistant tuberculosis after the injectables failed."
+    },
+    {
+      "segmentId": "seg-38",
+      "startMs": 178040,
+      "endMs": 182900,
+      "text": "But as Dr. Teferra told me, in the field of TB, you have to keep trying."
+    },
+    {
+      "segmentId": "seg-39",
+      "startMs": 183160,
+      "endMs": 187060,
+      "text": "So he called his colleagues at Partners in Health and the Sierra Leonean Ministry of Health,"
+    },
+    {
+      "segmentId": "seg-40",
+      "startMs": 187060,
+      "endMs": 191860,
+      "text": "and he was like, look, some of the drugs we need are in Liberia, some are in Lesotho,"
+    },
+    {
+      "segmentId": "seg-41",
+      "startMs": 191960,
+      "endMs": 196500,
+      "text": "is there any way that we can get them here together to help save this kid?"
+    },
+    {
+      "segmentId": "seg-42",
+      "startMs": 196600,
+      "endMs": 200220,
+      "text": "Yes, it's only one kid, but like, tell that to his mother."
+    },
+    {
+      "segmentId": "seg-43",
+      "startMs": 200360,
+      "endMs": 203540,
+      "text": "And maybe this one kid can be the first of many."
+    },
+    {
+      "segmentId": "seg-44",
+      "startMs": 203740,
+      "endMs": 207000,
+      "text": "I came home from that trip just obsessed with tuberculosis,"
+    },
+    {
+      "segmentId": "seg-45",
+      "startMs": 207020,
+      "endMs": 213040,
+      "text": "a disease that despite usually being curable still kills over 1.5 million people per year,"
+    },
+    {
+      "segmentId": "seg-46",
+      "startMs": 213060,
+      "endMs": 216500,
+      "text": "more than are killed by malaria and HIV combined."
+    },
+    {
+      "segmentId": "seg-47",
+      "startMs": 216500,
+      "endMs": 222980,
+      "text": "And I spent the next few years trying to learn about the disease and along the way I often thought of and prayed for Henry"
+    },
+    {
+      "segmentId": "seg-48",
+      "startMs": 222980,
+      "endMs": 228240,
+      "text": "But I never had the courage to ask my friends at Partners in Health what had happened to him"
+    },
+    {
+      "segmentId": "seg-49",
+      "startMs": 228240,
+      "endMs": 231700,
+      "text": "But finally when Sarah and I returned to Lacat in 2023"
+    },
+    {
+      "segmentId": "seg-50",
+      "startMs": 231700,
+      "endMs": 236160,
+      "text": "I asked one of the nurses there, do you remember a patient named Henry?"
+    },
+    {
+      "segmentId": "seg-51",
+      "startMs": 236860,
+      "endMs": 242900,
+      "text": "And she said Henry, of course, he's here today. He wanted to visit to see you"
+    },
+    {
+      "segmentId": "seg-52",
+      "startMs": 255360,
+      "endMs": 261460,
+      "text": "Henry became the first person in Sierra Leone to receive the bodaculin-based cocktail,"
+    },
+    {
+      "segmentId": "seg-53",
+      "startMs": 261700,
+      "endMs": 264020,
+      "text": "and he improved extremely quickly."
+    },
+    {
+      "segmentId": "seg-54",
+      "startMs": 264240,
+      "endMs": 266880,
+      "text": "Dr. Teferra told me that it was like magic."
+    },
+    {
+      "segmentId": "seg-55",
+      "startMs": 267180,
+      "endMs": 272680,
+      "text": "Within three weeks, he went from what would have been his deathbed to walking and talking"
+    },
+    {
+      "segmentId": "seg-56",
+      "startMs": 272680,
+      "endMs": 276280,
+      "text": "and laughing, and eventually he was cured."
+    },
+    {
+      "segmentId": "seg-57",
+      "startMs": 276820,
+      "endMs": 282400,
+      "text": "And after more than two years at Le Ca, he was finally able to go home."
+    },
+    {
+      "segmentId": "seg-58",
+      "startMs": 282620,
+      "endMs": 286680,
+      "text": "Now I'm back to pursue my dream to achieve it."
+    },
+    {
+      "segmentId": "seg-59",
+      "startMs": 286780,
+      "endMs": 288140,
+      "text": "I'm so happy to be alive again."
+    },
+    {
+      "segmentId": "seg-60",
+      "startMs": 289000,
+      "endMs": 290780,
+      "text": "Is that what it feels like to be alive again?"
+    },
+    {
+      "segmentId": "seg-61",
+      "startMs": 290940,
+      "endMs": 291120,
+      "text": "Yeah."
+    },
+    {
+      "segmentId": "seg-62",
+      "startMs": 291860,
+      "endMs": 294860,
+      "text": "Henry went back to school, and thanks to support from Partners in Health,"
+    },
+    {
+      "segmentId": "seg-63",
+      "startMs": 295000,
+      "endMs": 299000,
+      "text": "he's attending the University of Sierra Leone, studying human resources management."
+    },
+    {
+      "segmentId": "seg-64",
+      "startMs": 299000,
+      "endMs": 303140,
+      "text": "He dreams of working in business and of traveling the world."
+    },
+    {
+      "segmentId": "seg-65",
+      "startMs": 303360,
+      "endMs": 306400,
+      "text": "Oh, and he's just started a YouTube channel and a Discord server."
+    },
+    {
+      "segmentId": "seg-66",
+      "startMs": 306600,
+      "endMs": 310180,
+      "text": "On YouTube, he makes videos showing daily life in Freetown."
+    },
+    {
+      "segmentId": "seg-67",
+      "startMs": 310320,
+      "endMs": 313720,
+      "text": "He also does interviews with people in the community and makes great vlogs."
+    },
+    {
+      "segmentId": "seg-68",
+      "startMs": 314180,
+      "endMs": 318280,
+      "text": "And he's really excited to connect with our community on YouTube and Discord and elsewhere."
+    },
+    {
+      "segmentId": "seg-69",
+      "startMs": 318480,
+      "endMs": 324320,
+      "text": "He currently only has four subscribers on YouTube, and if I know Nerdfighteria, I think we can bump that up."
+    },
+    {
+      "segmentId": "seg-70",
+      "startMs": 324320,
+      "endMs": 329500,
+      "text": "But, as is often the case with TB survivors, Henry's life remains really, really challenging."
+    },
+    {
+      "segmentId": "seg-71",
+      "startMs": 329960,
+      "endMs": 333020,
+      "text": "I mean, their family lost both their business and their home."
+    },
+    {
+      "segmentId": "seg-72",
+      "startMs": 333240,
+      "endMs": 339160,
+      "text": "I speak to Henry regularly, and I told him that our community may be able to help out with that."
+    },
+    {
+      "segmentId": "seg-73",
+      "startMs": 339420,
+      "endMs": 344820,
+      "text": "Aesatu really wants to restart her business, this time selling food, like macaroni and sugar and cereal."
+    },
+    {
+      "segmentId": "seg-74",
+      "startMs": 345020,
+      "endMs": 351720,
+      "text": "But in order to do that, she needs to be able to buy large quantities of those goods, and then rent space in a market, which is expensive."
+    },
+    {
+      "segmentId": "seg-75",
+      "startMs": 351720,
+      "endMs": 357700,
+      "text": "So I've started a GoFundMe in the hopes of funding that dream and helping Henry lift his mother out of poverty."
+    },
+    {
+      "segmentId": "seg-76",
+      "startMs": 357940,
+      "endMs": 367740,
+      "text": "Henry is here with us because of extraordinary efforts made by himself, by his family, by charities, by his caregivers, and by his government."
+    },
+    {
+      "segmentId": "seg-77",
+      "startMs": 368060,
+      "endMs": 375420,
+      "text": "He gets to be here. He gets to have a YouTube channel and hopefully connect with lots of you and help you glimpse what his life is like."
+    },
+    {
+      "segmentId": "seg-78",
+      "startMs": 375420,
+      "endMs": 381520,
+      "text": "He gets to figure out discord and take tests and hang out with his friends and try to help his mom."
+    },
+    {
+      "segmentId": "seg-79",
+      "startMs": 381840,
+      "endMs": 385020,
+      "text": "But none of that should require extraordinary efforts."
+    },
+    {
+      "segmentId": "seg-80",
+      "startMs": 385160,
+      "endMs": 389500,
+      "text": "Henry never should have become so sick that his mother lost her life savings."
+    },
+    {
+      "segmentId": "seg-81",
+      "startMs": 389800,
+      "endMs": 396680,
+      "text": "He should never have missed years of school and he should never have been denied access to bedaquiline simply because of where he was born."
+    },
+    {
+      "segmentId": "seg-82",
+      "startMs": 396920,
+      "endMs": 402700,
+      "text": "And unfortunately, all of that is still happening millions of times over to kids around the world."
+    },
+    {
+      "segmentId": "seg-83",
+      "startMs": 402700,
+      "endMs": 405380,
+      "text": "And that's why I'm obsessed with tuberculosis."
+    },
+    {
+      "segmentId": "seg-84",
+      "startMs": 405700,
+      "endMs": 408740,
+      "text": "And I know it's worth the fight because of Henry."
+    },
+    {
+      "segmentId": "seg-85",
+      "startMs": 409180,
+      "endMs": 411480,
+      "text": "Because he's here with us."
+    },
+    {
+      "segmentId": "seg-86",
+      "startMs": 412080,
+      "endMs": 417540,
+      "text": "Hank, you'll find links to Henry's YouTube and Discord and fundraiser in the doodly-doo below."
+    },
+    {
+      "segmentId": "seg-87",
+      "startMs": 417960,
+      "endMs": 419380,
+      "text": "I will see you on Friday."
+    }
+  ]
+}

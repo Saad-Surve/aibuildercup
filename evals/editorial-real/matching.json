@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "description": "Pre-registered matching rule. A finding can match a gold issue when its time span is within toleranceMs of the issue's span (or one of its additionalSpans) and its dimension is compatible with the issue's category. Matching is one-to-one and greedy.",
+  "toleranceMs": 5000,
+  "issueSeverities": ["low", "medium", "high", "critical"],
+  "actionableSeverities": ["medium", "high", "critical"],
+  "categoryDimensions": {
+    "weak_hook": ["pacing_retention", "platform_fit", "audience_brand", "emotional_impact", "clarity"],
+    "unsupported_claim": ["truth_evidence", "legal_safety"],
+    "factual_error": ["truth_evidence"],
+    "jargon": ["clarity", "audience_brand"],
+    "tangent": ["pacing_retention", "clarity", "platform_fit"],
+    "pacing_drag": ["pacing_retention", "clarity", "platform_fit"],
+    "missing_cta": ["conversion_cta", "platform_fit", "audience_brand"],
+    "safety": ["legal_safety", "truth_evidence"],
+    "broken_promise": ["pacing_retention", "clarity", "audience_brand", "platform_fit"],
+    "tone_mismatch": ["audience_brand", "emotional_impact"],
+    "locale_assumption": ["cultural_localization", "audience_brand"]
+  }
+}

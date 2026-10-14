@@ -20,6 +20,8 @@ A second, independently authored held-out set lives in `evals/editorial-heldout/
 (see its README); nobody runs any arm on it until the coordinator does so after the
 editor pass is frozen.
 
+Real CC BY creator videos with creator-published corrections as partial gold: [editorial-real](../editorial-real/README.md) (known-error recall only).
+
 ## Layout
 
 | Path | Contents |

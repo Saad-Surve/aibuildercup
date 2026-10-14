@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "videoId": "BBvze0lGcZg",
+  "title": "Is Book Publishing Dying? An Author's Perspective",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "English-speaking viewers of the creator's public YouTube channel; no private audience brief is available.",
+  "brief": "Discuss whether book publishing is in structural decline and place its scale in context. This brief is inferred from the public title and spoken introduction; no private creator brief is available.",
+  "clean": false,
+  "partialGold": true,
+  "durationMs": 376906,
+  "source": {
+    "kind": "recorded",
+    "creator": "vlogbrothers",
+    "url": "https://www.youtube.com/watch?v=BBvze0lGcZg",
+    "license": "Creative Commons Attribution license (reuse allowed)",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "uploadDate": "2025-10-21",
+    "metadata": "manifest.json",
+    "media": "../../fixtures/media/editorial-real/BBvze0lGcZg.mp4",
+    "mediaSha256": "85bd44d8a66bab49c8f68c1ac73a2b2c26022c6cda6777c7cfad4a39be1eee8c",
+    "evalOnly": false
+  },
+  "issues": [
+    {
+      "id": "BBvze0lGcZg-C1",
+      "category": "factual_error",
+      "startMs": 25440,
+      "endMs": 36640,
+      "additionalSpans": [],
+      "description": "CORRECTION: All Call of Duty games COMBINED have sold over 500,000,000 copies, not just CoD Black Ops 6. Sorry for the mistake.",
+      "expectedDimension": "truth_evidence",
+      "source": {
+        "kind": "creator_description_correction",
+        "url": "https://www.youtube.com/watch?v=BBvze0lGcZg",
+        "quote": "CORRECTION: All Call of Duty games COMBINED have sold over 500,000,000 copies, not just CoD Black Ops 6. Sorry for the mistake."
+      },
+      "location": {
+        "method": "Inspected local MLX Whisper segments and word timings; not human-audited.",
+        "segmentIds": [
+          "seg-11",
+          "seg-12"
+        ],
+        "spokenText": "Like, the individual video game Call of Duty Black Ops 6 sold more copies than all books for adults combined in the United States in 2024."
+      }
+    }
+  ]
+}

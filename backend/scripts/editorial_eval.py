@@ -82,7 +82,14 @@ ROOT = Path(__file__).resolve().parents[2]
 BACKEND = ROOT / "backend"
 EDITORIAL = ROOT / "evals" / "editorial"
 RESULTS = ROOT / "evals" / "results"
-PRE_REGISTERED_PATHS = ("labels", "transcripts", "media", "matching.json", "scripts")
+PRE_REGISTERED_PATHS = (
+    "labels",
+    "transcripts",
+    "media",
+    "matching.json",
+    "scripts",
+    "manifest.json",
+)
 
 BASELINE_PROMPT_VERSION = "editorial-baseline-v1"
 SCHEMA_VERSION = 1
@@ -618,6 +625,12 @@ async def run_arms(args: argparse.Namespace, settings: Settings, model: str) -> 
     arms = args.arms.split(",")
     prices = {"inputPerMTok": args.input_price, "outputPerMTok": args.output_price}
     registration = preregistration()
+    # Real-video media is ignored locally; the committed label pins its exact bytes.
+    for label in labels.values():
+        if label.get("partialGold"):
+            media = EDITORIAL / label["source"]["media"]
+            if not media.is_file() or sha256_file(media) != label["source"]["mediaSha256"]:
+                raise SystemExit(f"missing or changed pre-registered media: {media}")
     reused = read_json(args.reuse_raw) if args.reuse_raw else None
     if reused:
         validate_reuse(reused, registration, model, labels, arms)

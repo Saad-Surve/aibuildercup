@@ -1,0 +1,724 @@
+{
+  "videoId": "mMZYKxgc9TE",
+  "language": "en",
+  "durationMs": 535290,
+  "source": {
+    "kind": "local_asr",
+    "model": "mlx-community/whisper-large-v3-turbo",
+    "mlxWhisperVersion": "0.4.3",
+    "conditionOnPreviousText": false,
+    "wordTimestamps": true,
+    "mediaSha256": "192722bc27716b69f35a6ed811f285f2600231890507b6201a7106a3f43e7947",
+    "modelRevision": "a4aaeec0636e6fef84abdcbe3544cb2bf7e9f6fb"
+  },
+  "segments": [
+    {
+      "segmentId": "seg-1",
+      "startMs": 0,
+      "endMs": 960,
+      "text": "Good morning, Hick, it's Tuesday."
+    },
+    {
+      "segmentId": "seg-2",
+      "startMs": 1100,
+      "endMs": 5100,
+      "text": "So to understand the unfolding catastrophe in Ukraine, I think it's really important"
+    },
+    {
+      "segmentId": "seg-3",
+      "startMs": 5100,
+      "endMs": 7780,
+      "text": "to have some historical and political context."
+    },
+    {
+      "segmentId": "seg-4",
+      "startMs": 8180,
+      "endMs": 9720,
+      "text": "First, a quick snapshot of Ukraine."
+    },
+    {
+      "segmentId": "seg-5",
+      "startMs": 9860,
+      "endMs": 14400,
+      "text": "It is the second largest country in Europe by area, and at least as of three weeks ago,"
+    },
+    {
+      "segmentId": "seg-6",
+      "startMs": 14600,
+      "endMs": 16540,
+      "text": "it was home to over 40 million people."
+    },
+    {
+      "segmentId": "seg-7",
+      "startMs": 16800,
+      "endMs": 20780,
+      "text": "The national languages are Ukrainian, which is the first language of about two-thirds"
+    },
+    {
+      "segmentId": "seg-8",
+      "startMs": 20780,
+      "endMs": 26160,
+      "text": "of Ukrainians, and also Russian, which is the first language of about 30% of Ukrainians."
+    },
+    {
+      "segmentId": "seg-9",
+      "startMs": 26160,
+      "endMs": 29200,
+      "text": "Russian is most commonly spoken in the east and the south of the country,"
+    },
+    {
+      "segmentId": "seg-10",
+      "startMs": 29380,
+      "endMs": 32780,
+      "text": "but gentle reminder that language is not nationality."
+    },
+    {
+      "segmentId": "seg-11",
+      "startMs": 33000,
+      "endMs": 36640,
+      "text": "Ukrainian history and cultural identity stretches back a very long time,"
+    },
+    {
+      "segmentId": "seg-12",
+      "startMs": 36800,
+      "endMs": 41460,
+      "text": "but its history as a nation-state really begins, like a lot of countries, in World War I."
+    },
+    {
+      "segmentId": "seg-13",
+      "startMs": 41660,
+      "endMs": 46640,
+      "text": "Beginning in 1917, Ukraine was for a time an independent nation called the Ukrainian People's"
+    },
+    {
+      "segmentId": "seg-14",
+      "startMs": 46640,
+      "endMs": 52660,
+      "text": "Republic, which had this flag and is seen as the forerunner of modern Ukraine, which has this flag."
+    },
+    {
+      "segmentId": "seg-15",
+      "startMs": 52660,
+      "endMs": 57240,
+      "text": "But like, the borders and even the existence of this new country were always contested."
+    },
+    {
+      "segmentId": "seg-16",
+      "startMs": 57340,
+      "endMs": 63180,
+      "text": "From 1917 to 1921 there was a war between the Ukrainian People's Republic and the Bolsheviks"
+    },
+    {
+      "segmentId": "seg-17",
+      "startMs": 63180,
+      "endMs": 64960,
+      "text": "who were just coming to power in Russia."
+    },
+    {
+      "segmentId": "seg-18",
+      "startMs": 65160,
+      "endMs": 69780,
+      "text": "And in January of 1919, just after the end of World War I, the Bolsheviks invaded Ukraine"
+    },
+    {
+      "segmentId": "seg-19",
+      "startMs": 69780,
+      "endMs": 73540,
+      "text": "in full force and eventually defeated the Ukrainian People's Republic."
+    },
+    {
+      "segmentId": "seg-20",
+      "startMs": 73640,
+      "endMs": 75640,
+      "text": "Among other factions, wars are complicated."
+    },
+    {
+      "segmentId": "seg-21",
+      "startMs": 76020,
+      "endMs": 82020,
+      "text": "And Ukraine became one of the Soviet Socialist Republics of the new Union of Soviet Socialist"
+    },
+    {
+      "segmentId": "seg-22",
+      "startMs": 82020,
+      "endMs": 87740,
+      "text": "republics. One of the generals who led that Bolshevik invasion of Ukraine was Joseph Stalin,"
+    },
+    {
+      "segmentId": "seg-23",
+      "startMs": 88080,
+      "endMs": 94160,
+      "text": "who cemented himself as leader of the Soviet Union in 1929. Stalin wanted to crush any Ukrainian"
+    },
+    {
+      "segmentId": "seg-24",
+      "startMs": 94160,
+      "endMs": 99160,
+      "text": "independence movements, which for him also meant discouraging Ukrainian language and cultural"
+    },
+    {
+      "segmentId": "seg-25",
+      "startMs": 99160,
+      "endMs": 104660,
+      "text": "identity through a variety of strategies, many of them horrific. But we're going to focus today"
+    },
+    {
+      "segmentId": "seg-26",
+      "startMs": 104660,
+      "endMs": 110820,
+      "text": "on just two Stalin policies that continue to reverberate. First, the Holodomor, as it is known"
+    },
+    {
+      "segmentId": "seg-27",
+      "startMs": 110820,
+      "endMs": 111500,
+      "text": "in Ukrainian."
+    },
+    {
+      "segmentId": "seg-28",
+      "startMs": 111740,
+      "endMs": 118300,
+      "text": "In 1932 and 1933, millions of Ukrainians starved to death because of Stalin's agricultural"
+    },
+    {
+      "segmentId": "seg-29",
+      "startMs": 118300,
+      "endMs": 124740,
+      "text": "policies wherein food was taken from Ukrainian homes and Ukrainian fields and sent elsewhere"
+    },
+    {
+      "segmentId": "seg-30",
+      "startMs": 124740,
+      "endMs": 127780,
+      "text": "in the Soviet Union, especially to industrial centers."
+    },
+    {
+      "segmentId": "seg-31",
+      "startMs": 128100,
+      "endMs": 132840,
+      "text": "This period is sometimes known in English as the Terror Famine, to emphasize that it"
+    },
+    {
+      "segmentId": "seg-32",
+      "startMs": 132840,
+      "endMs": 136700,
+      "text": "was not the result of blight or weather, but of human choice."
+    },
+    {
+      "segmentId": "seg-33",
+      "startMs": 137040,
+      "endMs": 139620,
+      "text": "So to be clear, the Stalin regime knew what it was doing."
+    },
+    {
+      "segmentId": "seg-34",
+      "startMs": 139620,
+      "endMs": 145620,
+      "text": "These policies were designed to punish Ukrainian peasant farmers who were seen to be resistant"
+    },
+    {
+      "segmentId": "seg-35",
+      "startMs": 145620,
+      "endMs": 151180,
+      "text": "to Stalin's ideal of the Soviet Union. It is hard to overstate the horrors of the Holodomor."
+    },
+    {
+      "segmentId": "seg-36",
+      "startMs": 151320,
+      "endMs": 156100,
+      "text": "Perhaps one out of every eight Ukrainians died in a two-year period."
+    },
+    {
+      "segmentId": "seg-37",
+      "startMs": 156300,
+      "endMs": 160500,
+      "text": "Another Stalin-era policy that continues to reverberate was forced deportation."
+    },
+    {
+      "segmentId": "seg-38",
+      "startMs": 160680,
+      "endMs": 163260,
+      "text": "So because Stalin wanted to discourage independence movements,"
+    },
+    {
+      "segmentId": "seg-39",
+      "startMs": 163460,
+      "endMs": 169160,
+      "text": "he forcibly moved millions of people. Almost the entire indigenous population of Tatar people were"
+    },
+    {
+      "segmentId": "seg-40",
+      "startMs": 169160,
+      "endMs": 174080,
+      "text": "forcibly deported from their home in the Crimean Peninsula, many Ukrainians were forced to"
+    },
+    {
+      "segmentId": "seg-41",
+      "startMs": 174080,
+      "endMs": 179680,
+      "text": "leave Ukraine, including for prison camps in Siberia, and many Russian people were moved"
+    },
+    {
+      "segmentId": "seg-42",
+      "startMs": 179680,
+      "endMs": 184200,
+      "text": "against their will to various areas of the Soviet Union as well, including Ukraine."
+    },
+    {
+      "segmentId": "seg-43",
+      "startMs": 184460,
+      "endMs": 189540,
+      "text": "This had a significant lasting effect on the ethnic, cultural, and linguistic makeup of"
+    },
+    {
+      "segmentId": "seg-44",
+      "startMs": 189540,
+      "endMs": 193560,
+      "text": "a huge swath of Eurasia, from Lithuania to Kazakhstan."
+    },
+    {
+      "segmentId": "seg-45",
+      "startMs": 193980,
+      "endMs": 197560,
+      "text": "And it's worth noting that many Ukrainians today feel there are parallels between that"
+    },
+    {
+      "segmentId": "seg-46",
+      "startMs": 197560,
+      "endMs": 201580,
+      "text": "Stalin-era policy and what the Putin regime is doing in Ukraine right now."
+    },
+    {
+      "segmentId": "seg-47",
+      "startMs": 201800,
+      "endMs": 206300,
+      "text": "So Putin has repeatedly attacked these humanitarian corridors people are trying to set up to allow"
+    },
+    {
+      "segmentId": "seg-48",
+      "startMs": 206300,
+      "endMs": 211860,
+      "text": "safe passage of civilians from besieged cities into western Ukraine or other countries in"
+    },
+    {
+      "segmentId": "seg-49",
+      "startMs": 211860,
+      "endMs": 216840,
+      "text": "Europe, but Putin has said, I will guarantee your safety if you come to Russia."
+    },
+    {
+      "segmentId": "seg-50",
+      "startMs": 217880,
+      "endMs": 223280,
+      "text": "Basically saying you can't stay safely in Ukraine and you can't go west, but you can"
+    },
+    {
+      "segmentId": "seg-51",
+      "startMs": 223280,
+      "endMs": 228200,
+      "text": "come to Russia, which feels to a lot of people fairly close to forced movement."
+    },
+    {
+      "segmentId": "seg-52",
+      "startMs": 228500,
+      "endMs": 234260,
+      "text": "Okay, let's move ahead to 1991, when the Soviet Union is breaking up. Ukraine holds a referendum"
+    },
+    {
+      "segmentId": "seg-53",
+      "startMs": 234260,
+      "endMs": 241980,
+      "text": "to vote on whether to become an independent nation, and 92% of people vote for independence."
+    },
+    {
+      "segmentId": "seg-54",
+      "startMs": 242380,
+      "endMs": 248700,
+      "text": "In every region of Ukraine, a majority of people vote for independence. And as a result,"
+    },
+    {
+      "segmentId": "seg-55",
+      "startMs": 248700,
+      "endMs": 253640,
+      "text": "Well, for the last 30 years, Ukraine has been a globally recognized independent nation."
+    },
+    {
+      "segmentId": "seg-56",
+      "startMs": 253880,
+      "endMs": 258700,
+      "text": "Now it has not always gone great, as I explored in my previous video about Ukraine, but also"
+    },
+    {
+      "segmentId": "seg-57",
+      "startMs": 258700,
+      "endMs": 264460,
+      "text": "independence is complicated in a global world, especially when the name of your country literally"
+    },
+    {
+      "segmentId": "seg-58",
+      "startMs": 264460,
+      "endMs": 267340,
+      "text": "means borderlands, as Ukraine does."
+    },
+    {
+      "segmentId": "seg-59",
+      "startMs": 267660,
+      "endMs": 272720,
+      "text": "Partly due to cultural and historical connections, like millions of Ukrainian people have family"
+    },
+    {
+      "segmentId": "seg-60",
+      "startMs": 272720,
+      "endMs": 279520,
+      "text": "in Russia, and partly because of economic necessity, Ukraine has had to maintain somewhat close ties"
+    },
+    {
+      "segmentId": "seg-61",
+      "startMs": 279520,
+      "endMs": 285500,
+      "text": "with Russia while also trying to remain, you know, a country. Economically, Ukraine has been in a"
+    },
+    {
+      "segmentId": "seg-62",
+      "startMs": 285500,
+      "endMs": 290380,
+      "text": "complicated relationship with Russia for the same reason the rest of Europe has been, which is that"
+    },
+    {
+      "segmentId": "seg-63",
+      "startMs": 290380,
+      "endMs": 297820,
+      "text": "Russia has a lot of oil and natural gas. Like, fossil fuels amounted to about 60% of Russia's"
+    },
+    {
+      "segmentId": "seg-64",
+      "startMs": 297820,
+      "endMs": 302980,
+      "text": "exports in 2019, that figure is similar to like Iran or the UAE."
+    },
+    {
+      "segmentId": "seg-65",
+      "startMs": 303200,
+      "endMs": 307960,
+      "text": "And Ukraine has been very reliant on imports of Russian energy sources, not least because"
+    },
+    {
+      "segmentId": "seg-66",
+      "startMs": 307960,
+      "endMs": 313780,
+      "text": "at times those imports have been heavily subsidized by Russia to try to curry favor and influence"
+    },
+    {
+      "segmentId": "seg-67",
+      "startMs": 313780,
+      "endMs": 314440,
+      "text": "in Ukraine."
+    },
+    {
+      "segmentId": "seg-68",
+      "startMs": 314660,
+      "endMs": 316760,
+      "text": "But here's where we arrive at the crux of the matter."
+    },
+    {
+      "segmentId": "seg-69",
+      "startMs": 316900,
+      "endMs": 321940,
+      "text": "For a country like Ukraine, it is really difficult to have a good relationship with Russia because"
+    },
+    {
+      "segmentId": "seg-70",
+      "startMs": 321940,
+      "endMs": 327180,
+      "text": "Russia's leader, Vladimir Putin, has long maintained that Ukraine should never have"
+    },
+    {
+      "segmentId": "seg-71",
+      "startMs": 327180,
+      "endMs": 332120,
+      "text": "I said earlier that for the last 30 years Ukraine has been a globally recognized independent nation,"
+    },
+    {
+      "segmentId": "seg-72",
+      "startMs": 332300,
+      "endMs": 337580,
+      "text": "but I realize now that's not quite true, because there is one place where Ukraine is not recognized"
+    },
+    {
+      "segmentId": "seg-73",
+      "startMs": 337580,
+      "endMs": 343020,
+      "text": "as an independent nation, which is inside of Vladimir Putin's head. Putin, who has directly"
+    },
+    {
+      "segmentId": "seg-74",
+      "startMs": 343020,
+      "endMs": 348780,
+      "text": "or indirectly been the leader of Russia for over 20 years, does not view Ukraine as a legitimate"
+    },
+    {
+      "segmentId": "seg-75",
+      "startMs": 348780,
+      "endMs": 354180,
+      "text": "nation. And that's not like an accusation, it's a statement of fact. Putin has written repeatedly"
+    },
+    {
+      "segmentId": "seg-76",
+      "startMs": 354180,
+      "endMs": 359740,
+      "text": "that he believes Ukraine is lacking in real statehood and that Ukraine was created entirely"
+    },
+    {
+      "segmentId": "seg-77",
+      "startMs": 359740,
+      "endMs": 365340,
+      "text": "by Russia. He thinks all Ukrainians should speak Russian and understand themselves to be part of"
+    },
+    {
+      "segmentId": "seg-78",
+      "startMs": 365340,
+      "endMs": 369580,
+      "text": "what has historically been Russian land. So despite whatever the talking points are in"
+    },
+    {
+      "segmentId": "seg-79",
+      "startMs": 369580,
+      "endMs": 375280,
+      "text": "Putin-friendly media, Putin himself has repeatedly acknowledged exactly what this war is about. He"
+    },
+    {
+      "segmentId": "seg-80",
+      "startMs": 375280,
+      "endMs": 380440,
+      "text": "does not believe Ukraine is a legitimate nation, and he believes, quote, the true sovereignty of"
+    },
+    {
+      "segmentId": "seg-81",
+      "startMs": 380440,
+      "endMs": 383740,
+      "text": "Ukraine is possible only in partnership with Russia."
+    },
+    {
+      "segmentId": "seg-82",
+      "startMs": 383980,
+      "endMs": 387880,
+      "text": "This is certainly not about, as some have claimed, the protection of Ukrainians who"
+    },
+    {
+      "segmentId": "seg-83",
+      "startMs": 387880,
+      "endMs": 389600,
+      "text": "speak Russian as their first language."
+    },
+    {
+      "segmentId": "seg-84",
+      "startMs": 389780,
+      "endMs": 394580,
+      "text": "In fact, in the first two weeks of the war, thousands of such civilians have been killed"
+    },
+    {
+      "segmentId": "seg-85",
+      "startMs": 394580,
+      "endMs": 395740,
+      "text": "by Putin's regime."
+    },
+    {
+      "segmentId": "seg-86",
+      "startMs": 395980,
+      "endMs": 400840,
+      "text": "It is not about denazification of Ukraine, a nation with a democratically elected Jewish"
+    },
+    {
+      "segmentId": "seg-87",
+      "startMs": 400840,
+      "endMs": 401380,
+      "text": "president."
+    },
+    {
+      "segmentId": "seg-88",
+      "startMs": 401640,
+      "endMs": 405280,
+      "text": "And while I don't doubt that Putin feels pressure from the NATO military alliance and"
+    },
+    {
+      "segmentId": "seg-89",
+      "startMs": 405280,
+      "endMs": 409760,
+      "text": "I don't want to minimize the complexities there, I simply don't think it makes Russia"
+    },
+    {
+      "segmentId": "seg-90",
+      "startMs": 409760,
+      "endMs": 413760,
+      "text": "more safe to have Russian soldiers closer to NATO missiles."
+    },
+    {
+      "segmentId": "seg-91",
+      "startMs": 413980,
+      "endMs": 417560,
+      "text": "Again, this is primarily about what Putin has said it is about."
+    },
+    {
+      "segmentId": "seg-92",
+      "startMs": 417740,
+      "endMs": 421940,
+      "text": "He believes that when the borders of Ukraine were drawn, Russia was robbed."
+    },
+    {
+      "segmentId": "seg-93",
+      "startMs": 422140,
+      "endMs": 426480,
+      "text": "And he is seeking to rectify that perceived injustice through violence, including the"
+    },
+    {
+      "segmentId": "seg-94",
+      "startMs": 426480,
+      "endMs": 430840,
+      "text": "mass killing of civilians and the destruction of infrastructure that serves them."
+    },
+    {
+      "segmentId": "seg-95",
+      "startMs": 431000,
+      "endMs": 436220,
+      "text": "I mean, just before the invasion, Putin addressed Ukraine by saying, whether you like it or"
+    },
+    {
+      "segmentId": "seg-96",
+      "startMs": 436220,
+      "endMs": 442700,
+      "text": "not Take It, My Darling,\" which was widely recognized to be a quote from a song about"
+    },
+    {
+      "segmentId": "seg-97",
+      "startMs": 442700,
+      "endMs": 444880,
+      "text": "sexually assaulting a corpse."
+    },
+    {
+      "segmentId": "seg-98",
+      "startMs": 445200,
+      "endMs": 450360,
+      "text": "Vladimir Putin told the world what he was going to do, and now he is doing it."
+    },
+    {
+      "segmentId": "seg-99",
+      "startMs": 450520,
+      "endMs": 453420,
+      "text": "I made a video about Ukraine eight years ago that ended,"
+    },
+    {
+      "segmentId": "seg-100",
+      "startMs": 453540,
+      "endMs": 457600,
+      "text": "The arc of history is long, let's hope it bends toward peace."
+    },
+    {
+      "segmentId": "seg-101",
+      "startMs": 458100,
+      "endMs": 459760,
+      "text": "That was tragically naive."
+    },
+    {
+      "segmentId": "seg-102",
+      "startMs": 460200,
+      "endMs": 464040,
+      "text": "I don't know how this war will end, only that it has already caused tremendous suffering"
+    },
+    {
+      "segmentId": "seg-103",
+      "startMs": 464040,
+      "endMs": 468600,
+      "text": "During less than three weeks into the Putin regime's invasion of Ukraine, millions of"
+    },
+    {
+      "segmentId": "seg-104",
+      "startMs": 468600,
+      "endMs": 473180,
+      "text": "people have been forced to flee their homes, and thousands have been killed, including"
+    },
+    {
+      "segmentId": "seg-105",
+      "startMs": 473180,
+      "endMs": 473840,
+      "text": "many children."
+    },
+    {
+      "segmentId": "seg-106",
+      "startMs": 474100,
+      "endMs": 478940,
+      "text": "I hope there is some way forward other than more suffering, but I don't know what it is."
+    },
+    {
+      "segmentId": "seg-107",
+      "startMs": 479100,
+      "endMs": 484140,
+      "text": "What I do know is that no war will crush Ukrainian identity or language."
+    },
+    {
+      "segmentId": "seg-108",
+      "startMs": 484480,
+      "endMs": 488140,
+      "text": "When I made a TikTok about Ukraine recently, a young person commented,"
+    },
+    {
+      "segmentId": "seg-109",
+      "startMs": 488140,
+      "endMs": 492740,
+      "text": "As a Ukrainian, I would like to add one thing that I recently understood myself."
+    },
+    {
+      "segmentId": "seg-110",
+      "startMs": 493600,
+      "endMs": 499040,
+      "text": "Ukraine became Ukraine by never giving up on fighting for its freedom."
+    },
+    {
+      "segmentId": "seg-111",
+      "startMs": 499460,
+      "endMs": 503220,
+      "text": "And that's a good reminder that this war is not about East versus West or whatever,"
+    },
+    {
+      "segmentId": "seg-112",
+      "startMs": 503460,
+      "endMs": 508960,
+      "text": "it is about the right of Ukraine and its people to exist in freedom and independence."
+    },
+    {
+      "segmentId": "seg-113",
+      "startMs": 509380,
+      "endMs": 513080,
+      "text": "Putin doesn't believe Ukraine has that right, but he is mistaken."
+    },
+    {
+      "segmentId": "seg-114",
+      "startMs": 513080,
+      "endMs": 517780,
+      "text": "Ukraine doesn't need to be a Russia-friendly country or a Europe-friendly country."
+    },
+    {
+      "segmentId": "seg-115",
+      "startMs": 518040,
+      "endMs": 524600,
+      "text": "It should be able to be its own country, to make its own choices secure in the knowledge"
+    },
+    {
+      "segmentId": "seg-116",
+      "startMs": 524600,
+      "endMs": 527220,
+      "text": "that its borders and sovereignty are protected."
+    },
+    {
+      "segmentId": "seg-117",
+      "startMs": 527480,
+      "endMs": 532460,
+      "text": "I believe that day will come, but I fear for every day until it does."
+    },
+    {
+      "segmentId": "seg-118",
+      "startMs": 533040,
+      "endMs": 534880,
+      "text": "Hank, I'll see you on Friday."
+    }
+  ]
+}
