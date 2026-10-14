@@ -5,12 +5,12 @@ person needs to know: contracts, infra, deployed state, open decisions, or verif
 Keep it current rather than chronological. Delete what is no longer true. History lives in
 `git log -- docs/current-progress`; earlier notes can be recovered with `git show <rev>:<path>`.
 
-Last updated: 2026-10-13.
+Last updated: 2026-10-14.
 
 ## Status
 
 Resonance Creator Studio is built and deployed: upload → transcript → nine-reviewer heatmap
-with a predicted audience-interest lane (in the working tree, not yet deployed),
+with a predicted audience-interest lane and reviewer coverage (deployed 2026-10-13, `fbc2e80`),
 drafts with grounded writing, captions, localization and dubbing, thumbnails, packaging with
 optional Veo inserts, YouTube connector with publishing, a content calendar that uploads
 scheduled videos, Medium, Substack and Reddit connectors with cross-posting, creator library
@@ -18,6 +18,110 @@ retrieval, and a read-only demo. Feature detail is in `README.md` and `docs/arch
 
 What is not yet proven is live, end-to-end behavior on the current code. See
 "Verification gaps" below.
+
+## Review loop work on local `main` (2026-10-14, not pushed or deployed)
+
+The hackathon plan (Claude Doc "Resonance: Hackathon Plan of Action",
+https://claude.ai/code/artifact/8c2813f9-0935-4e90-9cfc-3b1b557a1413) was executed by subagents in
+worktrees under `../aibuildercup-wt/` and merged into local `main` (`fbc2e80..HEAD`). A push to
+`main` deploys, so push only when the owner says so. Shipped in code:
+
+- **Finding decisions.** `decision` {status accepted|revised|dismissed, note?, revisedAction?,
+  decidedAt, decidedBy} via `PATCH …/analysis/{runId}/findings/{findingId}` (`decision: null`
+  clears). Decisions never edit reviewer output or scores.
+- **Adjudicator.** `app/agents/adjudicator.py` checks each high/critical finding against a frame or
+  clip (`adjudication` {verdict confirm|downgrade|reject, reason, adjustedSeverity?, evidence}).
+  Rejected findings leave bins and summary; downgrades use `adjustedSeverity`. Overlapping
+  conflicting findings get one `reconciliation`. Max 12 calls per run including at most 4 conflict
+  calls, atomic `adjudicatorCalls/{00..11}` reservations, `MODEL_ADJUDICATOR` falls back to the
+  reviewer model. Evidence lives under `review-context/{runId}/adjudicator-{findingId}/` and is
+  signed lazily by `GET …/findings/{findingId}/adjudication/evidence?kind=frame|clip`.
+- **Library links.** `libraryLinks` (max 1 per finding) from the creator's library for clarity,
+  truth, audience and emotion findings, medium+; cosine ≥ 0.65 (provisional), ≤ 8 findings, ≤ 1
+  Gemini selector call per run. Labelled as earlier work, never evidence about this video.
+- **Rough cut.** `POST …/analysis/{runId}/rough-cut` renders accepted/revised removal findings into
+  a non-activated source revision with `Asset.roughCut` (keptSegments, removedSpans, durations)
+  and a remapped transcript (no STT). `…/rough-cut/plan`, `…/rough-cut/edl?format=cmx3600|markdown`,
+  `DELETE /assets/{assetId}` (inactive cuts only), `GET /assets/{assetId}/captions`. Analysis start
+  accepts optional `assetId` for "Re-review this cut".
+- **Comparison.** `GET …/analysis/compare?baseRunId=&targetRunId=` (deterministic, read-only):
+  resolved / persists / new findings and bins on the source timeline via keptSegments or transcript
+  alignment. `<ReviewComparison>` appears in the rough-cut module once the cut's review finishes,
+  and a picker in the review panel compares any two completed runs.
+- **Writer context.** `app/services/video_context.py` feeds transcript excerpt, persona (as
+  preferences), accepted/revised or severe non-rejected findings, interest peaks and the strongest
+  hook into drafts, assist, thumbnail planning and listings. `_fallback_blocks` is gone: failures set
+  draft `status: failed` with an error. The thumbnail planner previously read the never-written
+  `activeAnalysisRunId` and so saw no findings; it now resolves the latest run.
+- **Publish warnings, STT fix, docs/infra cleanup and the editorial eval harness** (open items 1, 2,
+  8 below and "Editorial eval" under Verification gaps).
+
+## Next session: interest model retrain (set up 2026-10-13)
+
+The heatmap's "Audience interest" lane and reviewer coverage tint are live (`544700f`,
+deployed with `fbc2e80`). The method and current numbers are in `evals/interest/README.md`.
+
+**Where it stands.** The shipped model (`backend/app/assets/interest/model.json`, recipe
+`mixed/full`) uses creator videos plus a Content Behavior Corpus sample, with Gemini signals.
+On 45 unseen creator channels: lift ρ **0.172 [0.099, 0.241]**, lift peak precision 0.35,
+lift dip precision 0.37 (chance 0.25), overall ρ 0.30 against a position baseline of 0.26.
+Transcript features alone do not beat chance (lift ρ 0.03). Gemini signals carry the effect.
+
+**Overnight run.** A colleague is running `evals/interest/collector/run.bat` on a CPU-only
+Windows laptop: 7 hours of collection (target 500, expected about 150–300 new creator videos),
+then the Gemini signal pass (capped at 2,000 calls, about $2–4). They will send
+`interest_data_<date>.zip`, which contains `meta/`, `subs/` and `signals/` JSON relative to
+`evals/interest/raw/`.
+
+**Local data on this machine** (gitignored `evals/interest/raw/`, about 146 MB): 283 metadata
+files, 49 creator transcripts (`subs/*.lines.json`), 284 cached Gemini signal files (creator and
+corpus sample), and the corpus parquet files in `raw/cbc/`. Training needs all of it, so do not
+delete it. If it is lost, the collector and training READMEs rebuild it.
+
+**Steps when the zip arrives** (from the repo root):
+
+1. `cd evals/interest/raw && unzip -n <path>/interest_data_*.zip && cd -`. `-n` keeps
+   existing files; the signal cache key matches because the model and prompt are the same.
+2. Count the new data with `ls evals/interest/raw/subs | wc -l`. Any creator video without
+   a signal file still needs the pass:
+   `uv run --project backend --with pyarrow python backend/scripts/interest_train.py signals --max-calls 400 --concurrency 3 --cbc-train 0 --cbc-test 0`
+3. Evaluate without writing:
+   `uv run --project backend --with pyarrow python backend/scripts/interest_train.py train --dry-run`.
+   Compare the `mixed/full` and `creator/full` rows with the numbers above. More creators
+   should narrow the confidence interval.
+4. If the result holds or improves, run the same command without `--dry-run`. It rewrites
+   `model.json`, `evals/interest/results.json` and `videos.csv`. Then update the numbers in
+   `evals/interest/README.md`, `evals/README.md`, the README evidence table and this section.
+5. Refresh the demo curves:
+   `uv run --project backend python backend/scripts/interest_backfill.py --uid demoCreatorHabeasCodus --max-runs 10 --force`
+6. Run the checks (`ruff`, `mypy`, `bun run lint`, `bun run build`) and commit. A push to
+   `main` deploys.
+
+**Gotchas from the build.**
+
+- YouTube IP-blocked this machine for captions (yt-dlp timedtext returns 429; the
+  transcript API raises `IpBlocked`) after about 30 requests. Metadata and Most Replayed
+  extraction were never blocked. The fallback is local Whisper:
+  `interest_collect.py asr` (MLX, about 85 s per video on an M4), or `collect.py` with
+  faster-whisper. faster-whisper needs `av<15`.
+- yt-dlp's English auto-caption list includes YouTube's machine translations of Hindi videos.
+  Only the original-language ASR track is a real transcript. Both collectors handle this.
+- Gemini (`gemini-3.1-flash-lite`, global) returned many 429s at concurrency 8. Use 2–3.
+- Training and inference share `app/services/interest.py`. Production stores segment
+  timings only, so training re-segments transcripts with `build_segments` and interpolates
+  words the same way. Keep it that way.
+- On Windows, set `PYTHONUTF8=1` (`run.bat` does). All script IO is explicitly UTF-8.
+
+**Ideas not built.**
+
+- Per-creator calibration: once a creator connects YouTube (the `yt-analytics.readonly`
+  scope is already granted), pull their own videos' retention (`audienceWatchRatio`) and
+  captions through the official APIs, and fit the model to their audience. This uses a real
+  retention label and stays within API terms. It needs channels with enough views.
+- Earlier submission plan, still open: prove the nine-reviewer run end to end on the deployed
+  model, record the 3-minute video around the heatmap and interest lane, build a small
+  pre-registered gold-issue eval, and fix the README contradiction about connectors (it says
+  Medium, Substack and Reddit are not built; they are).
 
 ## Deployed surfaces
 
@@ -285,32 +389,30 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
   run with the curve enabled. Backfill was used for the two demo runs instead.
 - Creator-quality evaluation. No creator labels exist yet. The comparison protocol is in
   `evals/creator-comparison.md`.
+- Editorial eval: `evals/editorial/` has five constructed videos (20 planted flaws plus a clean
+  control), labels pre-registered at `2e13571`, and four arms (single prompt, single prompt with
+  rubrics, nine reviewers, nine reviewers plus adjudicator) in `backend/scripts/editorial_eval.py`
+  (dry run by default, `--max-calls` enforced, `replay` re-scores with no calls). The first full run
+  on `gemini-3.8-flash` was started 2026-10-14 (`--run-id 2026-10-14-flash38`, log in
+  `.logs/editorial-eval-2026-10-14.log`). Constructed TTS media measures planted-flaw detection, not
+  accuracy on real creator videos.
+- Everything in "Review loop work on local `main`": decisions, adjudicator v2 prompt, library
+  links, rough-cut upload/activate/discard and re-review, comparison on real runs, writer context
+  in thumbnails and listings. All pass ruff, mypy, lint and build; live checks were limited to one
+  earlier adjudicator run (12 calls, no errors), one local rough-cut render and one draft call.
 
 ## Open items
 
-1. **Publish outcome visibility (diagnosed 2026-10-11, not fixed).** Thumbnails and captions can
-   be silently dropped on YouTube publish:
-   - A thumbnail returns HTTP 403 `forbidden` when the channel lacks custom thumbnails. That
-     needs phone verification in YouTube settings. Uploads continue without the thumbnail.
-   - A project with no selected thumbnail skips the step silently.
-   - Caption upload works. A missing track has one of two causes: no ready transcript, or the
-     viewer checked before processing finished.
-   - The worker swallows these outcomes. The web history shows only the last step, so the
-     creator never sees the thumbnail was dropped.
-   - Suggested fix (touches `contracts/openapi.yaml` and the web client): store the thumbnail and
-     caption outcome as a warning on the `Publish` document. Log `ConnectorError.message` in
-     `run_publish`. Show an actionable message for the 403.
-   - Demo unblock: phone-verify the connected channel and make sure a thumbnail is selected before
-     publishing.
-2. **STT resubmission on polling errors (429 diagnosis, 2026-10-11).** One upload produced twelve
-   successful STT operations after polling failures. Recommended repair, in order:
-   1. Separate submission from polling. Retry `GetOperation` on the existing operation with
-      bounded backoff and a total job deadline. Do not resubmit recognition when only polling
-      fails. Store the operation name so work can resume.
-   2. Exclude throttling and capacity errors from the normalized-audio fallback.
-   3. Give image calls their own bounded retry timing, jitter and cross-job pacing.
-   4. Do not request a quota increase yet. Escalate to Google support only if 429s persist after
-      the retry fix.
+1. **Publish warnings (fixed in code 2026-10-14, not deployed).** `Publish.warnings` records
+   `THUMBNAIL_FORBIDDEN` (403, tells the creator to phone-verify at youtube.com/verify),
+   `THUMBNAIL_MISSING`, `THUMBNAIL_FAILED`, `CAPTIONS_SKIPPED` and `CAPTIONS_FAILED`; a caption
+   failure after upload no longer fails the publish. The 403 path is unverified against a real
+   unverified channel. Demo unblock is unchanged: phone-verify the connected channel.
+2. **STT resubmission (fixed in code 2026-10-14, not deployed).** Submission and polling are
+   separate (`start()`/`wait()`); the job stores `sttOperations` names before polling and resumes
+   them; polling errors never resubmit or trigger the normalized-audio fallback. 429/503 on submit
+   retry; an ambiguous submit allows one resubmission (`ambiguousResubmits`). No live STT call has
+   run on the new code. Still open: image calls need their own bounded retry timing and pacing.
 3. **Full nine-reviewer validation** on the configured model, including grounded truth review and
    the footage rounds. Choose a model and region deliberately, then run a bounded comparison on
    the same real videos.
@@ -323,13 +425,16 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
    localized pairs. Add `POST /projects/{id}/localizations/{localizationId}/flag` and a comparison
    view. Also decide the fate of the static "Transcript translation" card. Cloud Translation
    glossary registration is not done. The glossary is enforced in the Gemini pass only.
-7. **Writer quality.** Draft generation does not yet pass transcript, persona or findings into
-   `_generate_blocks`. Generation sets no temperature or token limits. A silent fallback
-   (`_fallback_blocks`) can hide model failures. Feeding the project context in is probably the
-   largest quality lever left.
-8. **Connector scope.** Native Bluesky and Mastodon connectors are candidates. The social-sync to
-   BigQuery pipeline is provisioned but unused. Widen `SocialConnector` and `ConnectionPlatform`
-   before a second platform.
+7. **Writer quality.** Video context, temperature and token limits are in (see "Review loop
+   work"). Thumbnail planner and listing prompts with the new context are not verified live, and
+   `activeAnalysisRunId` can be dropped from project creation.
+8. **Connector scope and infra cleanup.** Native Bluesky and Mastodon connectors are candidates.
+   The unused BigQuery datasets, worker subscriptions, dead-letter topics and five worker service
+   accounts were removed from Terraform on 2026-10-14 but NOT applied. `terraform plan`: 2 add, 1
+   change, 45 destroy; the add/change are pre-existing drift (deployer secretmanager.viewer, the
+   killswitch object, the known budget diff). Check the 9 BigQuery tables are empty, then apply.
+   Possibly unused and kept: `raw-social`/`exports` buckets, `meta-app-*` and
+   `session-signing-secret` secrets.
 9. **Account deletion revokes connector grants only best-effort.** Provider-side revocation is
    not a guaranteed part of deletion.
 10. **Operations.** Set the Agent Platform spend cap below the budget. Delete the unused
@@ -367,8 +472,9 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
     rerun `interest_train.py signals`, `train` and the backfill. A creator's own YouTube
     Analytics retention (`audienceWatchRatio`) would be a better label once a channel with
     enough views is connected.
-20. **Interest curve deploy.** Deploy, then run `interest_backfill.py` for any account whose
-    existing runs should show the lane. The two demo runs are already backfilled.
+20. **Interest curve backfill.** Deployed. Run `interest_backfill.py` for any account whose
+    existing runs should show the lane. The two demo runs are already backfilled. New
+    analysis runs compute the curve automatically.
 
 ## Test and local state to clean up
 
