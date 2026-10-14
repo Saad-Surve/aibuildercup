@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "videoId": "salary-to-wealth-india",
+  "title": "Salary to Wealth: 5 Money Moves for Salaried Indians in Your Twenties",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "Salaried Indians aged twenty-two to thirty-two who earn in rupees and invest through Indian bank and mutual fund accounts.",
+  "brief": "Explain five money moves in order: track spending, build an emergency fund, take term cover if needed, start an SIP, and raise it every year. Friendly, jargon-light tone for first-time investors. Goal: viewers download the free budget planner at paisa.example/planner.",
+  "clean": false,
+  "durationMs": 639976,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/salary-to-wealth-india.json",
+    "scriptSha256": "7e93ea07f1816adbfc5bad327be96fe031d483f65eead9393ef52c20a49e9fed",
+    "media": "media/salary-to-wealth-india.mp4",
+    "mediaSha256": "ebf52d9271a824e632f8c2e88562b3c0ed407e0e460aaade9d179503c1fc9ec0",
+    "tts": "macOS say, voice Rishi, 160 wpm"
+  },
+  "issues": [
+    {
+      "id": "F1",
+      "category": "factual_error",
+      "startMs": 256575,
+      "endMs": 273411,
+      "additionalSpans": [],
+      "description": "Claims the PPF currently pays nine and a half percent interest. In fact the PPF rate has been seven point one percent per annum, compounded annually, since April 2020. Correct figure: seven point one percent.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "F2",
+      "category": "locale_assumption",
+      "startMs": 294803,
+      "endMs": 310601,
+      "additionalSpans": [],
+      "description": "Quotes salaries in dollars and advises maxing out a four-oh-one-kay for an audience paid in rupees investing through Indian accounts. Correct frame: rupees, EPF, NPS and PPF.",
+      "expectedDimension": "cultural_localization"
+    },
+    {
+      "id": "F3",
+      "category": "unsupported_claim",
+      "startMs": 338429,
+      "endMs": 355522,
+      "additionalSpans": [],
+      "description": "Claims a particular ELSS fund has beaten the market every single year for ten years and implies the viewer's returns will too. No equity fund beats the market every year, and past performance does not guarantee future returns.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "F4",
+      "category": "jargon",
+      "startMs": 402766,
+      "endMs": 420468,
+      "additionalSpans": [],
+      "description": "Dense unexplained jargon (step-up SIP, XIRR, glide path, SWP ladder) for a first-time-investor audience the brief says to keep jargon-light.",
+      "expectedDimension": "clarity"
+    },
+    {
+      "id": "F5",
+      "category": "tangent",
+      "startMs": 537328,
+      "endMs": 567360,
+      "additionalSpans": [],
+      "description": "A roughly forty-second story about a cousin's crypto profits has nothing to do with the five ordered money moves and stalls the plan.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "F6",
+      "category": "safety",
+      "startMs": 119799,
+      "endMs": 137840,
+      "additionalSpans": [],
+      "description": "Advises keeping the entire emergency fund in a small-cap equity fund on the grounds it can be sold instantly. In fact equity can fall sharply when you most need the money, and redemptions take days; emergency money belongs in a savings account or liquid fund.",
+      "expectedDimension": "legal_safety"
+    },
+    {
+      "id": "F7",
+      "category": "broken_promise",
+      "startMs": 587393,
+      "endMs": 609680,
+      "additionalSpans": [
+        {
+          "startMs": 15673,
+          "endMs": 23046
+        }
+      ],
+      "description": "The intro promises the creator's exact monthly money split at the end, but the closing never shows any split. The promise is never paid off.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "F8",
+      "category": "missing_cta",
+      "startMs": 625798,
+      "endMs": 638576,
+      "additionalSpans": [],
+      "description": "The brief's goal is downloads of the free budget planner, but the video ends by pushing a paid masterclass and never mentions the free planner.",
+      "expectedDimension": "conversion_cta"
+    }
+  ]
+}

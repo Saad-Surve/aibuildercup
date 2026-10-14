@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "videoId": "bathroom-reno-budget",
+  "title": "Small Bathroom Renovation: 5 Upgrades That Matter Most",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "First-time homeowners anywhere in the world who are renovating a small bathroom on a tight budget.",
+  "brief": "Walk through five budget-friendly upgrades in priority order, with practical steps for each. Friendly, encouraging tone for nervous first-timers. Goal: viewers download the free renovation checklist at reno.example/checklist.",
+  "clean": false,
+  "durationMs": 679127,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/bathroom-reno-budget.json",
+    "scriptSha256": "4a13ffc0dc04b49024fda73921a359df8c9fa6542e9eadb048565e4cf8b05e48",
+    "media": "media/bathroom-reno-budget.mp4",
+    "mediaSha256": "e1dee006489f7f1f4e2844f90f264d20053035f04b55c131fb048d6387bdf88a",
+    "tts": "macOS say, voice Reed, 160 wpm"
+  },
+  "issues": [
+    {
+      "id": "R1",
+      "category": "weak_hook",
+      "startMs": 600,
+      "endMs": 25252,
+      "additionalSpans": [],
+      "description": "The opening spends about twenty seconds on greetings and throat-clearing without saying what the video covers; the actual topic only arrives afterwards.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "R2",
+      "category": "broken_promise",
+      "startMs": 624400,
+      "endMs": 645856,
+      "additionalSpans": [
+        {
+          "startMs": 39440,
+          "endMs": 48261
+        }
+      ],
+      "description": "The intro promises an exact itemised budget breakdown at the end, but the closing section gives only vague generalities and no numbers. The promise is never paid off.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "R3",
+      "category": "jargon",
+      "startMs": 239196,
+      "endMs": 258726,
+      "additionalSpans": [],
+      "description": "Dense trade jargon (efflorescence, decoupling membrane, thermostatic mixing valve) is used with no explanation for a first-timer audience.",
+      "expectedDimension": "clarity"
+    },
+    {
+      "id": "R4",
+      "category": "factual_error",
+      "startMs": 295662,
+      "endMs": 312532,
+      "additionalSpans": [],
+      "description": "Claims a standard interior bathroom door is thirty-six inches wide. In fact common interior doors are twenty-eight to thirty-two inches; thirty-six inches is typical for exterior doors. Correct clearances should use twenty-eight to thirty-two inches.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "R5",
+      "category": "unsupported_claim",
+      "startMs": 159413,
+      "endMs": 174745,
+      "additionalSpans": [],
+      "description": "Claims a forty-dollar tin of anti-mould paint guarantees no mould ever, whatever the ventilation. No paint can guarantee that; ventilation and moisture control matter more than any coating.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "R6",
+      "category": "pacing_drag",
+      "startMs": 499610,
+      "endMs": 537797,
+      "additionalSpans": [],
+      "description": "Re-explains how to use a tape measure three times in slightly different words, stalling the video for over half a minute.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "R7",
+      "category": "tangent",
+      "startMs": 444959,
+      "endMs": 477187,
+      "additionalSpans": [],
+      "description": "A roughly forty-second story about a neighbour's farmhouse sink has no connection to small-bathroom upgrades on a budget and stalls the tutorial.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "R8",
+      "category": "missing_cta",
+      "startMs": 670054,
+      "endMs": 677727,
+      "additionalSpans": [],
+      "description": "The brief's goal is downloads of the free renovation checklist, but the video ends with a plain sign-off and never mentions the checklist.",
+      "expectedDimension": "conversion_cta"
+    }
+  ]
+}

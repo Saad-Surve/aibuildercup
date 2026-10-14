@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "videoId": "black-holes-guide",
+  "title": "Black Holes Explained: What Falls In and What Comes Out",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "Curious adults anywhere in the world with no physics background who love big ideas explained simply.",
+  "brief": "Explain what black holes are, how they form, and what the famous glowing-ring photo shows, using everyday analogies and no maths. Warm, encouraging tone that never talks down. Goal: viewers subscribe and watch the follow-up on neutron stars.",
+  "clean": false,
+  "durationMs": 626714,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/black-holes-guide.json",
+    "scriptSha256": "62fe0e5974c9b59370d5dd71dab2d7dc649437a43d03a419403af81b8d51c2de",
+    "media": "media/black-holes-guide.mp4",
+    "mediaSha256": "9f5d6a2994b65c91d1c7d00ef08dd17d8a57a5dea97c8bf684369753a1052d2c",
+    "tts": "macOS say, voice Kathy, 145 wpm"
+  },
+  "issues": [
+    {
+      "id": "S1",
+      "category": "factual_error",
+      "startMs": 85003,
+      "endMs": 99822,
+      "additionalSpans": [],
+      "description": "Claims the Sun will collapse into a black hole when it dies. In fact the Sun, at about one solar mass, is far below the roughly twenty-solar-mass threshold for black hole formation; it will shed its layers and end as a white dwarf. Correct fate: white dwarf, not black hole.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "S2",
+      "category": "unsupported_claim",
+      "startMs": 387165,
+      "endMs": 402145,
+      "additionalSpans": [],
+      "description": "Claims physicists have proven that information escapes through tiny wormholes and the paradox is fully solved. In fact the black hole information paradox is unresolved; wormhole-escape ideas are unproven hypotheses. Correct position: open problem, not settled proof.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "S3",
+      "category": "jargon",
+      "startMs": 162176,
+      "endMs": 178613,
+      "additionalSpans": [],
+      "description": "Unexplained specialist terms (Schwarzschild radius, Eddington luminosity, magnetorotational instability) with no gloss for a no-physics-background audience.",
+      "expectedDimension": "clarity"
+    },
+    {
+      "id": "S4",
+      "category": "pacing_drag",
+      "startMs": 282310,
+      "endMs": 310716,
+      "additionalSpans": [],
+      "description": "Explains the same trampoline-and-bowling-ball gravity analogy three times in a row in slightly different words, stalling the video.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "S5",
+      "category": "tangent",
+      "startMs": 424111,
+      "endMs": 452332,
+      "additionalSpans": [],
+      "description": "A roughly forty-second ranking of science-fiction films has nothing to do with explaining black holes and stalls the explainer.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "S6",
+      "category": "broken_promise",
+      "startMs": 592441,
+      "endMs": 612788,
+      "additionalSpans": [
+        {
+          "startMs": 459823,
+          "endMs": 465664
+        }
+      ],
+      "description": "The middle of the video promises a clear explanation of what the orange ring in the famous photo actually is, but the ending never explains it. The promise is never paid off.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "S7",
+      "category": "tone_mismatch",
+      "startMs": 558160,
+      "endMs": 569350,
+      "additionalSpans": [],
+      "description": "Condescending lines (even a child could follow this; if you are lost, that is on you) clash with the brief's warm, encouraging, never-talk-down tone.",
+      "expectedDimension": "audience_brand"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "videoId": "bisi-bele-bath-home",
+  "title": "Bisi Bele Bath at Home: A One-Pot Karnataka Classic",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "Home cooks anywhere in the world who enjoy Indian food and own a pressure cooker.",
+  "brief": "Show a weeknight bisi bele bath from Karnataka: preparation, pressure-cooker method, tempering and serving. Warm, encouraging tone for nervous beginners. Goal: viewers subscribe for more regional recipes.",
+  "clean": true,
+  "durationMs": 501474,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/bisi-bele-bath-home.json",
+    "scriptSha256": "ea69856e2535c8e473b180fcc9d797f8ca836ce1a1aaa46fe439833314f68865",
+    "media": "media/bisi-bele-bath-home.mp4",
+    "mediaSha256": "9461af98e32bdbf08d83694fc215a63e673bf98ba2d1c90d77ccf764e954f435",
+    "tts": "macOS say, voice Tara, 160 wpm"
+  },
+  "issues": []
+}
