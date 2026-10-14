@@ -133,6 +133,7 @@ class SttProvider:
             InvalidArgument,
             MethodNotImplemented,
             ResourceExhausted,
+            ServiceUnavailable,
         )
 
         attempts = max(1, self.settings.stt_max_attempts)
@@ -146,7 +147,8 @@ class SttProvider:
                     retry=None,
                     timeout=self._rpc_timeout(deadline),
                 )
-            except ResourceExhausted as exc:
+            except (ResourceExhausted, ServiceUnavailable) as exc:
+                # 429 and 503 mean the request was not accepted, so retrying is safe.
                 if attempt == attempts or time.monotonic() >= deadline:
                     raise SttSubmissionError(str(exc), rejected=True) from exc
                 await self._backoff(attempt, deadline, "submission")

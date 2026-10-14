@@ -56,6 +56,8 @@ from app.workers.guard import serialize_job
 
 logger = logging.getLogger(__name__)
 
+_MAX_AMBIGUOUS_RESUBMITS = 1
+
 TERMINAL_STATUSES = frozenset(
     {JobStatus.succeeded.value, JobStatus.failed.value, JobStatus.cancelled.value}
 )
@@ -382,11 +384,23 @@ async def _recognize_audio(
         operations = job.setdefault("sttOperations", {})
         attempt = operations.get(key) or {}
         operation_name = attempt.get("operationName")
+        resubmits = int(attempt.get("ambiguousResubmits") or 0)
         if not operation_name:
             if attempt.get("submissionStarted"):
-                raise SttSubmissionError(
-                    "A previous STT submission has no saved operation name; "
-                    "automatic resubmission is blocked."
+                # The earlier submission's outcome is unknown. Allow one deliberate
+                # resubmission (at most one duplicate operation) so a transport blip
+                # cannot block this asset's transcription forever.
+                if resubmits >= _MAX_AMBIGUOUS_RESUBMITS:
+                    raise SttSubmissionError(
+                        "A previous STT submission has no saved operation name; "
+                        "automatic resubmission is blocked."
+                    )
+                resubmits += 1
+                logger.warning(
+                    "STT submission outcome unknown for %s; resubmitting once (%d/%d)",
+                    key,
+                    resubmits,
+                    _MAX_AMBIGUOUS_RESUBMITS,
                 )
             if time.monotonic() >= deadline:
                 raise SttPollingError("STT job deadline expired before submission.")
@@ -400,8 +414,13 @@ async def _recognize_audio(
                     attempt_key=key,
                     submission_started=started,
                     operation_name=name,
+                    ambiguous_resubmits=resubmits,
                 )
-                operations[key] = {"submissionStarted": started, "operationName": name}
+                operations[key] = {
+                    "submissionStarted": started,
+                    "operationName": name,
+                    "ambiguousResubmits": resubmits,
+                }
 
             await record(True)
             try:

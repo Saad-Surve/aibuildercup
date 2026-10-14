@@ -137,6 +137,7 @@ class JobService:
         attempt_key: str,
         submission_started: bool,
         operation_name: str | None = None,
+        ambiguous_resubmits: int = 0,
     ) -> None:
         """Persist the submission marker/name before the worker polls paid recognition."""
         data = self.load_for_worker(owner_uid=owner_uid, project_id=project_id, job_id=job_id)
@@ -144,6 +145,7 @@ class JobService:
         operations[attempt_key] = {
             "submissionStarted": submission_started,
             "operationName": operation_name,
+            "ambiguousResubmits": ambiguous_resubmits,
         }
         self.client.update_document(
             job_path(owner_uid, project_id, job_id),

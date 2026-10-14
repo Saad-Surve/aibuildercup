@@ -78,11 +78,13 @@ base fields and project deletion path are unchanged.
 
 Transcribe jobs additionally store an internal `sttOperations` map. Its bounded keys are
 `source`, `source_no_diarization`, `normalized`, and `normalized_no_diarization`. Each value
-contains `submissionStarted` (boolean) and `operationName` (string or null). The worker
+contains `submissionStarted` (boolean), `operationName` (string or null) and
+`ambiguousResubmits` (integer, default 0). The worker
 records the submission marker before calling STT and the returned operation name immediately
 before polling. Retries and resumed jobs reuse each saved name, including failed operations;
-polling failures never authorize another submission. A marker without a name blocks automatic
-resubmission after an ambiguous transport failure or a crash before persistence. Explicitly
+polling failures never authorize another submission. A marker without a name (an ambiguous transport
+failure or a crash before persistence) allows one resubmission, counted in
+`ambiguousResubmits`, and blocks any further one. Explicitly
 rejected submissions clear that marker. Only a terminal media rejection permits the normalized
 audio attempt, and only a terminal diarization rejection permits the corresponding plain attempt.
 Resumed jobs go directly to an already-started fallback rather than submitting the original
