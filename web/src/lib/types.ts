@@ -381,6 +381,19 @@ export interface TokenUsage {
   output: number;
 }
 
+export interface AdjudicatorSummary {
+  model: string;
+  promptVersion: string;
+  callCount: number;
+  findingCallCount: number;
+  conflictCallCount: number;
+  errorCount: number;
+  skippedCount: number;
+  costEstimateUsd: number;
+  tokenUsage: { input: number; output: number };
+  errors: string[];
+}
+
 export interface AnalysisRun {
   analysisRunId: string;
   jobId: string;
@@ -398,6 +411,7 @@ export interface AnalysisRun {
   modelConfigVersion: string;
   promptVersion: string;
   costEstimateUsd: number;
+  adjudicator?: AdjudicatorSummary | null;
   error: { code: string; message: string } | null;
   createdAt: string;
   updatedAt: string;
@@ -451,6 +465,41 @@ export interface FindingCitation {
   url?: string;
 }
 
+export interface FindingDecisionInput {
+  status: "accepted" | "revised" | "dismissed";
+  note?: string;
+  revisedAction?: string;
+}
+
+export interface FindingDecision extends FindingDecisionInput {
+  decidedAt: string;
+  decidedBy: string;
+}
+
+export interface FindingAdjudication {
+  verdict: "confirm" | "downgrade" | "reject";
+  reason: string;
+  adjustedSeverity?: Severity | null;
+  evidence: {
+    timestampMs: number;
+    framePath: string;
+    clipPath?: string | null;
+  };
+  checkedAt: string;
+  model: string;
+  promptVersion: string;
+}
+
+export interface FindingReconciliation {
+  clusterId: string;
+  findingIds: string[];
+  recommendation: string;
+  reason: string;
+  model: string;
+  promptVersion: string;
+  reconciledAt: string;
+}
+
 export interface Finding {
   findingId: string;
   dimension: AnalysisDimension;
@@ -465,6 +514,9 @@ export interface Finding {
   evidence: FindingEvidence;
   suggestion: string;
   citations: FindingCitation[];
+  decision?: FindingDecision | null;
+  adjudication?: FindingAdjudication | null;
+  reconciliation?: FindingReconciliation | null;
 }
 
 export interface HeatmapBin {

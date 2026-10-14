@@ -3,18 +3,20 @@
 import { useState } from "react";
 import {
   ArrowRight01Icon,
-  Cancel01Icon,
   Loading03Icon,
   Search01Icon,
   ViewIcon,
   ViewOffIcon,
 } from "@hugeicons/core-free-icons";
 
+import { FindingDecisionControls } from "@/components/projects/finding-decision";
+import { FindingAdjudicationCard } from "@/components/projects/finding-adjudication";
 import { Icon } from "@/components/common/icon";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   dimensionLabel,
+  effectiveSeverity,
   formatDurationMs,
   formatScore,
   SEVERITY_DOT_CLASS,
@@ -47,6 +49,8 @@ function severityRank(severity: Severity): number {
  */
 
 export function FindingsPanel({
+  projectId,
+  analysisRunId,
   findings,
   loading,
   running,
@@ -58,6 +62,8 @@ export function FindingsPanel({
   onSeek,
   onClearSelection,
 }: {
+  projectId: string;
+  analysisRunId: string;
   findings: Finding[];
   loading: boolean;
   running: boolean;
@@ -70,36 +76,35 @@ export function FindingsPanel({
   onClearSelection: () => void;
 }) {
   const selectedSet = selectedFindingIds ? new Set(selectedFindingIds) : null;
-  // Ignored findings stay visible but greyed and sorted to the bottom.
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [decisionFilter, setDecisionFilter] = useState<
+    "all" | "open" | "accepted" | "revised" | "dismissed"
+  >("all");
+  const [showRejected, setShowRejected] = useState(false);
+  const rejectedCount = findings.filter(
+    (finding) => finding.adjudication?.verdict === "reject",
+  ).length;
   const visible = findings
-    .filter((finding) =>
-      selectedSet ? selectedSet.has(finding.findingId) : true,
+    .filter(
+      (finding) => showRejected || finding.adjudication?.verdict !== "reject",
     )
-    .filter((finding) =>
-      severityFilter.length === 0
-        ? true
-        : severityFilter.includes(finding.severity),
+    .filter((finding) => !selectedSet || selectedSet.has(finding.findingId))
+    .filter(
+      (finding) =>
+        severityFilter.length === 0 ||
+        severityFilter.includes(effectiveSeverity(finding)),
     )
-    .toSorted((a, b) => {
-      const aDismissed = dismissed.has(a.findingId) ? 1 : 0;
-      const bDismissed = dismissed.has(b.findingId) ? 1 : 0;
-      if (aDismissed !== bDismissed) return aDismissed - bDismissed;
-      // Problems first, then by how early they happen.
-      return (
-        severityRank(a.severity) - severityRank(b.severity) ||
-        a.startMs - b.startMs
-      );
-    });
-
-  function toggleDismiss(findingId: string) {
-    setDismissed((current) => {
-      const next = new Set(current);
-      if (next.has(findingId)) next.delete(findingId);
-      else next.add(findingId);
-      return next;
-    });
-  }
+    .filter(
+      (finding) =>
+        decisionFilter === "all" ||
+        (decisionFilter === "open"
+          ? !finding.decision
+          : finding.decision?.status === decisionFilter),
+    )
+    .toSorted(
+      (a, b) =>
+        severityRank(effectiveSeverity(a)) -
+          severityRank(effectiveSeverity(b)) || a.startMs - b.startMs,
+    );
 
   return (
     <Card className={WORKSPACE_PANE_SNAP}>
@@ -129,6 +134,40 @@ export function FindingsPanel({
             </button>
           )}
         </div>
+        <div
+          className="flex flex-wrap items-center gap-1.5"
+          aria-label="Filter finding decisions"
+        >
+          {(["all", "open", "accepted", "revised", "dismissed"] as const).map(
+            (status) => (
+              <button
+                key={status}
+                type="button"
+                aria-pressed={decisionFilter === status}
+                onClick={() => setDecisionFilter(status)}
+                className={cn(
+                  "rounded-full border px-2.5 py-1 text-xs capitalize focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                  decisionFilter === status
+                    ? "border-signal bg-signal text-signal-foreground"
+                    : "border-border text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {status === "all" ? "All decisions" : status}
+              </button>
+            ),
+          )}
+          {rejectedCount > 0 && (
+            <label className="ml-auto inline-flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={showRejected}
+                onChange={(event) => setShowRejected(event.target.checked)}
+                className="accent-signal"
+              />
+              Show rejected ({rejectedCount})
+            </label>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="scroll-fade-y min-h-0 flex-1 overflow-y-auto py-2">
@@ -142,9 +181,16 @@ export function FindingsPanel({
             running={running}
             reviewed={reviewed}
             incomplete={incomplete}
-            filtered={severityFilter.length > 0 || Boolean(selectedSet)}
+            filtered={
+              severityFilter.length > 0 ||
+              Boolean(selectedSet) ||
+              decisionFilter !== "all" ||
+              (!showRejected && rejectedCount > 0)
+            }
             onClear={() => {
               onClearSelection();
+              setDecisionFilter("all");
+              setShowRejected(true);
               for (const severity of severityFilter) onToggleSeverity(severity);
             }}
           />
@@ -153,10 +199,11 @@ export function FindingsPanel({
             {visible.map((finding) => (
               <FindingRow
                 key={finding.findingId}
+                projectId={projectId}
+                analysisRunId={analysisRunId}
                 finding={finding}
+                allFindings={findings}
                 highlighted={selectedSet?.has(finding.findingId) ?? false}
-                dismissed={dismissed.has(finding.findingId)}
-                onDismiss={() => toggleDismiss(finding.findingId)}
                 onSeek={onSeek}
               />
             ))}
@@ -168,25 +215,28 @@ export function FindingsPanel({
 }
 
 function FindingRow({
+  projectId,
+  analysisRunId,
   finding,
+  allFindings,
   highlighted,
-  dismissed,
-  onDismiss,
   onSeek,
 }: {
+  projectId: string;
+  analysisRunId: string;
   finding: Finding;
+  allFindings: Finding[];
   highlighted: boolean;
-  dismissed: boolean;
-  onDismiss: () => void;
   onSeek: (startMs: number) => void;
 }) {
   const hasEvidence = Boolean(finding.evidence.quote);
+  const severity = effectiveSeverity(finding);
   return (
     <li
       className={cn(
         "group/finding relative overflow-hidden rounded-lg border border-border/70 transition-colors hover:bg-muted/40",
         highlighted && "border-signal bg-signal/10",
-        dismissed && "opacity-50 hover:opacity-80",
+        finding.decision?.status === "dismissed" && "bg-muted/20",
       )}
     >
       <button
@@ -202,11 +252,16 @@ function FindingRow({
             <span
               className={cn(
                 "size-1.5 rounded-full",
-                SEVERITY_DOT_CLASS[finding.severity],
+                SEVERITY_DOT_CLASS[severity],
               )}
             />
             <span className="text-muted-foreground">
-              {SEVERITY_LABELS[finding.severity]}
+              {SEVERITY_LABELS[severity]}
+              {severity !== finding.severity && (
+                <span className="ml-1 text-[11px]">
+                  (was {SEVERITY_LABELS[finding.severity]})
+                </span>
+              )}
             </span>
           </span>
           <span className="text-xs text-muted-foreground">
@@ -216,13 +271,6 @@ function FindingRow({
             {formatScore(finding.score)}
           </span>
         </div>
-
-        {dismissed ? (
-          <span className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <Icon icon={Cancel01Icon} className="size-3" />
-            Ignored
-          </span>
-        ) : null}
 
         {finding.evidence.critique_and_reasoning && (
           <p className="mt-1.5 text-sm text-foreground/90">
@@ -241,16 +289,52 @@ function FindingRow({
         )}
       </button>
 
-      <button
-        type="button"
-        aria-label={dismissed ? "Unignore finding" : "Ignore finding"}
-        title={dismissed ? "Unignore finding" : "Ignore finding"}
-        onClick={onDismiss}
-        aria-pressed={dismissed}
-        className="absolute top-2 right-2 flex size-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover/finding:opacity-100 hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:opacity-100"
-      >
-        <Icon icon={Cancel01Icon} className="size-3.5" />
-      </button>
+      {(finding.severity === "high" || finding.severity === "critical") && (
+        <FindingAdjudicationCard
+          projectId={projectId}
+          analysisRunId={analysisRunId}
+          finding={finding}
+          onSeek={onSeek}
+        />
+      )}
+
+      {finding.reconciliation && (
+        <div className="space-y-1.5 border-t border-signal/20 bg-signal/5 px-3 py-2.5">
+          <p className="text-xs font-medium text-signal">
+            Combined recommendation
+          </p>
+          <p className="text-sm">{finding.reconciliation.recommendation}</p>
+          <p className="text-xs text-muted-foreground">
+            {finding.reconciliation.reason}
+          </p>
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+            <span>Reconciles</span>
+            {finding.reconciliation.findingIds.map((id) => {
+              const related = allFindings.find((item) => item.findingId === id);
+              return related ? (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => onSeek(related.startMs)}
+                  className="text-signal underline-offset-2 hover:underline"
+                >
+                  {dimensionLabel(related.dimension)} ·{" "}
+                  {formatDurationMs(related.startMs)}
+                </button>
+              ) : null;
+            })}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Use Revise to choose this combined action.
+          </p>
+        </div>
+      )}
+
+      <FindingDecisionControls
+        projectId={projectId}
+        analysisRunId={analysisRunId}
+        finding={finding}
+      />
 
       {/* Grounded reviewers cite the web sources behind a claim. */}
       {finding.citations.length > 0 && (

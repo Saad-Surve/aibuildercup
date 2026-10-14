@@ -16,21 +16,26 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
+from app.agents.adjudicator import adjudicator_call_estimate, adjudicator_cost
 from app.agents.analysis_coordinator import DimensionOutcome
 from app.agents.reviewer_base import MODEL_CONFIG_VERSION, REVIEWER_PROMPT_VERSION
 from app.config import Settings
 from app.errors import ConflictError, NotFoundError
+from app.providers.base import LlmUsage
 from app.realtime.events import (
     emit_analysis_progress,
     emit_analysis_ready,
     has_subscribers,
 )
 from app.schemas.analysis import (
+    AdjudicatorSummary,
     AnalysisDimension,
     AnalysisRequest,
     AnalysisRun,
     AnalysisRunStatus,
     Finding,
+    FindingDecision,
+    FindingDecisionInput,
     FindingEvidence,
     HeatmapBin,
     HeatmapCoverage,
@@ -94,6 +99,11 @@ def _to_analysis_run(analysis_run_id: str, data: dict[str, Any]) -> AnalysisRun:
         modelConfigVersion=data.get("modelConfigVersion", ""),
         promptVersion=data.get("promptVersion", ""),
         costEstimateUsd=float(data.get("costEstimateUsd", 0.0)),
+        adjudicator=(
+            AdjudicatorSummary.model_validate(data["adjudicator"])
+            if data.get("adjudicator")
+            else None
+        ),
         error=data.get("error"),
         createdAt=data["createdAt"],
         updatedAt=data["updatedAt"],
@@ -177,6 +187,9 @@ def _to_finding(finding_id: str, data: dict[str, Any]) -> Finding:
         ),
         suggestion=data.get("suggestion", ""),
         citations=list(data.get("citations") or []),
+        decision=data.get("decision"),
+        adjudication=data.get("adjudication"),
+        reconciliation=data.get("reconciliation"),
     )
 
 
@@ -417,6 +430,156 @@ class AnalysisService:
             )
         return _to_reviewer_run(reviewer_run_id, data)
 
+    def get_finding(
+        self, *, owner_uid: str, project_id: str, analysis_run_id: str, finding_id: str
+    ) -> Finding:
+        project = self.client.get_document(project_path(owner_uid, project_id))
+        if project is None or not is_owner(project, owner_uid):
+            raise NotFoundError("Project not found")
+        self.load_run_document(
+            owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+        )
+        data = self.client.get_document(
+            finding_path(owner_uid, project_id, analysis_run_id, finding_id)
+        )
+        if data is None or not is_owner(data, owner_uid):
+            raise NotFoundError("Finding not found", details={"findingId": finding_id})
+        return _to_finding(finding_id, data)
+
+    def decide_finding(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        analysis_run_id: str,
+        finding_id: str,
+        decision: FindingDecisionInput | None,
+    ) -> Finding:
+        finding = self.get_finding(
+            owner_uid=owner_uid,
+            project_id=project_id,
+            analysis_run_id=analysis_run_id,
+            finding_id=finding_id,
+        )
+        # Also guard service-level callers; HTTP middleware covers all demo writes.
+        if owner_uid in self.settings.read_only_user_uids:
+            from app.auth.read_only import READ_ONLY_MESSAGE
+            from app.errors import ForbiddenError
+
+            raise ForbiddenError(READ_ONLY_MESSAGE, code="READ_ONLY_ACCOUNT")
+        stored = (
+            FindingDecision(
+                **decision.model_dump(), decidedAt=datetime.now(UTC), decidedBy=owner_uid
+            )
+            if decision is not None
+            else None
+        )
+        self.client.update_document(
+            finding_path(owner_uid, project_id, analysis_run_id, finding_id),
+            {"decision": stored.model_dump(exclude_none=True) if stored else None},
+        )
+        return finding.model_copy(update={"decision": stored})
+
+    def reserve_adjudicator_call(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        analysis_run_id: str,
+        kind: str,
+        label: str,
+        finding_limit: int,
+    ) -> str | None:
+        self.load_run_document(
+            owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+        )
+        total = self.settings.max_adjudicator_calls
+        indexes = (
+            range(max(0, total - self.settings.max_conflict_calls), total)
+            if kind == "conflict"
+            else range(min(total, finding_limit))
+        )
+        root = analysis_run_path(owner_uid, project_id, analysis_run_id)
+        for index in indexes:
+            slot = f"{root}/adjudicatorCalls/{index:02d}"
+            if self.client.create_document(
+                slot,
+                {
+                    "ownerUid": owner_uid,
+                    "kind": kind,
+                    "label": label,
+                    "reservedAt": datetime.now(UTC),
+                    "status": "reserved",
+                    "costEstimateUsd": adjudicator_call_estimate(self.settings),
+                },
+            ):
+                return slot
+        return None
+
+    def settle_adjudicator_call(
+        self, *, owner_uid: str, slot: str, usage: LlmUsage | None, error: str | None
+    ) -> None:
+        existing = self.client.get_document(slot)
+        if not existing or not is_owner(existing, owner_uid):
+            raise NotFoundError("Adjudicator slot not found")
+        patch: dict[str, Any] = {
+            "status": "failed" if error else "completed",
+            "error": error,
+        }
+        if usage is not None:
+            patch["tokenUsage"] = {"input": usage.input_tokens, "output": usage.output_tokens}
+            patch["costEstimateUsd"] = adjudicator_cost(usage, self.settings)
+        self.client.update_document(slot, patch)
+
+    def save_adjudication(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        analysis_run_id: str,
+        findings: Sequence[Finding],
+        summary: AdjudicatorSummary,
+    ) -> None:
+        for finding in findings:
+            patch: dict[str, Any] = {}
+            if finding.adjudication is not None:
+                patch["adjudication"] = finding.adjudication.model_dump(exclude_none=True)
+            if finding.reconciliation is not None:
+                patch["reconciliation"] = finding.reconciliation.model_dump(exclude_none=True)
+            if not patch:
+                continue
+            self.get_finding(
+                owner_uid=owner_uid,
+                project_id=project_id,
+                analysis_run_id=analysis_run_id,
+                finding_id=finding.findingId,
+            )
+            self.client.update_document(
+                finding_path(owner_uid, project_id, analysis_run_id, finding.findingId), patch
+            )
+        root = analysis_run_path(owner_uid, project_id, analysis_run_id)
+        slots = [
+            data
+            for _, data in self.client.query_collection(
+                f"{root}/adjudicatorCalls", filters=[], order_by=[], limit=12, offset=0
+            )
+            if is_owner(data, owner_uid)
+        ]
+        if slots:
+            summary.callCount = len(slots)
+            summary.findingCallCount = sum(s.get("kind") == "finding" for s in slots)
+            summary.conflictCallCount = sum(s.get("kind") == "conflict" for s in slots)
+            summary.costEstimateUsd = round(
+                sum(float(s.get("costEstimateUsd", 0)) for s in slots), 6
+            )
+            summary.tokenUsage = TokenUsage(
+                input=sum(int((s.get("tokenUsage") or {}).get("input", 0)) for s in slots),
+                output=sum(int((s.get("tokenUsage") or {}).get("output", 0)) for s in slots),
+            )
+        self._update_run(
+            owner_uid, project_id, analysis_run_id, {"adjudicator": summary.model_dump()}
+        )
+
     def list_findings(
         self,
         *,
@@ -446,7 +609,16 @@ class AnalysisService:
         if dimension is not None:
             findings = [f for f in findings if f.dimension is dimension]
         if severity is not None:
-            findings = [f for f in findings if f.severity is severity]
+            findings = [
+                f
+                for f in findings
+                if (
+                    f.adjudication.adjustedSeverity
+                    if f.adjudication and f.adjudication.verdict == "downgrade"
+                    else f.severity
+                )
+                is severity
+            ]
         if start_ms is not None:
             findings = [f for f in findings if f.endMs > start_ms]
         if end_ms is not None:
@@ -520,8 +692,31 @@ class AnalysisService:
         data.pop("ownerUid", None)
         return InterestCurve.model_validate(data)
 
-    def spent_usd(self, *, owner_uid: str, project_id: str) -> float:
-        """Estimated spend on this project's analysis runs so far."""
+    def adjudicator_spent_usd(
+        self, *, owner_uid: str, project_id: str, analysis_run_id: str
+    ) -> float:
+        self.load_run_document(
+            owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+        )
+        root = analysis_run_path(owner_uid, project_id, analysis_run_id)
+        return round(
+            sum(
+                float(data.get("costEstimateUsd", 0))
+                for _, data in self.client.query_collection(
+                    f"{root}/adjudicatorCalls", filters=[], order_by=[], limit=12, offset=0
+                )
+                if is_owner(data, owner_uid)
+            ),
+            6,
+        )
+
+    def spent_usd(
+        self, *, owner_uid: str, project_id: str, exclude_run_id: str | None = None
+    ) -> float:
+        """Include durable adjudicator allowances on interrupted/in-flight runs."""
+        project = self.client.get_document(project_path(owner_uid, project_id))
+        if project is None or not is_owner(project, owner_uid):
+            raise NotFoundError("Project not found")
         rows = self.client.query_collection(
             analysis_runs_collection_path(owner_uid, project_id),
             filters=[],
@@ -529,14 +724,20 @@ class AnalysisService:
             limit=100,
             offset=0,
         )
-        return round(
-            sum(
-                float(data.get("costEstimateUsd", 0.0))
-                for _, data in rows
-                if is_owner(data, owner_uid)
-            ),
-            6,
-        )
+        total = 0.0
+        for run_id, data in rows:
+            if not is_owner(data, owner_uid) or run_id == exclude_run_id:
+                continue
+            estimate = float(data.get("costEstimateUsd", 0.0))
+            if data.get("status") in {"queued", "running"}:
+                estimate = max(
+                    estimate,
+                    self.adjudicator_spent_usd(
+                        owner_uid=owner_uid, project_id=project_id, analysis_run_id=run_id
+                    ),
+                )
+            total += estimate
+        return round(total, 6)
 
     # -------------------------------------------------------- worker writes
 

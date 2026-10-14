@@ -109,6 +109,7 @@ class LlmProvider(Protocol):
         # Sampling controls. None leaves the model default. `max_output_tokens` also bounds
         # thinking tokens, so leave headroom above the expected JSON size.
         temperature: float | None = None,
+        max_attempts: int | None = None,
         max_output_tokens: int | None = None,
     ) -> LlmCompletion: ...
 

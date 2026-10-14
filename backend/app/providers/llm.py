@@ -52,6 +52,7 @@ class LlmProvider:
         media: Sequence[MediaPart] = (),
         grounding: bool = False,
         temperature: float | None = None,
+        max_attempts: int | None = None,
         max_output_tokens: int | None = None,
     ) -> LlmCompletion:
         del prompt_version  # Part of the provider interface; unused by the live call.
@@ -66,6 +67,7 @@ class LlmProvider:
             function_declarations=None,
             grounding=grounding,
             temperature=temperature,
+            max_attempts=max_attempts,
             max_output_tokens=max_output_tokens,
         )
         return _completion_from(result)
@@ -188,6 +190,7 @@ class LlmProvider:
         function_declarations: list[Any] | None,
         grounding: bool = False,
         temperature: float | None = None,
+        max_attempts: int | None = None,
         max_output_tokens: int | None = None,
     ) -> Any:
         """One `generate_content` call, retrying transient failures."""
@@ -210,6 +213,10 @@ class LlmProvider:
             config["temperature"] = temperature
         if max_output_tokens is not None:
             config["max_output_tokens"] = max_output_tokens
+        if max_attempts is not None or self.settings.llm_max_attempts == 1:
+            # The SDK defaults to five HTTP attempts inside each provider attempt.
+            # Explicit call budgets must count upstream requests, including failures.
+            config["http_options"] = {"retry_options": {"attempts": 1}}
         tool_entries: list[Any] = []
         if function_declarations:
             # Declarations only: we execute the calls ourselves (plain `generate_content`
@@ -222,7 +229,9 @@ class LlmProvider:
         if tool_entries:
             config["tools"] = tool_entries
 
-        attempts = max(1, self.settings.llm_max_attempts)
+        attempts = max(
+            1, max_attempts if max_attempts is not None else self.settings.llm_max_attempts
+        )
         result = None
         for attempt in range(1, attempts + 1):
             try:

@@ -1252,7 +1252,8 @@ paths:
       summary: List findings
       description: |
         `startMs`/`endMs` select findings that overlap the given window. Filters
-        combine with AND.
+        combine with AND. Severity filters use adjustedSeverity after a downgrade. Rejected
+        findings stay in this response for inspection; the UI hides them by default.
       responses:
         "200":
           description: OK
@@ -1265,6 +1266,62 @@ paths:
                     type: array
                     items: { $ref: "#/components/schemas/Finding" }
 
+  /api/projects/{projectId}/analysis/{analysisRunId}/findings/{findingId}:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/AnalysisRunId" }
+      - { name: findingId, in: path, required: true, schema: { type: string } }
+    patch:
+      summary: Set or clear the creator's decision on a finding
+      description: |
+        Send decision with status and optional note/revisedAction, or decision:null to undo.
+        A revised decision requires a nonblank revisedAction. decidedAt and decidedBy are
+        assigned by the server. This records intent only; it never edits the video.
+        Ownership mismatches return 404. Read-only demo writes return 403.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FindingDecisionRequest" }
+      responses:
+        "200":
+          description: Updated finding
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Finding" }
+        "403":
+          description: Read-only demo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: Project, run or finding not found or owned by another user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: Invalid decision (including blank revisedAction)
+
+  /api/projects/{projectId}/analysis/{analysisRunId}/findings/{findingId}/adjudication/evidence:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+      - { $ref: "#/components/parameters/AnalysisRunId" }
+      - { name: findingId, in: path, required: true, schema: { type: string } }
+      - { name: kind, in: query, schema: { type: string, enum: [frame, clip], default: frame } }
+    get:
+      summary: Signed URL for the actual footage checked by the adjudicator
+      responses:
+        "200":
+          description: Project-owned evidence URL, valid for 15 minutes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContextArtifactUrl" }
+        "404":
+          description: Finding or evidence not found or not owned by caller
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/projects/{projectId}/analysis/{analysisRunId}/heatmap:
     parameters:
       - { $ref: "#/components/parameters/ProjectId" }
@@ -1272,7 +1329,8 @@ paths:
     get:
       summary: Get UI-ready heatmap bins
       description: >
-        Bins exist only where a finding touches a five-second window. `coverage` lists the
+        Bins exclude adjudicator-rejected findings and use adjustedSeverity for downgrades.
+        Bins exist only where a remaining finding touches a five-second window. `coverage` lists the
         spans each reviewer actually read, so the UI can show "reviewed, nothing flagged"
         instead of an empty gap. Runs created before coverage was recorded return [].
       responses:
@@ -3390,6 +3448,10 @@ components:
         modelConfigVersion: { type: string }
         promptVersion: { type: string }
         costEstimateUsd: { type: number }
+        adjudicator:
+          oneOf:
+            - { $ref: "#/components/schemas/AdjudicatorSummary" }
+            - { type: "null" }
         error: { type: [object, "null"], additionalProperties: true }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
@@ -3471,6 +3533,90 @@ components:
         startedAt: { type: [string, "null"], format: date-time }
         finishedAt: { type: [string, "null"], format: date-time }
 
+    FindingDecisionInput:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status: { type: string, enum: [accepted, revised, dismissed] }
+        note: { type: string, maxLength: 2000 }
+        revisedAction:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: Required and nonblank for revised; only permitted for revised.
+
+    FindingDecisionRequest:
+      type: object
+      additionalProperties: false
+      required: [decision]
+      properties:
+        decision:
+          oneOf:
+            - { $ref: "#/components/schemas/FindingDecisionInput" }
+            - { type: "null" }
+
+    FindingDecision:
+      type: object
+      required: [status, decidedAt, decidedBy]
+      properties:
+        status: { type: string, enum: [accepted, revised, dismissed] }
+        note: { type: string, maxLength: 2000 }
+        revisedAction: { type: string, maxLength: 4000 }
+        decidedAt: { type: string, format: date-time }
+        decidedBy: { type: string }
+
+    AdjudicationEvidence:
+      type: object
+      required: [timestampMs, framePath]
+      properties:
+        timestampMs: { type: integer, minimum: 0 }
+        framePath: { type: string }
+        clipPath: { type: [string, "null"] }
+
+    FindingAdjudication:
+      type: object
+      required: [verdict, reason, evidence, checkedAt, model, promptVersion]
+      properties:
+        verdict: { type: string, enum: [confirm, downgrade, reject] }
+        reason: { type: string }
+        adjustedSeverity:
+          oneOf:
+            - { $ref: "#/components/schemas/Severity" }
+            - { type: "null" }
+          description: Required for downgrade and strictly lower than original severity.
+        evidence: { $ref: "#/components/schemas/AdjudicationEvidence" }
+        checkedAt: { type: string, format: date-time }
+        model: { type: string }
+        promptVersion: { type: string }
+
+    FindingReconciliation:
+      type: object
+      required: [clusterId, findingIds, recommendation, reason, model, promptVersion, reconciledAt]
+      properties:
+        clusterId: { type: string }
+        findingIds: { type: array, items: { type: string } }
+        recommendation: { type: string }
+        reason: { type: string }
+        model: { type: string }
+        promptVersion: { type: string }
+        reconciledAt: { type: string, format: date-time }
+
+    AdjudicatorSummary:
+      type: object
+      required: [model, promptVersion, callCount, findingCallCount, conflictCallCount, errorCount, skippedCount, costEstimateUsd, tokenUsage, errors]
+      properties:
+        model: { type: string }
+        promptVersion: { type: string }
+        callCount: { type: integer }
+        findingCallCount: { type: integer }
+        conflictCallCount: { type: integer }
+        errorCount: { type: integer }
+        skippedCount: { type: integer }
+        costEstimateUsd: { type: number }
+        tokenUsage: { $ref: "#/components/schemas/TokenUsage" }
+        errors: { type: array, items: { type: string } }
+
     Finding:
       type: object
       required: [dimension, score, confidence, severity, evidence, suggestion]
@@ -3500,6 +3646,20 @@ components:
         citations:
           type: array
           items: { type: object, additionalProperties: true }
+        decision:
+          oneOf:
+            - { $ref: "#/components/schemas/FindingDecision" }
+            - { type: "null" }
+          description: Absent or null means undecided; creator intent never modifies reviewer output.
+        adjudication:
+          oneOf:
+            - { $ref: "#/components/schemas/FindingAdjudication" }
+            - { type: "null" }
+          description: Absent means not checked. Rejected findings remain readable but are excluded from heatmap and summary.
+        reconciliation:
+          oneOf:
+            - { $ref: "#/components/schemas/FindingReconciliation" }
+            - { type: "null" }
 
     HeatmapBin:
       type: object

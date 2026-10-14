@@ -69,6 +69,12 @@ class Settings(BaseSettings):
     # Both run on Agent Platform (Vertex AI) with `response_mime_type`/`response_schema`
     # controlled generation. Pin a concrete id if you need reproducibility.
     model_reviewer: str = "gemini-3.1-flash-lite"
+    # Unset follows model_reviewer. Prices default to the reviewer's configured rates.
+    model_adjudicator: str | None = None
+    adjudicator_input_price_per_mtok: float | None = None
+    adjudicator_output_price_per_mtok: float | None = None
+    max_adjudicator_calls: int = Field(default=12, ge=0, le=12)
+    max_conflict_calls: int = Field(default=4, ge=0, le=4)
     model_orchestrator: str = "gemini-3.1-flash-lite"
     model_transcript_repair: str = "gemini-3.1-flash-lite"
     #: Draft studio: full draft generation and the writing-partner chat. Needs real prose

@@ -106,11 +106,7 @@ class BinAccumulator:
             self.finding_ids.append(finding.findingId)
 
     def to_bin(self) -> HeatmapBin:
-        score = (
-            round(self.weighted_score / self.total_weight, 2)
-            if self.total_weight
-            else 0.0
-        )
+        score = round(self.weighted_score / self.total_weight, 2) if self.total_weight else 0.0
         severity = max_severity(self.severities)
         return HeatmapBin(
             binId=bin_id_for(self.dimension, self.start_ms),
@@ -122,6 +118,23 @@ class BinAccumulator:
             color=color_for(score, severity),
             findingIds=list(self.finding_ids),
         )
+
+
+def effective_findings(findings: list[Finding]) -> list[Finding]:
+    """Adjudication affects aggregation, never the stored reviewer score or creator intent."""
+    effective: list[Finding] = []
+    for finding in findings:
+        check = finding.adjudication
+        if check is not None and check.verdict == "reject":
+            continue
+        if (
+            check is not None
+            and check.verdict == "downgrade"
+            and check.adjustedSeverity is not None
+        ):
+            finding = finding.model_copy(update={"severity": check.adjustedSeverity})
+        effective.append(finding)
+    return effective
 
 
 def aggregate_bins(
@@ -142,7 +155,7 @@ def aggregate_bins(
         return []
 
     accumulators: dict[tuple[AnalysisDimension, int], BinAccumulator] = {}
-    for finding in findings:
+    for finding in effective_findings(findings):
         span = normalize_span(finding.startMs, finding.endMs, duration_ms=duration_ms)
         if span is None:
             continue
@@ -222,6 +235,7 @@ def summarize_findings(findings: list[Finding]) -> FindingSummary:
     drowned out by a one-second blip; the overall score is the unweighted mean of
     the dimension scores so one noisy dimension cannot dominate the run.
     """
+    findings = effective_findings(findings)
     counts = {severity.value: 0 for severity in _SEVERITY_KEYS}
     for finding in findings:
         counts[finding.severity.value] += 1
@@ -249,7 +263,7 @@ def summarize_findings(findings: list[Finding]) -> FindingSummary:
 
 def worst_severity(findings: list[Finding]) -> Severity:
     """The worst severity present, or `none` for an empty list."""
-    return max_severity([finding.severity for finding in findings])
+    return max_severity([finding.severity for finding in effective_findings(findings)])
 
 
 __all__ = [

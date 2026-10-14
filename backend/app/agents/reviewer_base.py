@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 REVIEWER_PROMPT_VERSION = "reviewers-v5"
 
 #: Bumped whenever the model/prompt configuration changes as a whole.
-MODEL_CONFIG_VERSION = "analysis-v5"
+MODEL_CONFIG_VERSION = "analysis-v6"
 
 _SEVERITY_VALUES = {severity.value for severity in Severity}
 

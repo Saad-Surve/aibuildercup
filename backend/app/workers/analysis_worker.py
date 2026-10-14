@@ -20,6 +20,7 @@ from typing import Any
 
 from fastapi import BackgroundTasks
 
+from app.agents.adjudicator import ADJUDICATOR_PROMPT_VERSION, adjudicate_findings
 from app.agents.analysis_coordinator import (
     DEFAULT_CHUNK_CHARS,
     DimensionOutcome,
@@ -35,6 +36,7 @@ from app.events import build_event, topic_for_event
 from app.providers import get_providers
 from app.providers.base import LlmProvider, LlmUsage
 from app.schemas.analysis import (
+    AdjudicatorSummary,
     AnalysisDimension,
     AnalysisRunStatus,
     Finding,
@@ -53,7 +55,12 @@ from app.services.firestore_service import (
     project_object_prefix,
     project_path,
 )
-from app.services.heatmap import aggregate_bins, merge_coverage, summarize_findings
+from app.services.heatmap import (
+    aggregate_bins,
+    effective_findings,
+    merge_coverage,
+    summarize_findings,
+)
 from app.services.interest import (
     CurveMoment,
     bin_texts,
@@ -391,6 +398,115 @@ async def run_analysis(
         message="Building the heatmap",
     )
 
+    await asyncio.to_thread(
+        jobs.update_progress,
+        owner_uid=owner_uid,
+        project_id=project_id,
+        job_id=job_id,
+        percent=_REVIEW_END_PERCENT,
+        step="adjudicating",
+        message="Checking serious findings against the footage",
+    )
+    adjudication = AdjudicatorSummary(
+        model=settings.model_adjudicator or settings.model_reviewer,
+        promptVersion=ADJUDICATOR_PROMPT_VERSION,
+    )
+    try:
+        # Reserve the concurrently running interest pass conservatively before admitting checks.
+        review_cost = sum(
+            estimate_cost_usd(
+                o.usage,
+                input_price_per_mtok=settings.llm_input_price_per_mtok,
+                output_price_per_mtok=settings.llm_output_price_per_mtok,
+            )
+            for o in outcomes
+        )
+        spent = await asyncio.to_thread(
+            analyses.spent_usd,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            exclude_run_id=analysis_run_id,
+        )
+        prior_adjudicator_cost = await asyncio.to_thread(
+            analyses.adjudicator_spent_usd,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            analysis_run_id=analysis_run_id,
+        )
+        interest_reserve = (
+            estimate_cost_usd(
+                LlmUsage(input_tokens=48_000, output_tokens=16_000),
+                input_price_per_mtok=settings.llm_input_price_per_mtok,
+                output_price_per_mtok=settings.llm_output_price_per_mtok,
+            )
+            if interest_task is not None
+            else 0.0
+        )
+
+        async def reserve_call(kind: str, label: str, finding_limit: int) -> str | None:
+            return await asyncio.to_thread(
+                analyses.reserve_adjudicator_call,
+                owner_uid=owner_uid,
+                project_id=project_id,
+                analysis_run_id=analysis_run_id,
+                kind=kind,
+                label=label,
+                finding_limit=finding_limit,
+            )
+
+        async def settle_call(slot: str, usage: LlmUsage | None, error: str | None) -> None:
+            await asyncio.to_thread(
+                analyses.settle_adjudicator_call,
+                owner_uid=owner_uid,
+                slot=slot,
+                usage=usage,
+                error=error,
+            )
+
+        adjudication = await adjudicate_findings(
+            findings,
+            segments=segments,
+            llm=llm,
+            settings=settings,
+            toolkit=visual_tools,
+            store=context_store,
+            reserve_call=reserve_call,
+            settle_call=settle_call,
+            budget_usd=(
+                settings.max_project_cost_usd
+                - spent
+                - review_cost
+                - prior_adjudicator_cost
+                - interest_reserve
+            ),
+            creator_context=(
+                f"Title: {video_title}\nBrief: {project_brief}\nAudience: {audience}\n"
+                f"Platform: {platform}\nPersona: {persona_markdown[:1500]}"
+            ),
+        )
+        await asyncio.to_thread(
+            analyses.save_adjudication,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            analysis_run_id=analysis_run_id,
+            findings=findings,
+            summary=adjudication,
+        )
+    except Exception:  # noqa: BLE001 - verification is never a review dependency
+        logger.exception("analyze job %s: adjudicator pass unavailable", job_id)
+        # Build bins from what the creator can actually read after a partial write failure.
+        try:
+            findings = await asyncio.to_thread(
+                analyses.list_findings,
+                owner_uid=owner_uid,
+                project_id=project_id,
+                analysis_run_id=analysis_run_id,
+            )
+        except Exception:  # noqa: BLE001
+            findings = [
+                f.model_copy(update={"adjudication": None, "reconciliation": None})
+                for f in findings
+            ]
     bins = aggregate_bins(findings, duration_ms=transcript.durationMs)
     summary = summarize_findings(findings)
     coverage = merge_coverage(
@@ -417,7 +533,9 @@ async def run_analysis(
             prediction = None
         if prediction is not None:
             curve, interest_usage = prediction
-            curve = _link_findings(curve, findings, analysis_run_id=analysis_run_id)
+            curve = _link_findings(
+                curve, effective_findings(findings), analysis_run_id=analysis_run_id
+            )
             curve = curve.model_copy(
                 update={
                     "costEstimateUsd": round(
@@ -451,6 +569,7 @@ async def run_analysis(
             )
             for outcome in outcomes
         )
+        + adjudication.costEstimateUsd
         + estimate_cost_usd(
             interest_usage,
             input_price_per_mtok=settings.llm_input_price_per_mtok,

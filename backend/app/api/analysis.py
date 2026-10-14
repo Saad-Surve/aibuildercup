@@ -4,10 +4,11 @@ POST queues a tier-1 multi-reviewer run and returns immediately; the reads below
 what the timeline UI polls while it runs and shows when it finishes.
 """
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 
+from app.agents.adjudicator import adjudicator_reservation
 from app.config import Settings, get_settings
 from app.dependencies import (
     AnalysisScheduler,
@@ -26,6 +27,8 @@ from app.schemas.analysis import (
     AnalysisRunList,
     AnalysisStartResponse,
     ContextArtifactUrl,
+    Finding,
+    FindingDecisionRequest,
     FindingList,
     HeatmapResponse,
     InterestCurve,
@@ -79,7 +82,8 @@ def start_analysis(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> AnalysisStartResponse:
     ensure_within_budget(
-        service.spent_usd(owner_uid=user.uid, project_id=projectId),
+        service.spent_usd(owner_uid=user.uid, project_id=projectId)
+        + adjudicator_reservation(settings),
         max_project_cost_usd=settings.max_project_cost_usd,
     )
     run, job = service.create_run(
@@ -174,6 +178,61 @@ def list_analysis_findings(
     )
 
 
+@router.patch(
+    "/projects/{projectId}/analysis/{analysisRunId}/findings/{findingId}",
+    response_model=Finding,
+)
+def decide_finding(
+    projectId: str,
+    analysisRunId: str,
+    findingId: str,
+    payload: FindingDecisionRequest,
+    user: UserDep,
+    service: ServiceDep,
+) -> Finding:
+    return service.decide_finding(
+        owner_uid=user.uid,
+        project_id=projectId,
+        analysis_run_id=analysisRunId,
+        finding_id=findingId,
+        decision=payload.decision,
+    )
+
+
+@router.get(
+    "/projects/{projectId}/analysis/{analysisRunId}/findings/{findingId}/adjudication/evidence",
+    response_model=ContextArtifactUrl,
+)
+def get_adjudication_evidence(
+    projectId: str,
+    analysisRunId: str,
+    findingId: str,
+    user: UserDep,
+    service: ServiceDep,
+    storage: StorageDep,
+    kind: Literal["frame", "clip"] = "frame",
+) -> ContextArtifactUrl:
+    finding = service.get_finding(
+        owner_uid=user.uid,
+        project_id=projectId,
+        analysis_run_id=analysisRunId,
+        finding_id=findingId,
+    )
+    evidence = finding.adjudication.evidence if finding.adjudication else None
+    path = (evidence.framePath if kind == "frame" else evidence.clipPath) if evidence else None
+    prefix = (
+        f"{project_object_prefix(user.uid, projectId)}review-context/"
+        f"{analysisRunId}/adjudicator-{findingId}/"
+    )
+    if not path or not path.startswith(prefix):
+        raise NotFoundError("Adjudication evidence not found")
+    return ContextArtifactUrl(
+        url=storage.signed_download_url(path, expires_seconds=_CONTEXT_URL_TTL_SECONDS),
+        contentType="image/jpeg" if kind == "frame" else "video/mp4",
+        expiresIn=_CONTEXT_URL_TTL_SECONDS,
+    )
+
+
 @router.get(
     "/projects/{projectId}/analysis/{analysisRunId}/heatmap",
     response_model=HeatmapResponse,
@@ -210,8 +269,7 @@ def get_analysis_interest(
 
 
 @router.get(
-    "/projects/{projectId}/analysis/{analysisRunId}/reviewers/{reviewerRunId}"
-    "/context/{index}",
+    "/projects/{projectId}/analysis/{analysisRunId}/reviewers/{reviewerRunId}/context/{index}",
     response_model=ContextArtifactUrl,
 )
 def get_reviewer_context_artifact(

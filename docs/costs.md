@@ -98,11 +98,12 @@ Python floats and metadata occupy more space. This is not measured Firestore sto
 
 | Guard | Behavior | Boundary |
 |---|---|---|
-| Analysis | Refuses a new run after stored analysis estimates reach `MAX_PROJECT_COST_USD=5` | No atomic reservation for the next run; incomplete category coverage and concurrent jobs can overshoot. |
+| Analysis | Refuses a new run when stored estimates plus the configured maximum adjudicator allowance reach `MAX_PROJECT_COST_USD=5` | No atomic reservation for the next run; incomplete category coverage and concurrent jobs can overshoot. |
 | Thumbnails | Checks prior stored image estimates plus requested count against a separate $5 image budget; max four concepts/request | A flat $0.067 estimate also applies to Pro versions, so it understates Pro/input costs. No shared all-feature ledger. |
 | Embeddings | Up to 200 atomic daily call slots per user; up to 16 missing nodes per index request; 300 nodes/ten images per library | A call-count bound, not a dollar cap. Operator preset publication has a separate explicit call limit. |
 | Veo | Up to two project-owned paid reservations, also bounded by `floor($5 / estimated insert cost)`; one operation per submission, resumable polling | Reservations remain after uncertain/failed work; conservative cost is separate from actual billing. |
 | Interest curve | One signal call per ten minutes of video, at most four per analysis; its estimate is added to the run's `costEstimateUsd`, so it counts toward the analysis ceiling | Skipped entirely when the bundled model's primary head does not use signals, or when the configured model differs from the one the model was trained on. |
+| Adjudicator | At most 12 one-attempt calls/run total (`MAX_ADJUDICATOR_CALLS`), including at most four conflict calls (`MAX_CONFLICT_CALLS`); atomic run-owned call slots survive retries. 32k-character prompts, one frame and optionally a ten-second silent clip, max 2,048 output/reasoning tokens; no Search | Uses `MODEL_ADJUDICATOR` or the reviewer model, with optional separate price settings. Each call needs remaining project budget for a conservative 12k input / 2,048 output estimate. Reported usage (or the allowance on uncertain failure) adds to `costEstimateUsd`. Input/media allowance is an estimate, not a billing hard cap. |
 | Concurrency | Four reviewers and four TTS requests by default; one deployed API instance | Controls pressure, not total usage across all workflows. |
 | Cloud budget | ₹8,500 configured budget with notifications and billing-detachment function | Billing data/notifications are delayed. This is a backstop, not an immediate hard cap. |
 

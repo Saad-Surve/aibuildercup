@@ -8,7 +8,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class AnalysisDimension(StrEnum):
@@ -138,6 +138,72 @@ class FindingEvidence(BaseModel):
     critique_and_reasoning: str = ""
 
 
+class FindingDecisionInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    status: Literal["accepted", "revised", "dismissed"]
+    note: str | None = Field(default=None, max_length=2000)
+    revisedAction: str | None = Field(default=None, min_length=1, max_length=4000)
+
+    @model_validator(mode="after")
+    def validate_revision(self) -> "FindingDecisionInput":
+        if self.status == "revised" and not self.revisedAction:
+            raise ValueError("A revised decision needs a proposed action.")
+        if self.status != "revised" and self.revisedAction is not None:
+            raise ValueError("Only revised decisions can include revisedAction.")
+        return self
+
+
+class FindingDecision(FindingDecisionInput):
+    decidedAt: datetime
+    decidedBy: str
+
+
+class FindingDecisionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    decision: FindingDecisionInput | None
+
+
+class AdjudicationEvidence(BaseModel):
+    timestampMs: int = Field(ge=0)
+    framePath: str
+    clipPath: str | None = None
+
+
+class FindingAdjudication(BaseModel):
+    verdict: Literal["confirm", "downgrade", "reject"]
+    reason: str = Field(min_length=1, max_length=2000)
+    adjustedSeverity: Severity | None = None
+    evidence: AdjudicationEvidence
+    checkedAt: datetime
+    model: str
+    promptVersion: str
+
+
+class FindingReconciliation(BaseModel):
+    clusterId: str
+    findingIds: list[str]
+    recommendation: str
+    reason: str
+    model: str
+    promptVersion: str
+    reconciledAt: datetime
+
+
+class AdjudicatorSummary(BaseModel):
+    model: str
+    promptVersion: str
+    callCount: int = 0
+    findingCallCount: int = 0
+    conflictCallCount: int = 0
+    errorCount: int = 0
+    skippedCount: int = 0
+    costEstimateUsd: float = 0.0
+    tokenUsage: TokenUsage = Field(default_factory=TokenUsage)
+    errors: list[str] = Field(default_factory=list)
+
+
 class Finding(BaseModel):
     """One reviewer observation over a span of the transcript.
 
@@ -160,6 +226,9 @@ class Finding(BaseModel):
     evidence: FindingEvidence = Field(default_factory=FindingEvidence)
     suggestion: str = ""
     citations: list[dict[str, Any]] = Field(default_factory=list)
+    decision: FindingDecision | None = None
+    adjudication: FindingAdjudication | None = None
+    reconciliation: FindingReconciliation | None = None
 
 
 class HeatmapBin(BaseModel):
@@ -197,6 +266,7 @@ class AnalysisRun(BaseModel):
     modelConfigVersion: str
     promptVersion: str
     costEstimateUsd: float = 0.0
+    adjudicator: AdjudicatorSummary | None = None
     error: dict[str, Any] | None = None
     createdAt: datetime
     updatedAt: datetime

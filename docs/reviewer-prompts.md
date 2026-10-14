@@ -602,3 +602,29 @@ findingType vocabulary (severity in brackets):
 ```
 
 Allowed finding types: `high_converting_cta`, `premature_outro_dropoff`, `friction_heavy_ask`, `competing_cta_overload`, `generic_passive_ask`, `missing_next_step`.
+
+## Independent adjudicator (`adjudicator-v2`)
+
+Source: `backend/app/agents/adjudicator.py`. After quote/timestamp normalization, a
+separate model request sees each selected high/critical finding, its dimension,
+quote, reasoning, proposed action, bounded transcript context, creator brief/audience
+and actual frame (plus a short silent clip for temporal dimensions). It confirms only
+when both the issue/severity and proposed action are supported, downgrades an
+overstated issue to a strictly lower severity, or rejects unsupported advice.
+It receives the original dimension rubric and severity anchors, rejects out-of-remit
+findings even when they describe a real issue for another reviewer, and checks severity
+separately from correctness. It cannot prove factual truth from memory or infer audio
+delivery from silent footage.
+It has no Search tools and does not reuse the reviewer's conversation. This is a
+second model pass, not independent human consensus or a calibrated factual verdict.
+
+A separate conflict prompt checks cross-dimension overlapping action candidates,
+including contradictory replacements and non-English actions. It may say there is no conflict;
+otherwise it supplies one
+source-grounded reconciled recommendation. Both prompts treat supplied text as
+evidence rather than instructions and preserve creator voice. No edits are performed.
+
+The total is 12 calls including up to four conflict calls; no automatic retries.
+Critical findings are checked first, leaving slots for detected conflict clusters.
+Missing media, failed calls, malformed replies and cap-skipped findings are not checked.
+The full prompt constants and response validation live together in the source above.

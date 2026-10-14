@@ -410,3 +410,46 @@ from current model vectors; these are not stored confidence or quality scores.
 - `.../visualInsertReservations/{slot}`: immutable paid attempt reservation. Atomic create, at most configured project limit and conservative max_project_cost_usd / six-second estimate. Never refunded or deleted with individual inserts, including provider failure. Project/account recursive deletion removes reservations.
 - Media: `project_object_prefix(uid, projectId) + visual-inserts/{insertId}/...`. FFmpeg charts/callouts render exact text/numbers. Veo returns inline video bytes; the worker uploads only after checking the project still exists. No new bucket, index or external persistent record. Deletion rejects running renders to prevent late output recreating an individual insert. Workers verify parent ownership and active source before persisting output.
 - Generation jobs reuse `text_content` (listing), `clip` (suggestions/graphics), and `veo` (illustrative footage). Video operation names are persisted immediately; polling retries reuse that operation and never submit paid work again. Ambiguous submission failures cannot be retried automatically.
+
+## Finding decisions and independent adjudication
+
+`users/{uid}/projects/{projectId}/analysisRuns/{analysisRunId}/findings/{findingId}`
+retains the reviewer output unchanged and adds optional fields:
+
+- `decision`: `{status: accepted|revised|dismissed, note?: string, revisedAction?: string,
+  decidedAt: timestamp, decidedBy: uid}`. Absent/null is undecided; PATCH with
+  `decision:null` clears the decision. Revised requires nonblank `revisedAction` (max
+  4,000 characters); optional note is max 2,000. Server stamps identity/time. All reads
+  and writes check project/run/finding ownership; demo writes are rejected. Decisions
+  express creator intent only and never perform an edit or change heatmap scores.
+- `adjudication`: `{verdict: confirm|downgrade|reject, reason, adjustedSeverity?,
+  evidence: {timestampMs, framePath, clipPath?}, checkedAt: timestamp, model, promptVersion}`.
+  Only normalized high/critical findings are checked. Absent means not checked (including
+  cap, unavailable footage, provider error or malformed verdict). Downgrades must be
+  strictly less severe. Rejected findings remain stored but are excluded from bins,
+  summary and interest-moment links. Downgraded severity is used in bins/summary; original
+  score and severity remain intact for inspection. The UI hides rejections by default.
+- `reconciliation`: `{clusterId, findingIds: string[], recommendation, reason, model,
+  promptVersion, reconciledAt: timestamp}`. The same object on each involved finding
+  links at most eight overlapping observations from different dimensions with
+  different proposed actions. A separate call confirms conflict before storing
+  one recommendation. This advice does not replace the creator's decision.
+
+`analysisRuns/{analysisRunId}.adjudicator` records `{model, promptVersion, callCount,
+findingCallCount, conflictCallCount, errorCount, skippedCount, costEstimateUsd,
+tokenUsage: {input, output}, errors: string[]}`. Calls are serial, capped at
+`MAX_ADJUDICATOR_CALLS=12` total including at most `MAX_CONFLICT_CALLS=4` cluster calls.
+Provider retries are disabled for these calls. Every attempted call consumes an atomic
+`adjudicatorCalls/{00..11}` reservation under the run. Each slot carries `ownerUid`,
+`kind: finding|conflict`, `label`, `reservedAt`, `status: reserved|completed|failed`,
+`costEstimateUsd`, optional `tokenUsage` and `error`. Conflict reservations occupy only
+the last four slots (or configured smaller limit). Worker retries cannot exceed either
+cap. Uncertain reservations remain consumed and counted toward spend.
+Errors never fail an otherwise usable analysis. Reported token cost is included in the
+run estimate; uncertain failed calls conservatively reserve the configured call estimate.
+
+Evidence objects use the existing project-owned pattern
+`{project_object_prefix}/review-context/{analysisRunId}/adjudicator-{findingId}/...`.
+A lazy evidence endpoint validates ownership and the run prefix before signing the frame
+or clip URL. Project/account deletion covers all documents and media. Final adjudication
+writes patch only model metadata, preserving creator decisions made during review.

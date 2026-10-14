@@ -3,6 +3,7 @@ import type {
   AnalysisDimension,
   AnalysisRun,
   Finding,
+  FindingDecisionInput,
   HeatmapBin,
   HeatmapColor,
   HeatmapCoverage,
@@ -84,6 +85,35 @@ export function listFindings(
   return apiFetch<FindingList>(
     `/projects/${projectId}/analysis/${analysisRunId}/findings${suffix}`,
   );
+}
+
+export function decideFinding(
+  projectId: string,
+  analysisRunId: string,
+  findingId: string,
+  decision: FindingDecisionInput | null,
+): Promise<Finding> {
+  return apiFetch<Finding>(
+    `/projects/${projectId}/analysis/${analysisRunId}/findings/${findingId}`,
+    { method: "PATCH", body: JSON.stringify({ decision }) },
+  );
+}
+
+export function getAdjudicationEvidenceUrl(
+  projectId: string,
+  analysisRunId: string,
+  findingId: string,
+  kind: "frame" | "clip" = "frame",
+): Promise<ContextArtifactUrl> {
+  return apiFetch<ContextArtifactUrl>(
+    `/projects/${projectId}/analysis/${analysisRunId}/findings/${findingId}/adjudication/evidence?kind=${kind}`,
+  );
+}
+
+export function effectiveSeverity(finding: Finding): Severity {
+  return finding.adjudication?.verdict === "downgrade"
+    ? (finding.adjudication.adjustedSeverity ?? finding.severity)
+    : finding.severity;
 }
 
 export function getHeatmap(

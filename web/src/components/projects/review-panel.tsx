@@ -397,6 +397,21 @@ export function ReviewPanel({
                 {formatCostUsd(run?.costEstimateUsd ?? 0)}
               </span>
             </span>
+            <span aria-live="polite" aria-label="Creator decision counts">
+              {(["accepted", "revised", "dismissed", "open"] as const)
+                .map((status) => {
+                  const eligible = findings.filter(
+                    (finding) => finding.adjudication?.verdict !== "reject",
+                  );
+                  const count = eligible.filter((finding) =>
+                    status === "open"
+                      ? !finding.decision
+                      : finding.decision?.status === status,
+                  ).length;
+                  return `${count} ${status}`;
+                })
+                .join(" · ")}
+            </span>
             <span className="ml-auto hidden sm:inline">
               Click a segment to jump there
             </span>
@@ -480,6 +495,9 @@ export function ReviewPanel({
       </Card>
 
       <FindingsPanel
+        key={`${projectId}-${activeRunId ?? "none"}`}
+        projectId={projectId}
+        analysisRunId={activeRunId ?? ""}
         findings={findings}
         loading={Boolean(activeRunId) && findingsQuery.isLoading}
         reviewed={Boolean(run && !isRunning)}
