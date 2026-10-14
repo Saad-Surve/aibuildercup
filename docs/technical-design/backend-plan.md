@@ -82,6 +82,16 @@ explanation/action; exact repeated advice is deduplicated within dimension/type.
 Omission/visual findings can have empty quotes. Shared/requested footage remains project-owned.
 Partial reviewer/chunk failures preserve useful findings and mark coverage incomplete.
 
+The coordinator adds one bounded whole-transcript all-nine-rubrics call before the editor,
+using the same prompt as the editorial eval's rubric arm. Its run-owned `rubricCalls/00`
+reservation survives retries; input over 100k characters or insufficient budget skips it.
+Product media is sampled stills, whereas the eval rubric attaches the full fixture video.
+The editor merges underlying problems across lenses, keeps missing-content evidence even
+when distributed across the transcript, and treats rubric/specialist agreement as corroboration
+rather than guaranteed correctness.
+Original IDs credit named corroborating reviewers in the finding card.
+Whole-transcript editor input is bounded; all input and output costs are included in the run.
+
 These are specialized model prompts, not independent expert consensus. Confidence is not
 calibrated; URL presence/quote validity cannot establish factual correctness. Evaluation
 methods and actual measurement scope are in [evals](../../evals/README.md).

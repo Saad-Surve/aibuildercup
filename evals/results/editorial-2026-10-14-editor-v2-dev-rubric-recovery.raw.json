@@ -1,0 +1,333 @@
+{
+  "schemaVersion": 1,
+  "kind": "editorial-eval-raw",
+  "runId": "2026-10-14-editor-v2-dev-rubric-recovery",
+  "startedAt": "2026-10-14T14:14:17.469543+00:00",
+  "model": "gemini-3.8-flash",
+  "prices": {
+    "inputPerMTok": 0.75,
+    "outputPerMTok": 3.75
+  },
+  "options": {
+    "arms": [
+      "rubric"
+    ],
+    "root": "evals/editorial",
+    "grounding": true,
+    "visualTools": true,
+    "maxCalls": 1,
+    "reviewerConcurrency": 4,
+    "maxVisualContextRequests": 3,
+    "visualToolMaxRounds": 2,
+    "maxAdjudicatorCalls": 12,
+    "maxConflictCalls": 4,
+    "maxEditorCalls": 3,
+    "editorThinkingLevel": "low"
+  },
+  "promptVersions": {
+    "reviewers": "reviewers-v5",
+    "modelConfig": "analysis-v7",
+    "baseline": "editorial-baseline-v1",
+    "rubric": "rubric-v1",
+    "adjudicator": "adjudicator-v2",
+    "editor": "editor-v2"
+  },
+  "labels": {
+    "commit": "2e1357166373beb3d44765c7990311cba4f74f7d",
+    "commitDate": "2026-10-14T09:38:28+05:30",
+    "dirty": false,
+    "root": "evals/editorial",
+    "inputSha256": {
+      "labels/boiled-egg-control.json": "b0dbf430e2416a1d831e52b8f0d19d51c699d021609da72c0ee2371e86d06e39",
+      "labels/espresso-basics.json": "a64eaa15712b773f40150f57117f75b94287778284c896f9e06310b3887f0444",
+      "labels/immune-system-cold.json": "bdd0d6ea7ebc1395c8e131692af3c14d9ce51e53e8b48d3e157e63eed14fe6db",
+      "labels/index-fund-mistakes.json": "11627231533eeb52685f181b7cbaf87289afa61144e845b18218fd89925d5f78",
+      "labels/python-decorators.json": "70edd0a5b48c7511d402b54b3d2b674bcb4f3c7acb96ef8bd44918246b4a4be7",
+      "transcripts/boiled-egg-control.json": "0c6e97b78f6123de968c1f3d198ace1f2036ad9e34745fb79641944948c7921d",
+      "transcripts/espresso-basics.json": "76b1f1799cd7b7f4318d98479cb9e6bd70a89ea638dd56acd02f9c61cadaaf24",
+      "transcripts/immune-system-cold.json": "6807004fa51652b21d87bf71b356a86c331c447a3dbf49916540ee46762702cc",
+      "transcripts/index-fund-mistakes.json": "7c2cf05b50e67dcaa5507441bd9c54878824ad8ca3845b6b4d6dce92b6bac27e",
+      "transcripts/python-decorators.json": "70cfb30e527ce321d3553c59f60d8f9e757374d113d10aec370de5844d0c07b7",
+      "media/boiled-egg-control.mp4": "ba7d04145062f93c49b865a0d0c7098a66ba4806230436418d4f90bcf5c239af",
+      "media/espresso-basics.mp4": "cd6526942f0ff300980e84643b471d843f78b802a9472837b558512a696b9a44",
+      "media/immune-system-cold.mp4": "f63144b132bb9e70acf52815fb7dd995a1359eaedcef76c66f1576bcd30328c5",
+      "media/index-fund-mistakes.mp4": "4f4409eff15210c8c5573110a5256fc2f2b537f5e10f01f4044c73722fa3a8dc",
+      "media/python-decorators.mp4": "335bfb616a9f749662d1bbc1f4d984bd18dafc96d65873f5995cbaaf3d61f22d",
+      "matching.json": "43a7c21d16ab76f5918404bc9a08bc953f9908a793c738f3a605dc94c4d5d7c0",
+      "scripts/boiled-egg-control.json": "8f071f9dd90d4a3e4166700b922cd9ef218c28d9ca79c00291b387ce2f7e6935",
+      "scripts/espresso-basics.json": "fc6cc38dd1e667c014d0597aa9fbe3d94c9f857c3a4ce13ff9b8044bd37090ba",
+      "scripts/immune-system-cold.json": "74dbfb3c81baf0c7eb02b287fa789552280baf89e91a30e75862289ccc0e4b85",
+      "scripts/index-fund-mistakes.json": "83e384291966d30d5f54758503d7df440454b0b2b4892269923664233c06fa75",
+      "scripts/python-decorators.json": "7d6460fbf4fb07f49084ff7dc129fdd53257ac864e1e7ba3dc20d276630187aa"
+    },
+    "labelSha256": {
+      "boiled-egg-control": "b0dbf430e2416a1d831e52b8f0d19d51c699d021609da72c0ee2371e86d06e39",
+      "espresso-basics": "a64eaa15712b773f40150f57117f75b94287778284c896f9e06310b3887f0444",
+      "immune-system-cold": "bdd0d6ea7ebc1395c8e131692af3c14d9ce51e53e8b48d3e157e63eed14fe6db",
+      "index-fund-mistakes": "11627231533eeb52685f181b7cbaf87289afa61144e845b18218fd89925d5f78",
+      "python-decorators": "70edd0a5b48c7511d402b54b3d2b674bcb4f3c7acb96ef8bd44918246b4a4be7"
+    },
+    "matchingSha256": "43a7c21d16ab76f5918404bc9a08bc953f9908a793c738f3a605dc94c4d5d7c0"
+  },
+  "code": {
+    "revision": "3221c20dbc364e0ed111c68eedbd61a1c51f4730",
+    "dirty": true,
+    "sha256": {
+      "backend/scripts/editorial_eval.py": "88a75465fdb410a926d2bbcbaecb17e127d0f3b9108e3032a5c19b3d6d74bbe4",
+      "backend/scripts/editorial_score.py": "b4aeda3163c7cd6b12f6e6d623e000bab939104b631f1ad6ebda74d9c6e17a93",
+      "backend/app/agents/reviewer_base.py": "336cc3abcc542f8f2a4c71304afa476e16f49284b72d0b192b849d68525fb803",
+      "backend/app/agents/analysis_coordinator.py": "bef148d38d7b57bd6ac93f12c20185b9a00b8286bd2fec819458be8ad91b1548",
+      "backend/app/agents/adjudicator.py": "6d238b0ad195d0a90d9135036b25b6b0d5d8cd63edeb6aadf91e44cc7c271d40",
+      "backend/app/agents/editor.py": "46808c7cf910ad776f9770c036eec0d37cca85e104ef83c9508964fc9bc99d1e",
+      "backend/app/agents/rubric.py": "0853e1f5f7dd0ba529f2136134de36faad9f693fa539f111a0ae600e136f79ca",
+      "backend/app/agents/reviewer_registry.py": "515147a4d00eb017ed53d61c4884b8d5aa1f47a7bd90eaeb2e735ad0c55b0a01",
+      "backend/app/providers/base.py": "d8e7e46109ad7edb9607ca317e6953b00eb665ccb397edb36a33c5cd33855079",
+      "backend/app/providers/llm.py": "9058df51545e943c40422c97974ba265536e5c496d604b231bb5cbd44c013fd7",
+      "backend/app/config.py": "197be27f53f4117fb1a6b4bba2a1df9c196bce692b64d3dd40c9f9eb758c172c"
+    }
+  },
+  "arms": {
+    "rubric": {
+      "videos": {
+        "index-fund-mistakes": {
+          "rawJson": {
+            "findings": [
+              {
+                "segmentId": "seg-9",
+                "startMs": 30627,
+                "endMs": 40693,
+                "evidence": {
+                  "quote": "just open a Roth IRA or a 401(k) through Fidelity or Vanguard, and pick an S and P five hundred fund.",
+                  "critique_and_reasoning": "The script specifies United States retirement accounts and US-based brokerages, which alienates the intended worldwide beginner audience who cannot open these accounts. This creates immediate friction for viewers outside the US."
+                },
+                "findingType": "locale_assumption",
+                "severity": "high",
+                "score": 2,
+                "suggestion": "Replace with universally applicable guidance: 'To get started, open a standard brokerage or local tax-advantaged account available in your country, and pick a broad market index fund.'",
+                "sources": [],
+                "dimension": "cultural_localization"
+              },
+              {
+                "segmentId": "seg-16",
+                "startMs": 56660,
+                "endMs": 62330,
+                "evidence": {
+                  "quote": "Index funds beat ninety percent of professional fund managers every single year",
+                  "critique_and_reasoning": "This statement misrepresents the data by claiming index funds outperform 90% of managers every single year, whereas SPIVA reports show the 90% failure rate applies over 15 to 20-year cumulative horizons. Spreading inaccurate market statistics damages creator credibility."
+                },
+                "findingType": "false_claim",
+                "severity": "critical",
+                "score": 1,
+                "suggestion": "Revise the line to accurately describe the time horizon: 'Over a 15-year period, roughly 90% of active fund managers fail to beat their benchmark index.'",
+                "sources": [
+                  {
+                    "title": "SPIVA U.S. Scorecard | S&P Dow Jones Indices",
+                    "url": "https://www.spglobal.com/spdji/en/research-insights/spiva/"
+                  }
+                ],
+                "dimension": "truth_evidence"
+              },
+              {
+                "segmentId": "seg-22",
+                "startMs": 79769,
+                "endMs": 91222,
+                "evidence": {
+                  "quote": "what are you even doing? It is the most basic thing in investing, and I cannot believe I have to explain it to grown adults.",
+                  "critique_and_reasoning": "The tone turns overtly hostile and condescending toward the viewer, clashing sharply with the creator brief's warm and encouraging persona. Shaming beginner investors will drive them away rather than build trust."
+                },
+                "findingType": "condescending",
+                "severity": "high",
+                "score": 2,
+                "suggestion": "Replace with empathetic reassurance: 'It is completely normal to feel uneasy when the market drops, but staying the course is how you let compounding work.'",
+                "sources": [],
+                "dimension": "audience_brand"
+              },
+              {
+                "segmentId": "seg-26",
+                "startMs": 94283,
+                "endMs": 103996,
+                "evidence": {
+                  "quote": "I guarantee that if you put your emergency savings into an index fund today, you will double your money in five years.",
+                  "critique_and_reasoning": "Directing beginners to invest essential emergency reserves into equities with a guaranteed return and zero risk claim is dangerous, misleading financial guidance. Equity markets can drop over five-year spans, putting emergency cash at critical risk."
+                },
+                "findingType": "dangerous_instruction",
+                "severity": "critical",
+                "score": 1,
+                "suggestion": "Replace with safe financial guidance: 'Never invest your emergency fund in the stock market; keep those cash savings safe in a bank account, and invest only the money you will not need for years.'",
+                "sources": [],
+                "dimension": "legal_safety"
+              },
+              {
+                "segmentId": "seg-29",
+                "startMs": 104896,
+                "endMs": 109458,
+                "evidence": {
+                  "quote": "So those are the mistakes to avoid. Start early, and don't panic.",
+                  "critique_and_reasoning": "The title and hook explicitly promised three beginner mistakes, but the video concludes after covering only two. Failing to deliver the third promised mistake breaks the core premise and leaves viewers unsatisfied."
+                },
+                "findingType": "anticlimactic_payoff",
+                "severity": "high",
+                "score": 2,
+                "suggestion": "Insert the missing third mistake before the summary: 'Mistake number three: paying high management fees. Choose funds with low expense ratios so costs do not drag down your returns.'",
+                "sources": [],
+                "dimension": "pacing_retention"
+              }
+            ]
+          },
+          "findings": [
+            {
+              "findingId": "e7b0dc2b6fcd4bcd85841a522421ca1e",
+              "dimension": "cultural_localization",
+              "reviewerRunId": "baseline",
+              "segmentId": "seg-9",
+              "startMs": 30627,
+              "endMs": 40693,
+              "score": 2,
+              "confidence": 0.5,
+              "severity": "high",
+              "findingType": "locale_assumption",
+              "evidence": {
+                "quote": "just open a Roth IRA or a 401(k) through Fidelity or Vanguard, and pick an S and P five hundred fund.",
+                "critique_and_reasoning": "The script specifies United States retirement accounts and US-based brokerages, which alienates the intended worldwide beginner audience who cannot open these accounts. This creates immediate friction for viewers outside the US."
+              },
+              "suggestion": "Replace with universally applicable guidance: 'To get started, open a standard brokerage or local tax-advantaged account available in your country, and pick a broad market index fund.'",
+              "citations": [],
+              "decision": null,
+              "editorial": null,
+              "corroboratedBy": [],
+              "adjudication": null,
+              "reconciliation": null,
+              "libraryLinks": []
+            },
+            {
+              "findingId": "ca9491522ed84eeba993c5de6286c99f",
+              "dimension": "truth_evidence",
+              "reviewerRunId": "baseline",
+              "segmentId": "seg-16",
+              "startMs": 56660,
+              "endMs": 62330,
+              "score": 1,
+              "confidence": 0.5,
+              "severity": "critical",
+              "findingType": "false_claim",
+              "evidence": {
+                "quote": "Index funds beat ninety percent of professional fund managers every single year",
+                "critique_and_reasoning": "This statement misrepresents the data by claiming index funds outperform 90% of managers every single year, whereas SPIVA reports show the 90% failure rate applies over 15 to 20-year cumulative horizons. Spreading inaccurate market statistics damages creator credibility."
+              },
+              "suggestion": "Revise the line to accurately describe the time horizon: 'Over a 15-year period, roughly 90% of active fund managers fail to beat their benchmark index.'",
+              "citations": [
+                {
+                  "title": "SPIVA U.S. Scorecard | S&P Dow Jones Indices",
+                  "url": "https://www.spglobal.com/spdji/en/research-insights/spiva/"
+                }
+              ],
+              "decision": null,
+              "editorial": null,
+              "corroboratedBy": [],
+              "adjudication": null,
+              "reconciliation": null,
+              "libraryLinks": []
+            },
+            {
+              "findingId": "04bff4703971457d81169866f31acbed",
+              "dimension": "audience_brand",
+              "reviewerRunId": "baseline",
+              "segmentId": "seg-22",
+              "startMs": 79769,
+              "endMs": 91222,
+              "score": 2,
+              "confidence": 0.5,
+              "severity": "high",
+              "findingType": "condescending",
+              "evidence": {
+                "quote": "what are you even doing? It is the most basic thing in investing, and I cannot believe I have to explain it to grown adults.",
+                "critique_and_reasoning": "The tone turns overtly hostile and condescending toward the viewer, clashing sharply with the creator brief's warm and encouraging persona. Shaming beginner investors will drive them away rather than build trust."
+              },
+              "suggestion": "Replace with empathetic reassurance: 'It is completely normal to feel uneasy when the market drops, but staying the course is how you let compounding work.'",
+              "citations": [],
+              "decision": null,
+              "editorial": null,
+              "corroboratedBy": [],
+              "adjudication": null,
+              "reconciliation": null,
+              "libraryLinks": []
+            },
+            {
+              "findingId": "ab6a4f3812a749ea9494f659137992c3",
+              "dimension": "legal_safety",
+              "reviewerRunId": "baseline",
+              "segmentId": "seg-26",
+              "startMs": 94283,
+              "endMs": 103996,
+              "score": 1,
+              "confidence": 0.5,
+              "severity": "critical",
+              "findingType": "dangerous_instruction",
+              "evidence": {
+                "quote": "I guarantee that if you put your emergency savings into an index fund today, you will double your money in five years.",
+                "critique_and_reasoning": "Directing beginners to invest essential emergency reserves into equities with a guaranteed return and zero risk claim is dangerous, misleading financial guidance. Equity markets can drop over five-year spans, putting emergency cash at critical risk."
+              },
+              "suggestion": "Replace with safe financial guidance: 'Never invest your emergency fund in the stock market; keep those cash savings safe in a bank account, and invest only the money you will not need for years.'",
+              "citations": [],
+              "decision": null,
+              "editorial": null,
+              "corroboratedBy": [],
+              "adjudication": null,
+              "reconciliation": null,
+              "libraryLinks": []
+            },
+            {
+              "findingId": "95f64685c2b641688ebd1cdab3191cc7",
+              "dimension": "pacing_retention",
+              "reviewerRunId": "baseline",
+              "segmentId": "seg-29",
+              "startMs": 104896,
+              "endMs": 109458,
+              "score": 2,
+              "confidence": 0.5,
+              "severity": "high",
+              "findingType": "anticlimactic_payoff",
+              "evidence": {
+                "quote": "So those are the mistakes to avoid. Start early, and don't panic.",
+                "critique_and_reasoning": "The title and hook explicitly promised three beginner mistakes, but the video concludes after covering only two. Failing to deliver the third promised mistake breaks the core premise and leaves viewers unsatisfied."
+              },
+              "suggestion": "Insert the missing third mistake before the summary: 'Mistake number three: paying high management fees. Choose funds with low expense ratios so costs do not drag down your returns.'",
+              "citations": [],
+              "decision": null,
+              "editorial": null,
+              "corroboratedBy": [],
+              "adjudication": null,
+              "reconciliation": null,
+              "libraryLinks": []
+            }
+          ],
+          "usage": {
+            "inputTokens": 17793,
+            "outputTokens": 4158
+          },
+          "modelRequests": 1,
+          "searchQueries": 2,
+          "elapsedMs": 30553,
+          "errors": [],
+          "calls": [
+            {
+              "tag": "rubric:index-fund-mistakes",
+              "model": "gemini-3.8-flash",
+              "grounding": true,
+              "tools": false,
+              "thinkingLevel": null,
+              "inputTokens": 17793,
+              "outputTokens": 4158,
+              "searchQueries": 2,
+              "elapsedMs": 30553,
+              "text": "{\n  \"findings\": [\n    {\n      \"segmentId\": \"seg-9\",\n      \"startMs\": 30627,\n      \"endMs\": 40693,\n      \"evidence\": {\n        \"quote\": \"just open a Roth IRA or a 401(k) through Fidelity or Vanguard, and pick an S and P five hundred fund.\",\n        \"critique_and_reasoning\": \"The script specifies United States retirement accounts and US-based brokerages, which alienates the intended worldwide beginner audience who cannot open these accounts. This creates immediate friction for viewers outside the US.\"\n      },\n      \"findingType\": \"locale_assumption\",\n      \"severity\": \"high\",\n      \"score\": 2,\n      \"suggestion\": \"Replace with universally applicable guidance: 'To get started, open a standard brokerage or local tax-advantaged account available in your country, and pick a broad market index fund.'\",\n      \"sources\": [],\n      \"dimension\": \"cultural_localization\"\n    },\n    {\n      \"segmentId\": \"seg-16\",\n      \"startMs\": 56660,\n      \"endMs\": 62330,\n      \"evidence\": {\n        \"quote\": \"Index funds beat ninety percent of professional fund managers every single year\",\n        \"critique_and_reasoning\": \"This statement misrepresents the data by claiming index funds outperform 90% of managers every single year, whereas SPIVA reports show the 90% failure rate applies over 15 to 20-year cumulative horizons. Spreading inaccurate market statistics damages creator credibility.\"\n      },\n      \"findingType\": \"false_claim\",\n      \"severity\": \"critical\",\n      \"score\": 1,\n      \"suggestion\": \"Revise the line to accurately describe the time horizon: 'Over a 15-year period, roughly 90% of active fund managers fail to beat their benchmark index.'\",\n      \"sources\": [\n        {\n          \"title\": \"SPIVA U.S. Scorecard | S&P Dow Jones Indices\",\n          \"url\": \"https://www.spglobal.com/spdji/en/research-insights/spiva/\"\n        }\n      ],\n      \"dimension\": \"truth_evidence\"\n    },\n    {\n      \"segmentId\": \"seg-22\",\n      \"startMs\": 79769,\n      \"endMs\": 91222,\n      \"evidence\": {\n        \"quote\": \"what are you even doing? It is the most basic thing in investing, and I cannot believe I have to explain it to grown adults.\",\n        \"critique_and_reasoning\": \"The tone turns overtly hostile and condescending toward the viewer, clashing sharply with the creator brief's warm and encouraging persona. Shaming beginner investors will drive them away rather than build trust.\"\n      },\n      \"findingType\": \"condescending\",\n      \"severity\": \"high\",\n      \"score\": 2,\n      \"suggestion\": \"Replace with empathetic reassurance: 'It is completely normal to feel uneasy when the market drops, but staying the course is how you let compounding work.'\",\n      \"sources\": [],\n      \"dimension\": \"audience_brand\"\n    },\n    {\n      \"segmentId\": \"seg-26\",\n      \"startMs\": 94283,\n      \"endMs\": 103996,\n      \"evidence\": {\n        \"quote\": \"I guarantee that if you put your emergency savings into an index fund today, you will double your money in five years.\",\n        \"critique_and_reasoning\": \"Directing beginners to invest essential emergency reserves into equities with a guaranteed return and zero risk claim is dangerous, misleading financial guidance. Equity markets can drop over five-year spans, putting emergency cash at critical risk.\"\n      },\n      \"findingType\": \"dangerous_instruction\",\n      \"severity\": \"critical\",\n      \"score\": 1,\n      \"suggestion\": \"Replace with safe financial guidance: 'Never invest your emergency fund in the stock market; keep those cash savings safe in a bank account, and invest only the money you will not need for years.'\",\n      \"sources\": [],\n      \"dimension\": \"legal_safety\"\n    },\n    {\n      \"segmentId\": \"seg-29\",\n      \"startMs\": 104896,\n      \"endMs\": 109458,\n      \"evidence\": {\n        \"quote\": \"So those are the mistakes to avoid. Start early, and don't panic.\",\n        \"critique_and_reasoning\": \"The title and hook explicitly promised three beginner mistakes, but the video concludes after covering only two. Failing to deliver the third promised mistake breaks the core premise and leaves viewers unsatisfied.\"\n      },\n      \"findingType\": \"anticlimactic_payoff\",\n      \"severity\": \"high\",\n      \"score\": 2,\n      \"suggestion\": \"Insert the missing third mistake before the summary: 'Mistake number three: paying high management fees. Choose funds with low expense ratios so costs do not drag down your returns.'\",\n      \"sources\": [],\n      \"dimension\": \"pacing_retention\"\n    }\n  ]\n} "
+            }
+          ]
+        }
+      }
+    }
+  },
+  "totalModelRequests": 1,
+  "finishedAt": "2026-10-14T14:14:48.156364+00:00",
+  "newCallCostUsd": 0.028937
+}

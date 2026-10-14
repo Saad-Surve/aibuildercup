@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     model_reviewer: str = "gemini-3.1-flash-lite"
     # Unset follows model_reviewer. Prices default to the reviewer's configured rates.
     model_editor: str | None = None
-    editor_thinking_level: Literal["low", "medium", "high"] | None = "low"
+    editor_thinking_level: Literal["low", "medium", "high"] | None = "medium"
     editor_input_price_per_mtok: float | None = None
     editor_output_price_per_mtok: float | None = None
     max_editor_calls: int = Field(default=3, ge=0, le=3)

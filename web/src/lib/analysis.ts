@@ -131,9 +131,7 @@ export function editorFiltered(finding: Finding): boolean {
 
 export function effectiveSeverity(finding: Finding): Severity {
   const order: Severity[] = ["none", "low", "medium", "high", "critical"];
-  const severities = [finding.severity];
-  if (finding.editorial?.adjustedSeverity)
-    severities.push(finding.editorial.adjustedSeverity);
+  const severities = [finding.editorial?.adjustedSeverity ?? finding.severity];
   if (
     finding.adjudication?.verdict === "downgrade" &&
     finding.adjudication.adjustedSeverity

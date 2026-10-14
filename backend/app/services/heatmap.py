@@ -121,9 +121,11 @@ class BinAccumulator:
 def effective_severity(finding: Finding) -> Severity:
     from app.schemas.analysis import SEVERITY_RANK
 
-    severities = [finding.severity]
-    if finding.editorial and finding.editorial.adjustedSeverity is not None:
-        severities.append(finding.editorial.adjustedSeverity)
+    severities = [
+        finding.editorial.adjustedSeverity
+        if finding.editorial and finding.editorial.adjustedSeverity is not None
+        else finding.severity
+    ]
     if finding.adjudication and finding.adjudication.verdict == "downgrade":
         if finding.adjudication.adjustedSeverity is not None:
             severities.append(finding.adjudication.adjustedSeverity)

@@ -1,0 +1,432 @@
+{
+  "schemaVersion": 1,
+  "kind": "editorial-eval",
+  "runId": "2026-10-14-editor-v2-dev-rubric-recovery",
+  "model": "gemini-3.8-flash",
+  "prices": {
+    "inputPerMTok": 0.75,
+    "outputPerMTok": 3.75
+  },
+  "options": {
+    "arms": [
+      "rubric"
+    ],
+    "root": "evals/editorial",
+    "grounding": true,
+    "visualTools": true,
+    "maxCalls": 1,
+    "reviewerConcurrency": 4,
+    "maxVisualContextRequests": 3,
+    "visualToolMaxRounds": 2,
+    "maxAdjudicatorCalls": 12,
+    "maxConflictCalls": 4,
+    "maxEditorCalls": 3,
+    "editorThinkingLevel": "low"
+  },
+  "promptVersions": {
+    "reviewers": "reviewers-v5",
+    "modelConfig": "analysis-v7",
+    "baseline": "editorial-baseline-v1",
+    "rubric": "rubric-v1",
+    "adjudicator": "adjudicator-v2",
+    "editor": "editor-v2"
+  },
+  "labels": {
+    "commit": "2e1357166373beb3d44765c7990311cba4f74f7d",
+    "commitDate": "2026-10-14T09:38:28+05:30",
+    "dirty": false,
+    "root": "evals/editorial",
+    "inputSha256": {
+      "labels/boiled-egg-control.json": "b0dbf430e2416a1d831e52b8f0d19d51c699d021609da72c0ee2371e86d06e39",
+      "labels/espresso-basics.json": "a64eaa15712b773f40150f57117f75b94287778284c896f9e06310b3887f0444",
+      "labels/immune-system-cold.json": "bdd0d6ea7ebc1395c8e131692af3c14d9ce51e53e8b48d3e157e63eed14fe6db",
+      "labels/index-fund-mistakes.json": "11627231533eeb52685f181b7cbaf87289afa61144e845b18218fd89925d5f78",
+      "labels/python-decorators.json": "70edd0a5b48c7511d402b54b3d2b674bcb4f3c7acb96ef8bd44918246b4a4be7",
+      "transcripts/boiled-egg-control.json": "0c6e97b78f6123de968c1f3d198ace1f2036ad9e34745fb79641944948c7921d",
+      "transcripts/espresso-basics.json": "76b1f1799cd7b7f4318d98479cb9e6bd70a89ea638dd56acd02f9c61cadaaf24",
+      "transcripts/immune-system-cold.json": "6807004fa51652b21d87bf71b356a86c331c447a3dbf49916540ee46762702cc",
+      "transcripts/index-fund-mistakes.json": "7c2cf05b50e67dcaa5507441bd9c54878824ad8ca3845b6b4d6dce92b6bac27e",
+      "transcripts/python-decorators.json": "70cfb30e527ce321d3553c59f60d8f9e757374d113d10aec370de5844d0c07b7",
+      "media/boiled-egg-control.mp4": "ba7d04145062f93c49b865a0d0c7098a66ba4806230436418d4f90bcf5c239af",
+      "media/espresso-basics.mp4": "cd6526942f0ff300980e84643b471d843f78b802a9472837b558512a696b9a44",
+      "media/immune-system-cold.mp4": "f63144b132bb9e70acf52815fb7dd995a1359eaedcef76c66f1576bcd30328c5",
+      "media/index-fund-mistakes.mp4": "4f4409eff15210c8c5573110a5256fc2f2b537f5e10f01f4044c73722fa3a8dc",
+      "media/python-decorators.mp4": "335bfb616a9f749662d1bbc1f4d984bd18dafc96d65873f5995cbaaf3d61f22d",
+      "matching.json": "43a7c21d16ab76f5918404bc9a08bc953f9908a793c738f3a605dc94c4d5d7c0",
+      "scripts/boiled-egg-control.json": "8f071f9dd90d4a3e4166700b922cd9ef218c28d9ca79c00291b387ce2f7e6935",
+      "scripts/espresso-basics.json": "fc6cc38dd1e667c014d0597aa9fbe3d94c9f857c3a4ce13ff9b8044bd37090ba",
+      "scripts/immune-system-cold.json": "74dbfb3c81baf0c7eb02b287fa789552280baf89e91a30e75862289ccc0e4b85",
+      "scripts/index-fund-mistakes.json": "83e384291966d30d5f54758503d7df440454b0b2b4892269923664233c06fa75",
+      "scripts/python-decorators.json": "7d6460fbf4fb07f49084ff7dc129fdd53257ac864e1e7ba3dc20d276630187aa"
+    },
+    "labelSha256": {
+      "boiled-egg-control": "b0dbf430e2416a1d831e52b8f0d19d51c699d021609da72c0ee2371e86d06e39",
+      "espresso-basics": "a64eaa15712b773f40150f57117f75b94287778284c896f9e06310b3887f0444",
+      "immune-system-cold": "bdd0d6ea7ebc1395c8e131692af3c14d9ce51e53e8b48d3e157e63eed14fe6db",
+      "index-fund-mistakes": "11627231533eeb52685f181b7cbaf87289afa61144e845b18218fd89925d5f78",
+      "python-decorators": "70edd0a5b48c7511d402b54b3d2b674bcb4f3c7acb96ef8bd44918246b4a4be7"
+    },
+    "matchingSha256": "43a7c21d16ab76f5918404bc9a08bc953f9908a793c738f3a605dc94c4d5d7c0"
+  },
+  "code": {
+    "revision": "3221c20dbc364e0ed111c68eedbd61a1c51f4730",
+    "dirty": true,
+    "sha256": {
+      "backend/scripts/editorial_eval.py": "88a75465fdb410a926d2bbcbaecb17e127d0f3b9108e3032a5c19b3d6d74bbe4",
+      "backend/scripts/editorial_score.py": "b4aeda3163c7cd6b12f6e6d623e000bab939104b631f1ad6ebda74d9c6e17a93",
+      "backend/app/agents/reviewer_base.py": "336cc3abcc542f8f2a4c71304afa476e16f49284b72d0b192b849d68525fb803",
+      "backend/app/agents/analysis_coordinator.py": "bef148d38d7b57bd6ac93f12c20185b9a00b8286bd2fec819458be8ad91b1548",
+      "backend/app/agents/adjudicator.py": "6d238b0ad195d0a90d9135036b25b6b0d5d8cd63edeb6aadf91e44cc7c271d40",
+      "backend/app/agents/editor.py": "46808c7cf910ad776f9770c036eec0d37cca85e104ef83c9508964fc9bc99d1e",
+      "backend/app/agents/rubric.py": "0853e1f5f7dd0ba529f2136134de36faad9f693fa539f111a0ae600e136f79ca",
+      "backend/app/agents/reviewer_registry.py": "515147a4d00eb017ed53d61c4884b8d5aa1f47a7bd90eaeb2e735ad0c55b0a01",
+      "backend/app/providers/base.py": "d8e7e46109ad7edb9607ca317e6953b00eb665ccb397edb36a33c5cd33855079",
+      "backend/app/providers/llm.py": "9058df51545e943c40422c97974ba265536e5c496d604b231bb5cbd44c013fd7",
+      "backend/app/config.py": "197be27f53f4117fb1a6b4bba2a1df9c196bce692b64d3dd40c9f9eb758c172c"
+    }
+  },
+  "matchingRule": {
+    "schemaVersion": 1,
+    "description": "Pre-registered matching rule. A finding can match a gold issue when its time span is within toleranceMs of the issue's span (or one of its additionalSpans) and its dimension is compatible with the issue's category. Matching is one-to-one and greedy.",
+    "toleranceMs": 5000,
+    "issueSeverities": [
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ],
+    "actionableSeverities": [
+      "medium",
+      "high",
+      "critical"
+    ],
+    "categoryDimensions": {
+      "weak_hook": [
+        "pacing_retention",
+        "platform_fit",
+        "audience_brand",
+        "emotional_impact",
+        "clarity"
+      ],
+      "unsupported_claim": [
+        "truth_evidence",
+        "legal_safety"
+      ],
+      "factual_error": [
+        "truth_evidence"
+      ],
+      "jargon": [
+        "clarity",
+        "audience_brand"
+      ],
+      "tangent": [
+        "pacing_retention",
+        "clarity",
+        "platform_fit"
+      ],
+      "pacing_drag": [
+        "pacing_retention",
+        "clarity",
+        "platform_fit"
+      ],
+      "missing_cta": [
+        "conversion_cta",
+        "platform_fit",
+        "audience_brand"
+      ],
+      "safety": [
+        "legal_safety",
+        "truth_evidence"
+      ],
+      "broken_promise": [
+        "pacing_retention",
+        "clarity",
+        "audience_brand",
+        "platform_fit"
+      ],
+      "tone_mismatch": [
+        "audience_brand",
+        "emotional_impact"
+      ],
+      "locale_assumption": [
+        "cultural_localization",
+        "audience_brand"
+      ]
+    }
+  },
+  "labelsUnchangedSinceRun": true,
+  "videos": {
+    "index-fund-mistakes": {
+      "title": "3 Beginner Mistakes with Index Funds",
+      "durationMs": 125166,
+      "clean": false
+    }
+  },
+  "arms": {
+    "rubric": {
+      "aggregate": {
+        "flawedVideos": 1,
+        "cleanVideos": 0,
+        "goldIssues": 5,
+        "headline": {
+          "matched": 5,
+          "recall": 1.0,
+          "recallCi95": [
+            0.566,
+            1.0
+          ],
+          "findings": 5,
+          "precision": 1.0,
+          "precisionCi95": [
+            0.566,
+            1.0
+          ],
+          "unmatchedFindings": 0,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "actionable": {
+          "matched": 5,
+          "recall": 1.0,
+          "recallCi95": [
+            0.566,
+            1.0
+          ],
+          "findings": 5,
+          "precision": 1.0,
+          "precisionCi95": [
+            0.566,
+            1.0
+          ],
+          "unmatchedFindings": 0,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "timeOnly": {
+          "matched": 5,
+          "recall": 1.0,
+          "recallCi95": [
+            0.566,
+            1.0
+          ],
+          "findings": 5,
+          "precision": 1.0,
+          "precisionCi95": [
+            0.566,
+            1.0
+          ],
+          "unmatchedFindings": 0,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": null
+        },
+        "startErrorMs": {
+          "median": 0,
+          "mean": 432,
+          "max": 2161,
+          "n": 5
+        },
+        "byCategory": {
+          "broken_promise": {
+            "matched": 1,
+            "total": 1
+          },
+          "locale_assumption": {
+            "matched": 1,
+            "total": 1
+          },
+          "safety": {
+            "matched": 1,
+            "total": 1
+          },
+          "tone_mismatch": {
+            "matched": 1,
+            "total": 1
+          },
+          "unsupported_claim": {
+            "matched": 1,
+            "total": 1
+          }
+        },
+        "cost": {
+          "inputTokens": 17793,
+          "outputTokens": 4158,
+          "usd": 0.028937,
+          "usdPerVideo": 0.028937,
+          "modelRequests": 1,
+          "searchQueries": 2,
+          "usdPerMatchedIssue": 0.005787,
+          "failedCalls": 0
+        }
+      },
+      "videos": [
+        {
+          "videoId": "index-fund-mistakes",
+          "clean": false,
+          "durationMs": 125166,
+          "issueCount": 5,
+          "strengthCount": 0,
+          "variants": {
+            "headline": {
+              "findingCount": 5,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 2150,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 1735,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1080,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 615,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 5,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 2150,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 1735,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1080,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 615,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 5,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 2150,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 1735,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1080,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 615,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "usage": {
+            "inputTokens": 17793,
+            "outputTokens": 4158
+          },
+          "modelRequests": 1,
+          "searchQueries": 2,
+          "costUsd": 0.028937,
+          "errors": []
+        }
+      ]
+    }
+  },
+  "paired": {},
+  "newCallCostUsd": 0.028937,
+  "modelCalls": 1
+}

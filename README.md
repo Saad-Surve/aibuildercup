@@ -64,8 +64,9 @@ creator and how each result is anchored to the source.
 4. **Review.** Nine reviewers run over those chunks. The six core dimensions always run;
    concurrency defaults to four. Up to three stills for short videos or six for longer
    ones are shared with the relevant chunks. A reviewer may request a frame or clip through
-   a bounded tool loop: three requests and two rounds per reviewer and chunk. Only the
-   truth reviewer uses Search grounding.
+   a bounded tool loop: three requests and two rounds per reviewer and chunk. A bounded
+   all-rubric pass adds a whole-transcript review before the editor consolidates the
+   observations. The truth specialist, rubric pass and editor can use Search grounding.
 5. **Normalize.** Timestamps are clamped. Speech quotes that do not match the transcript
    are rejected. Explanations and actions are required. Exact overlapping duplicates are
    removed within a dimension. Useful partial results persist even when another dimension

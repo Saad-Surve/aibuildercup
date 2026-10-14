@@ -311,6 +311,7 @@ def score_run(
             "inputTokens": input_tokens,
             "outputTokens": output_tokens,
             "usd": cost,
+            "usdPerVideo": round(cost / len(videos), 6) if videos else None,
             "modelRequests": sum(v["modelRequests"] for v in videos),
             "searchQueries": sum(v["searchQueries"] for v in videos),
             "usdPerMatchedIssue": round(cost / matched, 6) if matched else None,
@@ -358,6 +359,13 @@ def render_markdown(result: Mapping[str, Any]) -> str:
             "Arm costs retain the historic full adjudicator spend; Search is unpriced.",
             "",
         ]
+    if result.get("reuse", {}).get("rubricRecovery"):
+        recovery = result["reuse"]["rubricRecovery"]
+        lines[2:2] = [
+            f"Rubric recovery from `{recovery['runId']}` replaces "
+            f"{', '.join(recovery['replacedVideos'])}; historical failed calls/costs retained.",
+            "",
+        ]
     for arm, data in arms.items():
         agg = data["aggregate"]
         head = agg["headline"]
@@ -389,8 +397,8 @@ def render_markdown(result: Mapping[str, Any]) -> str:
         "Search queries are counted, not priced):",
         "",
         "| Arm | Model requests | Input tokens | Output tokens | Estimated USD | "
-        "USD per matched issue | Failed calls |",
-        "|---|---:|---:|---:|---:|---:|---:|",
+        "USD per video | USD per matched issue | Failed calls |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for arm, data in arms.items():
         cost = data["aggregate"]["cost"]
@@ -398,6 +406,7 @@ def render_markdown(result: Mapping[str, Any]) -> str:
         lines.append(
             f"| {arm} | {cost['modelRequests']} | {cost['inputTokens']:,} | "
             f"{cost['outputTokens']:,} | ${cost['usd']:.4f} | "
+            f"${cost.get('usdPerVideo', cost['usd'] / len(data['videos'])):.4f} | "
             f"{'n/a' if per_issue is None else f'${per_issue:.4f}'} | {cost['failedCalls']} |"
         )
     if result.get("paired"):

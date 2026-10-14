@@ -3837,6 +3837,11 @@ components:
         modelConfigVersion: { type: string }
         promptVersion: { type: string }
         costEstimateUsd: { type: number }
+        rubric:
+          oneOf:
+            - { $ref: "#/components/schemas/RubricSummary" }
+            - { type: "null" }
+          description: One bounded all-nine-rubrics call feeding the editor; included in run cost.
         editor:
           oneOf:
             - { $ref: "#/components/schemas/EditorSummary" }
@@ -4018,6 +4023,7 @@ components:
         reason: { type: string, minLength: 1, maxLength: 1000 }
         mergedInto: { type: [string, "null"] }
         adjustedSeverity:
+          description: Highest justified merged-member grade; may exceed the representative's grade. Adjudicator downgrades still apply.
           oneOf:
             - { $ref: "#/components/schemas/Severity" }
             - { type: "null" }
@@ -4026,6 +4032,21 @@ components:
         checkedAt: { type: string, format: date-time }
         model: { type: string }
         promptVersion: { type: string }
+
+    RubricSummary:
+      type: object
+      required: [model, promptVersion, callCount, costEstimateUsd]
+      properties:
+        model: { type: string }
+        promptVersion: { type: string }
+        callCount: { type: integer }
+        findingCount: { type: integer }
+        skippedCount: { type: integer }
+        costEstimateUsd: { type: number }
+        tokenUsage: { $ref: "#/components/schemas/TokenUsage" }
+        searchQueries: { type: array, items: { type: string } }
+        searchSuggestions: { type: string }
+        errors: { type: array, items: { type: string } }
 
     EditorSummary:
       type: object
