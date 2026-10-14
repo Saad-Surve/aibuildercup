@@ -7,7 +7,7 @@ Records live under the project subtree, so the recursive project/account delete 
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -84,6 +84,22 @@ class PublishStatus(StrEnum):
     deleted = "deleted"
 
 
+class PublishWarningCode(StrEnum):
+    THUMBNAIL_FORBIDDEN = "THUMBNAIL_FORBIDDEN"
+    THUMBNAIL_MISSING = "THUMBNAIL_MISSING"
+    THUMBNAIL_FAILED = "THUMBNAIL_FAILED"
+    CAPTIONS_SKIPPED = "CAPTIONS_SKIPPED"
+    CAPTIONS_FAILED = "CAPTIONS_FAILED"
+
+
+class PublishWarning(BaseModel):
+    """A non-fatal outcome: the video is up but an optional part did not make it."""
+
+    code: PublishWarningCode
+    message: str
+    step: Literal["thumbnail", "captions"]
+
+
 class Publish(BaseModel):
     publishId: str
     projectId: str
@@ -111,6 +127,8 @@ class Publish(BaseModel):
     uploadProgress: int = 0
     #: Short, ordered human-readable steps ("Uploading video", "Setting thumbnail", ...).
     steps: list[str] = Field(default_factory=list)
+    #: Append-only non-fatal problems (thumbnail/captions); status can still be `published`.
+    warnings: list[PublishWarning] = Field(default_factory=list)
     jobId: str | None = None
     #: Go-public time. Set at create; rescheduling a linked calendar slot moves it.
     publishAt: datetime | None = None

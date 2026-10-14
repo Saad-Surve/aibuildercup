@@ -299,6 +299,12 @@ an in-flight upload. It stores the resulting `youtubeVideoId` / `youtubeUrl` on 
 document lives under the project subtree, so the recursive project delete covers it; the YouTube
 video it created is **not** deleted (that is external state) and is called out here deliberately.
 
+`warnings` is an append-only array of `{code, message, step}` for non-fatal outcomes: the video
+is up (status stays `published`/`processing`) but the thumbnail or captions did not make it.
+Codes: `THUMBNAIL_FORBIDDEN` (channel lacks custom-thumbnail rights; needs phone verification),
+`THUMBNAIL_MISSING` (none selected), `THUMBNAIL_FAILED`, `CAPTIONS_SKIPPED` (no caption text),
+`CAPTIONS_FAILED`. `step` is `thumbnail` or `captions`. Retry resets it to `[]`.
+
 ## Schedules (content calendar)
 
 `users/{uid}/projects/{projectId}/schedules/{scheduleId}` is one planned posting slot on the

@@ -25,7 +25,12 @@ from app.connectors.base import ConnectorError
 from app.connectors.youtube import YouTubeConnector
 from app.errors import NotFoundError
 from app.schemas.jobs import JobStatus
-from app.schemas.publishes import PublishCaptionFormat, PublishStatus
+from app.schemas.publishes import (
+    PublishCaptionFormat,
+    PublishStatus,
+    PublishWarning,
+    PublishWarningCode,
+)
 from app.services.connection_service import ConnectionService
 from app.services.firestore_service import FirestoreClient
 from app.services.job_service import JobService
@@ -35,6 +40,8 @@ from app.services.token_cipher import build_token_cipher
 from app.workers.guard import serialize_job
 
 logger = logging.getLogger(__name__)
+
+_VERIFY_URL = "https://www.youtube.com/verify"
 
 TERMINAL_STATUSES = frozenset(
     {JobStatus.succeeded.value, JobStatus.failed.value, JobStatus.cancelled.value}
@@ -257,7 +264,22 @@ async def run_publish(
 
         # Thumbnail: optional, and best-effort — a channel without verified custom-thumbnail
         # access will reject it, which must not fail a video that is already uploaded.
-        if publish.get("thumbnailStoragePath"):
+        if not publish.get("thumbnailStoragePath"):
+            await asyncio.to_thread(
+                publishes.add_warning,
+                owner_uid=owner_uid,
+                project_id=project_id,
+                publish_id=publish_id,
+                warning=PublishWarning(
+                    code=PublishWarningCode.THUMBNAIL_MISSING,
+                    message=(
+                        "No thumbnail was selected, so YouTube chose an automatic frame. "
+                        "You can set a custom thumbnail on YouTube."
+                    ),
+                    step="thumbnail",
+                ),
+            )
+        else:
             try:
                 await asyncio.to_thread(
                     _report_progress,
@@ -293,7 +315,36 @@ async def run_publish(
                     step="Thumbnail set",
                 )
             except ConnectorError as exc:
-                logger.warning("publish %s: thumbnail rejected: %s", publish_id, exc.message)
+                logger.warning(
+                    "publish %s: thumbnail rejected (%s): %s",
+                    publish_id,
+                    exc.code,
+                    exc.message,
+                )
+                forbidden = exc.code == "YOUTUBE_FORBIDDEN"
+                await asyncio.to_thread(
+                    publishes.add_warning,
+                    owner_uid=owner_uid,
+                    project_id=project_id,
+                    publish_id=publish_id,
+                    warning=PublishWarning(
+                        code=(
+                            PublishWarningCode.THUMBNAIL_FORBIDDEN
+                            if forbidden
+                            else PublishWarningCode.THUMBNAIL_FAILED
+                        ),
+                        message=(
+                            "YouTube did not accept the custom thumbnail because this channel "
+                            "is not allowed to set one. Verify the channel by phone at "
+                            f"{_VERIFY_URL} (YouTube settings), then set the thumbnail on the "
+                            "video afterwards."
+                            if forbidden
+                            else f"The thumbnail could not be set ({exc.message}). "
+                            "You can set it on the video in YouTube."
+                        ),
+                        step="thumbnail",
+                    ),
+                )
                 await asyncio.to_thread(
                     publishes.mark_status,
                     owner_uid=owner_uid,
@@ -303,37 +354,71 @@ async def run_publish(
                     step=f"Thumbnail skipped ({exc.code})",
                 )
 
-        if (
-            publish.get("captionFormat") != PublishCaptionFormat.none.value
-            and str(publish.get("captionContent") or "").strip()
-        ):
-            await asyncio.to_thread(
-                _report_progress,
-                jobs,
-                publishes,
-                owner_uid=owner_uid,
-                project_id=project_id,
-                job_id=job_id,
-                publish_id=publish_id,
-                percent=95,
-                message="Uploading the caption track",
-            )
-            await asyncio.to_thread(
-                connector.upload_caption,
-                tokens,
-                video_id=uploaded.video_id,
-                content=str(publish["captionContent"]),
-                language=str(publish.get("captionLanguage") or "en"),
-                name=str(publish.get("captionName") or "English"),
-            )
-            await asyncio.to_thread(
-                publishes.mark_status,
-                owner_uid=owner_uid,
-                project_id=project_id,
-                publish_id=publish_id,
-                status=PublishStatus.processing,
-                step="Captions uploaded",
-            )
+        if publish.get("captionFormat") != PublishCaptionFormat.none.value:
+            if not str(publish.get("captionContent") or "").strip():
+                await asyncio.to_thread(
+                    publishes.add_warning,
+                    owner_uid=owner_uid,
+                    project_id=project_id,
+                    publish_id=publish_id,
+                    warning=PublishWarning(
+                        code=PublishWarningCode.CAPTIONS_SKIPPED,
+                        message="No caption text was available, so no caption track was uploaded.",
+                        step="captions",
+                    ),
+                )
+            else:
+                await asyncio.to_thread(
+                    _report_progress,
+                    jobs,
+                    publishes,
+                    owner_uid=owner_uid,
+                    project_id=project_id,
+                    job_id=job_id,
+                    publish_id=publish_id,
+                    percent=95,
+                    message="Uploading the caption track",
+                )
+                try:
+                    await asyncio.to_thread(
+                        connector.upload_caption,
+                        tokens,
+                        video_id=uploaded.video_id,
+                        content=str(publish["captionContent"]),
+                        language=str(publish.get("captionLanguage") or "en"),
+                        name=str(publish.get("captionName") or "English"),
+                    )
+                except ConnectorError as exc:
+                    # The video is already on YouTube; a caption failure must not fail it.
+                    logger.warning(
+                        "publish %s: captions rejected (%s): %s",
+                        publish_id,
+                        exc.code,
+                        exc.message,
+                    )
+                    await asyncio.to_thread(
+                        publishes.add_warning,
+                        owner_uid=owner_uid,
+                        project_id=project_id,
+                        publish_id=publish_id,
+                        warning=PublishWarning(
+                            code=PublishWarningCode.CAPTIONS_FAILED,
+                            message=(
+                                f"The caption track could not be uploaded ({exc.message}). "
+                                "You can add captions to the video in YouTube Studio."
+                            ),
+                            step="captions",
+                        ),
+                    )
+                else:
+                    await asyncio.to_thread(
+                        publishes.mark_status,
+                        owner_uid=owner_uid,
+                        project_id=project_id,
+                        publish_id=publish_id,
+                        status=PublishStatus.processing,
+                        step="Captions uploaded",
+                    )
 
         # A future go-public time means the upload is done but YouTube holds the
         # video private until then. Keep the publish `processing` (not

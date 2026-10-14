@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Alert02Icon,
   CloudUploadIcon,
   Delete02Icon,
   FileVideoIcon,
@@ -822,6 +823,33 @@ export function PublishingModule({
                   <p className="text-xs text-destructive">
                     {publish.error.message}
                   </p>
+                ) : null}
+                {publish.warnings?.length ? (
+                  <ul
+                    className="space-y-1 rounded-md border border-sev-medium/40 bg-sev-medium/10 p-2"
+                    aria-label="Publish warnings"
+                  >
+                    {publish.warnings.map((warning) => (
+                      <li
+                        key={warning.code}
+                        className="flex items-start gap-2 text-xs"
+                      >
+                        <Icon
+                          icon={Alert02Icon}
+                          className="mt-0.5 shrink-0 text-sev-medium"
+                        />
+                        <span>
+                          <span className="font-medium">
+                            {warning.step === "thumbnail"
+                              ? "Thumbnail"
+                              : "Captions"}{" "}
+                            warning:
+                          </span>{" "}
+                          {warning.message}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 ) : null}
                 {publish.steps.length > 0 ? (
                   <p className="text-xs text-muted-foreground">

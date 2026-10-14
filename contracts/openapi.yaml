@@ -4320,6 +4320,10 @@ components:
         steps:
           type: array
           items: { type: string }
+        warnings:
+          type: array
+          items: { $ref: "#/components/schemas/PublishWarning" }
+          description: Non-fatal problems; the publish can still be `published`.
         jobId: { type: [string, "null"] }
         publishAt:
           type: [string, "null"]
@@ -4329,6 +4333,24 @@ components:
         error: { type: [object, "null"], additionalProperties: true }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
+    PublishWarning:
+      type: object
+      required: [code, message, step]
+      description: |
+        A non-fatal outcome of a publish. The video reached YouTube, but an optional part
+        (thumbnail, captions) did not, so the creator must act on it. Append-only; cleared on retry.
+      properties:
+        code:
+          type: string
+          enum:
+            - THUMBNAIL_FORBIDDEN
+            - THUMBNAIL_MISSING
+            - THUMBNAIL_FAILED
+            - CAPTIONS_SKIPPED
+            - CAPTIONS_FAILED
+        message: { type: string, description: Actionable, creator-facing explanation. }
+        step: { type: string, enum: [thumbnail, captions] }
 
     PublishList:
       type: object

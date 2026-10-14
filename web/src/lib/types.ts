@@ -1006,6 +1006,20 @@ export interface PublishRequest {
   publishAt?: string | null;
 }
 
+export type PublishWarningCode =
+  | "THUMBNAIL_FORBIDDEN"
+  | "THUMBNAIL_MISSING"
+  | "THUMBNAIL_FAILED"
+  | "CAPTIONS_SKIPPED"
+  | "CAPTIONS_FAILED";
+
+/** A non-fatal publish outcome: the video is up but the thumbnail/captions are not. */
+export interface PublishWarning {
+  code: PublishWarningCode;
+  message: string;
+  step: "thumbnail" | "captions";
+}
+
 export interface Publish {
   publishId: string;
   projectId: string;
@@ -1030,6 +1044,7 @@ export interface Publish {
   youtubeUrl: string | null;
   uploadProgress: number;
   steps: string[];
+  warnings: PublishWarning[];
   jobId: string | null;
   /** Go-public time; rescheduling a linked calendar slot moves it. */
   publishAt: string | null;

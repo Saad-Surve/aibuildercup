@@ -32,6 +32,7 @@ from app.schemas.publishes import (
     PublishThumbnail,
     PublishVideoSource,
     PublishVisibility,
+    PublishWarning,
 )
 from app.schemas.thumbnails import ThumbnailStatus
 from app.services.asset_service import AssetService
@@ -115,6 +116,7 @@ def _to_publish(publish_id: str, data: dict[str, Any]) -> Publish:
         youtubeUrl=data.get("youtubeUrl"),
         uploadProgress=int(data.get("uploadProgress", 0) or 0),
         steps=list(data.get("steps") or []),
+        warnings=[PublishWarning(**warning) for warning in data.get("warnings") or []],
         jobId=data.get("jobId"),
         publishAt=data.get("publishAt"),
         error=data.get("error"),
@@ -216,6 +218,7 @@ class PublishService:
             "youtubeUrl": None,
             "uploadProgress": 0,
             "steps": ["Queued"],
+            "warnings": [],
             "jobId": None,
             "error": None,
             "createdAt": now,
@@ -688,6 +691,7 @@ class PublishService:
                 "error": None,
                 "uploadProgress": 0,
                 "steps": ["Queued"],
+                "warnings": [],
                 "updatedAt": datetime.now(UTC),
             },
         )
@@ -759,6 +763,25 @@ class PublishService:
                 publish_id=publish_id,
                 message=(error or {}).get("message") if isinstance(error, dict) else None,
             )
+
+    def add_warning(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        publish_id: str,
+        warning: PublishWarning,
+    ) -> None:
+        """Append a non-fatal warning (idempotent per code, so a job re-run does not duplicate)."""
+        data = self._require(owner_uid, project_id, publish_id)
+        warnings = list(data.get("warnings") or [])
+        if any(existing.get("code") == warning.code.value for existing in warnings):
+            return
+        warnings.append(warning.model_dump(mode="json"))
+        self.client.update_document(
+            publish_path(owner_uid, project_id, publish_id),
+            {"warnings": warnings, "updatedAt": datetime.now(UTC)},
+        )
 
     def _require(self, owner_uid: str, project_id: str, publish_id: str) -> dict[str, Any]:
         self.projects.get(owner_uid=owner_uid, project_id=project_id)
