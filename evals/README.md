@@ -147,6 +147,12 @@ The report shares IDs/ranks, not full third-party transcripts or private credent
 
 ## Editorial quality: protocol, not results
 
+A gold-issue harness now exists for a first, small version of this study: see
+[editorial/README.md](editorial/README.md). It compares one Gemini prompt against the nine
+reviewers on constructed videos with 20 planted flaws and a clean control, with labels committed
+before any run. It has produced no results yet, and it is a constructed benchmark, not the
+independent-editor study described below.
+
 The flagship needs two kinds of evidence: correct observations and edits the creator
 actually finds useful. A creator supplied a project and public source-video link; complete
 outputs and creator labels are still pending. No manual gold labels or time-saving
