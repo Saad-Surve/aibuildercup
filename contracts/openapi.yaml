@@ -3539,9 +3539,9 @@ components:
       required: [status]
       properties:
         status: { type: string, enum: [accepted, revised, dismissed] }
-        note: { type: string, maxLength: 2000 }
+        note: { type: [string, "null"], maxLength: 2000 }
         revisedAction:
-          type: string
+          type: [string, "null"]
           minLength: 1
           maxLength: 4000
           description: Required and nonblank for revised; only permitted for revised.

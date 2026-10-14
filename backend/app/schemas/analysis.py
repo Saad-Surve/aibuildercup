@@ -142,8 +142,12 @@ class FindingDecisionInput(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     status: Literal["accepted", "revised", "dismissed"]
-    note: str | None = Field(default=None, max_length=2000)
-    revisedAction: str | None = Field(default=None, min_length=1, max_length=4000)
+    note: str | None = Field(
+        default=None, max_length=2000, exclude_if=lambda value: value is None
+    )
+    revisedAction: str | None = Field(
+        default=None, min_length=1, max_length=4000, exclude_if=lambda value: value is None
+    )
 
     @model_validator(mode="after")
     def validate_revision(self) -> "FindingDecisionInput":

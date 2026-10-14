@@ -239,7 +239,7 @@ def _prompt(
     return prompt
 
 
-async def adjudicate_findings(
+async def adjudicate(
     findings: list[Finding],
     *,
     segments: Sequence[SegmentRef],
@@ -251,6 +251,7 @@ async def adjudicate_findings(
     creator_context: str = "",
     reserve_call: Callable[[str, str, int], Awaitable[str | None]] | None = None,
     settle_call: Callable[[str, LlmUsage | None, str | None], Awaitable[None]] | None = None,
+    abort_on: tuple[type[Exception], ...] = (),
 ) -> AdjudicatorSummary:
     """Mutate model metadata only; all per-finding failures are isolated and counted."""
     model = settings.model_adjudicator or settings.model_reviewer
@@ -378,6 +379,8 @@ async def adjudicate_findings(
             if slot is not None and settle_call is not None:
                 await settle_call(slot, completion_usage, None)
         except Exception as exc:  # noqa: BLE001 - one failed check never fails the run
+            if isinstance(exc, abort_on):
+                raise
             failed(finding.findingId, exc, uncertain_charge=called and not charged)
             if slot is not None and settle_call is not None:
                 try:
@@ -439,6 +442,8 @@ async def adjudicate_findings(
             if slot is not None and settle_call is not None:
                 await settle_call(slot, completion_usage, None)
         except Exception as exc:  # noqa: BLE001
+            if isinstance(exc, abort_on):
+                raise
             failed("conflict", exc, uncertain_charge=called and not charged)
             if slot is not None and settle_call is not None:
                 try:

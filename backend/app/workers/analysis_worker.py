@@ -20,7 +20,7 @@ from typing import Any
 
 from fastapi import BackgroundTasks
 
-from app.agents.adjudicator import ADJUDICATOR_PROMPT_VERSION, adjudicate_findings
+from app.agents.adjudicator import ADJUDICATOR_PROMPT_VERSION, adjudicate
 from app.agents.analysis_coordinator import (
     DEFAULT_CHUNK_CHARS,
     DimensionOutcome,
@@ -463,7 +463,7 @@ async def run_analysis(
                 error=error,
             )
 
-        adjudication = await adjudicate_findings(
+        adjudication = await adjudicate(
             findings,
             segments=segments,
             llm=llm,

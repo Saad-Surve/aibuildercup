@@ -31,6 +31,7 @@ export function DisabledReason({
   return (
     <Tooltip>
       <TooltipTrigger
+        tabIndex={0}
         render={<span className={className ? `inline-flex ${className}` : "inline-flex"} />}
       >
         {children}

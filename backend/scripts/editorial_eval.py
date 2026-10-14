@@ -49,6 +49,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import editorial_score as scoring
 
+from app.agents.adjudicator import ADJUDICATOR_PROMPT_VERSION, adjudicator_reservation
 from app.agents.analysis_coordinator import (
     REVIEWER_CLASSES,
     build_review_contexts,
@@ -67,9 +68,10 @@ from app.agents.reviewer_base import (
     normalize_findings,
 )
 from app.config import Settings
-from app.providers.base import LlmUsage, MediaPart
+from app.providers.base import MediaPart
 from app.providers.llm import LlmProvider, _grounding_from, _usage_from
-from app.schemas.analysis import ACTIVE_DIMENSIONS, AnalysisDimension
+from app.schemas.analysis import ACTIVE_DIMENSIONS, AdjudicatorSummary, AnalysisDimension, Finding
+from app.services.heatmap import effective_findings
 from app.services.video_tools import MediaToolkit, ffmpeg_available
 from app.workers.analysis_worker import _add_sampled_frames
 
@@ -222,6 +224,7 @@ def code_fingerprint() -> dict[str, Any]:
         BACKEND / "scripts" / "editorial_score.py",
         BACKEND / "app" / "agents" / "reviewer_base.py",
         BACKEND / "app" / "agents" / "analysis_coordinator.py",
+        BACKEND / "app" / "agents" / "adjudicator.py",
     ]
     return {
         "revision": git("rev-parse", "HEAD"),
@@ -416,46 +419,79 @@ async def run_reviewer_arm(
 
 
 def load_adjudicator(entrypoint: str) -> Any:
-    """Resolve `module:function`. TODO(feat/findings-loop): the adjudicator is not on this branch.
-
-    Expected interface once it lands (adapt the call in `run_adjudicated_arm` to the real one):
-
-        async def adjudicate(
-            llm, *, model: str, findings: list[Finding], segments: list[SegmentRef],
-            duration_ms: int
-        ) -> tuple[list[Finding], LlmUsage]
-    """
+    """Resolve `module:function` with the production adjudicator's interface."""
     module_name, _, function_name = entrypoint.partition(":")
     try:
         return getattr(import_module(module_name), function_name)
     except (ImportError, AttributeError) as exc:
         raise SystemExit(
-            f"adjudicator '{entrypoint}' is not importable ({exc}). The adjudicator pass lives on "
-            "feat/findings-loop; merge it and pass --adjudicator module:function, or drop the "
-            "'adjudicated' arm."
+            f"adjudicator '{entrypoint}' is not importable ({exc}); pass --adjudicator "
+            "module:function or drop the 'adjudicated' arm."
         ) from exc
+
+
+class LocalEvidenceStore:
+    """Keep the footage the model checked alongside the evaluation's raw output."""
+
+    def __init__(self, root: Path) -> None:
+        self.root = root
+
+    def save(self, part: MediaPart, *, reviewer_run_id: str, tool: str, index: int) -> str:
+        directory = self.root / hashlib.sha256(reviewer_run_id.encode()).hexdigest()[:16]
+        directory.mkdir(parents=True, exist_ok=True)
+        extension = "mp4" if part.mime_type == "video/mp4" else "jpg"
+        path = directory / f"{index:02d}-{tool}.{extension}"
+        path.write_bytes(part.data)
+        return str(path)
 
 
 async def run_adjudicated_arm(
     llm: MeteredLlm,
     adjudicate: Any,
     *,
+    settings: Settings,
     model: str,
     label: dict[str, Any],
     segments: Sequence[SegmentRef],
     reviewer_findings: list[dict[str, Any]],
+    media_path: Path,
+    evidence_dir: Path,
 ) -> dict[str, Any]:
-    from app.schemas.analysis import Finding
-
-    findings, usage = await adjudicate(
-        llm,
-        model=model,
-        findings=[Finding.model_validate(item) for item in reviewer_findings],
-        segments=list(segments),
-        duration_ms=int(label["durationMs"]),
+    findings = [Finding.model_validate(item) for item in reviewer_findings]
+    # --model applies to every arm; this arm always checks actual footage, independently
+    # of whether reviewer-requested visual tools were enabled in the first pass.
+    settings = settings.model_copy(update={"model_adjudicator": model})
+    toolkit = (
+        MediaToolkit(
+            source=str(media_path),
+            duration_ms=int(label["durationMs"]),
+            ffmpeg_path=settings.ffmpeg_path,
+            window_seconds=5,
+        )
+        if ffmpeg_available(settings.ffmpeg_path)
+        else None
     )
-    assert isinstance(usage, LlmUsage)
-    return {"findings": [finding.model_dump(mode="json") for finding in findings]}
+    summary = await adjudicate(
+        findings,
+        llm=llm,
+        settings=settings,
+        segments=list(segments),
+        toolkit=toolkit,
+        store=LocalEvidenceStore(evidence_dir),
+        budget_usd=min(settings.max_project_cost_usd, adjudicator_reservation(settings)),
+        abort_on=(BudgetExceeded,),
+        creator_context=(
+            f"Title: {label['title']}\nBrief: {label['brief']}\nAudience: {label['audience']}\n"
+            f"Platform: {label['platform']}\nLanguage: {label['language']}"
+        ),
+    )
+    if not isinstance(summary, AdjudicatorSummary):
+        raise TypeError("Adjudicator must return AdjudicatorSummary")
+    return {
+        "findings": [finding.model_dump(mode="json") for finding in effective_findings(findings)],
+        "allFindings": [finding.model_dump(mode="json") for finding in findings],
+        "adjudicator": summary.model_dump(mode="json"),
+    }
 
 
 # ------------------------------------------------------------------ run
@@ -488,7 +524,7 @@ def plan_calls(arms: Sequence[str], labels: dict[str, dict[str, Any]], settings:
                 len(ACTIVE_DIMENSIONS) * chunk_total * (1 + extra_rounds),
             )
         elif arm == "adjudicated":
-            per_arm[arm] = (len(labels), len(labels) * 3)
+            per_arm[arm] = (0, len(labels) * settings.max_adjudicator_calls)
     return {
         "perArm": {arm: {"min": low, "max": high} for arm, (low, high) in per_arm.items()},
         "min": sum(low for low, _ in per_arm.values()),
@@ -523,11 +559,14 @@ async def run_arms(args: argparse.Namespace, settings: Settings, model: str) -> 
             "reviewerConcurrency": settings.max_reviewer_concurrency,
             "maxVisualContextRequests": settings.max_visual_context_requests,
             "visualToolMaxRounds": settings.visual_tool_max_rounds,
+            "maxAdjudicatorCalls": settings.max_adjudicator_calls,
+            "maxConflictCalls": settings.max_conflict_calls,
         },
         "promptVersions": {
             "reviewers": REVIEWER_PROMPT_VERSION,
             "modelConfig": MODEL_CONFIG_VERSION,
             "baseline": BASELINE_PROMPT_VERSION,
+            "adjudicator": ADJUDICATOR_PROMPT_VERSION,
         },
         "labels": registration,
         "code": code_fingerprint(),
@@ -574,10 +613,18 @@ async def run_arms(args: argparse.Namespace, settings: Settings, model: str) -> 
                         entry = await run_adjudicated_arm(
                             llm,
                             adjudicate,
+                            settings=settings.model_copy(
+                                update={
+                                    "adjudicator_input_price_per_mtok": args.input_price,
+                                    "adjudicator_output_price_per_mtok": args.output_price,
+                                }
+                            ),
                             model=model,
                             label=label,
                             segments=segments,
                             reviewer_findings=reviewer_findings,
+                            media_path=media_path,
+                            evidence_dir=out_dir / f"editorial-{run_id}.evidence" / video_id,
                         )
                 except BudgetExceeded:
                     raw["abortedAt"] = tag
@@ -682,6 +729,8 @@ def command_run(args: argparse.Namespace) -> None:
         raise SystemExit(f"unknown arms: {', '.join(unknown)} (choose from {', '.join(ARMS)})")
     if "adjudicated" in arms and "reviewers" not in arms:
         raise SystemExit("the 'adjudicated' arm adjudicates the 'reviewers' arm: include both")
+    if "adjudicated" in arms and arms.index("adjudicated") < arms.index("reviewers"):
+        raise SystemExit("put the 'reviewers' arm before 'adjudicated'")
     if args.input_price is None:
         args.input_price = settings.llm_input_price_per_mtok
     if args.output_price is None:

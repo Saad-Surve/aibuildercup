@@ -9,7 +9,7 @@ is scored against labels that were committed before any model ran.
 | `baseline` | One Gemini call over the whole video plus its transcript, asked for timestamped issues in the reviewers' output shape. Google Search grounding on, like the Truth reviewer. |
 | `rubric` | The same single call, with all nine reviewers' rubrics pasted in. This is the strongest "just ask Gemini" baseline, and it isolates specialisation from prompt content. |
 | `reviewers` | The production path: transcript chunking, shared frames, footage tools, nine reviewers, per-window normalisation. It reuses `analysis_coordinator`, `reviewer_base` and the worker's frame sampler. It is not a reimplementation. |
-| `adjudicated` | `reviewers`, then the adjudicator pass from `feat/findings-loop`. **Not on this branch:** the arm is pluggable and fails fast until `app/agents/adjudicator.py` exists (see below). |
+| `adjudicated` | The same `reviewers` findings, checked by the production footage-backed adjudicator. Rejections are excluded and downgrades use adjusted severity for scoring. |
 
 Results are reported per arm and never pooled across arms. No result has been produced yet:
 the full run is the coordinator's job after merging. Only one bounded smoke test of
@@ -157,18 +157,28 @@ normalised. A replay scored file has `modelCalls: 0` and a `replayOf` hash of it
 
 ### The adjudicated arm
 
-`--adjudicator module:function` (default `app.agents.adjudicator:adjudicate`) is resolved before
-any call is made, so the run fails fast and spends nothing while the code is absent. **TODO once
-`feat/findings-loop` is merged:** confirm the entry point and adapt the call in
-`run_adjudicated_arm` if its signature differs from the expected
+`--adjudicator module:function` defaults to the production
+`app.agents.adjudicator:adjudicate` and is resolved before any live call. Its interface is:
 
 ```python
-async def adjudicate(llm, *, model: str, findings: list[Finding],
-                     segments: list[SegmentRef], duration_ms: int) -> tuple[list[Finding], LlmUsage]
+async def adjudicate(findings: list[Finding], *, segments, llm, settings,
+                     toolkit, store, budget_usd, creator_context="",
+                     reserve_call=None, settle_call=None, abort_on=()) -> AdjudicatorSummary
 ```
 
-The arm adjudicates the same `reviewers` findings of the same run, so the comparison is paired.
-Its reported cost is the reviewers' cost plus the adjudicator's.
+List `reviewers` before `adjudicated` in `--arms`. The arm uses the same reviewers' findings,
+so the comparison is paired. It uses the selected `--model`, brief/audience and actual local
+frames/clips even when reviewer-requested visual tools are disabled. Up to
+`MAX_ADJUDICATOR_CALLS` calls per video (default 12 total, including at most four conflict
+checks) are added to the dry-run upper bound; the minimum is zero when no check is needed.
+Provider retries are disabled for this pass, and the harness's global call cap aborts it.
+Provider/media/validation failures leave findings not checked, as in production.
+
+Raw output saves original observations in `allFindings`, scoring observations in `findings`,
+and the pass summary in `adjudicator`. Checked footage is written beside raw results under
+`editorial-{runId}.evidence/{videoId}/`; no cloud persistence is needed. Its reported cost is
+the reviewers' cost plus the adjudicator's. Prompt version and adjudicator source hash are
+recorded for replay. Run this arm with live calls only when explicitly authorized.
 
 ## Fairness choices
 
