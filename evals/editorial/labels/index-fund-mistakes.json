@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "videoId": "index-fund-mistakes",
+  "title": "3 Beginner Mistakes with Index Funds",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "Nervous beginner investors anywhere in the world.",
+  "brief": "Warm, encouraging tone for nervous beginners. Explain what an index fund is and the beginner mistakes to avoid. Goal: viewers join the free email course at moneybasics.example/course.",
+  "clean": false,
+  "durationMs": 125166,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/index-fund-mistakes.json",
+    "scriptSha256": "83e384291966d30d5f54758503d7df440454b0b2b4892269923664233c06fa75",
+    "media": "media/index-fund-mistakes.mp4",
+    "mediaSha256": "4f4409eff15210c8c5573110a5256fc2f2b537f5e10f01f4044c73722fa3a8dc",
+    "tts": "macOS say, voice Daniel, 152 wpm"
+  },
+  "issues": [
+    {
+      "id": "C1",
+      "category": "broken_promise",
+      "startMs": 104896,
+      "endMs": 113758,
+      "additionalSpans": [
+        {
+          "startMs": 8815,
+          "endMs": 15909
+        }
+      ],
+      "description": "The title and opening promise three mistakes, but only two are covered; the closing wraps up without a third mistake.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "C2",
+      "category": "unsupported_claim",
+      "startMs": 56660,
+      "endMs": 65800,
+      "additionalSpans": [],
+      "description": "Claims index funds beat 90 percent of professional fund managers 'every single year', an absolute statement with no source; the real figure varies by year and period.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "C3",
+      "category": "safety",
+      "startMs": 92122,
+      "endMs": 103996,
+      "additionalSpans": [],
+      "description": "Guarantees the viewer will double their money in five years, says they 'can't lose', and tells them to put emergency savings into the fund: a guaranteed-returns financial claim and unsafe personal advice.",
+      "expectedDimension": "legal_safety"
+    },
+    {
+      "id": "C4",
+      "category": "locale_assumption",
+      "startMs": 30627,
+      "endMs": 41924,
+      "additionalSpans": [],
+      "description": "Tells a worldwide audience to open a Roth IRA or 401(k) at Fidelity or Vanguard, which exist only in the United States.",
+      "expectedDimension": "cultural_localization"
+    },
+    {
+      "id": "C5",
+      "category": "tone_mismatch",
+      "startMs": 79769,
+      "endMs": 91222,
+      "additionalSpans": [],
+      "description": "A condescending outburst ('what are you even doing?', 'grown adults') contradicts the brief's warm, encouraging tone for nervous beginners.",
+      "expectedDimension": "audience_brand"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "videoId": "immune-system-cold",
+  "title": "What Actually Happens When You Catch a Cold",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "General adult viewers with no medical background.",
+  "brief": "Explain what happens in the body during a common cold and what actually helps. Goal: viewers download the free symptom diary linked in the description.",
+  "clean": false,
+  "durationMs": 143801,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/immune-system-cold.json",
+    "scriptSha256": "74dbfb3c81baf0c7eb02b287fa789552280baf89e91a30e75862289ccc0e4b85",
+    "media": "media/immune-system-cold.mp4",
+    "mediaSha256": "f63144b132bb9e70acf52815fb7dd995a1359eaedcef76c66f1576bcd30328c5",
+    "tts": "macOS say, voice Karen, 152 wpm"
+  },
+  "issues": [
+    {
+      "id": "B1",
+      "category": "factual_error",
+      "startMs": 37787,
+      "endMs": 43765,
+      "additionalSpans": [],
+      "description": "States that around 80 percent of body heat escapes through the head. This is a myth; the head loses roughly in proportion to its surface area, about 10 percent.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "B2",
+      "category": "unsupported_claim",
+      "startMs": 113904,
+      "endMs": 120059,
+      "additionalSpans": [],
+      "description": "Claims 'studies show' huge doses of vitamin C cut every cold in half, with no source. Evidence shows at most a small effect on duration, mainly in specific groups.",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "B3",
+      "category": "safety",
+      "startMs": 120959,
+      "endMs": 131982,
+      "additionalSpans": [],
+      "description": "Tells viewers not to consult a doctor for a child's days-long high fever and to give a double dose of paracetamol repeatedly, which is dangerous medical advice.",
+      "expectedDimension": "legal_safety"
+    },
+    {
+      "id": "B4",
+      "category": "pacing_drag",
+      "startMs": 77785,
+      "endMs": 102850,
+      "additionalSpans": [],
+      "description": "The definition of antibodies is restated four times in slightly different words, slowing the video without adding information.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "B5",
+      "category": "jargon",
+      "startMs": 61934,
+      "endMs": 76885,
+      "additionalSpans": [],
+      "description": "A sentence of immunology terminology (CD8-positive cytotoxic T lymphocytes, clonal expansion, MHC class one, interferon-gamma, macrophage activation) is delivered unexplained to a lay audience.",
+      "expectedDimension": "clarity"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "id": "index-fund-mistakes",
+  "title": "3 Beginner Mistakes with Index Funds",
+  "voice": "Daniel",
+  "rate": 152,
+  "language": "en",
+  "platform": "youtube",
+  "audience": "Nervous beginner investors anywhere in the world.",
+  "brief": "Warm, encouraging tone for nervous beginners. Explain what an index fund is and the beginner mistakes to avoid. Goal: viewers join the free email course at moneybasics.example/course.",
+  "issues": [
+    {
+      "id": "C1",
+      "category": "broken_promise",
+      "expectedDimension": "pacing_retention",
+      "description": "The title and opening promise three mistakes, but only two are covered; the closing wraps up without a third mistake."
+    },
+    {
+      "id": "C2",
+      "category": "unsupported_claim",
+      "expectedDimension": "truth_evidence",
+      "description": "Claims index funds beat 90 percent of professional fund managers 'every single year', an absolute statement with no source; the real figure varies by year and period."
+    },
+    {
+      "id": "C3",
+      "category": "safety",
+      "expectedDimension": "legal_safety",
+      "description": "Guarantees the viewer will double their money in five years, says they 'can't lose', and tells them to put emergency savings into the fund: a guaranteed-returns financial claim and unsafe personal advice."
+    },
+    {
+      "id": "C4",
+      "category": "locale_assumption",
+      "expectedDimension": "cultural_localization",
+      "description": "Tells a worldwide audience to open a Roth IRA or 401(k) at Fidelity or Vanguard, which exist only in the United States."
+    },
+    {
+      "id": "C5",
+      "category": "tone_mismatch",
+      "expectedDimension": "audience_brand",
+      "description": "A condescending outburst ('what are you even doing?', 'grown adults') contradicts the brief's warm, encouraging tone for nervous beginners."
+    }
+  ],
+  "lines": [
+    {"text": "If you have ever wondered whether you are too late, too young, or too clueless to start investing, this video is for you.", "pauseMs": 400},
+    {"text": "Today I am sharing the three biggest mistakes beginners make with index funds, and how to avoid every one of them.", "alsoAcceptIssues": ["C1"], "pauseMs": 900},
+    {"text": "First, what is an index fund?", "pauseMs": 300},
+    {"text": "It is a single fund that holds a small piece of many companies at once, so you are spreading your money across hundreds of businesses instead of betting on just one.", "pauseMs": 900},
+    {"text": "To get started, just open a Roth IRA or a 401(k) through Fidelity or Vanguard, and pick an S and P five hundred fund.", "issues": ["C4"], "pauseMs": 350},
+    {"text": "That's it.", "issues": ["C4"], "pauseMs": 900},
+    {"text": "Mistake number one: waiting for the perfect moment.", "pauseMs": 300},
+    {"text": "Nobody can time the market, and time in the market usually matters more than timing.", "pauseMs": 350},
+    {"text": "Starting small and early beats starting big and late.", "pauseMs": 900},
+    {"text": "Index funds beat ninety percent of professional fund managers every single year, so there is really no reason to ever pay for active management.", "issues": ["C2"], "pauseMs": 900},
+    {"text": "Mistake number two: panic selling.", "pauseMs": 300},
+    {"text": "Markets fall sometimes, and that is normal.", "pauseMs": 350},
+    {"text": "The people who get hurt are usually the ones who sell during the drop and lock in the loss.", "pauseMs": 900},
+    {"text": "And honestly, if you don't already know that, what are you even doing?", "issues": ["C5"], "pauseMs": 350},
+    {"text": "It is the most basic thing in investing, and I cannot believe I have to explain it to grown adults.", "issues": ["C5"], "pauseMs": 900},
+    {"text": "Here is my promise to you.", "issues": ["C3"], "pauseMs": 300},
+    {"text": "I guarantee that if you put your emergency savings into an index fund today, you will double your money in five years.", "issues": ["C3"], "pauseMs": 350},
+    {"text": "You literally cannot lose.", "issues": ["C3"], "pauseMs": 900},
+    {"text": "So those are the mistakes to avoid. Start early, and don't panic.", "issues": ["C1"], "pauseMs": 350},
+    {"text": "Index funds are a simple tool, and that is all there is to it.", "issues": ["C1"], "pauseMs": 900},
+    {"text": "If you want the full beginner roadmap, join the free email course at moneybasics dot example slash course.", "pauseMs": 350},
+    {"text": "See you next time.", "pauseMs": 600}
+  ]
+}

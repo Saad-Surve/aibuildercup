@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "videoId": "espresso-basics",
+  "title": "Fix Bitter Home Espresso in Three Steps",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "Complete beginners anywhere in the world who just bought their first espresso machine.",
+  "brief": "Teach three fixes for bitter home espresso: grind, dose and water temperature. Goal: viewers join the free newsletter at coffeelab.example/newsletter to get the recipe card.",
+  "clean": false,
+  "durationMs": 143917,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/espresso-basics.json",
+    "scriptSha256": "fc6cc38dd1e667c014d0597aa9fbe3d94c9f857c3a4ce13ff9b8044bd37090ba",
+    "media": "media/espresso-basics.mp4",
+    "mediaSha256": "cd6526942f0ff300980e84643b471d843f78b802a9472837b558512a696b9a44",
+    "tts": "macOS say, voice Samantha, 152 wpm"
+  },
+  "issues": [
+    {
+      "id": "A1",
+      "category": "weak_hook",
+      "startMs": 600,
+      "endMs": 20416,
+      "additionalSpans": [],
+      "description": "The opening spends about 20 seconds on greetings and throat-clearing and never states what the viewer will get; the actual promise only arrives after the intro.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "A2",
+      "category": "jargon",
+      "startMs": 42952,
+      "endMs": 60892,
+      "additionalSpans": [],
+      "description": "Dense barista jargon (channeling, puck prep, TDS, brew ratio, extraction yield, distribution tool) is used with no explanation for a beginner audience.",
+      "expectedDimension": "clarity"
+    },
+    {
+      "id": "A3",
+      "category": "tangent",
+      "startMs": 73687,
+      "endMs": 110531,
+      "additionalSpans": [],
+      "description": "A roughly 35-second story about a cousin's wedding in Lisbon has no connection to fixing espresso and stalls the tutorial.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "A4",
+      "category": "locale_assumption",
+      "startMs": 117016,
+      "endMs": 129906,
+      "additionalSpans": [],
+      "description": "Gives temperature only in Fahrenheit and assumes US retailers (Walmart, Target) and a US cultural reference for a worldwide audience.",
+      "expectedDimension": "cultural_localization"
+    },
+    {
+      "id": "A5",
+      "category": "missing_cta",
+      "startMs": 139276,
+      "endMs": 142517,
+      "additionalSpans": [],
+      "description": "The brief's goal is newsletter sign-ups, but the video ends with 'Thanks, bye' and never mentions the newsletter or recipe card.",
+      "expectedDimension": "conversion_cta"
+    }
+  ]
+}

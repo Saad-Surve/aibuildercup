@@ -1,0 +1,241 @@
+{
+  "videoId": "espresso-basics",
+  "language": "en",
+  "durationMs": 143917,
+  "segments": [
+    {
+      "segmentId": "seg-1",
+      "startMs": 600,
+      "endMs": 4331,
+      "text": "Hey guys, welcome back to the channel, it's me again."
+    },
+    {
+      "segmentId": "seg-2",
+      "startMs": 4681,
+      "endMs": 9708,
+      "text": "So, um, today I thought we could maybe talk about a few things related"
+    },
+    {
+      "segmentId": "seg-3",
+      "startMs": 9708,
+      "endMs": 13389,
+      "text": "to coffee, and, yeah, we'll just see where it goes."
+    },
+    {
+      "segmentId": "seg-4",
+      "startMs": 13739,
+      "endMs": 18321,
+      "text": "Before we start, a quick hello to everybody who is new here, and also"
+    },
+    {
+      "segmentId": "seg-5",
+      "startMs": 18321,
+      "endMs": 20416,
+      "text": "to everyone who isn't new here."
+    },
+    {
+      "segmentId": "seg-6",
+      "startMs": 21316,
+      "endMs": 26320,
+      "text": "Home espresso tastes bitter for three reasons, and each one takes about a minute"
+    },
+    {
+      "segmentId": "seg-7",
+      "startMs": 26320,
+      "endMs": 26812,
+      "text": "to fix."
+    },
+    {
+      "segmentId": "seg-8",
+      "startMs": 27712,
+      "endMs": 30074,
+      "text": "Reason one: your grind is wrong."
+    },
+    {
+      "segmentId": "seg-9",
+      "startMs": 30374,
+      "endMs": 34850,
+      "text": "A good shot of espresso takes about twenty-five to thirty seconds to pour."
+    },
+    {
+      "segmentId": "seg-10",
+      "startMs": 35200,
+      "endMs": 38575,
+      "text": "If it gushes out in ten seconds, grind finer."
+    },
+    {
+      "segmentId": "seg-11",
+      "startMs": 38875,
+      "endMs": 42052,
+      "text": "If it drips for forty seconds, grind coarser."
+    },
+    {
+      "segmentId": "seg-12",
+      "startMs": 42952,
+      "endMs": 48673,
+      "text": "Now, to dial in properly, watch for channeling in the puck, since uneven extraction"
+    },
+    {
+      "segmentId": "seg-13",
+      "startMs": 48673,
+      "endMs": 52489,
+      "text": "produces a high TDS with sour acidity on the front end."
+    },
+    {
+      "segmentId": "seg-14",
+      "startMs": 52839,
+      "endMs": 57646,
+      "text": "If your brew ratio is off, adjust your puck prep, distribution tool and tamp"
+    },
+    {
+      "segmentId": "seg-15",
+      "startMs": 57646,
+      "endMs": 60892,
+      "text": "pressure until you hit the target extraction yield."
+    },
+    {
+      "segmentId": "seg-16",
+      "startMs": 61792,
+      "endMs": 65013,
+      "text": "Reason two: the amount of coffee in the basket."
+    },
+    {
+      "segmentId": "seg-17",
+      "startMs": 65313,
+      "endMs": 67473,
+      "text": "Weigh your coffee instead of guessing."
+    },
+    {
+      "segmentId": "seg-18",
+      "startMs": 67773,
+      "endMs": 72787,
+      "text": "For most home machines, eighteen grams in the basket is a great starting point."
+    },
+    {
+      "segmentId": "seg-19",
+      "startMs": 73687,
+      "endMs": 78721,
+      "text": "Funny enough, this reminds me of last summer, when my cousin got married in"
+    },
+    {
+      "segmentId": "seg-20",
+      "startMs": 78721,
+      "endMs": 79247,
+      "text": "Lisbon."
+    },
+    {
+      "segmentId": "seg-21",
+      "startMs": 79597,
+      "endMs": 84490,
+      "text": "Her wedding was in this old convent, and the caterer had the strangest espresso"
+    },
+    {
+      "segmentId": "seg-22",
+      "startMs": 84490,
+      "endMs": 85894,
+      "text": "cart I have ever seen."
+    },
+    {
+      "segmentId": "seg-23",
+      "startMs": 86244,
+      "endMs": 90924,
+      "text": "It had a little brass bell, and every time somebody ordered, he rang it"
+    },
+    {
+      "segmentId": "seg-24",
+      "startMs": 90924,
+      "endMs": 91383,
+      "text": "twice."
+    },
+    {
+      "segmentId": "seg-25",
+      "startMs": 91733,
+      "endMs": 95857,
+      "text": "My cousin's husband rang it about forty times just to annoy him."
+    },
+    {
+      "segmentId": "seg-26",
+      "startMs": 96207,
+      "endMs": 100247,
+      "text": "I took so many photos of that cart, and one day I'll post them"
+    },
+    {
+      "segmentId": "seg-27",
+      "startMs": 100247,
+      "endMs": 101657,
+      "text": "on my second channel."
+    },
+    {
+      "segmentId": "seg-28",
+      "startMs": 102007,
+      "endMs": 107014,
+      "text": "My other cousin, who lives in Porto, says Lisbon is overrated, which I think"
+    },
+    {
+      "segmentId": "seg-29",
+      "startMs": 107014,
+      "endMs": 110531,
+      "text": "is wrong, because the trams alone are worth the trip."
+    },
+    {
+      "segmentId": "seg-30",
+      "startMs": 111431,
+      "endMs": 113431,
+      "text": "Okay, back to coffee."
+    },
+    {
+      "segmentId": "seg-31",
+      "startMs": 114331,
+      "endMs": 116716,
+      "text": "Reason three: water temperature."
+    },
+    {
+      "segmentId": "seg-32",
+      "startMs": 117016,
+      "endMs": 121909,
+      "text": "Aim for two hundred degrees Fahrenheit, which any barista in the States will tell"
+    },
+    {
+      "segmentId": "seg-33",
+      "startMs": 121909,
+      "endMs": 123280,
+      "text": "you is the sweet spot."
+    },
+    {
+      "segmentId": "seg-34",
+      "startMs": 123630,
+      "endMs": 127715,
+      "text": "And if you need a thermometer or a kitchen scale, just grab one at"
+    },
+    {
+      "segmentId": "seg-35",
+      "startMs": 127715,
+      "endMs": 129906,
+      "text": "Walmart or Target on your way home."
+    },
+    {
+      "segmentId": "seg-36",
+      "startMs": 130806,
+      "endMs": 134057,
+      "text": "So that's it: grind, dose and temperature."
+    },
+    {
+      "segmentId": "seg-37",
+      "startMs": 134407,
+      "endMs": 138676,
+      "text": "Try them one at a time, and taste the difference after each change."
+    },
+    {
+      "segmentId": "seg-38",
+      "startMs": 139276,
+      "endMs": 140721,
+      "text": "And that's all I've got."
+    },
+    {
+      "segmentId": "seg-39",
+      "startMs": 141021,
+      "endMs": 142517,
+      "text": "Thanks, bye."
+    }
+  ]
+}

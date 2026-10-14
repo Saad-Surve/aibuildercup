@@ -1,0 +1,247 @@
+{
+  "videoId": "python-decorators",
+  "language": "en",
+  "durationMs": 152609,
+  "segments": [
+    {
+      "segmentId": "seg-1",
+      "startMs": 600,
+      "endMs": 5232,
+      "text": "So, um, today we are going to talk about a thing in Python."
+    },
+    {
+      "segmentId": "seg-2",
+      "startMs": 5582,
+      "endMs": 6719,
+      "text": "It's a feature."
+    },
+    {
+      "segmentId": "seg-3",
+      "startMs": 6719,
+      "endMs": 8567,
+      "text": "It's one that people use."
+    },
+    {
+      "segmentId": "seg-4",
+      "startMs": 8917,
+      "endMs": 14336,
+      "text": "I think it is a pretty interesting thing, so let's, you know, get into"
+    },
+    {
+      "segmentId": "seg-5",
+      "startMs": 14336,
+      "endMs": 15328,
+      "text": "it, I guess."
+    },
+    {
+      "segmentId": "seg-6",
+      "startMs": 16228,
+      "endMs": 21291,
+      "text": "By the end of this video, you will write two decorators: one that times"
+    },
+    {
+      "segmentId": "seg-7",
+      "startMs": 21291,
+      "endMs": 24597,
+      "text": "any function, and one that caches its results."
+    },
+    {
+      "segmentId": "seg-8",
+      "startMs": 25497,
+      "endMs": 30975,
+      "text": "Decorators have been part of Python since version three point nine, which came out"
+    },
+    {
+      "segmentId": "seg-9",
+      "startMs": 30975,
+      "endMs": 35005,
+      "text": "in twenty twenty, and they have become really popular since."
+    },
+    {
+      "segmentId": "seg-10",
+      "startMs": 35905,
+      "endMs": 37913,
+      "text": "Let's start with functions."
+    },
+    {
+      "segmentId": "seg-11",
+      "startMs": 38413,
+      "endMs": 41965,
+      "text": "A function is a block of code that you can call by name."
+    },
+    {
+      "segmentId": "seg-12",
+      "startMs": 42465,
+      "endMs": 46546,
+      "text": "You define it with the def keyword, you give it a name, and then"
+    },
+    {
+      "segmentId": "seg-13",
+      "startMs": 46546,
+      "endMs": 47364,
+      "text": "you call it."
+    },
+    {
+      "segmentId": "seg-14",
+      "startMs": 47864,
+      "endMs": 52278,
+      "text": "Remember, a function is just a block of code with a name, so when"
+    },
+    {
+      "segmentId": "seg-15",
+      "startMs": 52278,
+      "endMs": 55758,
+      "text": "I call a function, I am running that block of code."
+    },
+    {
+      "segmentId": "seg-16",
+      "startMs": 56258,
+      "endMs": 60790,
+      "text": "So again, you define a function, you name it, and you call it by"
+    },
+    {
+      "segmentId": "seg-17",
+      "startMs": 60790,
+      "endMs": 63089,
+      "text": "its name to run the code inside."
+    },
+    {
+      "segmentId": "seg-18",
+      "startMs": 63989,
+      "endMs": 68749,
+      "text": "A decorator is a function that takes another function and returns a new one."
+    },
+    {
+      "segmentId": "seg-19",
+      "startMs": 69099,
+      "endMs": 71568,
+      "text": "Let's write a timing decorator."
+    },
+    {
+      "segmentId": "seg-20",
+      "startMs": 71568,
+      "endMs": 76122,
+      "text": "We import time, then define timer, which takes a function."
+    },
+    {
+      "segmentId": "seg-21",
+      "startMs": 76472,
+      "endMs": 78581,
+      "text": "Inside it we define wrapper."
+    },
+    {
+      "segmentId": "seg-22",
+      "startMs": 78581,
+      "endMs": 84762,
+      "text": "Wrapper records the start time, calls the function, records the end time, and prints"
+    },
+    {
+      "segmentId": "seg-23",
+      "startMs": 84762,
+      "endMs": 86072,
+      "text": "how long it took."
+    },
+    {
+      "segmentId": "seg-24",
+      "startMs": 86422,
+      "endMs": 88454,
+      "text": "Then timer returns wrapper."
+    },
+    {
+      "segmentId": "seg-25",
+      "startMs": 88454,
+      "endMs": 93752,
+      "text": "Finally, we put at timer above any function, and that function is timed."
+    },
+    {
+      "segmentId": "seg-26",
+      "startMs": 94652,
+      "endMs": 98943,
+      "text": "Now, I know some of you will ask what editor I am using, and"
+    },
+    {
+      "segmentId": "seg-27",
+      "startMs": 98943,
+      "endMs": 103513,
+      "text": "honestly, this is where I need to rant about tabs versus spaces."
+    },
+    {
+      "segmentId": "seg-28",
+      "startMs": 103863,
+      "endMs": 109364,
+      "text": "I think tabs are objectively better, because you can set your own width, and"
+    },
+    {
+      "segmentId": "seg-29",
+      "startMs": 109364,
+      "endMs": 112434,
+      "text": "people who use spaces are, frankly, wrong."
+    },
+    {
+      "segmentId": "seg-30",
+      "startMs": 112784,
+      "endMs": 117822,
+      "text": "My old team lead used spaces, and we argued about this for two years."
+    },
+    {
+      "segmentId": "seg-31",
+      "startMs": 118172,
+      "endMs": 122605,
+      "text": "I use Neovim, by the way, with a custom config, and I have been"
+    },
+    {
+      "segmentId": "seg-32",
+      "startMs": 122605,
+      "endMs": 125582,
+      "text": "meaning to make a video about that config."
+    },
+    {
+      "segmentId": "seg-33",
+      "startMs": 125932,
+      "endMs": 131350,
+      "text": "I should also do one about my mechanical keyboard, which has these amazing brown"
+    },
+    {
+      "segmentId": "seg-34",
+      "startMs": 131350,
+      "endMs": 132018,
+      "text": "switches."
+    },
+    {
+      "segmentId": "seg-35",
+      "startMs": 132918,
+      "endMs": 133496,
+      "text": "Okay."
+    },
+    {
+      "segmentId": "seg-36",
+      "startMs": 133496,
+      "endMs": 135424,
+      "text": "Back to decorators."
+    },
+    {
+      "segmentId": "seg-37",
+      "startMs": 136324,
+      "endMs": 141101,
+      "text": "So that's the timing decorator, and now you know how decorators work."
+    },
+    {
+      "segmentId": "seg-38",
+      "startMs": 141451,
+      "endMs": 144239,
+      "text": "Caching builds on exactly the same idea."
+    },
+    {
+      "segmentId": "seg-39",
+      "startMs": 144839,
+      "endMs": 149448,
+      "text": "If you want the code, star the example repo linked in the description."
+    },
+    {
+      "segmentId": "seg-40",
+      "startMs": 149798,
+      "endMs": 151209,
+      "text": "Thanks for watching."
+    }
+  ]
+}

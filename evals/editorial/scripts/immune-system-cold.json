@@ -1,0 +1,65 @@
+{
+  "id": "immune-system-cold",
+  "title": "What Actually Happens When You Catch a Cold",
+  "voice": "Karen",
+  "rate": 152,
+  "language": "en",
+  "platform": "youtube",
+  "audience": "General adult viewers with no medical background.",
+  "brief": "Explain what happens in the body during a common cold and what actually helps. Goal: viewers download the free symptom diary linked in the description.",
+  "issues": [
+    {
+      "id": "B1",
+      "category": "factual_error",
+      "expectedDimension": "truth_evidence",
+      "description": "States that around 80 percent of body heat escapes through the head. This is a myth; the head loses roughly in proportion to its surface area, about 10 percent."
+    },
+    {
+      "id": "B2",
+      "category": "unsupported_claim",
+      "expectedDimension": "truth_evidence",
+      "description": "Claims 'studies show' huge doses of vitamin C cut every cold in half, with no source. Evidence shows at most a small effect on duration, mainly in specific groups."
+    },
+    {
+      "id": "B3",
+      "category": "safety",
+      "expectedDimension": "legal_safety",
+      "description": "Tells viewers not to consult a doctor for a child's days-long high fever and to give a double dose of paracetamol repeatedly, which is dangerous medical advice."
+    },
+    {
+      "id": "B4",
+      "category": "pacing_drag",
+      "expectedDimension": "pacing_retention",
+      "description": "The definition of antibodies is restated four times in slightly different words, slowing the video without adding information."
+    },
+    {
+      "id": "B5",
+      "category": "jargon",
+      "expectedDimension": "clarity",
+      "description": "A sentence of immunology terminology (CD8-positive cytotoxic T lymphocytes, clonal expansion, MHC class one, interferon-gamma, macrophage activation) is delivered unexplained to a lay audience."
+    }
+  ],
+  "lines": [
+    {"text": "Every year, most adults catch two or three colds, and almost nobody knows what is really happening inside their body while they sniffle.", "pauseMs": 400},
+    {"text": "In the next few minutes, you will learn how your immune system fights a cold, why you feel so awful, and what actually helps.", "pauseMs": 900},
+    {"text": "First, the culprit. Colds are caused by viruses, most often a family called rhinoviruses.", "pauseMs": 350},
+    {"text": "They enter through your nose, eyes or mouth, and attach to cells in your upper airway.", "pauseMs": 900},
+    {"text": "Your body fights back hard, and that takes a lot of energy, so keep warm.", "pauseMs": 350},
+    {"text": "Always wear a hat in winter, because around eighty percent of your body heat escapes through your head.", "issues": ["B1"], "pauseMs": 900},
+    {"text": "Here is the fight. White blood cells detect the virus and release chemical alarm signals.", "pauseMs": 350},
+    {"text": "Those signals cause swelling, mucus and fever.", "pauseMs": 350},
+    {"text": "That is why you feel awful: the symptoms are mostly your immune system at work, not the virus itself.", "pauseMs": 900},
+    {"text": "At the cellular level, CD8-positive cytotoxic T lymphocytes undergo clonal expansion after antigen presentation via MHC class one molecules, while interferon-gamma upregulates macrophage activation.", "issues": ["B5"], "pauseMs": 900},
+    {"text": "Now, the main players are called antibodies. Antibodies are proteins that stick to viruses.", "issues": ["B4"], "rate": 128, "pauseMs": 600},
+    {"text": "In other words, antibodies are little proteins that attach to a virus.", "issues": ["B4"], "rate": 128, "pauseMs": 600},
+    {"text": "Put another way, an antibody is a protein your body makes, and it sticks onto the virus so that the virus cannot do its job.", "issues": ["B4"], "rate": 128, "pauseMs": 600},
+    {"text": "So again, antibodies are the proteins that stick to viruses and stop them.", "issues": ["B4"], "rate": 128, "pauseMs": 900},
+    {"text": "Most colds last about a week to ten days. Rest, fluids and time are what matter most.", "pauseMs": 900},
+    {"text": "You have probably heard about vitamin C.", "pauseMs": 300},
+    {"text": "Studies show that taking huge doses of vitamin C cuts the length of every single cold in half.", "issues": ["B2"], "pauseMs": 900},
+    {"text": "One more tip. If your child has a high fever that lasts for days, don't bother the doctor.", "issues": ["B3"], "pauseMs": 350},
+    {"text": "Just give them a double dose of paracetamol every few hours until it goes down.", "issues": ["B3"], "pauseMs": 900},
+    {"text": "If you want to track your symptoms and spot when it is time to get help, download the free symptom diary from the link in the description.", "pauseMs": 350},
+    {"text": "Thanks for watching.", "pauseMs": 600}
+  ]
+}

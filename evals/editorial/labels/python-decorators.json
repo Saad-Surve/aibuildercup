@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "videoId": "python-decorators",
+  "title": "Python Decorators: Write a Timer and a Cache",
+  "platform": "youtube",
+  "language": "en",
+  "audience": "Developers with a few months of Python experience who have seen the @ syntax but never written a decorator.",
+  "brief": "Practical tutorial. The opening promises viewers will write a timing decorator and a caching decorator. Goal: viewers star the example repo linked in the description.",
+  "clean": false,
+  "durationMs": 152609,
+  "source": {
+    "kind": "constructed",
+    "script": "scripts/python-decorators.json",
+    "scriptSha256": "7d6460fbf4fb07f49084ff7dc129fdd53257ac864e1e7ba3dc20d276630187aa",
+    "media": "media/python-decorators.mp4",
+    "mediaSha256": "335bfb616a9f749662d1bbc1f4d984bd18dafc96d65873f5995cbaaf3d61f22d",
+    "tts": "macOS say, voice Moira, 152 wpm"
+  },
+  "issues": [
+    {
+      "id": "D1",
+      "category": "weak_hook",
+      "startMs": 600,
+      "endMs": 15328,
+      "additionalSpans": [],
+      "description": "The first 15 seconds are vague filler ('a thing in Python... a feature') that never says what decorators do or why the viewer should care.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "D2",
+      "category": "factual_error",
+      "startMs": 25497,
+      "endMs": 35005,
+      "additionalSpans": [],
+      "description": "Says decorators arrived in Python 3.9 in 2020. They were introduced in Python 2.4 in 2004 (PEP 318).",
+      "expectedDimension": "truth_evidence"
+    },
+    {
+      "id": "D3",
+      "category": "tangent",
+      "startMs": 94652,
+      "endMs": 132018,
+      "additionalSpans": [],
+      "description": "A roughly 40-second rant about tabs versus spaces, Neovim and a mechanical keyboard that is unrelated to decorators.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "D4",
+      "category": "pacing_drag",
+      "startMs": 35905,
+      "endMs": 63089,
+      "additionalSpans": [],
+      "description": "Spends over 30 seconds re-explaining what a function is, in repeated phrasing, to an audience that already writes Python.",
+      "expectedDimension": "pacing_retention"
+    },
+    {
+      "id": "D5",
+      "category": "broken_promise",
+      "startMs": 136324,
+      "endMs": 144239,
+      "additionalSpans": [
+        {
+          "startMs": 16228,
+          "endMs": 24597
+        }
+      ],
+      "description": "The opening promises a caching decorator, but only the timing decorator is built; the video ends after asserting 'caching builds on the same idea'.",
+      "expectedDimension": "pacing_retention"
+    }
+  ]
+}
