@@ -500,6 +500,16 @@ export interface FindingReconciliation {
   reconciledAt: string;
 }
 
+export interface FindingLibraryLink {
+  nodeId: string;
+  sourceTitle: string;
+  sourceUrl?: string | null;
+  excerpt: string;
+  startMs?: number | null;
+  similarity: number;
+  note: string;
+}
+
 export interface Finding {
   findingId: string;
   dimension: AnalysisDimension;
@@ -517,6 +527,7 @@ export interface Finding {
   decision?: FindingDecision | null;
   adjudication?: FindingAdjudication | null;
   reconciliation?: FindingReconciliation | null;
+  libraryLinks?: FindingLibraryLink[];
 }
 
 export interface HeatmapBin {

@@ -109,6 +109,11 @@ class Settings(BaseSettings):
     model_embedding: str = "gemini-embedding-2"
     embedding_dimensions: int = Field(default=768, ge=128, le=3072)
     embedding_daily_call_limit: int = Field(default=200, ge=1, le=200)
+    finding_library_max_findings: int = Field(default=8, ge=0, le=10)
+    finding_library_top_k: int = Field(default=3, ge=1, le=5)
+    finding_library_min_similarity: float = Field(default=0.65, ge=0, le=1)
+    finding_library_selection_enabled: bool = True
+    embedding_text_price_per_mtok: float = Field(default=0.20, ge=0)
 
     model_video: str = "veo-3.1-fast-generate-001"
     model_packaging: str = "gemini-3.1-flash-lite"

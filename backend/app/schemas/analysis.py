@@ -208,6 +208,18 @@ class AdjudicatorSummary(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
+class FindingLibraryLink(BaseModel):
+    """An example from earlier creator work, never evidence about this video."""
+
+    nodeId: str
+    sourceTitle: str
+    sourceUrl: str | None = None
+    excerpt: str
+    startMs: int | None = Field(default=None, ge=0)
+    similarity: float = Field(ge=-1, le=1, allow_inf_nan=False)
+    note: str
+
+
 class Finding(BaseModel):
     """One reviewer observation over a span of the transcript.
 
@@ -233,6 +245,7 @@ class Finding(BaseModel):
     decision: FindingDecision | None = None
     adjudication: FindingAdjudication | None = None
     reconciliation: FindingReconciliation | None = None
+    libraryLinks: list[FindingLibraryLink] = Field(default_factory=list, max_length=1)
 
 
 class HeatmapBin(BaseModel):

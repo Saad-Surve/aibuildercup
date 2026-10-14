@@ -3660,6 +3660,30 @@ components:
           oneOf:
             - { $ref: "#/components/schemas/FindingReconciliation" }
             - { type: "null" }
+        libraryLinks:
+          type: array
+          maxItems: 1
+          description: >
+            Optional examples from the creator's earlier work, added after review.
+            Never evidence about this video or factual verification. Absent on older runs.
+          items: { $ref: "#/components/schemas/FindingLibraryLink" }
+
+    FindingLibraryLink:
+      type: object
+      required: [nodeId, sourceTitle, excerpt, similarity, note]
+      properties:
+        nodeId: { type: string }
+        sourceTitle: { type: string }
+        sourceUrl: { type: [string, "null"] }
+        excerpt: { type: string }
+        startMs:
+          type: [integer, "null"]
+          minimum: 0
+          description: Timestamp in the earlier video, never the current video.
+        similarity: { type: number, minimum: -1, maximum: 1 }
+        note:
+          type: string
+          description: One sentence explicitly labelled as from your earlier work.
 
     HeatmapBin:
       type: object

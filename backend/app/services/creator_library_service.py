@@ -6,6 +6,7 @@ import logging
 import math
 import mimetypes
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Literal
@@ -226,14 +227,13 @@ class CreatorLibraryService:
         )
 
     def source(self, uid: str) -> LibrarySource | None:
-        imported = None
         if self.settings.creator_preset_enabled:
             from app.services.creator_preset_service import CreatorPresetService
 
             CreatorPresetService(
                 self.client, storage=self.storage, imports=self.imports, settings=self.settings
             ).ensure(uid)
-            imported = self.imports.active_library(uid)
+        imported = self.imports.active_library(uid)
         if imported is not None:
             bundle, items = imported
             path = f"{import_path(uid, bundle['bundleId'])}/revisions/{bundle['revisionId']}"
@@ -419,14 +419,24 @@ class CreatorLibraryService:
         return response
 
     def search(
-        self, uid: str, query: str, *, k: int = 8, modality: Literal["text", "image"] | None = None
+        self,
+        uid: str,
+        query: str,
+        *,
+        k: int = 8,
+        modality: Literal["text", "image"] | None = None,
+        passage_filter: Callable[[Passage], bool] | None = None,
+        on_embedding: Callable[[str], None] | None = None,
     ) -> CreatorLibrarySearch:
+        """Reuse query vectors; optionally filter sources and account for cache misses."""
         source = self.source(uid)
         if source is None:
             return CreatorLibrarySearch(mode="lexical", matches=[])
         passages, _ = self._passages(source)
         if modality is not None:
             passages = [p for p in passages if p.node.modality == modality]
+        if passage_filter is not None:
+            passages = [p for p in passages if passage_filter(p)]
         vectors = self._vectors(source, uid)
         mode: Literal["semantic", "lexical"] = "lexical"
         ranked: list[tuple[float, Passage]] = []
@@ -447,7 +457,10 @@ class CreatorLibraryService:
                     vector = cached["vector"]
                 else:
                     self._reserve_call(uid)
-                    vector = self.embeddings.embed(f"task: search result | query: {query[:1000]}")
+                    prompt = f"task: search result | query: {query[:1000]}"
+                    if on_embedding is not None:
+                        on_embedding(prompt)
+                    vector = self.embeddings.embed(prompt)
                     cache = self._rows(f"{source.path}/semanticQueries", uid, 100)
                     if len(cache) >= 100:
                         oldest = min(

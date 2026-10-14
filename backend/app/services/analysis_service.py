@@ -190,6 +190,7 @@ def _to_finding(finding_id: str, data: dict[str, Any]) -> Finding:
         decision=data.get("decision"),
         adjudication=data.get("adjudication"),
         reconciliation=data.get("reconciliation"),
+        libraryLinks=data.get("libraryLinks") or [],
     )
 
 

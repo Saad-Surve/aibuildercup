@@ -159,6 +159,19 @@ it on the next sync attempt.
 
 ## Analysis coverage and the interest curve
 
+`analysisRuns/{analysisRunId}/findings/{findingId}.libraryLinks` is an optional array
+(currently at most one link) of `{nodeId, sourceTitle, sourceUrl?, excerpt, startMs?,
+similarity, note}`. These are attributed examples **from the creator's earlier work**,
+never current-video evidence, factual verification or a reason to change a score.
+`startMs` is present only for timestamped earlier videos. Missing/empty means no useful
+library example; historical findings remain readable. Only indexed text passages from
+other sources qualify; lexical fallback scores are never stored as cosine similarity.
+The post-review step updates only `libraryLinks`, preserving concurrent decisions and
+adjudications, and skips dismissed/rejected stored findings. Its embedding reservations
+use the existing daily per-user slots/query cache; embedding estimates and selection-call
+token usage are included in the run's `costEstimateUsd`. A failure never fails analysis.
+Links are snapshots inside the project tree and follow project/account deletion.
+
 `analysisRuns/{analysisRunId}.coverage` is written when a run finishes: an ordered list of
 `{dimension, startMs, endMs}` spans each reviewer actually read (chunks that failed are
 left out). Heatmap bins exist only where a finding exists; time inside a covered span with

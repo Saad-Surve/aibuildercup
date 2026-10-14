@@ -17,6 +17,7 @@ For subscription context and its different denominator, see the
 | Thumbnail output | Gemini 3.1 Flash Image, global, approximately $0.067 per 1K output | Four outputs: **$0.268**, before image/text inputs, planning and critique |
 | Pro thumbnail output | Gemini 3 Pro Image, approximately $0.134 per 1K/2K output | Four outputs: **$0.536**, before inputs and text output |
 | Text embeddings | Gemini Embedding 2: $0.20/M input text tokens | 100k indexed text tokens: **$0.02** once; repeat reads reuse stored vectors |
+| Post-review library links | Up to eight cached query embeddings (hard cap ten) and one bounded text selection call | Embedding cache misses use a conservative UTF-8-byte token estimate at $0.20/M; selection uses reported tokens and the configured LLM prices; both enter the run cost |
 | Image embeddings | Gemini Embedding 2: $0.45/M input image tokens | Requires actual image-token usage; ten images does not establish token cost |
 | Translation | NMT text translation: $20/M characters after allowances | 6,000 source characters, one target language: **$0.12** |
 | English Neural2 dub | $16/M synthesized characters after allowances | 6,000 translated characters: **$0.096** |

@@ -12,6 +12,7 @@ import {
 import { FindingDecisionControls } from "@/components/projects/finding-decision";
 import { FindingAdjudicationCard } from "@/components/projects/finding-adjudication";
 import { Icon } from "@/components/common/icon";
+import { FindingLibraryLinks } from "@/components/projects/finding-library-links";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -363,6 +364,7 @@ function FindingRow({
         </div>
       )}
 
+      <FindingLibraryLinks links={finding.libraryLinks} />
       {/* The transcript evidence is kept, but tucked away so rows stay scannable. */}
       {hasEvidence && (
         <details className="group border-t border-border/60">

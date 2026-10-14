@@ -119,10 +119,16 @@ keeps these two roles separate and labels each one, so neither is presented as f
   nodes and ten images. Query vectors are cached by query, model, dimensions and version.
   A provider error falls back to lexical overlap, and precomputed preset vectors install
   with no model calls.
-- **Limits of reach.** Heatmap reviewers and inline writing alternatives do not use
-  semantic retrieval. Initial drafts, thumbnail references and packaging context do. The
-  retrieval is a bounded Python scan, not a managed vector database, and the persona is not
-  learned automatically.
+- **Earlier work in review.** After reviewers finish, up to eight medium-or-higher findings
+  in clarity, truth/evidence, audience/brand and emotion retrieve indexed text examples.
+  A separate "From your earlier work" block attributes the passage and its earlier-video
+  timestamp. These examples never become current-video evidence or change scores. One
+  optional Gemini call selects useful examples; failures keep review usable. See
+  [the library design](docs/creator-library-design.md#post-review-library-links) for bounds.
+- **Limits of reach.** The reviewer prompts and inline writing alternatives do not use
+  semantic retrieval. Post-review links, initial drafts, thumbnail references and
+  packaging context do. The retrieval is a bounded Python scan, not a managed vector
+  database, and the persona is not learned automatically.
 
 ## Google Cloud architecture
 

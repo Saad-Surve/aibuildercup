@@ -49,6 +49,7 @@ from app.schemas.analysis import (
 from app.schemas.jobs import JobStatus
 from app.services.analysis_service import AnalysisService
 from app.services.cost import estimate_cost_usd
+from app.services.finding_library_links import enrich_finding_library_links
 from app.services.firestore_service import (
     asset_path,
     get_firestore_client,
@@ -388,6 +389,16 @@ async def run_analysis(
         return None
 
     findings = [finding for outcome in outcomes for finding in outcome.findings]
+    library_cost_usd = await enrich_finding_library_links(
+        analyses=analyses,
+        owner_uid=owner_uid,
+        project_id=project_id,
+        analysis_run_id=analysis_run_id,
+        findings=findings,
+        transcript_text=" ".join(segment.text for segment in segments),
+        llm=llm,
+        settings=settings,
+    )
     await asyncio.to_thread(
         jobs.update_progress,
         owner_uid=owner_uid,
@@ -570,6 +581,7 @@ async def run_analysis(
             for outcome in outcomes
         )
         + adjudication.costEstimateUsd
+        + library_cost_usd
         + estimate_cost_usd(
             interest_usage,
             input_price_per_mtok=settings.llm_input_price_per_mtok,

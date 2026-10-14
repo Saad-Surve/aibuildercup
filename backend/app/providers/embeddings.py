@@ -22,6 +22,10 @@ class GeminiEmbeddingProvider:
             contents=types.Content(parts=parts),
             config=types.EmbedContentConfig(
                 output_dimensionality=self.settings.embedding_dimensions,
+                # One reserved daily slot covers exactly one provider request.
+                http_options=types.HttpOptions(
+                    retry_options=types.HttpRetryOptions(attempts=1)
+                ),
             ),
         )
         embeddings = result.embeddings or []
