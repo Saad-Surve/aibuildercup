@@ -80,7 +80,7 @@ plus energy drinks are unsafe exam advice; GPA/SAT/prom are US-specific.
 
 The labels, transcripts, media, scripts and `matching.json` were committed before
 any model saw the videos (same mechanism as the dev set: the runner's
-pre-registration checks operate on `--root`). **Pre-registration commit: `<hash>`.**
+pre-registration checks operate on `--root`). **Pre-registration commit: `9d48bf514af7fb1d1823c2f2266ff869752f4a80`.**
 Quote the commit in the results table; if the labels change after a run, the run
 is void. What is fixed in advance: the videos and labels, the matching rule
 (shared with the dev set), the headline metric (recall and precision over all
