@@ -17,7 +17,7 @@ from typing import Any
 from uuid import uuid4
 
 from app.agents.adjudicator import adjudicator_call_estimate, adjudicator_cost
-from app.agents.analysis_coordinator import DimensionOutcome
+from app.agents.analysis_coordinator import DimensionOutcome, rubric_call_estimate
 from app.agents.editor import editor_call_estimate, editor_cost
 from app.agents.reviewer_base import MODEL_CONFIG_VERSION, REVIEWER_PROMPT_VERSION
 from app.config import Settings
@@ -46,6 +46,7 @@ from app.schemas.analysis import (
     ReviewerRun,
     ReviewerRunStatus,
     ReviewerToolCall,
+    RubricSummary,
     Severity,
     TokenUsage,
     resolve_dimensions,
@@ -107,6 +108,7 @@ def _to_analysis_run(analysis_run_id: str, data: dict[str, Any]) -> AnalysisRun:
         modelConfigVersion=data.get("modelConfigVersion", ""),
         promptVersion=data.get("promptVersion", ""),
         costEstimateUsd=float(data.get("costEstimateUsd", 0.0)),
+        rubric=RubricSummary.model_validate(data["rubric"]) if data.get("rubric") else None,
         editor=EditorSummary.model_validate(data["editor"]) if data.get("editor") else None,
         adjudicator=(
             AdjudicatorSummary.model_validate(data["adjudicator"])
@@ -512,6 +514,76 @@ class AnalysisService:
 
             raise ForbiddenError(READ_ONLY_MESSAGE, code="READ_ONLY_ACCOUNT")
 
+    def reserve_rubric_call(
+        self, *, owner_uid: str, project_id: str, analysis_run_id: str
+    ) -> str | None:
+        self._ensure_editor_write(owner_uid)
+        self.load_run_document(
+            owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+        )
+        slot = f"{analysis_run_path(owner_uid, project_id, analysis_run_id)}/rubricCalls/00"
+        created = self.client.create_document(
+            slot,
+            {
+                "ownerUid": owner_uid,
+                "reservedAt": datetime.now(UTC),
+                "status": "reserved",
+                "costEstimateUsd": rubric_call_estimate(self.settings),
+            },
+        )
+        return slot if created else None
+
+    def settle_rubric_call(
+        self, *, owner_uid: str, slot: str, usage: LlmUsage | None, error: str | None
+    ) -> None:
+        self._ensure_editor_write(owner_uid)
+        existing = self.client.get_document(slot)
+        if not existing or not is_owner(existing, owner_uid):
+            raise NotFoundError("Rubric slot not found")
+        patch: dict[str, Any] = {"status": "failed" if error else "completed", "error": error}
+        if usage is not None:
+            patch["tokenUsage"] = {"input": usage.input_tokens, "output": usage.output_tokens}
+            patch["costEstimateUsd"] = estimate_cost_usd(
+                usage,
+                input_price_per_mtok=self.settings.llm_input_price_per_mtok,
+                output_price_per_mtok=self.settings.llm_output_price_per_mtok,
+            )
+        self.client.update_document(slot, patch)
+
+    def rubric_spent_usd(self, *, owner_uid: str, project_id: str, analysis_run_id: str) -> float:
+        self.load_run_document(
+            owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+        )
+        slot = self.client.get_document(
+            f"{analysis_run_path(owner_uid, project_id, analysis_run_id)}/rubricCalls/00"
+        )
+        return float(slot.get("costEstimateUsd", 0)) if slot and is_owner(slot, owner_uid) else 0.0
+
+    def save_rubric_summary(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        analysis_run_id: str,
+        summary: RubricSummary,
+        findings: Sequence[Finding],
+    ) -> None:
+        self._ensure_editor_write(owner_uid)
+        data = self.load_run_document(
+            owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+        )
+        # A resumed worker reuses persisted observations and never replaces a completed summary.
+        if summary.skippedCount and data.get("rubric"):
+            return
+        if not summary.skippedCount:
+            self.save_findings(
+                owner_uid=owner_uid,
+                project_id=project_id,
+                analysis_run_id=analysis_run_id,
+                findings=findings,
+            )
+        self._update_run(owner_uid, project_id, analysis_run_id, {"rubric": summary.model_dump()})
+
     def reserve_editor_call(
         self, *, owner_uid: str, project_id: str, analysis_run_id: str, label: str
     ) -> str | None:
@@ -858,6 +930,9 @@ class AnalysisService:
                 estimate = max(
                     estimate,
                     self.adjudicator_spent_usd(
+                        owner_uid=owner_uid, project_id=project_id, analysis_run_id=run_id
+                    )
+                    + self.rubric_spent_usd(
                         owner_uid=owner_uid, project_id=project_id, analysis_run_id=run_id
                     )
                     + self.editor_spent_usd(

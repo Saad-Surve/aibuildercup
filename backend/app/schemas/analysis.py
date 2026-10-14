@@ -197,6 +197,19 @@ class FindingEditorial(BaseModel):
     promptVersion: str
 
 
+class RubricSummary(BaseModel):
+    model: str
+    promptVersion: str
+    callCount: int = 0
+    findingCount: int = 0
+    skippedCount: int = 0
+    costEstimateUsd: float = 0.0
+    tokenUsage: TokenUsage = Field(default_factory=TokenUsage)
+    searchQueries: list[str] = Field(default_factory=list)
+    searchSuggestions: str = ""
+    errors: list[str] = Field(default_factory=list)
+
+
 class EditorSummary(BaseModel):
     model: str
     promptVersion: str
@@ -314,6 +327,7 @@ class AnalysisRun(BaseModel):
     modelConfigVersion: str
     promptVersion: str
     costEstimateUsd: float = 0.0
+    rubric: RubricSummary | None = None
     editor: EditorSummary | None = None
     adjudicator: AdjudicatorSummary | None = None
     error: dict[str, Any] | None = None

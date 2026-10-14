@@ -1,3 +1,5 @@
+export type { Finding, RubricSummary } from "@/lib/types";
+
 import type { CreatorInterestCalibration } from "@/lib/types";
 import { API_BASE_URL } from "@/lib/api-base";
 import { auth } from "@/lib/firebase";

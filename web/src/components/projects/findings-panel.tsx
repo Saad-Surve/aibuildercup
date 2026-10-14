@@ -24,7 +24,8 @@ import {
   SEVERITY_DOT_CLASS,
   SEVERITY_LABELS,
 } from "@/lib/analysis";
-import type { Finding, Severity } from "@/lib/types";
+import type { Finding } from "@/lib/api-client";
+import type { Severity } from "@/lib/types";
 import { WORKSPACE_PANE_SNAP } from "@/lib/workspace";
 import { cn } from "@/lib/utils";
 
@@ -248,12 +249,18 @@ function FindingRow({
   onSeek: (startMs: number) => void;
 }) {
   const corroboratingIds = new Set(finding.corroboratedBy ?? []);
-  const reviewerCount = new Set(
-    [
-      finding,
-      ...allFindings.filter((f) => corroboratingIds.has(f.findingId)),
-    ].map((f) => f.reviewerRunId ?? f.dimension),
-  ).size;
+  const reviewerLabels = [
+    ...new Set(
+      [
+        finding,
+        ...allFindings.filter((f) => corroboratingIds.has(f.findingId)),
+      ].map((f) =>
+        f.reviewerRunId === "rubric"
+          ? "All-rubric review"
+          : dimensionLabel(f.dimension),
+      ),
+    ),
+  ];
   const hasEvidence = Boolean(finding.evidence.quote);
   const severity = effectiveSeverity(finding);
   return (
@@ -334,7 +341,8 @@ function FindingRow({
           )}
           {(finding.corroboratedBy?.length ?? 0) > 0 && (
             <p className="text-muted-foreground">
-              Flagged by {reviewerCount} reviewers.
+              Flagged by {reviewerLabels.length} reviewers:{" "}
+              {reviewerLabels.join(", ")}.
             </p>
           )}
           {finding.editorial.sources.map(

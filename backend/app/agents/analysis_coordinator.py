@@ -18,13 +18,6 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from app.agents.audience_brand_agent import AudienceBrandReviewer
-from app.agents.clarity_agent import ClarityReviewer
-from app.agents.conversion_agent import ConversionCtaReviewer
-from app.agents.cultural_agent import CulturalLocalizationReviewer
-from app.agents.emotion_agent import EmotionalImpactReviewer
-from app.agents.pacing_agent import PacingRetentionReviewer
-from app.agents.platform_agent import PlatformFitReviewer
 from app.agents.reviewer_base import (
     LlmReviewer,
     ReviewContext,
@@ -32,26 +25,23 @@ from app.agents.reviewer_base import (
     ToolCallRecord,
     deduplicate_findings,
 )
-from app.agents.safety_agent import LegalSafetyReviewer
-from app.agents.truth_agent import TruthEvidenceReviewer
-from app.providers.base import LlmProvider, LlmUsage
-from app.schemas.analysis import AnalysisDimension, Finding, ReviewerRunStatus
+from app.agents.reviewer_registry import REVIEWER_CLASSES
+from app.agents.rubric import (
+    MAX_RUBRIC_PROMPT_CHARS,
+    RUBRIC_MAX_OUTPUT_TOKENS,
+    RUBRIC_PROMPT_VERSION,
+    baseline_schema,
+    baseline_system,
+    baseline_user,
+    normalize_baseline,
+)
+from app.config import Settings
+from app.providers.base import LlmProvider, LlmUsage, MediaPart
+from app.schemas.analysis import AnalysisDimension, Finding, ReviewerRunStatus, RubricSummary
+from app.services.cost import estimate_cost_usd
 from app.services.video_tools import ContextArtifactStore, MediaToolkit
 
 logger = logging.getLogger(__name__)
-
-#: One reviewer class per active dimension. Order follows `AnalysisDimension`.
-REVIEWER_CLASSES: dict[AnalysisDimension, type[LlmReviewer]] = {
-    AnalysisDimension.truth_evidence: TruthEvidenceReviewer,
-    AnalysisDimension.clarity: ClarityReviewer,
-    AnalysisDimension.pacing_retention: PacingRetentionReviewer,
-    AnalysisDimension.legal_safety: LegalSafetyReviewer,
-    AnalysisDimension.cultural_localization: CulturalLocalizationReviewer,
-    AnalysisDimension.platform_fit: PlatformFitReviewer,
-    AnalysisDimension.audience_brand: AudienceBrandReviewer,
-    AnalysisDimension.emotional_impact: EmotionalImpactReviewer,
-    AnalysisDimension.conversion_cta: ConversionCtaReviewer,
-}
 
 #: ~9k tokens at four characters per token, the middle of the 8-12k window.
 DEFAULT_CHUNK_CHARS = 36_000
@@ -430,3 +420,89 @@ __all__ = [
     "run_dimension",
     "run_reviewers",
 ]
+
+
+def rubric_call_estimate(settings: Settings) -> float:
+    return estimate_cost_usd(
+        LlmUsage(input_tokens=40_000, output_tokens=RUBRIC_MAX_OUTPUT_TOKENS),
+        input_price_per_mtok=settings.llm_input_price_per_mtok,
+        output_price_per_mtok=settings.llm_output_price_per_mtok,
+    )
+
+
+async def run_rubric_review(
+    llm: LlmProvider,
+    *,
+    settings: Settings,
+    segments: Sequence[SegmentRef],
+    context: ReviewContext,
+    budget_usd: float,
+    reserve_call: Callable[[], Awaitable[str | None]],
+    settle_call: Callable[[str, LlmUsage | None, str | None], Awaitable[None]],
+    media: Sequence[MediaPart] = (),
+) -> tuple[list[Finding], RubricSummary]:
+    """One extra review, with whole-transcript coverage and a durable one-call slot."""
+    summary = RubricSummary(model=settings.model_reviewer, promptVersion=RUBRIC_PROMPT_VERSION)
+    user = baseline_user(
+        {
+            "title": context.video_title,
+            "platform": context.platform,
+            "language": context.language,
+            "durationMs": context.duration_ms,
+            "brief": context.project_brief,
+            "audience": context.audience,
+        },
+        segments,
+    )
+    user += (
+        "\n\nAttached media contains sampled stills only, not continuous footage. "
+        "Do not infer absent visuals, motion or audio quality from unsampled time."
+        if media
+        else "\n\nNo footage is attached; review transcript-supported issues only."
+    )
+    estimate = rubric_call_estimate(settings)
+    if len(user) > MAX_RUBRIC_PROMPT_CHARS or estimate > max(0.0, budget_usd):
+        summary.skippedCount = 1
+        return [], summary
+    slot = await reserve_call()
+    if slot is None:
+        summary.skippedCount = 1
+        return [], summary
+    summary.callCount = 1
+    usage = None
+    try:
+        result = await llm.complete_json(
+            model=settings.model_reviewer,
+            prompt_version=RUBRIC_PROMPT_VERSION,
+            system=baseline_system(rubric=True, grounded=settings.truth_grounding_enabled),
+            user=user,
+            schema=baseline_schema(grounded=settings.truth_grounding_enabled),
+            media=media,
+            grounding=settings.truth_grounding_enabled,
+            max_attempts=1,
+            max_output_tokens=RUBRIC_MAX_OUTPUT_TOKENS,
+        )
+        usage = result.usage
+        findings = normalize_baseline(
+            result.data, segments, context.duration_ms, reviewer_run_id="rubric"
+        )
+        summary.findingCount = len(findings)
+        summary.tokenUsage.input = usage.input_tokens
+        summary.tokenUsage.output = usage.output_tokens
+        summary.costEstimateUsd = estimate_cost_usd(
+            usage,
+            input_price_per_mtok=settings.llm_input_price_per_mtok,
+            output_price_per_mtok=settings.llm_output_price_per_mtok,
+        )
+        if result.grounding:
+            summary.searchQueries = list(result.grounding.queries)
+            summary.searchSuggestions = result.grounding.search_suggestions_html
+        await settle_call(slot, usage, None)
+        return findings, summary
+    except Exception as exc:  # noqa: BLE001 - optional reviewer failure preserves specialists
+        summary.errors.append(type(exc).__name__)
+        if usage is None:
+            summary.costEstimateUsd = estimate
+        await settle_call(slot, usage, type(exc).__name__)
+        logger.warning("rubric review failed: %s", type(exc).__name__)
+        return [], summary

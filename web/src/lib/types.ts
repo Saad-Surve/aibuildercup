@@ -407,6 +407,19 @@ export interface FindingEditorial {
   promptVersion: string;
 }
 
+export interface RubricSummary {
+  model: string;
+  promptVersion: string;
+  callCount: number;
+  findingCount: number;
+  skippedCount: number;
+  costEstimateUsd: number;
+  tokenUsage: { input: number; output: number };
+  searchQueries: string[];
+  searchSuggestions: string;
+  errors: string[];
+}
+
 export interface EditorSummary {
   model: string;
   promptVersion: string;
@@ -440,6 +453,7 @@ export interface AnalysisRun {
   modelConfigVersion: string;
   promptVersion: string;
   costEstimateUsd: number;
+  rubric?: RubricSummary | null;
   editor?: EditorSummary | null;
   adjudicator?: AdjudicatorSummary | null;
   error: { code: string; message: string } | null;

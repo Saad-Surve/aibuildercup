@@ -10,7 +10,8 @@ is scored against labels that were committed before any model ran.
 | `rubric` | The same single call, with all nine reviewers' rubrics pasted in. This is the strongest "just ask Gemini" baseline, and it isolates specialisation from prompt content. |
 | `reviewers` | The production path: transcript chunking, shared frames, footage tools, nine reviewers, per-window normalisation. It reuses `analysis_coordinator`, `reviewer_base` and the worker's frame sampler. It is not a reimplementation. |
 | `adjudicated` | The same `reviewers` findings, checked by the production footage-backed adjudicator. Rejections are excluded and downgrades use adjusted severity for scoring. |
-| `edited` | The same reviewers, then the production `editor-v1` consolidation pass. Drops and merges leave the scoring set; originals remain in raw output. |
+| `edited` | The same reviewers, then the production editor consolidation pass. Drops and merges leave the scoring set; originals remain in raw output. |
+| `ensemble_edited` | Nine specialists plus the single all-nine-rubrics pass, then the editor; costs include all three stages. |
 | `edited_adjudicated` | Reviewers → editor → footage adjudicator; reuse joins historical adjudicator verdicts by surviving original finding ID. |
 
 Results are reported per arm and never pooled across arms. The first four-arm run is
@@ -222,14 +223,14 @@ recorded for replay. Run this arm with live calls only when explicitly authorize
   before the run. `timeOnly` recall shows how much it matters.
 - **Spans of 5 to 40 s** with a 5 s tolerance are generous for tangents and drags, and tight for
   point errors.
-- **Counts are logical calls.** A transient retry inside the provider is not counted separately.
+- **Historical counts are logical calls.** Current metering disables hidden SDK/provider retries for every arm; historical reused records retain their original counts.
 - **Smoke test, disclosed:** one `baseline` call on `boiled-egg-control` (no flawed video, so no
   label was seen against model output) validated the pipeline: 1 call, 14,069 input and 406 output
   tokens, two Search queries, one finding normalised cleanly. Its output is not in `evals/results/`.
   The reviewer arm was initially exercised offline for wiring; the later full flash38 run
   supplies the live reviewer findings reused below.
 
-## Editor pass (dev, post-hoc)
+## Editor v1 pass (historical DEV, post-hoc)
 
 These five videos are the **DEV set**. This is post-hoc tuning on known outputs and labels,
 not confirmatory evidence, natural-video accuracy, or a held-out result. No held-out data or
@@ -239,7 +240,7 @@ branch was read. Label commit remains `2e1357166373beb3d44765c7990311cba4f74f7d`
 
 The final frozen run is
 [`editorial-2026-10-14-editor-v1-dev`](../results/editorial-2026-10-14-editor-v1-dev.md)
-(JSON and raw output committed alongside it). **Frozen prompt version: `editor-v1`**,
+(JSON and raw output committed alongside it). **Historical frozen prompt version: `editor-v1`**,
 editor source SHA-256 `6707201628a12375695ee544eaa76b7ae10a15d0b0fdd69d4c6866e628b1c794`.
 Model is `gemini-3.8-flash`, low thinking, input $0.75/M and output $3.75/M.
 All four original arms reuse saved flash38 output. Only five editor calls are new in the final
@@ -305,3 +306,90 @@ Each root must be committed inside the current worktree. Existing raw files with
 hashes can validate labels/matching only. The editor prompt receives creator context, transcript
 and findings, never labels. Production persistence/retries and the review UI were linted,
 type-checked and built, but not exercised against live Firestore or in an authenticated browser.
+
+## Rubric plus specialists (DEV, post-hoc)
+
+This workstream uses only these five DEV videos. The inputs and matching rule are unchanged
+from label commit `2e1357166373beb3d44765c7990311cba4f74f7d`. No other evaluation set or its
+results was opened. These results are post-hoc tuning evidence, not a generalization claim.
+
+Frozen versions: `editor-v6`, `rubric-v1`, `reviewers-v5` (specialist prompts unchanged),
+`editorial-baseline-v1`, `adjudicator-v2` (unchanged), and model configuration `analysis-v9`.
+The editor uses `gemini-3.8-flash`, medium reasoning and a 32,768-token output allowance.
+The production rubric uses the same shared system prompt as the rubric eval arm; production
+attaches sampled stills, while this eval reuses whole-video review output.
+
+Choices made after inspecting DEV results:
+
+- Removed the inherited unconditional rubric coverage floor. All reviewer observations must
+  pass an evidence standard; shared-model agreement supports a defect but cannot establish one.
+- Merge complaints about the same problem/edit across lenses, retaining original observations.
+  The model names the root problem dimension; code selects an existing member in that dimension
+  with speech evidence and a focused span when available. The audit found that apparent recall
+  losses sometimes retained the issue under a side-effect dimension: repeated explanation as
+  audience/brand, or unmet content delivery as truth. The matching rule was not changed.
+- Treat missing content as a comparison between a stated expectation and the whole transcript,
+  rather than requiring a locally bad sentence. This applies to any omission, without matching
+  category names or keywords. An unseen payoff cannot be assumed to exist.
+- Require concrete failure for extra prerequisites, alternate starting conditions and visual
+  improvements; competent on-brief narration is presumptively adequate. Single-source factual
+  corrections need internal contradiction or fresh evidence supporting the exact correction.
+- Raised reasoning from low to medium after shallow selection persisted, then raised the
+  bounded output allowance after one medium-reasoning response was truncated. Failed editor
+  batches retain original findings and are reported as failures, never scored as successful edits.
+
+The kept representative carries the highest justified cluster severity after member reductions;
+UI and heatmap apply subsequent adjudicator downgrades. Finding cards name the agreeing reviewer
+prompts through original merged finding IDs. Agreement is not independent expert verification.
+
+The current eval metering disables hidden retries and saves an attempt before awaiting it,
+including an interrupted final attempt. Reuse makes only editor calls. Prices are token
+estimates at $0.75/M input and $3.75/M output; Search and unknown-usage attempts are unpriced.
+The historical rubric recovery retains the original failed attempt alongside the successful
+output, rather than silently replacing its call count.
+
+
+The final frozen run is
+[`editorial-2026-10-14-editor-v2-dev-v6`](../results/editorial-2026-10-14-editor-v2-dev-v6.md)
+with its scored JSON and raw output. Editor source SHA-256:
+`f93a7d7b0685e4d9c15b5c6d57be84fca7cae8e9ce5a207482bdc478df71385f`.
+The interrupted agent's v6 eval process survived and completed; the resume launched no
+additional eval and made no prompt changes after that run.
+
+| Arm | Recall | Precision (flawed videos) | Clean-control findings | USD per video |
+|---|---:|---:|---:|---:|
+| baseline | 19/20 (95%) | 19/20 (95%) | 3 | $0.0245 |
+| rubric | 19/20 (95%) | 19/21 (90.48%) | 1 | $0.0353 |
+| edited | 20/20 (100%) | 20/25 (80%) | 1 | $0.2806 |
+| ensemble_edited | 20/20 (100%) | 20/23 (86.96%) | 1 | $0.3169 |
+
+Both edited arms retain 2/2 broken promises. The ensemble misses the >=88% precision target;
+recall exceeds rubric, precision is lower, clean findings tie, and token cost is about 9x.
+**There is no overall dev win over the rubric.** Tuning stops here despite unused budget.
+v6 improves on v4's ensemble precision (20/24) and clean findings (3) at equal recall (20/20),
+so v6 is frozen. v5 completed only part of the set and had a truncated editor response;
+its partial outputs cannot establish a full-set improvement. Raising the output allowance
+in v6 produced a complete run with no editor failures, at higher cost and latency.
+
+Workstream recorded live-call audit (each raw file counted once; reused historical calls
+excluded, interrupted attempts included):
+
+| Run suffix | Recorded live calls | Status |
+|---|---:|---|
+| dev | 10 | Complete |
+| dev-tune1 | 10 | Interrupted |
+| dev-rubric-recovery | 1 | Complete |
+| dev-complete-rubric | 5 | Complete |
+| dev-v3 | 10 | Complete |
+| dev-v4 | 10 | Complete |
+| dev-v5 | 6 | Interrupted |
+| dev-v6 | 10 | Complete, frozen |
+| **Total / budget** | **62 / 120** | No further calls |
+
+The final raw/scored JSON includes the ledger and pre-cleanup hashes. Uncited intermediate
+results and logs were deleted. Complete-rubric and rubric-recovery artifacts remain because
+final reuse depends on them. Reused historical calls keep their recorded logical counts;
+any hidden retries in those old runs cannot be reconstructed. Costs exclude Search and
+unknown-usage interrupted attempts. Precision excludes the clean control, which is reported
+separately. Production persistence/recovery and the authenticated findings UI were not
+exercised live; backend lint/type-check and all three web verification commands passed.

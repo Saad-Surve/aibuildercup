@@ -28,6 +28,7 @@ from app.agents.analysis_coordinator import (
     build_reviewers,
     chunk_segments,
     run_reviewers,
+    run_rubric_review,
 )
 from app.agents.editor import EDITOR_PROMPT_VERSION, edit_findings
 from app.agents.reviewer_base import ReviewContext, ReviewFrame, SegmentRef
@@ -474,6 +475,65 @@ async def run_analysis(
                 error=error,
             )
 
+        async def reserve_rubric() -> str | None:
+            return await asyncio.to_thread(
+                analyses.reserve_rubric_call,
+                owner_uid=owner_uid,
+                project_id=project_id,
+                analysis_run_id=analysis_run_id,
+            )
+
+        async def settle_rubric(slot: str, usage: LlmUsage | None, error: str | None) -> None:
+            await asyncio.to_thread(
+                analyses.settle_rubric_call,
+                owner_uid=owner_uid,
+                slot=slot,
+                usage=usage,
+                error=error,
+            )
+
+        rubric_findings, rubric_summary = await run_rubric_review(
+            llm,
+            settings=settings,
+            segments=segments,
+            context=contexts[0],
+            media=tuple(frame.media for c in contexts for frame in c.sampled_frames),
+            budget_usd=settings.max_project_cost_usd
+            - spent
+            - review_cost
+            - prior_adjudicator_cost
+            - prior_editor_cost
+            - interest_reserve,
+            reserve_call=reserve_rubric,
+            settle_call=settle_rubric,
+        )
+        if rubric_summary.skippedCount:
+            rubric_findings = [
+                f
+                for f in await asyncio.to_thread(
+                    analyses.list_findings,
+                    owner_uid=owner_uid,
+                    project_id=project_id,
+                    analysis_run_id=analysis_run_id,
+                )
+                if f.reviewerRunId == "rubric"
+            ]
+        await asyncio.to_thread(
+            analyses.save_rubric_summary,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            analysis_run_id=analysis_run_id,
+            summary=rubric_summary,
+            findings=rubric_findings,
+        )
+        review_cost += await asyncio.to_thread(
+            analyses.rubric_spent_usd,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            analysis_run_id=analysis_run_id,
+        )
+        findings.extend(rubric_findings)
+
         try:
             editorial = await edit_findings(
                 findings,
@@ -660,6 +720,12 @@ async def run_analysis(
                 output_price_per_mtok=settings.llm_output_price_per_mtok,
             )
             for outcome in outcomes
+        )
+        + await asyncio.to_thread(
+            analyses.rubric_spent_usd,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            analysis_run_id=analysis_run_id,
         )
         + editorial.costEstimateUsd
         + adjudication.costEstimateUsd

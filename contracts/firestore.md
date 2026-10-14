@@ -575,7 +575,7 @@ ready owned transcript as WebVTT for comparison players without activating the r
 
 ## Editorial consolidation
 
-After reviewer normalisation and before adjudication, the bounded `editor-v1` pass adds
+After reviewer normalisation and before adjudication, the bounded `editor-v6` pass adds
 `findings/{findingId}.editorial`: `{verdict: keep|merge|drop, reason, mergedInto?,
 adjustedSeverity?, factualStatus: verified|unverified|not_applicable, sources: object[],
 checkedAt, model, promptVersion}`. Original reviewer output is never rewritten.
@@ -583,8 +583,9 @@ Merge targets must be kept issue findings in the same window, with no chains/cyc
 the target's `corroboratedBy: string[]` credits original merged finding IDs.
 Drops/merges remain retrievable, hidden by default in the review panel, and excluded from
 bins, summary, interest links, comparison, library enrichment and downstream writing context.
-Severity adjustments must be strictly lower; aggregation uses the lowest editor/adjudicator
-adjustment. Unverified factual objections cannot retain high/critical severity.
+Each member grade can only be lowered; the kept representative carries the highest
+justified cluster grade. Aggregation then honors adjudicator downgrades. Unverified factual
+objections cannot retain high/critical severity.
 
 `analysisRuns/{runId}.editor` stores `{model, promptVersion, callCount, errorCount,
 skippedCount, keptCount, mergedCount, droppedCount, costEstimateUsd, tokenUsage,
@@ -598,3 +599,30 @@ findings unedited and never fail the run. Search is enabled with Truth findings 
 returned grounding sources are retained separately from reviewer citations. Search query
 charges are not included in token estimates. All documents are under the owned project tree
 and covered by recursive project/account deletion. Reads/writes check ownership.
+
+## Rubric reviewer and editor v6
+
+Each analysis run may store `rubric: {model, promptVersion, callCount, findingCount,
+skippedCount, costEstimateUsd, tokenUsage: {input, output}, searchQueries,
+searchSuggestions, errors}`. The coordinator makes at most one all-nine-rubrics call
+per run, using the reviewer model. `rubricCalls/00` has `ownerUid`, `reservedAt`,
+`status`, `costEstimateUsd`, optional `tokenUsage` and `error`; atomic creation prevents
+retrying an ambiguous paid call. Reserved/failed allowance counts toward project spend.
+The existing project/account recursive deletion covers this subcollection.
+Rubric observations use the existing finding shape with `reviewerRunId: "rubric"`;
+they are stored alongside specialists before editing. No tenth heatmap dimension.
+Oversize whole-transcript input (>100k characters) skips this pass rather than truncating it.
+
+Editor v6 merges by underlying problem/edit, across reviewer lenses. Originals remain
+immutable; `corroboratedBy` still references merged original finding IDs. The UI resolves
+these to named reviewer dimensions (or "All-rubric review"), not independent expert votes.
+A kept representative retains its original quote, span and dimension; choose the best
+evidence. The model chooses a root problem dimension, and code selects an existing merged
+member in that dimension with a quote and focused span when available, without relabelling
+any observation. `editorial.adjustedSeverity` is the highest justified grade across the cluster,
+bounded by the members' original grades after editor reductions. It may exceed the
+representative's grade; footage adjudication may subsequently downgrade it.
+Rubric findings are evaluated on the same evidence standard as specialist findings; agreement
+is a keep signal, not a guarantee. Representatives use the dimension owning the underlying
+problem rather than its side effects. Omission evidence can be distributed across the video
+and have an empty quote; incomplete windows cannot disprove it.

@@ -13,6 +13,7 @@ Arms:
               nine reviewers, per-window normalisation (`app/agents/analysis_coordinator.py`)
   adjudicated reviewers, then the production footage adjudicator
   edited      reviewers, then bounded cross-reviewer editorial consolidation
+  ensemble_edited nine reviewers + the single all-rubric pass, then editor
   edited_adjudicated reviewers, editor, then adjudicator (or joined saved verdicts on reuse)
 
 Commands (from `backend/`):
@@ -26,9 +27,9 @@ Commands (from `backend/`):
     # Markdown tables from a scored file.
     uv run python scripts/editorial_eval.py report ../evals/results/editorial-<run>.json
 
-Costs and call counts count logical `generate_content` calls, tool-loop rounds included. A
-transient-error retry inside the provider is not counted separately for baseline/reviewer
-arms; editor/adjudicator calls disable both provider and SDK retries.
+Costs and call counts count `generate_content` attempts, tool-loop rounds included.
+The metered provider disables hidden SDK/provider retries for every arm. Historical reused
+runs may have counted logical calls instead; their original records are retained.
 """
 
 import argparse
@@ -39,8 +40,7 @@ import json
 import subprocess
 import sys
 import time
-from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from importlib import import_module
 from pathlib import Path
@@ -53,7 +53,6 @@ import editorial_score as scoring
 
 from app.agents.adjudicator import ADJUDICATOR_PROMPT_VERSION, adjudicator_reservation
 from app.agents.analysis_coordinator import (
-    REVIEWER_CLASSES,
     build_review_contexts,
     build_reviewers,
     chunk_segments,
@@ -61,19 +60,22 @@ from app.agents.analysis_coordinator import (
 )
 from app.agents.editor import EDITOR_PROMPT_VERSION, edit_findings, editor_reservation
 from app.agents.reviewer_base import (
-    GROUNDING_PROMPT,
     MODEL_CONFIG_VERSION,
     REVIEWER_PROMPT_VERSION,
-    SCORE_ANCHORS,
     SegmentRef,
-    dimension_label,
-    findings_schema,
-    normalize_findings,
+)
+from app.agents.rubric import (
+    BASELINE_PROMPT_VERSION,
+    RUBRIC_PROMPT_VERSION,
+    baseline_schema,
+    baseline_system,
+    baseline_user,
+    normalize_baseline,
 )
 from app.config import Settings
 from app.providers.base import MediaPart
 from app.providers.llm import LlmProvider, _grounding_from, _usage_from
-from app.schemas.analysis import ACTIVE_DIMENSIONS, AdjudicatorSummary, AnalysisDimension, Finding
+from app.schemas.analysis import ACTIVE_DIMENSIONS, AdjudicatorSummary, Finding
 from app.services.heatmap import effective_findings
 from app.services.video_tools import MediaToolkit, ffmpeg_available
 from app.workers.analysis_worker import _add_sampled_frames
@@ -91,40 +93,18 @@ PRE_REGISTERED_PATHS = (
     "manifest.json",
 )
 
-BASELINE_PROMPT_VERSION = "editorial-baseline-v1"
 SCHEMA_VERSION = 1
-ARMS = ("baseline", "rubric", "reviewers", "adjudicated", "edited", "edited_adjudicated")
+ARMS = (
+    "baseline",
+    "rubric",
+    "reviewers",
+    "adjudicated",
+    "edited",
+    "ensemble_edited",
+    "edited_adjudicated",
+)
 DEFAULT_ARMS = "baseline,reviewers"
 DEFAULT_ADJUDICATOR = "app.agents.adjudicator:adjudicate"
-
-#: One line per dimension for the plain baseline: what a reasonable user would write.
-DIMENSION_BLURBS: dict[AnalysisDimension, str] = {
-    AnalysisDimension.truth_evidence: "factual errors and unsupported claims",
-    AnalysisDimension.clarity: "unclear explanations, unexplained jargon, hard-to-follow phrasing",
-    AnalysisDimension.pacing_retention: "weak hooks, slow or repetitive stretches, tangents, "
-    "promises that are not kept",
-    AnalysisDimension.legal_safety: "legal, medical, financial or safety risks",
-    AnalysisDimension.cultural_localization: "assumptions about location or culture that a "
-    "worldwide audience would not share",
-    AnalysisDimension.platform_fit: "how well the video fits the platform it is published on",
-    AnalysisDimension.audience_brand: "fit with the intended audience and the stated tone",
-    AnalysisDimension.emotional_impact: "emotional flatness or tone that does not fit the moment",
-    AnalysisDimension.conversion_cta: "calls to action and next steps that serve the creator's "
-    "goal",
-}
-
-BASELINE_RULES = """\
-OUTPUT RULES:
-1. Review the whole video. Report only real problems or exceptional strengths (score 5, severity
-   none); do not narrate ordinary stretches and never invent issues to fill a quota.
-2. For a spoken issue, quote the exact words (at most 25 words); for an omission, the quote may
-   be empty. startMs and endMs are milliseconds from the start of the video; mark the actual span,
-   or where an omission belongs. segmentId is the nearest transcript segment.
-3. Set `dimension` to the area the issue belongs to. score is the 1-5 scale above; severity is
-   judged separately.
-4. critique_and_reasoning is 1-2 short sentences. suggestion is one concrete edit: what to trim or
-   move, replacement wording, or exactly what to add here. Do not invent facts, names, numbers or
-   sources. Return JSON only, matching the schema."""
 
 
 class BudgetExceeded(RuntimeError):
@@ -139,10 +119,13 @@ class MeteredLlm(LlmProvider):
         self.max_calls = max_calls
         self.calls: list[dict[str, Any]] = []
         self.tag = ""
+        self.on_call: Callable[[], None] | None = None
 
     async def _generate(self, **kwargs: Any) -> Any:
         if len(self.calls) >= self.max_calls:
             raise BudgetExceeded(f"--max-calls {self.max_calls} reached")
+        # Disable hidden SDK/provider retries: the hard cap counts upstream attempts.
+        kwargs["max_attempts"] = 1
         record: dict[str, Any] = {
             "tag": self.tag,
             "model": kwargs.get("model"),
@@ -151,12 +134,16 @@ class MeteredLlm(LlmProvider):
             "thinkingLevel": kwargs.get("thinking_level"),
         }
         self.calls.append(record)
+        if self.on_call:
+            self.on_call()
         started = time.monotonic()
         try:
             result = await super()._generate(**kwargs)
         except Exception as exc:
             record["error"] = f"{type(exc).__name__}: {exc}"[:300]
             record["elapsedMs"] = int((time.monotonic() - started) * 1000)
+            if self.on_call:
+                self.on_call()
             raise
         usage = _usage_from(result)
         record.update(
@@ -166,6 +153,8 @@ class MeteredLlm(LlmProvider):
             elapsedMs=int((time.monotonic() - started) * 1000),
             text=(result.text or "")[:60_000],
         )
+        if self.on_call:
+            self.on_call()
         return result
 
     def calls_for(self, tag: str) -> list[dict[str, Any]]:
@@ -257,6 +246,8 @@ def code_fingerprint() -> dict[str, Any]:
         BACKEND / "app" / "agents" / "analysis_coordinator.py",
         BACKEND / "app" / "agents" / "adjudicator.py",
         BACKEND / "app" / "agents" / "editor.py",
+        BACKEND / "app" / "agents" / "rubric.py",
+        BACKEND / "app" / "agents" / "reviewer_registry.py",
         BACKEND / "app" / "providers" / "base.py",
         BACKEND / "app" / "providers" / "llm.py",
         BACKEND / "app" / "config.py",
@@ -271,94 +262,6 @@ def code_fingerprint() -> dict[str, Any]:
 # ------------------------------------------------------------------ baseline arms
 
 
-def all_finding_types() -> list[str]:
-    seen: dict[str, None] = {}
-    for dimension in ACTIVE_DIMENSIONS:
-        for finding_type in REVIEWER_CLASSES[dimension].finding_types:
-            seen.setdefault(finding_type)
-    return list(seen)
-
-
-def baseline_schema(*, grounded: bool) -> dict[str, Any]:
-    """The reviewers' finding shape plus the `dimension` a single prompt must choose itself."""
-    schema = findings_schema(all_finding_types(), grounded=grounded)
-    item = schema["properties"]["findings"]["items"]
-    item["properties"]["dimension"] = {
-        "type": "string",
-        "enum": [dimension.value for dimension in ACTIVE_DIMENSIONS],
-    }
-    item["required"].append("dimension")
-    return schema
-
-
-def baseline_system(*, rubric: bool, grounded: bool) -> str:
-    if rubric:
-        areas = "\n\n".join(
-            f"## {dimension_label(d)} (dimension: {d.value})\n{REVIEWER_CLASSES[d].focus.strip()}"
-            for d in ACTIVE_DIMENSIONS
-        )
-        intro = "Review the video against all nine areas below, each with its own rubric."
-    else:
-        areas = "\n".join(
-            f"- {dimension_label(d)} (dimension: {d.value}): {DIMENSION_BLURBS[d]}"
-            for d in ACTIVE_DIMENSIONS
-        )
-        intro = "Review the video in these areas."
-    sections = [
-        "You are an expert video editor and script consultant reviewing a creator's video "
-        "before it is published. The video is attached and its transcript is below. "
-        f"{intro} Help the creator edit: explain the viewer friction, then give one change they "
-        "can make at the marked moment, preserving their voice and intent.",
-        areas,
-        SCORE_ANCHORS,
-        BASELINE_RULES,
-    ]
-    if grounded:
-        sections.append(GROUNDING_PROMPT)
-    return "\n\n".join(sections)
-
-
-def baseline_user(label: dict[str, Any], segments: Sequence[SegmentRef]) -> str:
-    header = [
-        "# Review task: whole video",
-        f"Video title: {label['title']}",
-        f"Target platform: {label['platform']}",
-        f"Spoken language: {label['language']}",
-        f"Video duration: {label['durationMs']} ms",
-        f"Review date: {datetime.now(UTC).date().isoformat()}. Filming date is not provided.",
-        f"Creator's brief: {label['brief']}",
-        f"Intended audience: {label['audience']}",
-    ]
-    lines = [f"[{s.segment_id}] {s.start_ms} -> {s.end_ms}: {s.text}" for s in segments]
-    return "\n".join(header) + "\n\n# TRANSCRIPT\n" + "\n".join(lines)
-
-
-def normalize_baseline(
-    raw: dict[str, Any], segments: Sequence[SegmentRef], duration_ms: int
-) -> list[dict[str, Any]]:
-    """Normalise with the reviewers' own validator, grouped by the dimension the model chose."""
-    entries = raw.get("findings") if isinstance(raw, dict) else None
-    groups: dict[AnalysisDimension, list[Any]] = defaultdict(list)
-    for entry in entries or []:
-        try:
-            groups[AnalysisDimension(str(entry.get("dimension")))].append(entry)
-        except (ValueError, AttributeError):
-            continue
-    findings = []
-    for dimension, group in groups.items():
-        findings.extend(
-            normalize_findings(
-                {"findings": group},
-                dimension=dimension,
-                reviewer_run_id="baseline",
-                segments=segments,
-                duration_ms=duration_ms,
-            )
-        )
-    findings.sort(key=lambda finding: finding.startMs)
-    return [finding.model_dump(mode="json") for finding in findings]
-
-
 async def run_baseline_arm(
     llm: MeteredLlm,
     *,
@@ -371,7 +274,7 @@ async def run_baseline_arm(
 ) -> dict[str, Any]:
     completion = await llm.complete_json(
         model=model,
-        prompt_version=BASELINE_PROMPT_VERSION,
+        prompt_version=RUBRIC_PROMPT_VERSION if rubric else BASELINE_PROMPT_VERSION,
         system=baseline_system(rubric=rubric, grounded=grounded),
         user=baseline_user(label, segments),
         schema=baseline_schema(grounded=grounded),
@@ -382,7 +285,10 @@ async def run_baseline_arm(
     )
     return {
         "rawJson": completion.data,
-        "findings": normalize_baseline(completion.data, segments, int(label["durationMs"])),
+        "findings": [
+            f.model_dump(mode="json")
+            for f in normalize_baseline(completion.data, segments, int(label["durationMs"]))
+        ],
     }
 
 
@@ -560,7 +466,7 @@ def plan_calls(arms: Sequence[str], labels: dict[str, dict[str, Any]], settings:
             )
         elif arm in ("adjudicated", "edited_adjudicated"):
             per_arm[arm] = (0, len(labels) * settings.max_adjudicator_calls)
-        elif arm == "edited":
+        elif arm in ("edited", "ensemble_edited"):
             per_arm[arm] = (
                 0,
                 sum(
@@ -609,11 +515,17 @@ def validate_reuse(
         raw["labels"]["labelSha256"].get(v) != registration["labelSha256"][v] for v in labels
     ):
         raise SystemExit("reuse labels/matching rule differ from the saved run")
-    if not set(arms) <= {"edited", "edited_adjudicated"}:
-        raise SystemExit("--reuse-raw makes only editor calls: choose edited,edited_adjudicated")
+    if not set(arms) <= {"edited", "ensemble_edited", "edited_adjudicated"}:
+        raise SystemExit(
+            "--reuse-raw makes only editor calls: choose edited,ensemble_edited,edited_adjudicated"
+        )
     for video_id in labels:
         if video_id not in raw.get("arms", {}).get("reviewers", {}).get("videos", {}):
             raise SystemExit(f"reuse lacks reviewers for {video_id}")
+        if "ensemble_edited" in arms and video_id not in raw.get("arms", {}).get("rubric", {}).get(
+            "videos", {}
+        ):
+            raise SystemExit(f"reuse lacks rubric for {video_id}")
         if "edited_adjudicated" in arms and video_id not in raw.get("arms", {}).get(
             "adjudicated", {}
         ).get("videos", {}):
@@ -636,6 +548,30 @@ async def run_arms(args: argparse.Namespace, settings: Settings, model: str) -> 
         validate_reuse(reused, registration, model, labels, arms)
         if reused["prices"] != prices:
             raise SystemExit("reuse requires identical prices for honest cumulative cost")
+    rubric_recovery = read_json(args.reuse_rubric_raw) if args.reuse_rubric_raw else None
+    if rubric_recovery:
+        if not reused or "ensemble_edited" not in arms:
+            raise SystemExit("--reuse-rubric-raw requires --reuse-raw and ensemble_edited")
+        if (
+            rubric_recovery["model"] != model
+            or rubric_recovery["prices"] != prices
+            or rubric_recovery["labels"]["inputSha256"] != registration["inputSha256"]
+            or rubric_recovery["labels"]["matchingSha256"] != registration["matchingSha256"]
+            or rubric_recovery["labels"]["labelSha256"] != registration["labelSha256"]
+        ):
+            raise SystemExit("rubric recovery must use identical model/prices/inputs/labels")
+        recovered = rubric_recovery.get("arms", {}).get("rubric", {}).get("videos", {})
+        if not recovered or any(e.get("fatal") for e in recovered.values()):
+            raise SystemExit("rubric recovery has no successful rubric output")
+        reused = copy.deepcopy(reused)
+        for video_id, entry in recovered.items():
+            old = reused["arms"]["rubric"]["videos"].get(video_id, {})
+            # Retain failed attempt cost/calls, but score only the successful output.
+            replaced = copy.deepcopy(entry)
+            replaced.update(combined_summary(old, entry))
+            replaced["calls"] = old.get("calls", []) + entry.get("calls", [])
+            replaced["recoveredFrom"] = rubric_recovery["runId"]
+            reused["arms"]["rubric"]["videos"][video_id] = replaced
     settings = settings.model_copy(
         update={
             "model_editor": model,
@@ -683,6 +619,7 @@ async def run_arms(args: argparse.Namespace, settings: Settings, model: str) -> 
             "reviewers": REVIEWER_PROMPT_VERSION,
             "modelConfig": MODEL_CONFIG_VERSION,
             "baseline": BASELINE_PROMPT_VERSION,
+            "rubric": RUBRIC_PROMPT_VERSION,
             "adjudicator": ADJUDICATOR_PROMPT_VERSION,
             "editor": EDITOR_PROMPT_VERSION,
         },
@@ -700,6 +637,15 @@ async def run_arms(args: argparse.Namespace, settings: Settings, model: str) -> 
             "sourceCode": reused["code"],
             "sourcePromptVersions": reused["promptVersions"],
         }
+        if rubric_recovery:
+            raw["reuse"]["rubricRecovery"] = {
+                "path": str(args.reuse_rubric_raw),
+                "sha256": sha256_file(args.reuse_rubric_raw),
+                "runId": rubric_recovery["runId"],
+                "replacedVideos": sorted(rubric_recovery["arms"]["rubric"]["videos"]),
+                "failedAttemptsRetainedInCost": True,
+                "promptVersions": rubric_recovery["promptVersions"],
+            }
         for arm, data in reused["arms"].items():
             if arm in ("baseline", "rubric", "reviewers", "adjudicated"):
                 raw["arms"][arm] = {
@@ -712,8 +658,12 @@ async def run_arms(args: argparse.Namespace, settings: Settings, model: str) -> 
 
     def save() -> None:
         raw["totalModelRequests"] = len(llm.calls)
+        raw["liveCalls"] = llm.calls
         raw_path.write_text(scoring.dump(raw))
 
+    # Persist the attempted call before awaiting it, including a stalled final attempt.
+    llm.on_call = save
+    save()
     try:
         for video_id, label in labels.items():
             segments = load_segments(video_id)
@@ -750,8 +700,19 @@ async def run_arms(args: argparse.Namespace, settings: Settings, model: str) -> 
                             visual_tools=args.visual_tools,
                             grounded=args.grounding,
                         )
-                    elif arm == "edited":
+                    elif arm in ("edited", "ensemble_edited"):
+                        base_summary = reviewer_entry
                         findings = [Finding.model_validate(f) for f in reviewer_entry["findings"]]
+                        if arm == "ensemble_edited":
+                            rubric_entry = raw["arms"]["rubric"]["videos"][video_id]
+                            rubric_findings = [
+                                Finding.model_validate(f) for f in rubric_entry["findings"]
+                            ]
+                            for f in rubric_findings:
+                                f.reviewerRunId = "rubric"
+                                f.findingId = "rubric-" + f.findingId
+                            findings.extend(rubric_findings)
+                            base_summary = combined_summary(reviewer_entry, rubric_entry)
                         summary = await edit_findings(
                             findings,
                             segments=segments,
@@ -772,7 +733,6 @@ async def run_arms(args: argparse.Namespace, settings: Settings, model: str) -> 
                             "allFindings": [f.model_dump(mode="json") for f in findings],
                             "editor": summary.model_dump(mode="json"),
                         }
-                        base_summary = reviewer_entry
                     elif arm == "edited_adjudicated" and reused:
                         findings = [Finding.model_validate(f) for f in edited_entry["allFindings"]]
                         saved = raw["arms"]["adjudicated"]["videos"][video_id]
@@ -820,20 +780,25 @@ async def run_arms(args: argparse.Namespace, settings: Settings, model: str) -> 
                     raise
                 except Exception as exc:  # noqa: BLE001 - keep original findings on optional failure
                     entry = {
-                        "findings": copy.deepcopy(reviewer_entry.get("findings", [])),
+                        "findings": (
+                            [f.model_dump(mode="json") for f in findings]
+                            if arm in ("edited", "ensemble_edited")
+                            else copy.deepcopy(reviewer_entry.get("findings", []))
+                        ),
                         "fatal": f"{type(exc).__name__}: {exc}"[:300],
                     }
                 calls = llm.calls_for(tag)
                 marginal = summarize_calls(calls)
                 if "fatal" in entry:
                     marginal["errors"].append(entry["fatal"])
-                elif arm == "edited":
+                elif arm in ("edited", "ensemble_edited"):
                     marginal["errors"].extend(entry["editor"]["errors"])
                 entry.update(combined_summary(base_summary, marginal))
                 entry["calls"] = calls
-                if arm == "edited":
+                if arm in ("edited", "ensemble_edited"):
                     entry["editorMarginal"] = marginal
-                    edited_entry = entry
+                    if arm == "edited":
+                        edited_entry = entry
                 if arm == "reviewers":
                     reviewer_entry = entry
                 raw["arms"][arm]["videos"][video_id] = entry
@@ -864,9 +829,12 @@ def findings_for_scoring(
         out[arm] = {}
         for video_id, run in runs["videos"].items():
             if arm in ("baseline", "rubric") and "rawJson" in run:
-                out[arm][video_id] = normalize_baseline(
-                    run["rawJson"], load_segments(video_id), int(labels[video_id]["durationMs"])
-                )
+                out[arm][video_id] = [
+                    f.model_dump(mode="json")
+                    for f in normalize_baseline(
+                        run["rawJson"], load_segments(video_id), int(labels[video_id]["durationMs"])
+                    )
+                ]
             else:
                 out[arm][video_id] = run["findings"]
     return out
@@ -936,12 +904,14 @@ def command_run(args: argparse.Namespace) -> None:
     for dependent, prerequisite in (
         ("adjudicated", "reviewers"),
         ("edited", "reviewers"),
+        ("ensemble_edited", "reviewers"),
+        ("ensemble_edited", "rubric"),
         ("edited_adjudicated", "edited"),
     ):
         if dependent not in arms:
             continue
         if prerequisite not in arms:
-            if args.reuse_raw and prerequisite == "reviewers":
+            if args.reuse_raw and prerequisite in {"reviewers", "rubric"}:
                 continue
             raise SystemExit(f"include {prerequisite} before {dependent}")
         if arms.index(prerequisite) > arms.index(dependent):
@@ -1030,7 +1000,12 @@ def main() -> None:
     run.add_argument(
         "--reuse-raw",
         type=Path,
-        help="Reuse reviewer findings and adjudicator verdicts; only editor calls are new.",
+        help="Reuse reviewer/rubric findings and adjudicator verdicts; only editor calls are new.",
+    )
+    run.add_argument(
+        "--reuse-rubric-raw",
+        type=Path,
+        help="Overlay saved rubric recovery; retains original failed costs/calls.",
     )
     run.add_argument("--run-id")
     run.add_argument("--output-dir", type=Path, default=RESULTS)
