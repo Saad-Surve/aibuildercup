@@ -54,6 +54,7 @@ class LlmProvider:
         temperature: float | None = None,
         max_attempts: int | None = None,
         max_output_tokens: int | None = None,
+        thinking_level: str | None = None,
     ) -> LlmCompletion:
         del prompt_version  # Part of the provider interface; unused by the live call.
         from google.genai import types
@@ -69,6 +70,7 @@ class LlmProvider:
             temperature=temperature,
             max_attempts=max_attempts,
             max_output_tokens=max_output_tokens,
+            thinking_level=thinking_level,
         )
         return _completion_from(result)
 
@@ -192,6 +194,7 @@ class LlmProvider:
         temperature: float | None = None,
         max_attempts: int | None = None,
         max_output_tokens: int | None = None,
+        thinking_level: str | None = None,
     ) -> Any:
         """One `generate_content` call, retrying transient failures."""
         from google.genai import errors as genai_errors
@@ -213,6 +216,8 @@ class LlmProvider:
             config["temperature"] = temperature
         if max_output_tokens is not None:
             config["max_output_tokens"] = max_output_tokens
+        if thinking_level is not None:
+            config["thinking_config"] = {"thinking_level": thinking_level}
         if max_attempts is not None or self.settings.llm_max_attempts == 1:
             # The SDK defaults to five HTTP attempts inside each provider attempt.
             # Explicit call budgets must count upstream requests, including failures.
@@ -349,9 +354,7 @@ def _merge_grounding(left: GroundingInfo, right: GroundingInfo) -> GroundingInfo
     return GroundingInfo(
         queries=tuple(queries),
         sources=tuple(sources),
-        search_suggestions_html=(
-            left.search_suggestions_html or right.search_suggestions_html
-        ),
+        search_suggestions_html=(left.search_suggestions_html or right.search_suggestions_html),
     )
 
 

@@ -62,6 +62,9 @@ class _Enrichment:
 
 def _active(data: dict[str, Any]) -> bool:
     decision = data.get("decision")
+    editorial = data.get("editorial")
+    if isinstance(editorial, dict) and editorial.get("verdict") in {"drop", "merge"}:
+        return False
     adjudication = data.get("adjudication")
     if isinstance(decision, dict) and decision.get("status") == "dismissed":
         return False

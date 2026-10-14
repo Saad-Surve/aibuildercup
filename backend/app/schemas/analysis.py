@@ -142,9 +142,7 @@ class FindingDecisionInput(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     status: Literal["accepted", "revised", "dismissed"]
-    note: str | None = Field(
-        default=None, max_length=2000, exclude_if=lambda value: value is None
-    )
+    note: str | None = Field(default=None, max_length=2000, exclude_if=lambda value: value is None)
     revisedAction: str | None = Field(
         default=None, min_length=1, max_length=4000, exclude_if=lambda value: value is None
     )
@@ -183,6 +181,34 @@ class FindingAdjudication(BaseModel):
     checkedAt: datetime
     model: str
     promptVersion: str
+
+
+class FindingEditorial(BaseModel):
+    verdict: Literal["keep", "merge", "drop"]
+    reason: str = Field(min_length=1, max_length=1000)
+    mergedInto: str | None = None
+    adjustedSeverity: Severity | None = None
+    factualStatus: Literal["verified", "unverified", "not_applicable"] = "not_applicable"
+    sources: list[dict[str, Any]] = Field(default_factory=list)
+    checkedAt: datetime
+    model: str
+    promptVersion: str
+
+
+class EditorSummary(BaseModel):
+    model: str
+    promptVersion: str
+    callCount: int = 0
+    errorCount: int = 0
+    skippedCount: int = 0
+    keptCount: int = 0
+    mergedCount: int = 0
+    droppedCount: int = 0
+    costEstimateUsd: float = 0.0
+    tokenUsage: TokenUsage = Field(default_factory=TokenUsage)
+    searchQueries: list[str] = Field(default_factory=list)
+    searchSuggestions: str = ""
+    errors: list[str] = Field(default_factory=list)
 
 
 class FindingReconciliation(BaseModel):
@@ -243,6 +269,8 @@ class Finding(BaseModel):
     suggestion: str = ""
     citations: list[dict[str, Any]] = Field(default_factory=list)
     decision: FindingDecision | None = None
+    editorial: FindingEditorial | None = None
+    corroboratedBy: list[str] = Field(default_factory=list)
     adjudication: FindingAdjudication | None = None
     reconciliation: FindingReconciliation | None = None
     libraryLinks: list[FindingLibraryLink] = Field(default_factory=list, max_length=1)
@@ -284,6 +312,7 @@ class AnalysisRun(BaseModel):
     modelConfigVersion: str
     promptVersion: str
     costEstimateUsd: float = 0.0
+    editor: EditorSummary | None = None
     adjudicator: AdjudicatorSummary | None = None
     error: dict[str, Any] | None = None
     createdAt: datetime

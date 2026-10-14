@@ -63,9 +63,7 @@ def bin_id_for(dimension: AnalysisDimension | str, start_ms: int) -> str:
     return f"{dimension}-{start_ms}"
 
 
-def normalize_span(
-    start_ms: int, end_ms: int, *, duration_ms: int
-) -> tuple[int, int] | None:
+def normalize_span(start_ms: int, end_ms: int, *, duration_ms: int) -> tuple[int, int] | None:
     """Clamp a finding span to `[0, duration_ms]`. None when nothing is left."""
     start = min(max(0, int(start_ms)), duration_ms)
     end = min(max(0, int(end_ms)), duration_ms)
@@ -120,19 +118,31 @@ class BinAccumulator:
         )
 
 
+def effective_severity(finding: Finding) -> Severity:
+    from app.schemas.analysis import SEVERITY_RANK
+
+    severities = [finding.severity]
+    if finding.editorial and finding.editorial.adjustedSeverity is not None:
+        severities.append(finding.editorial.adjustedSeverity)
+    if finding.adjudication and finding.adjudication.verdict == "downgrade":
+        if finding.adjudication.adjustedSeverity is not None:
+            severities.append(finding.adjudication.adjustedSeverity)
+    return min(severities, key=lambda severity: SEVERITY_RANK[severity])
+
+
+def editor_filtered(finding: Finding) -> bool:
+    return finding.editorial is not None and finding.editorial.verdict in {"drop", "merge"}
+
+
 def effective_findings(findings: list[Finding]) -> list[Finding]:
     """Adjudication affects aggregation, never the stored reviewer score or creator intent."""
     effective: list[Finding] = []
     for finding in findings:
-        check = finding.adjudication
-        if check is not None and check.verdict == "reject":
-            continue
-        if (
-            check is not None
-            and check.verdict == "downgrade"
-            and check.adjustedSeverity is not None
+        if editor_filtered(finding) or (
+            finding.adjudication is not None and finding.adjudication.verdict == "reject"
         ):
-            finding = finding.model_copy(update={"severity": check.adjustedSeverity})
+            continue
+        finding = finding.model_copy(update={"severity": effective_severity(finding)})
         effective.append(finding)
     return effective
 

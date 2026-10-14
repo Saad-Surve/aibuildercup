@@ -9,6 +9,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 
 from app.agents.adjudicator import adjudicator_reservation
+from app.agents.editor import editor_reservation
 from app.config import Settings, get_settings
 from app.dependencies import (
     AnalysisScheduler,
@@ -85,7 +86,8 @@ def start_analysis(
 ) -> AnalysisStartResponse:
     ensure_within_budget(
         service.spent_usd(owner_uid=user.uid, project_id=projectId)
-        + adjudicator_reservation(settings),
+        + adjudicator_reservation(settings)
+        + editor_reservation(settings),
         max_project_cost_usd=settings.max_project_cost_usd,
     )
     run, job = service.create_run(

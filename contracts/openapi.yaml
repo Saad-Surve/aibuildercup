@@ -1469,7 +1469,7 @@ paths:
     get:
       summary: Get UI-ready heatmap bins
       description: >
-        Bins exclude adjudicator-rejected findings and use adjustedSeverity for downgrades.
+        Bins exclude editor drops/merges and adjudicator rejects; severity uses the lowest adjustment.
         Bins exist only where a remaining finding touches a five-second window. `coverage` lists the
         spans each reviewer actually read, so the UI can show "reviewed, nothing flagged"
         instead of an empty gap. Runs created before coverage was recorded return [].
@@ -3790,6 +3790,10 @@ components:
         modelConfigVersion: { type: string }
         promptVersion: { type: string }
         costEstimateUsd: { type: number }
+        editor:
+          oneOf:
+            - { $ref: "#/components/schemas/EditorSummary" }
+            - { type: "null" }
         adjudicator:
           oneOf:
             - { $ref: "#/components/schemas/AdjudicatorSummary" }
@@ -3959,6 +3963,41 @@ components:
         tokenUsage: { $ref: "#/components/schemas/TokenUsage" }
         errors: { type: array, items: { type: string } }
 
+    FindingEditorial:
+      type: object
+      required: [verdict, reason, checkedAt, model, promptVersion]
+      properties:
+        verdict: { type: string, enum: [keep, merge, drop] }
+        reason: { type: string, minLength: 1, maxLength: 1000 }
+        mergedInto: { type: [string, "null"] }
+        adjustedSeverity:
+          oneOf:
+            - { $ref: "#/components/schemas/Severity" }
+            - { type: "null" }
+        factualStatus: { type: string, enum: [verified, unverified, not_applicable] }
+        sources: { type: array, items: { type: object, additionalProperties: true } }
+        checkedAt: { type: string, format: date-time }
+        model: { type: string }
+        promptVersion: { type: string }
+
+    EditorSummary:
+      type: object
+      required: [model, promptVersion]
+      properties:
+        model: { type: string }
+        promptVersion: { type: string }
+        callCount: { type: integer }
+        errorCount: { type: integer }
+        skippedCount: { type: integer }
+        keptCount: { type: integer }
+        mergedCount: { type: integer }
+        droppedCount: { type: integer }
+        costEstimateUsd: { type: number }
+        tokenUsage: { $ref: "#/components/schemas/TokenUsage" }
+        searchQueries: { type: array, items: { type: string } }
+        searchSuggestions: { type: string }
+        errors: { type: array, items: { type: string } }
+
     Finding:
       type: object
       required: [dimension, score, confidence, severity, evidence, suggestion]
@@ -3993,6 +4032,15 @@ components:
             - { $ref: "#/components/schemas/FindingDecision" }
             - { type: "null" }
           description: Absent or null means undecided; creator intent never modifies reviewer output.
+        editorial:
+          oneOf:
+            - { $ref: "#/components/schemas/FindingEditorial" }
+            - { type: "null" }
+          description: Editor metadata only; drops and merges stay retrievable but leave bins and summary.
+        corroboratedBy:
+          type: array
+          items: { type: string }
+          description: Original finding IDs merged into this kept observation.
         adjudication:
           oneOf:
             - { $ref: "#/components/schemas/FindingAdjudication" }

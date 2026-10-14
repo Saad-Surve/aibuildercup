@@ -538,3 +538,29 @@ the same source/transcript. `plan.inserts` caches headline, skippedReason and pl
 each selected insert and overlays its existing video without using its audio or changing
 timeline duration. No insert is generated. `GET assets/{assetId}/captions` reads the latest
 ready owned transcript as WebVTT for comparison players without activating the revision.
+
+## Editorial consolidation
+
+After reviewer normalisation and before adjudication, the bounded `editor-v1` pass adds
+`findings/{findingId}.editorial`: `{verdict: keep|merge|drop, reason, mergedInto?,
+adjustedSeverity?, factualStatus: verified|unverified|not_applicable, sources: object[],
+checkedAt, model, promptVersion}`. Original reviewer output is never rewritten.
+Merge targets must be kept issue findings in the same window, with no chains/cycles;
+the target's `corroboratedBy: string[]` credits original merged finding IDs.
+Drops/merges remain retrievable, hidden by default in the review panel, and excluded from
+bins, summary, interest links, comparison, library enrichment and downstream writing context.
+Severity adjustments must be strictly lower; aggregation uses the lowest editor/adjudicator
+adjustment. Unverified factual objections cannot retain high/critical severity.
+
+`analysisRuns/{runId}.editor` stores `{model, promptVersion, callCount, errorCount,
+skippedCount, keptCount, mergedCount, droppedCount, costEstimateUsd, tokenUsage,
+searchQueries: string[], searchSuggestions: string, errors: string[]}`. `MODEL_EDITOR` falls back to `MODEL_REVIEWER`;
+optional editor input/output prices fall back to reviewer prices. Short videos use one call;
+time windows use at most `MAX_EDITOR_CALLS=3`. Each one-attempt call requires a conservative
+budget allowance and an atomic `editorCalls/{00..02}` reservation (`ownerUid`, `label`,
+`reservedAt`, `status`, `costEstimateUsd`, optional `tokenUsage`, `error`). Uncertain slots
+remain consumed across worker retries. Errors, oversized inputs and exhausted budget leave
+findings unedited and never fail the run. Search is enabled with Truth findings when configured;
+returned grounding sources are retained separately from reviewer citations. Search query
+charges are not included in token estimates. All documents are under the owned project tree
+and covered by recursive project/account deletion. Reads/writes check ownership.

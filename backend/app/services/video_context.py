@@ -62,7 +62,14 @@ def latest_run_id(client: FirestoreClient, owner_uid: str, project_id: str) -> s
 
 def _severity(data: dict[str, Any]) -> str:
     value = str(data.get("severity") or Severity.none.value)
-    return value if value in {s.value for s in Severity} else Severity.none.value
+    values = [value if value in {s.value for s in Severity} else Severity.none.value]
+    for field in ("editorial", "adjudication"):
+        metadata = data.get(field)
+        if isinstance(metadata, dict) and metadata.get("adjustedSeverity") in {
+            s.value for s in Severity
+        }:
+            values.append(metadata["adjustedSeverity"])
+    return min(values, key=lambda severity: SEVERITY_RANK[Severity(severity)])
 
 
 def _decision(data: dict[str, Any]) -> tuple[str, str]:
@@ -74,6 +81,9 @@ def _decision(data: dict[str, Any]) -> tuple[str, str]:
 
 
 def _adjudicated_reject(data: dict[str, Any]) -> bool:
+    editorial = data.get("editorial")
+    if isinstance(editorial, dict) and editorial.get("verdict") in {"drop", "merge"}:
+        return True
     raw = data.get("adjudication")
     return isinstance(raw, dict) and str(raw.get("verdict") or "") == "reject"
 
@@ -228,9 +238,7 @@ def strongest_hook(
     best = next((s for s in opening if len(s.text.split()) >= 4), opening[0])
     points = (curve or {}).get("points") or []
     window = [
-        p
-        for p in points
-        if isinstance(p, dict) and int(p.get("startMs", 0)) < _HOOK_WINDOW_MS
+        p for p in points if isinstance(p, dict) and int(p.get("startMs", 0)) < _HOOK_WINDOW_MS
     ]
     if window:
         top = max(window, key=lambda p: float(p.get("value", 0)))

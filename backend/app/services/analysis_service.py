@@ -18,6 +18,7 @@ from uuid import uuid4
 
 from app.agents.adjudicator import adjudicator_call_estimate, adjudicator_cost
 from app.agents.analysis_coordinator import DimensionOutcome
+from app.agents.editor import editor_call_estimate, editor_cost
 from app.agents.reviewer_base import MODEL_CONFIG_VERSION, REVIEWER_PROMPT_VERSION
 from app.config import Settings
 from app.errors import ConflictError, NotFoundError
@@ -33,6 +34,7 @@ from app.schemas.analysis import (
     AnalysisRequest,
     AnalysisRun,
     AnalysisRunStatus,
+    EditorSummary,
     Finding,
     FindingDecision,
     FindingDecisionInput,
@@ -67,7 +69,7 @@ from app.services.firestore_service import (
     transcripts_collection_path,
     user_path,
 )
-from app.services.heatmap import FindingSummary
+from app.services.heatmap import FindingSummary, effective_severity
 from app.services.job_service import JobService
 
 logger = logging.getLogger(__name__)
@@ -101,6 +103,7 @@ def _to_analysis_run(analysis_run_id: str, data: dict[str, Any]) -> AnalysisRun:
         modelConfigVersion=data.get("modelConfigVersion", ""),
         promptVersion=data.get("promptVersion", ""),
         costEstimateUsd=float(data.get("costEstimateUsd", 0.0)),
+        editor=EditorSummary.model_validate(data["editor"]) if data.get("editor") else None,
         adjudicator=(
             AdjudicatorSummary.model_validate(data["adjudicator"])
             if data.get("adjudicator")
@@ -135,9 +138,7 @@ def _to_reviewer_run(reviewer_run_id: str, data: dict[str, Any]) -> ReviewerRun:
             for entry in (data.get("toolCalls") or [])
             if isinstance(entry, dict)
         ],
-        groundingQueries=[
-            str(query) for query in (data.get("groundingQueries") or []) if query
-        ],
+        groundingQueries=[str(query) for query in (data.get("groundingQueries") or []) if query],
         groundingSources=[
             ReviewerGroundingSource(
                 title=str(entry.get("title") or ""),
@@ -182,14 +183,14 @@ def _to_finding(finding_id: str, data: dict[str, Any]) -> Finding:
         evidence=FindingEvidence(
             quote=str(raw_evidence.get("quote", "")),
             critique_and_reasoning=str(
-                raw_evidence.get("critique_and_reasoning")
-                or raw_evidence.get("explanation")
-                or ""
+                raw_evidence.get("critique_and_reasoning") or raw_evidence.get("explanation") or ""
             ),
         ),
         suggestion=data.get("suggestion", ""),
         citations=list(data.get("citations") or []),
         decision=data.get("decision"),
+        editorial=data.get("editorial"),
+        corroboratedBy=data.get("corroboratedBy") or [],
         adjudication=data.get("adjudication"),
         reconciliation=data.get("reconciliation"),
         libraryLinks=data.get("libraryLinks") or [],
@@ -376,9 +377,7 @@ class AnalysisService:
         self, *, owner_uid: str, project_id: str, analysis_run_id: str
     ) -> dict[str, Any]:
         """Raw run document for the worker, which needs `reviewerRunIds` and friends."""
-        data = self.client.get_document(
-            analysis_run_path(owner_uid, project_id, analysis_run_id)
-        )
+        data = self.client.get_document(analysis_run_path(owner_uid, project_id, analysis_run_id))
         if data is None or not is_owner(data, owner_uid):
             raise NotFoundError(
                 "Analysis run not found", details={"analysisRunId": analysis_run_id}
@@ -387,9 +386,7 @@ class AnalysisService:
 
     # ----------------------------------------------------------------- reads
 
-    def get_run(
-        self, *, owner_uid: str, project_id: str, analysis_run_id: str
-    ) -> AnalysisRun:
+    def get_run(self, *, owner_uid: str, project_id: str, analysis_run_id: str) -> AnalysisRun:
         return _to_analysis_run(
             analysis_run_id,
             self.load_run_document(
@@ -411,9 +408,7 @@ class AnalysisService:
             offset=0,
         )
         return [
-            _to_analysis_run(run_id, data)
-            for run_id, data in rows
-            if is_owner(data, owner_uid)
+            _to_analysis_run(run_id, data) for run_id, data in rows if is_owner(data, owner_uid)
         ]
 
     def get_reviewers(
@@ -448,9 +443,7 @@ class AnalysisService:
         reviewer_run_id: str,
     ) -> ReviewerRun:
         """One reviewer run, for the footage-artifact lookup."""
-        path = reviewer_run_path(
-            owner_uid, project_id, analysis_run_id, reviewer_run_id
-        )
+        path = reviewer_run_path(owner_uid, project_id, analysis_run_id, reviewer_run_id)
         data = self.client.get_document(path)
         if data is None or not is_owner(data, owner_uid):
             raise NotFoundError(
@@ -507,6 +500,113 @@ class AnalysisService:
             {"decision": stored.model_dump(exclude_none=True) if stored else None},
         )
         return finding.model_copy(update={"decision": stored})
+
+    def _ensure_editor_write(self, owner_uid: str) -> None:
+        if owner_uid in self.settings.read_only_user_uids:
+            from app.auth.read_only import READ_ONLY_MESSAGE
+            from app.errors import ForbiddenError
+
+            raise ForbiddenError(READ_ONLY_MESSAGE, code="READ_ONLY_ACCOUNT")
+
+    def reserve_editor_call(
+        self, *, owner_uid: str, project_id: str, analysis_run_id: str, label: str
+    ) -> str | None:
+        self._ensure_editor_write(owner_uid)
+        self.load_run_document(
+            owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+        )
+        root = analysis_run_path(owner_uid, project_id, analysis_run_id)
+        for index in range(self.settings.max_editor_calls):
+            slot = f"{root}/editorCalls/{index:02d}"
+            if self.client.create_document(
+                slot,
+                {
+                    "ownerUid": owner_uid,
+                    "label": label,
+                    "reservedAt": datetime.now(UTC),
+                    "status": "reserved",
+                    "costEstimateUsd": editor_call_estimate(self.settings),
+                },
+            ):
+                return slot
+        return None
+
+    def settle_editor_call(
+        self, *, owner_uid: str, slot: str, usage: LlmUsage | None, error: str | None
+    ) -> None:
+        self._ensure_editor_write(owner_uid)
+        existing = self.client.get_document(slot)
+        if not existing or not is_owner(existing, owner_uid):
+            raise NotFoundError("Editor slot not found")
+        patch: dict[str, Any] = {"status": "failed" if error else "completed", "error": error}
+        if usage is not None:
+            patch["tokenUsage"] = {"input": usage.input_tokens, "output": usage.output_tokens}
+            patch["costEstimateUsd"] = editor_cost(usage, self.settings)
+        self.client.update_document(slot, patch)
+
+    def save_editorial(
+        self,
+        *,
+        owner_uid: str,
+        project_id: str,
+        analysis_run_id: str,
+        findings: Sequence[Finding],
+        summary: EditorSummary,
+    ) -> None:
+        self._ensure_editor_write(owner_uid)
+        self.load_run_document(
+            owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+        )
+        for finding in findings:
+            if finding.editorial is None:
+                continue
+            self.get_finding(
+                owner_uid=owner_uid,
+                project_id=project_id,
+                analysis_run_id=analysis_run_id,
+                finding_id=finding.findingId,
+            )
+            self.client.update_document(
+                finding_path(owner_uid, project_id, analysis_run_id, finding.findingId),
+                {
+                    "editorial": finding.editorial.model_dump(exclude_none=True),
+                    "corroboratedBy": finding.corroboratedBy,
+                },
+            )
+        root = analysis_run_path(owner_uid, project_id, analysis_run_id)
+        slots = [
+            data
+            for _, data in self.client.query_collection(
+                f"{root}/editorCalls", filters=[], order_by=[], limit=3, offset=0
+            )
+            if is_owner(data, owner_uid)
+        ]
+        if slots:
+            summary.callCount = len(slots)
+            summary.costEstimateUsd = round(
+                sum(float(s.get("costEstimateUsd", 0)) for s in slots), 6
+            )
+            summary.tokenUsage = TokenUsage(
+                input=sum(int((s.get("tokenUsage") or {}).get("input", 0)) for s in slots),
+                output=sum(int((s.get("tokenUsage") or {}).get("output", 0)) for s in slots),
+            )
+        self._update_run(owner_uid, project_id, analysis_run_id, {"editor": summary.model_dump()})
+
+    def editor_spent_usd(self, *, owner_uid: str, project_id: str, analysis_run_id: str) -> float:
+        self.load_run_document(
+            owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
+        )
+        root = analysis_run_path(owner_uid, project_id, analysis_run_id)
+        return round(
+            sum(
+                float(data.get("costEstimateUsd", 0))
+                for _, data in self.client.query_collection(
+                    f"{root}/editorCalls", filters=[], order_by=[], limit=3, offset=0
+                )
+                if is_owner(data, owner_uid)
+            ),
+            6,
+        )
 
     def reserve_adjudicator_call(
         self,
@@ -630,23 +730,12 @@ class AnalysisService:
             offset=0,
         )
         findings = [
-            _to_finding(finding_id, data)
-            for finding_id, data in rows
-            if is_owner(data, owner_uid)
+            _to_finding(finding_id, data) for finding_id, data in rows if is_owner(data, owner_uid)
         ]
         if dimension is not None:
             findings = [f for f in findings if f.dimension is dimension]
         if severity is not None:
-            findings = [
-                f
-                for f in findings
-                if (
-                    f.adjudication.adjustedSeverity
-                    if f.adjudication and f.adjudication.verdict == "downgrade"
-                    else f.severity
-                )
-                is severity
-            ]
+            findings = [f for f in findings if effective_severity(f) is severity]
         if start_ms is not None:
             findings = [f for f in findings if f.endMs > start_ms]
         if end_ms is not None:
@@ -666,14 +755,8 @@ class AnalysisService:
             limit=_LIST_LIMIT,
             offset=0,
         )
-        bins = [
-            _to_heatmap_bin(bin_id, data)
-            for bin_id, data in rows
-            if is_owner(data, owner_uid)
-        ]
-        return sorted(
-            bins, key=lambda b: (_dimension_order(b.dimension.value), b.startMs)
-        )
+        bins = [_to_heatmap_bin(bin_id, data) for bin_id, data in rows if is_owner(data, owner_uid)]
+        return sorted(bins, key=lambda b: (_dimension_order(b.dimension.value), b.startMs))
 
     def get_coverage(
         self, *, owner_uid: str, project_id: str, analysis_run_id: str
@@ -709,9 +792,7 @@ class AnalysisService:
         self.load_run_document(
             owner_uid=owner_uid, project_id=project_id, analysis_run_id=analysis_run_id
         )
-        data = self.client.get_document(
-            interest_curve_path(owner_uid, project_id, analysis_run_id)
-        )
+        data = self.client.get_document(interest_curve_path(owner_uid, project_id, analysis_run_id))
         if data is None or not is_owner(data, owner_uid):
             raise NotFoundError(
                 "No interest curve for this analysis run",
@@ -762,6 +843,9 @@ class AnalysisService:
                     estimate,
                     self.adjudicator_spent_usd(
                         owner_uid=owner_uid, project_id=project_id, analysis_run_id=run_id
+                    )
+                    + self.editor_spent_usd(
+                        owner_uid=owner_uid, project_id=project_id, analysis_run_id=run_id
                     ),
                 )
             total += estimate
@@ -796,9 +880,7 @@ class AnalysisService:
         outcome: DimensionOutcome,
     ) -> ReviewerRun:
         """Overwrite the queued placeholder for one dimension with its real result."""
-        path = reviewer_run_path(
-            owner_uid, project_id, analysis_run_id, outcome.reviewer_run_id
-        )
+        path = reviewer_run_path(owner_uid, project_id, analysis_run_id, outcome.reviewer_run_id)
         cost_usd = estimate_cost_usd(
             outcome.usage,
             input_price_per_mtok=self.settings.llm_input_price_per_mtok,
@@ -976,9 +1058,7 @@ class AnalysisService:
             logger.exception("analysis %s: could not build reviewer status", analysis_run_id)
             return
         completed = [
-            r.dimension.value
-            for r in reviewers
-            if r.status == ReviewerRunStatus.succeeded
+            r.dimension.value for r in reviewers if r.status == ReviewerRunStatus.succeeded
         ]
         statuses = [
             {
@@ -1030,9 +1110,7 @@ class AnalysisService:
         reviewer_run_id: str,
         patch: dict[str, Any],
     ) -> None:
-        path = reviewer_run_path(
-            owner_uid, project_id, analysis_run_id, reviewer_run_id
-        )
+        path = reviewer_run_path(owner_uid, project_id, analysis_run_id, reviewer_run_id)
         existing = self.client.get_document(path)
         if existing is None or not is_owner(existing, owner_uid):
             raise NotFoundError(

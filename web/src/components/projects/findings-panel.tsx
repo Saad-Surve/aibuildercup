@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   dimensionLabel,
+  editorFiltered,
   effectiveSeverity,
   formatDurationMs,
   formatScore,
@@ -80,11 +81,14 @@ export function FindingsPanel({
   const [decisionFilter, setDecisionFilter] = useState<
     "all" | "open" | "accepted" | "revised" | "dismissed"
   >("all");
+  const [showEdited, setShowEdited] = useState(false);
+  const editedCount = findings.filter(editorFiltered).length;
   const [showRejected, setShowRejected] = useState(false);
   const rejectedCount = findings.filter(
     (finding) => finding.adjudication?.verdict === "reject",
   ).length;
   const visible = findings
+    .filter((finding) => showEdited || !editorFiltered(finding))
     .filter(
       (finding) => showRejected || finding.adjudication?.verdict !== "reject",
     )
@@ -157,6 +161,17 @@ export function FindingsPanel({
               </button>
             ),
           )}
+          {editedCount > 0 && (
+            <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={showEdited}
+                onChange={(event) => setShowEdited(event.target.checked)}
+                className="accent-signal"
+              />
+              Show {editedCount} filtered by the editor
+            </label>
+          )}
           {rejectedCount > 0 && (
             <label className="ml-auto inline-flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
               <input
@@ -186,12 +201,14 @@ export function FindingsPanel({
               severityFilter.length > 0 ||
               Boolean(selectedSet) ||
               decisionFilter !== "all" ||
-              (!showRejected && rejectedCount > 0)
+              (!showRejected && rejectedCount > 0) ||
+              (!showEdited && editedCount > 0)
             }
             onClear={() => {
               onClearSelection();
               setDecisionFilter("all");
               setShowRejected(true);
+              setShowEdited(true);
               for (const severity of severityFilter) onToggleSeverity(severity);
             }}
           />
@@ -230,6 +247,13 @@ function FindingRow({
   highlighted: boolean;
   onSeek: (startMs: number) => void;
 }) {
+  const corroboratingIds = new Set(finding.corroboratedBy ?? []);
+  const reviewerCount = new Set(
+    [
+      finding,
+      ...allFindings.filter((f) => corroboratingIds.has(f.findingId)),
+    ].map((f) => f.reviewerRunId ?? f.dimension),
+  ).size;
   const hasEvidence = Boolean(finding.evidence.quote);
   const severity = effectiveSeverity(finding);
   return (
@@ -290,14 +314,55 @@ function FindingRow({
         )}
       </button>
 
-      {(finding.severity === "high" || finding.severity === "critical") && (
-        <FindingAdjudicationCard
-          projectId={projectId}
-          analysisRunId={analysisRunId}
-          finding={finding}
-          onSeek={onSeek}
-        />
+      {finding.editorial && (
+        <div className="space-y-1 border-t border-border/60 bg-muted/20 px-3 py-2 text-xs">
+          <p className="font-medium">
+            Editor: {finding.editorial.verdict}
+            {finding.editorial.factualStatus === "unverified" &&
+              " · Unverified claim objection"}
+          </p>
+          <p className="text-muted-foreground">{finding.editorial.reason}</p>
+          {finding.editorial.mergedInto && (
+            <p className="text-muted-foreground">
+              Merged into{" "}
+              {dimensionLabel(
+                allFindings.find(
+                  (f) => f.findingId === finding.editorial?.mergedInto,
+                )?.dimension ?? finding.dimension,
+              )}
+            </p>
+          )}
+          {(finding.corroboratedBy?.length ?? 0) > 0 && (
+            <p className="text-muted-foreground">
+              Flagged by {reviewerCount} reviewers.
+            </p>
+          )}
+          {finding.editorial.sources.map(
+            (source, index) =>
+              source.url && (
+                <a
+                  key={index}
+                  href={source.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mr-3 inline-block text-signal hover:underline"
+                >
+                  {source.title || source.url}
+                </a>
+              ),
+          )}
+        </div>
       )}
+
+      {!editorFiltered(finding) &&
+        (severity === "high" || severity === "critical") && (
+          <FindingAdjudicationCard
+            projectId={projectId}
+            analysisRunId={analysisRunId}
+            finding={finding}
+            onSeek={onSeek}
+          />
+        )}
 
       {finding.reconciliation && (
         <div className="space-y-1.5 border-t border-signal/20 bg-signal/5 px-3 py-2.5">

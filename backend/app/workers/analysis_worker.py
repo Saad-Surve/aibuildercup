@@ -29,6 +29,7 @@ from app.agents.analysis_coordinator import (
     chunk_segments,
     run_reviewers,
 )
+from app.agents.editor import EDITOR_PROMPT_VERSION, edit_findings
 from app.agents.reviewer_base import ReviewContext, ReviewFrame, SegmentRef
 from app.config import Settings, get_settings
 from app.errors import NotFoundError
@@ -39,6 +40,7 @@ from app.schemas.analysis import (
     AdjudicatorSummary,
     AnalysisDimension,
     AnalysisRunStatus,
+    EditorSummary,
     Finding,
     InterestCalibration,
     InterestCurve,
@@ -389,16 +391,6 @@ async def run_analysis(
         return None
 
     findings = [finding for outcome in outcomes for finding in outcome.findings]
-    library_cost_usd = await enrich_finding_library_links(
-        analyses=analyses,
-        owner_uid=owner_uid,
-        project_id=project_id,
-        analysis_run_id=analysis_run_id,
-        findings=findings,
-        transcript_text=" ".join(segment.text for segment in segments),
-        llm=llm,
-        settings=settings,
-    )
     await asyncio.to_thread(
         jobs.update_progress,
         owner_uid=owner_uid,
@@ -417,6 +409,9 @@ async def run_analysis(
         percent=_REVIEW_END_PERCENT,
         step="adjudicating",
         message="Checking serious findings against the footage",
+    )
+    editorial = EditorSummary(
+        model=settings.model_editor or settings.model_reviewer, promptVersion=EDITOR_PROMPT_VERSION
     )
     adjudication = AdjudicatorSummary(
         model=settings.model_adjudicator or settings.model_reviewer,
@@ -454,6 +449,81 @@ async def run_analysis(
             else 0.0
         )
 
+        prior_editor_cost = await asyncio.to_thread(
+            analyses.editor_spent_usd,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            analysis_run_id=analysis_run_id,
+        )
+
+        async def reserve_editor(label: str) -> str | None:
+            return await asyncio.to_thread(
+                analyses.reserve_editor_call,
+                owner_uid=owner_uid,
+                project_id=project_id,
+                analysis_run_id=analysis_run_id,
+                label=label,
+            )
+
+        async def settle_editor(slot: str, usage: LlmUsage | None, error: str | None) -> None:
+            await asyncio.to_thread(
+                analyses.settle_editor_call,
+                owner_uid=owner_uid,
+                slot=slot,
+                usage=usage,
+                error=error,
+            )
+
+        try:
+            editorial = await edit_findings(
+                findings,
+                segments=segments,
+                duration_ms=transcript.durationMs,
+                llm=llm,
+                settings=settings,
+                budget_usd=settings.max_project_cost_usd
+                - spent
+                - review_cost
+                - prior_adjudicator_cost
+                - prior_editor_cost
+                - interest_reserve,
+                creator_context=(
+                    f"Title: {video_title}\nBrief: {project_brief}\n"
+                    f"Audience: {audience}\nPlatform: {platform}\n"
+                    f"Persona: {persona_markdown[:1500]}"
+                ),
+                reserve_call=reserve_editor,
+                settle_call=settle_editor,
+            )
+            await asyncio.to_thread(
+                analyses.save_editorial,
+                owner_uid=owner_uid,
+                project_id=project_id,
+                analysis_run_id=analysis_run_id,
+                findings=findings,
+                summary=editorial,
+            )
+        except Exception:  # noqa: BLE001 - editor persistence is optional
+            logger.exception("analyze job %s: editor pass unavailable", job_id)
+            try:
+                findings = await asyncio.to_thread(
+                    analyses.list_findings,
+                    owner_uid=owner_uid,
+                    project_id=project_id,
+                    analysis_run_id=analysis_run_id,
+                )
+            except Exception:  # noqa: BLE001
+                findings = [
+                    f.model_copy(update={"editorial": None, "corroboratedBy": []}) for f in findings
+                ]
+        # Include durable uncertain charges on interrupted runs.
+        editorial.costEstimateUsd = await asyncio.to_thread(
+            analyses.editor_spent_usd,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            analysis_run_id=analysis_run_id,
+        )
+
         async def reserve_call(kind: str, label: str, finding_limit: int) -> str | None:
             return await asyncio.to_thread(
                 analyses.reserve_adjudicator_call,
@@ -487,6 +557,7 @@ async def run_analysis(
                 settings.max_project_cost_usd
                 - spent
                 - review_cost
+                - editorial.costEstimateUsd
                 - prior_adjudicator_cost
                 - interest_reserve
             ),
@@ -518,6 +589,16 @@ async def run_analysis(
                 f.model_copy(update={"adjudication": None, "reconciliation": None})
                 for f in findings
             ]
+    library_cost_usd = await enrich_finding_library_links(
+        analyses=analyses,
+        owner_uid=owner_uid,
+        project_id=project_id,
+        analysis_run_id=analysis_run_id,
+        findings=effective_findings(findings),
+        transcript_text=" ".join(segment.text for segment in segments),
+        llm=llm,
+        settings=settings,
+    )
     bins = aggregate_bins(findings, duration_ms=transcript.durationMs)
     summary = summarize_findings(findings)
     coverage = merge_coverage(
@@ -580,6 +661,7 @@ async def run_analysis(
             )
             for outcome in outcomes
         )
+        + editorial.costEstimateUsd
         + adjudication.costEstimateUsd
         + library_cost_usd
         + estimate_cost_usd(
@@ -801,7 +883,8 @@ def _link_findings(
         hits = [
             finding
             for finding in findings
-            if finding.startMs < item.endMs and finding.endMs > item.startMs
+            if finding.startMs < item.endMs
+            and finding.endMs > item.startMs
             and (item.kind == "peak" or finding.severity is not Severity.none)
         ]
         hits.sort(key=lambda f: (-_SEVERITY_RANK[f.severity], f.startMs))

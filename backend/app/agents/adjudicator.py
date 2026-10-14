@@ -25,6 +25,7 @@ from app.schemas.analysis import (
     TokenUsage,
 )
 from app.services.cost import estimate_cost_usd
+from app.services.heatmap import editor_filtered, effective_severity
 from app.services.video_tools import ContextArtifactStore, MediaToolkit
 
 logger = logging.getLogger(__name__)
@@ -141,7 +142,11 @@ def conflict_clusters(findings: Sequence[Finding], *, limit: int) -> list[list[F
     if limit <= 0:
         return []
     candidates = sorted(
-        (f for f in findings if not f.adjudication or f.adjudication.verdict != "reject"),
+        (
+            f
+            for f in findings
+            if not editor_filtered(f) and (not f.adjudication or f.adjudication.verdict != "reject")
+        ),
         key=lambda f: (f.startMs, f.findingId),
     )
     used: set[str] = set()
@@ -181,7 +186,7 @@ def _finding_data(finding: Finding) -> dict[str, Any]:
         "endMs": finding.endMs,
         "dimension": finding.dimension.value,
         "findingType": finding.findingType,
-        "severity": finding.severity.value,
+        "severity": effective_severity(finding).value,
         "quote": finding.evidence.quote[:500],
         "reasoning": finding.evidence.critique_and_reasoning[:1500],
         "proposedAction": finding.suggestion[:2000],
@@ -260,7 +265,9 @@ async def adjudicate(
         (
             f
             for f in findings
-            if f.severity in {Severity.high, Severity.critical} and f.adjudication is None
+            if not editor_filtered(f)
+            and effective_severity(f) in {Severity.high, Severity.critical}
+            and f.adjudication is None
         ),
         key=lambda f: (-SEVERITY_RANK[f.severity], f.score, f.startMs, f.findingId),
     )
@@ -362,7 +369,8 @@ async def adjudicate(
             if verdict.verdict == "downgrade":
                 if (
                     verdict.adjustedSeverity is None
-                    or SEVERITY_RANK[verdict.adjustedSeverity] >= SEVERITY_RANK[finding.severity]
+                    or SEVERITY_RANK[verdict.adjustedSeverity]
+                    >= SEVERITY_RANK[effective_severity(finding)]
                 ):
                     raise ValueError("Downgrade must have a strictly lower severity")
             elif verdict.adjustedSeverity is not None:

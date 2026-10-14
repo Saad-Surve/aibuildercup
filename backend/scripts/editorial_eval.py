@@ -11,8 +11,9 @@ Arms:
   rubric      the same single call, with all nine reviewer rubrics pasted into the prompt
   reviewers   the production reviewer code path: chunking, shared frames, footage tools,
               nine reviewers, per-window normalisation (`app/agents/analysis_coordinator.py`)
-  adjudicated reviewers, then the adjudicator pass from `feat/findings-loop` (pluggable: see
-              `--adjudicator`; not on this branch yet)
+  adjudicated reviewers, then the production footage adjudicator
+  edited      reviewers, then bounded cross-reviewer editorial consolidation
+  edited_adjudicated reviewers, editor, then adjudicator (or joined saved verdicts on reuse)
 
 Commands (from `backend/`):
 
@@ -26,12 +27,13 @@ Commands (from `backend/`):
     uv run python scripts/editorial_eval.py report ../evals/results/editorial-<run>.json
 
 Costs and call counts count logical `generate_content` calls, tool-loop rounds included. A
-transient-error retry inside the provider is not counted separately, so the true request
-count can exceed `--max-calls` by up to `LLM_MAX_ATTEMPTS`x in a bad hour.
+transient-error retry inside the provider is not counted separately for baseline/reviewer
+arms; editor/adjudicator calls disable both provider and SDK retries.
 """
 
 import argparse
 import asyncio
+import copy
 import hashlib
 import json
 import subprocess
@@ -57,6 +59,7 @@ from app.agents.analysis_coordinator import (
     chunk_segments,
     run_reviewers,
 )
+from app.agents.editor import EDITOR_PROMPT_VERSION, edit_findings, editor_reservation
 from app.agents.reviewer_base import (
     GROUNDING_PROMPT,
     MODEL_CONFIG_VERSION,
@@ -83,7 +86,7 @@ PRE_REGISTERED_PATHS = ("labels", "transcripts", "media", "matching.json", "scri
 
 BASELINE_PROMPT_VERSION = "editorial-baseline-v1"
 SCHEMA_VERSION = 1
-ARMS = ("baseline", "rubric", "reviewers", "adjudicated")
+ARMS = ("baseline", "rubric", "reviewers", "adjudicated", "edited", "edited_adjudicated")
 DEFAULT_ARMS = "baseline,reviewers"
 DEFAULT_ADJUDICATOR = "app.agents.adjudicator:adjudicate"
 
@@ -138,6 +141,7 @@ class MeteredLlm(LlmProvider):
             "model": kwargs.get("model"),
             "grounding": bool(kwargs.get("grounding")),
             "tools": bool(kwargs.get("function_declarations")),
+            "thinkingLevel": kwargs.get("thinking_level"),
         }
         self.calls.append(record)
         started = time.monotonic()
@@ -180,7 +184,7 @@ def load_labels(video_ids: Sequence[str] | None = None) -> dict[str, dict[str, A
             raise SystemExit(f"unknown video ids: {', '.join(missing)}")
         labels = {video_id: labels[video_id] for video_id in video_ids}
     if not labels:
-        raise SystemExit("no labels found in evals/editorial/labels")
+        raise SystemExit("no labels found under --root/labels")
     return labels
 
 
@@ -206,11 +210,31 @@ def git(*args: str) -> str:
 
 def preregistration() -> dict[str, Any]:
     """Which commit last touched the pre-registered inputs, and whether they are dirty now."""
-    paths = [f"evals/editorial/{name}" for name in PRE_REGISTERED_PATHS]
+    try:
+        relative = EDITORIAL.relative_to(ROOT)
+    except ValueError as exc:
+        raise SystemExit("--root must be inside this git worktree for pre-registration") from exc
+    paths = [str(relative / name) for name in PRE_REGISTERED_PATHS]
+    inputs = [
+        path
+        for name in PRE_REGISTERED_PATHS
+        for path in (
+            [EDITORIAL / name]
+            if (EDITORIAL / name).is_file()
+            else sorted((EDITORIAL / name).rglob("*"))
+        )
+        if path.is_file()
+    ]
+    tracked = set(git("ls-files", "--", *paths).splitlines())
+    untracked = [
+        str(path.relative_to(ROOT)) for path in inputs if str(path.relative_to(ROOT)) not in tracked
+    ]
     return {
         "commit": git("log", "-1", "--format=%H", "--", *paths),
         "commitDate": git("log", "-1", "--format=%cI", "--", *paths),
-        "dirty": bool(git("status", "--porcelain", "--", *paths)),
+        "dirty": bool(untracked or git("status", "--porcelain", "--", *paths)),
+        "root": str(relative),
+        "inputSha256": {str(path.relative_to(EDITORIAL)): sha256_file(path) for path in inputs},
         "labelSha256": {
             path.stem: sha256_file(path) for path in sorted((EDITORIAL / "labels").glob("*.json"))
         },
@@ -225,6 +249,10 @@ def code_fingerprint() -> dict[str, Any]:
         BACKEND / "app" / "agents" / "reviewer_base.py",
         BACKEND / "app" / "agents" / "analysis_coordinator.py",
         BACKEND / "app" / "agents" / "adjudicator.py",
+        BACKEND / "app" / "agents" / "editor.py",
+        BACKEND / "app" / "providers" / "base.py",
+        BACKEND / "app" / "providers" / "llm.py",
+        BACKEND / "app" / "config.py",
     ]
     return {
         "revision": git("rev-parse", "HEAD"),
@@ -523,8 +551,19 @@ def plan_calls(arms: Sequence[str], labels: dict[str, dict[str, Any]], settings:
                 len(ACTIVE_DIMENSIONS) * chunk_total,
                 len(ACTIVE_DIMENSIONS) * chunk_total * (1 + extra_rounds),
             )
-        elif arm == "adjudicated":
+        elif arm in ("adjudicated", "edited_adjudicated"):
             per_arm[arm] = (0, len(labels) * settings.max_adjudicator_calls)
+        elif arm == "edited":
+            per_arm[arm] = (
+                0,
+                sum(
+                    min(
+                        settings.max_editor_calls,
+                        max(1, (int(v["durationMs"]) + 599_999) // 600_000),
+                    )
+                    for v in labels.values()
+                ),
+            )
     return {
         "perArm": {arm: {"min": low, "max": high} for arm, (low, high) in per_arm.items()},
         "min": sum(low for low, _ in per_arm.values()),
@@ -532,18 +571,80 @@ def plan_calls(arms: Sequence[str], labels: dict[str, dict[str, Any]], settings:
     }
 
 
+def combined_summary(*entries: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "usage": {
+            key: sum(e.get("usage", {}).get(key, 0) for e in entries)
+            for key in ("inputTokens", "outputTokens")
+        },
+        **{
+            key: sum(e.get(key, 0) for e in entries)
+            for key in ("modelRequests", "searchQueries", "elapsedMs")
+        },
+        "errors": [error for e in entries for error in e.get("errors", [])],
+    }
+
+
+def validate_reuse(
+    raw: dict[str, Any],
+    registration: dict[str, Any],
+    model: str,
+    labels: dict[str, dict[str, Any]],
+    arms: list[str],
+) -> None:
+    if raw["labels"].get("inputSha256") and (
+        raw["labels"]["inputSha256"] != registration["inputSha256"]
+    ):
+        raise SystemExit("reuse pre-registered inputs differ from the saved run")
+    if raw["model"] != model:
+        raise SystemExit("reuse requires the same model as the saved reviewer run")
+    if raw["labels"]["matchingSha256"] != registration["matchingSha256"] or any(
+        raw["labels"]["labelSha256"].get(v) != registration["labelSha256"][v] for v in labels
+    ):
+        raise SystemExit("reuse labels/matching rule differ from the saved run")
+    if not set(arms) <= {"edited", "edited_adjudicated"}:
+        raise SystemExit("--reuse-raw makes only editor calls: choose edited,edited_adjudicated")
+    for video_id in labels:
+        if video_id not in raw.get("arms", {}).get("reviewers", {}).get("videos", {}):
+            raise SystemExit(f"reuse lacks reviewers for {video_id}")
+        if "edited_adjudicated" in arms and video_id not in raw.get("arms", {}).get(
+            "adjudicated", {}
+        ).get("videos", {}):
+            raise SystemExit(f"reuse lacks adjudicated findings for {video_id}")
+
+
 async def run_arms(args: argparse.Namespace, settings: Settings, model: str) -> Path:
     labels = load_labels(args.videos.split(",") if args.videos else None)
     arms = args.arms.split(",")
     prices = {"inputPerMTok": args.input_price, "outputPerMTok": args.output_price}
     registration = preregistration()
+    reused = read_json(args.reuse_raw) if args.reuse_raw else None
+    if reused:
+        validate_reuse(reused, registration, model, labels, arms)
+        if reused["prices"] != prices:
+            raise SystemExit("reuse requires identical prices for honest cumulative cost")
+    settings = settings.model_copy(
+        update={
+            "model_editor": model,
+            "editor_input_price_per_mtok": args.input_price,
+            "editor_output_price_per_mtok": args.output_price,
+            "adjudicator_input_price_per_mtok": args.input_price,
+            "adjudicator_output_price_per_mtok": args.output_price,
+            "truth_grounding_enabled": args.grounding,
+        }
+    )
     run_id = args.run_id or datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     out_dir = args.output_dir
     out_dir.mkdir(parents=True, exist_ok=True)
     raw_path = out_dir / f"editorial-{run_id}.raw.json"
+    if raw_path.exists():
+        raise SystemExit(f"refusing to overwrite {raw_path}; choose a new run ID")
     llm = MeteredLlm(settings, max_calls=args.max_calls)
-    adjudicate = load_adjudicator(args.adjudicator) if "adjudicated" in arms else None
-
+    adjudicate = (
+        load_adjudicator(args.adjudicator)
+        if any(a in arms for a in ("adjudicated", "edited_adjudicated")) and not reused
+        else None
+    )
     raw: dict[str, Any] = {
         "schemaVersion": SCHEMA_VERSION,
         "kind": "editorial-eval-raw",
@@ -553,6 +654,7 @@ async def run_arms(args: argparse.Namespace, settings: Settings, model: str) -> 
         "prices": prices,
         "options": {
             "arms": arms,
+            "root": str(EDITORIAL.relative_to(ROOT)),
             "grounding": args.grounding,
             "visualTools": args.visual_tools,
             "maxCalls": args.max_calls,
@@ -561,31 +663,58 @@ async def run_arms(args: argparse.Namespace, settings: Settings, model: str) -> 
             "visualToolMaxRounds": settings.visual_tool_max_rounds,
             "maxAdjudicatorCalls": settings.max_adjudicator_calls,
             "maxConflictCalls": settings.max_conflict_calls,
+            "maxEditorCalls": settings.max_editor_calls,
+            "editorThinkingLevel": settings.editor_thinking_level,
         },
         "promptVersions": {
             "reviewers": REVIEWER_PROMPT_VERSION,
             "modelConfig": MODEL_CONFIG_VERSION,
             "baseline": BASELINE_PROMPT_VERSION,
             "adjudicator": ADJUDICATOR_PROMPT_VERSION,
+            "editor": EDITOR_PROMPT_VERSION,
         },
         "labels": registration,
         "code": code_fingerprint(),
         "arms": {arm: {"videos": {}} for arm in arms},
     }
+    if reused:
+        raw["reuse"] = {
+            "path": str(args.reuse_raw),
+            "sha256": sha256_file(args.reuse_raw),
+            "runId": reused["runId"],
+            "onlyNewStage": "editor",
+            "adjudication": "Saved verdicts joined by original ID; absent means not checked",
+            "sourceCode": reused["code"],
+            "sourcePromptVersions": reused["promptVersions"],
+        }
+        for arm, data in reused["arms"].items():
+            if arm in ("baseline", "rubric", "reviewers", "adjudicated"):
+                raw["arms"][arm] = {
+                    "videos": {
+                        v: copy.deepcopy(e) for v, e in data["videos"].items() if v in labels
+                    },
+                    "reused": True,
+                }
+        raw["arms"] = {a: raw["arms"][a] for a in ARMS if a in raw["arms"]}
 
     def save() -> None:
+        raw["totalModelRequests"] = len(llm.calls)
         raw_path.write_text(scoring.dump(raw))
 
     try:
         for video_id, label in labels.items():
             segments = load_segments(video_id)
             media_path = EDITORIAL / label["source"]["media"]
-            reviewer_findings: list[dict[str, Any]] = []
+            reviewer_entry = copy.deepcopy(
+                raw["arms"].get("reviewers", {}).get("videos", {}).get(video_id, {})
+            )
+            edited_entry: dict[str, Any] = {}
             for arm in arms:
                 tag = f"{arm}:{video_id}"
                 llm.tag = tag
                 print(f"{tag} ...", flush=True)
                 entry: dict[str, Any]
+                base_summary: dict[str, Any] = {}
                 try:
                     if arm in ("baseline", "rubric"):
                         entry = await run_baseline_arm(
@@ -608,49 +737,103 @@ async def run_arms(args: argparse.Namespace, settings: Settings, model: str) -> 
                             visual_tools=args.visual_tools,
                             grounded=args.grounding,
                         )
-                        reviewer_findings = entry["findings"]
+                    elif arm == "edited":
+                        findings = [Finding.model_validate(f) for f in reviewer_entry["findings"]]
+                        summary = await edit_findings(
+                            findings,
+                            segments=segments,
+                            duration_ms=int(label["durationMs"]),
+                            llm=llm,
+                            settings=settings,
+                            budget_usd=editor_reservation(settings),
+                            creator_context=(
+                                f"Title: {label['title']}\nPlatform: {label['platform']}\n"
+                                f"Audience: {label['audience']}\nBrief: {label['brief']}"
+                            ),
+                            abort_on=(BudgetExceeded,),
+                        )
+                        entry = {
+                            "findings": [
+                                f.model_dump(mode="json") for f in effective_findings(findings)
+                            ],
+                            "allFindings": [f.model_dump(mode="json") for f in findings],
+                            "editor": summary.model_dump(mode="json"),
+                        }
+                        base_summary = reviewer_entry
+                    elif arm == "edited_adjudicated" and reused:
+                        findings = [Finding.model_validate(f) for f in edited_entry["allFindings"]]
+                        saved = raw["arms"]["adjudicated"]["videos"][video_id]
+                        verdicts = {
+                            f["findingId"]: f.get("adjudication") for f in saved["allFindings"]
+                        }
+                        surviving = {f.findingId for f in effective_findings(findings)}
+                        checked = 0
+                        for f in findings:
+                            if f.findingId in surviving and verdicts.get(f.findingId):
+                                f.adjudication = Finding.model_validate(
+                                    {**f.model_dump(), "adjudication": verdicts[f.findingId]}
+                                ).adjudication
+                                checked += 1
+                        entry = {
+                            "findings": [
+                                f.model_dump(mode="json") for f in effective_findings(findings)
+                            ],
+                            "allFindings": [f.model_dump(mode="json") for f in findings],
+                            "editor": edited_entry["editor"],
+                            "savedAdjudicationJoined": True,
+                            "checkedSurvivingCount": checked,
+                            "notCheckedSurvivingCount": len(surviving) - checked,
+                        }
+                        # Retain the historic full adjudicator cost.
+                        base_summary = combined_summary(saved, edited_entry["editorMarginal"])
                     else:
+                        source = edited_entry if arm == "edited_adjudicated" else reviewer_entry
                         entry = await run_adjudicated_arm(
                             llm,
                             adjudicate,
-                            settings=settings.model_copy(
-                                update={
-                                    "adjudicator_input_price_per_mtok": args.input_price,
-                                    "adjudicator_output_price_per_mtok": args.output_price,
-                                }
-                            ),
+                            settings=settings,
                             model=model,
                             label=label,
                             segments=segments,
-                            reviewer_findings=reviewer_findings,
+                            reviewer_findings=source.get("allFindings", source["findings"]),
                             media_path=media_path,
                             evidence_dir=out_dir / f"editorial-{run_id}.evidence" / video_id,
                         )
+                        base_summary = source
+                        if arm == "edited_adjudicated":
+                            entry["editor"] = edited_entry["editor"]
                 except BudgetExceeded:
                     raw["abortedAt"] = tag
                     raise
-                except Exception as exc:  # noqa: BLE001 - record and keep the other videos
-                    entry = {"findings": [], "fatal": f"{type(exc).__name__}: {exc}"[:300]}
+                except Exception as exc:  # noqa: BLE001 - keep original findings on optional failure
+                    entry = {
+                        "findings": copy.deepcopy(reviewer_entry.get("findings", [])),
+                        "fatal": f"{type(exc).__name__}: {exc}"[:300],
+                    }
                 calls = llm.calls_for(tag)
-                summary = summarize_calls(calls)
+                marginal = summarize_calls(calls)
                 if "fatal" in entry:
-                    summary["errors"].append(entry["fatal"])
-                if arm == "adjudicated":
-                    # Marginal cost of the adjudicator pass on top of the reviewers.
-                    reviewer_summary = summarize_calls(llm.calls_for(f"reviewers:{video_id}"))
-                    for key in ("inputTokens", "outputTokens"):
-                        summary["usage"][key] += reviewer_summary["usage"][key]
-                    summary["modelRequests"] += reviewer_summary["modelRequests"]
-                    summary["searchQueries"] += reviewer_summary["searchQueries"]
-                entry.update(summary)
+                    marginal["errors"].append(entry["fatal"])
+                elif arm == "edited":
+                    marginal["errors"].extend(entry["editor"]["errors"])
+                entry.update(combined_summary(base_summary, marginal))
                 entry["calls"] = calls
+                if arm == "edited":
+                    entry["editorMarginal"] = marginal
+                    edited_entry = entry
+                if arm == "reviewers":
+                    reviewer_entry = entry
                 raw["arms"][arm]["videos"][video_id] = entry
                 save()
     except BudgetExceeded as exc:
         save()
         raise SystemExit(f"stopped: {exc}. Partial raw output saved to {raw_path}") from exc
     raw["finishedAt"] = datetime.now(UTC).isoformat()
-    raw["totalModelRequests"] = len(llm.calls)
+    raw["newCallCostUsd"] = scoring.usd(
+        sum(c.get("inputTokens", 0) for c in llm.calls),
+        sum(c.get("outputTokens", 0) for c in llm.calls),
+        prices,
+    )
     save()
     return raw_path
 
@@ -680,8 +863,15 @@ def score_raw(raw: dict[str, Any], *, replay_of: Path | None) -> dict[str, Any]:
     video_ids = sorted({v for runs in raw["arms"].values() for v in runs["videos"]})
     labels = load_labels(video_ids)
     rule = read_json(EDITORIAL / "matching.json")
-    scored = scoring.score_run(raw, labels, rule, findings_for_scoring(raw, labels))
     current = preregistration()
+    if raw["labels"].get("inputSha256") and raw["labels"]["inputSha256"] != current["inputSha256"]:
+        raise SystemExit("pre-registered inputs changed since run; refusing to score")
+    scored = scoring.score_run(raw, labels, rule, findings_for_scoring(raw, labels))
+    if (
+        any(current["labelSha256"].get(v) != raw["labels"]["labelSha256"].get(v) for v in labels)
+        or current["matchingSha256"] != raw["labels"]["matchingSha256"]
+    ):
+        raise SystemExit("labels or matching rule changed since run; refusing to score")
     result: dict[str, Any] = {
         "schemaVersion": SCHEMA_VERSION,
         "kind": "editorial-eval",
@@ -705,6 +895,9 @@ def score_raw(raw: dict[str, Any], *, replay_of: Path | None) -> dict[str, Any]:
         },
         **scored,
     }
+    if raw.get("reuse"):
+        result["reuse"] = raw["reuse"]
+    result["newCallCostUsd"] = raw.get("newCallCostUsd")
     if replay_of is not None:
         result["replayOf"] = {"path": str(replay_of), "sha256": sha256_file(replay_of)}
         result["modelCalls"] = 0
@@ -727,10 +920,19 @@ def command_run(args: argparse.Namespace) -> None:
     unknown = [arm for arm in arms if arm not in ARMS]
     if unknown:
         raise SystemExit(f"unknown arms: {', '.join(unknown)} (choose from {', '.join(ARMS)})")
-    if "adjudicated" in arms and "reviewers" not in arms:
-        raise SystemExit("the 'adjudicated' arm adjudicates the 'reviewers' arm: include both")
-    if "adjudicated" in arms and arms.index("adjudicated") < arms.index("reviewers"):
-        raise SystemExit("put the 'reviewers' arm before 'adjudicated'")
+    for dependent, prerequisite in (
+        ("adjudicated", "reviewers"),
+        ("edited", "reviewers"),
+        ("edited_adjudicated", "edited"),
+    ):
+        if dependent not in arms:
+            continue
+        if prerequisite not in arms:
+            if args.reuse_raw and prerequisite == "reviewers":
+                continue
+            raise SystemExit(f"include {prerequisite} before {dependent}")
+        if arms.index(prerequisite) > arms.index(dependent):
+            raise SystemExit(f"put {prerequisite} before {dependent}")
     if args.input_price is None:
         args.input_price = settings.llm_input_price_per_mtok
     if args.output_price is None:
@@ -738,6 +940,11 @@ def command_run(args: argparse.Namespace) -> None:
     labels = load_labels(args.videos.split(",") if args.videos else None)
     plan = plan_calls(arms, labels, settings)
     registration = preregistration()
+    if args.reuse_raw:
+        validate_reuse(read_json(args.reuse_raw), registration, model, labels, arms)
+        if "edited_adjudicated" in plan["perArm"]:
+            plan["perArm"]["edited_adjudicated"] = {"min": 0, "max": 0}
+        plan["max"] = sum(v["max"] for v in plan["perArm"].values())
     print(f"model            {model}")
     print(f"videos           {', '.join(labels)}")
     print(f"arms             {', '.join(arms)}")
@@ -790,6 +997,7 @@ def command_report(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    global EDITORIAL
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
@@ -806,6 +1014,11 @@ def main() -> None:
     run.add_argument("--grounding", action=argparse.BooleanOptionalAction, default=True)
     run.add_argument("--visual-tools", action=argparse.BooleanOptionalAction, default=True)
     run.add_argument("--adjudicator", default=DEFAULT_ADJUDICATOR, help="module:function")
+    run.add_argument(
+        "--reuse-raw",
+        type=Path,
+        help="Reuse reviewer findings and adjudicator verdicts; only editor calls are new.",
+    )
     run.add_argument("--run-id")
     run.add_argument("--output-dir", type=Path, default=RESULTS)
     run.add_argument("--allow-dirty-labels", action="store_true")
@@ -820,7 +1033,15 @@ def main() -> None:
     report.add_argument("results", type=Path)
     report.set_defaults(func=command_report)
 
+    for command in (run, replay, report):
+        command.add_argument(
+            "--root",
+            type=Path,
+            default=EDITORIAL,
+            help="Eval root containing labels/transcripts/media/scripts/matching.json.",
+        )
     args = parser.parse_args()
+    EDITORIAL = args.root.resolve()
     args.func(args)
 
 

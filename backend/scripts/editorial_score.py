@@ -349,6 +349,15 @@ def render_markdown(result: Mapping[str, Any]) -> str:
         "Precision | Start error, median | Clean-control findings (per min) |",
         "|---|---:|---:|---:|---:|---:|---:|",
     ]
+    if result.get("reuse"):
+        lines[2:2] = [
+            f"Reuses reviewer findings and adjudicator verdicts from `{result['reuse']['runId']}`. "
+            f"Only editor calls are new ({result.get('modelCalls', 0)} calls, "
+            f"${result.get('newCallCostUsd', 0) or 0:.4f} token estimate).",
+            "Adjudicated reuse joins saved verdicts only; absent verdicts mean not checked. "
+            "Arm costs retain the historic full adjudicator spend; Search is unpriced.",
+            "",
+        ]
     for arm, data in arms.items():
         agg = data["aggregate"]
         head = agg["headline"]
@@ -410,3 +419,21 @@ def render_markdown(result: Mapping[str, Any]) -> str:
 
 def dump(data: Any) -> str:
     return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+
+
+if __name__ == "__main__":
+    # Use exactly the runner's replay safeguards and input loading; no alternative matcher.
+    import argparse
+    from pathlib import Path
+
+    import editorial_eval
+
+    parser = argparse.ArgumentParser(
+        description="Score saved editorial raw output; no model calls."
+    )
+    parser.add_argument("raw", type=Path)
+    parser.add_argument("--root", type=Path, default=editorial_eval.EDITORIAL)
+    parser.add_argument("--output", type=Path)
+    args = parser.parse_args()
+    editorial_eval.EDITORIAL = args.root.resolve()
+    editorial_eval.command_replay(args)

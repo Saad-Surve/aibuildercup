@@ -395,6 +395,34 @@ export interface AdjudicatorSummary {
   errors: string[];
 }
 
+export interface FindingEditorial {
+  verdict: "keep" | "merge" | "drop";
+  reason: string;
+  mergedInto?: string | null;
+  adjustedSeverity?: Severity | null;
+  factualStatus: "verified" | "unverified" | "not_applicable";
+  sources: FindingCitation[];
+  checkedAt: string;
+  model: string;
+  promptVersion: string;
+}
+
+export interface EditorSummary {
+  model: string;
+  promptVersion: string;
+  callCount: number;
+  errorCount: number;
+  skippedCount: number;
+  keptCount: number;
+  mergedCount: number;
+  droppedCount: number;
+  costEstimateUsd: number;
+  tokenUsage: TokenUsage;
+  searchQueries: string[];
+  searchSuggestions: string;
+  errors: string[];
+}
+
 export interface AnalysisRun {
   analysisRunId: string;
   jobId: string;
@@ -412,6 +440,7 @@ export interface AnalysisRun {
   modelConfigVersion: string;
   promptVersion: string;
   costEstimateUsd: number;
+  editor?: EditorSummary | null;
   adjudicator?: AdjudicatorSummary | null;
   error: { code: string; message: string } | null;
   createdAt: string;
@@ -526,6 +555,8 @@ export interface Finding {
   suggestion: string;
   citations: FindingCitation[];
   decision?: FindingDecision | null;
+  editorial?: FindingEditorial | null;
+  corroboratedBy?: string[];
   adjudication?: FindingAdjudication | null;
   reconciliation?: FindingReconciliation | null;
   libraryLinks?: FindingLibraryLink[];

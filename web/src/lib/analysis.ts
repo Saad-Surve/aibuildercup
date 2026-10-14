@@ -122,10 +122,26 @@ export function getAdjudicationEvidenceUrl(
   );
 }
 
+export function editorFiltered(finding: Finding): boolean {
+  return (
+    finding.editorial?.verdict === "drop" ||
+    finding.editorial?.verdict === "merge"
+  );
+}
+
 export function effectiveSeverity(finding: Finding): Severity {
-  return finding.adjudication?.verdict === "downgrade"
-    ? (finding.adjudication.adjustedSeverity ?? finding.severity)
-    : finding.severity;
+  const order: Severity[] = ["none", "low", "medium", "high", "critical"];
+  const severities = [finding.severity];
+  if (finding.editorial?.adjustedSeverity)
+    severities.push(finding.editorial.adjustedSeverity);
+  if (
+    finding.adjudication?.verdict === "downgrade" &&
+    finding.adjudication.adjustedSeverity
+  )
+    severities.push(finding.adjudication.adjustedSeverity);
+  return severities.reduce((lowest, severity) =>
+    order.indexOf(severity) < order.indexOf(lowest) ? severity : lowest,
+  );
 }
 
 export function getHeatmap(

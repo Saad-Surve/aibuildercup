@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -70,6 +70,11 @@ class Settings(BaseSettings):
     # controlled generation. Pin a concrete id if you need reproducibility.
     model_reviewer: str = "gemini-3.1-flash-lite"
     # Unset follows model_reviewer. Prices default to the reviewer's configured rates.
+    model_editor: str | None = None
+    editor_thinking_level: Literal["low", "medium", "high"] | None = "low"
+    editor_input_price_per_mtok: float | None = None
+    editor_output_price_per_mtok: float | None = None
+    max_editor_calls: int = Field(default=3, ge=0, le=3)
     model_adjudicator: str | None = None
     adjudicator_input_price_per_mtok: float | None = None
     adjudicator_output_price_per_mtok: float | None = None

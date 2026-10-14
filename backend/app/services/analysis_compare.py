@@ -43,7 +43,7 @@ from app.services.firestore_service import (
     project_path,
     transcript_path,
 )
-from app.services.heatmap import aggregate_bins, normalize_span
+from app.services.heatmap import aggregate_bins, effective_severity, normalize_span
 
 _MAX_FINDINGS = 2000
 _MAX_SEGMENTS = 20_000
@@ -624,6 +624,9 @@ class AnalysisCompareService:
             owner_uid,
             _MAX_FINDINGS,
         ):
+            editorial = _dict(raw.get("editorial"))
+            if editorial.get("verdict") in {"drop", "merge"}:
+                continue
             decision, adjudication = _dict(raw.get("decision")), _dict(raw.get("adjudication"))
             if decision.get("status") == "dismissed" or adjudication.get("verdict") == "reject":
                 continue
@@ -641,7 +644,8 @@ class AnalysisCompareService:
                 <= SEVERITY_RANK[Severity(raw.get("severity", Severity.none.value))]
             ):
                 effective["severity"] = adjusted
-            findings.append(_to_finding(finding_id, effective))
+            finding = _to_finding(finding_id, effective)
+            findings.append(finding.model_copy(update={"severity": effective_severity(finding)}))
             if decision.get("status") in ("accepted", "revised"):
                 accepted_ids.add(finding_id)
         coverage: list[HeatmapCoverage] = []
