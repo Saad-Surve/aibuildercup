@@ -1,6 +1,6 @@
 # Evaluation results index
 
-One entry per run. All editorial runs used model `gemini-3.8-flash` and were made on 14 October 2026.
+One entry per run. Editorial runs used model `gemini-3.8-flash` on 14 October 2026 unless noted below.
 Terminology (arms, matching rule, recall, precision) is in [../editorial/README.md](../editorial/README.md);
 the retrieval benchmark is in [../README.md](../README.md). Prefix every run id with `editorial-` for file names.
 
@@ -54,3 +54,9 @@ Not editorial runs. Described in [../README.md](../README.md).
 | `2026-10-11.json` | First live retrieval and runtime benchmark: creator retrieval (20 cases), component latencies, media metadata, web payload sizes. |
 | `2026-10-11-replay.json` | Offline replay of the same benchmark with zero new model calls; reproduces the retrieval metrics and adds implementation hashes. |
 | `cost-scenario.json` | Illustrative component cost estimate for one scenario (five-minute video, nine reviewers, one draft, four thumbnails, one dub). Not an invoice. |
+
+## Model comparison (dev set, 15 October 2026)
+
+| Run id | Set, labels commit | Arms | Purpose |
+|---|---|---|---|
+| `2026-10-15-dev-flashlite35` | DEV (`evals/editorial`), `2e13571` | baseline, rubric, reviewers, ensemble_edited | Speed/quality check of `gemini-3.5-flash-lite` for every arm, same prompts. ensemble_edited 17/20 at 90% precision, clean control 0 (vs 20/20, 87%, 1 on `gemini-3.8-flash`); the editor dropped both broken-promise issues the reviewers found. Reviewer stage about 2x faster per video, but 3 of 60 calls failed with 429/503, which also depresses the baseline and rubric arms (4 and 2 failed calls). Not adopted: production stays on `gemini-3.8-flash`. Files: `.md`, `.json`, `.raw.json`. |

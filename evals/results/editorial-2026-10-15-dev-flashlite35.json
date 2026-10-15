@@ -1,0 +1,4218 @@
+{
+  "schemaVersion": 1,
+  "kind": "editorial-eval",
+  "runId": "2026-10-15-dev-flashlite35",
+  "model": "gemini-3.5-flash-lite",
+  "prices": {
+    "inputPerMTok": 0.25,
+    "outputPerMTok": 1.5
+  },
+  "options": {
+    "arms": [
+      "baseline",
+      "rubric",
+      "reviewers",
+      "ensemble_edited"
+    ],
+    "root": "evals/editorial",
+    "grounding": true,
+    "visualTools": true,
+    "maxCalls": 300,
+    "reviewerConcurrency": 4,
+    "maxVisualContextRequests": 3,
+    "visualToolMaxRounds": 2,
+    "maxAdjudicatorCalls": 12,
+    "maxConflictCalls": 4,
+    "maxEditorCalls": 3,
+    "editorThinkingLevel": "medium"
+  },
+  "promptVersions": {
+    "reviewers": "reviewers-v5",
+    "modelConfig": "analysis-v9",
+    "baseline": "editorial-baseline-v1",
+    "rubric": "rubric-v1",
+    "adjudicator": "adjudicator-v2",
+    "editor": "editor-v6"
+  },
+  "labels": {
+    "commit": "2e1357166373beb3d44765c7990311cba4f74f7d",
+    "commitDate": "2026-10-14T09:38:28+05:30",
+    "dirty": false,
+    "root": "evals/editorial",
+    "inputSha256": {
+      "labels/boiled-egg-control.json": "b0dbf430e2416a1d831e52b8f0d19d51c699d021609da72c0ee2371e86d06e39",
+      "labels/espresso-basics.json": "a64eaa15712b773f40150f57117f75b94287778284c896f9e06310b3887f0444",
+      "labels/immune-system-cold.json": "bdd0d6ea7ebc1395c8e131692af3c14d9ce51e53e8b48d3e157e63eed14fe6db",
+      "labels/index-fund-mistakes.json": "11627231533eeb52685f181b7cbaf87289afa61144e845b18218fd89925d5f78",
+      "labels/python-decorators.json": "70edd0a5b48c7511d402b54b3d2b674bcb4f3c7acb96ef8bd44918246b4a4be7",
+      "transcripts/boiled-egg-control.json": "0c6e97b78f6123de968c1f3d198ace1f2036ad9e34745fb79641944948c7921d",
+      "transcripts/espresso-basics.json": "76b1f1799cd7b7f4318d98479cb9e6bd70a89ea638dd56acd02f9c61cadaaf24",
+      "transcripts/immune-system-cold.json": "6807004fa51652b21d87bf71b356a86c331c447a3dbf49916540ee46762702cc",
+      "transcripts/index-fund-mistakes.json": "7c2cf05b50e67dcaa5507441bd9c54878824ad8ca3845b6b4d6dce92b6bac27e",
+      "transcripts/python-decorators.json": "70cfb30e527ce321d3553c59f60d8f9e757374d113d10aec370de5844d0c07b7",
+      "media/boiled-egg-control.mp4": "ba7d04145062f93c49b865a0d0c7098a66ba4806230436418d4f90bcf5c239af",
+      "media/espresso-basics.mp4": "cd6526942f0ff300980e84643b471d843f78b802a9472837b558512a696b9a44",
+      "media/immune-system-cold.mp4": "f63144b132bb9e70acf52815fb7dd995a1359eaedcef76c66f1576bcd30328c5",
+      "media/index-fund-mistakes.mp4": "4f4409eff15210c8c5573110a5256fc2f2b537f5e10f01f4044c73722fa3a8dc",
+      "media/python-decorators.mp4": "335bfb616a9f749662d1bbc1f4d984bd18dafc96d65873f5995cbaaf3d61f22d",
+      "matching.json": "43a7c21d16ab76f5918404bc9a08bc953f9908a793c738f3a605dc94c4d5d7c0",
+      "scripts/boiled-egg-control.json": "8f071f9dd90d4a3e4166700b922cd9ef218c28d9ca79c00291b387ce2f7e6935",
+      "scripts/espresso-basics.json": "fc6cc38dd1e667c014d0597aa9fbe3d94c9f857c3a4ce13ff9b8044bd37090ba",
+      "scripts/immune-system-cold.json": "74dbfb3c81baf0c7eb02b287fa789552280baf89e91a30e75862289ccc0e4b85",
+      "scripts/index-fund-mistakes.json": "83e384291966d30d5f54758503d7df440454b0b2b4892269923664233c06fa75",
+      "scripts/python-decorators.json": "7d6460fbf4fb07f49084ff7dc129fdd53257ac864e1e7ba3dc20d276630187aa"
+    },
+    "labelSha256": {
+      "boiled-egg-control": "b0dbf430e2416a1d831e52b8f0d19d51c699d021609da72c0ee2371e86d06e39",
+      "espresso-basics": "a64eaa15712b773f40150f57117f75b94287778284c896f9e06310b3887f0444",
+      "immune-system-cold": "bdd0d6ea7ebc1395c8e131692af3c14d9ce51e53e8b48d3e157e63eed14fe6db",
+      "index-fund-mistakes": "11627231533eeb52685f181b7cbaf87289afa61144e845b18218fd89925d5f78",
+      "python-decorators": "70edd0a5b48c7511d402b54b3d2b674bcb4f3c7acb96ef8bd44918246b4a4be7"
+    },
+    "matchingSha256": "43a7c21d16ab76f5918404bc9a08bc953f9908a793c738f3a605dc94c4d5d7c0"
+  },
+  "code": {
+    "revision": "001a82d0d4bb913a73b790360a8483637f68660b",
+    "dirty": false,
+    "sha256": {
+      "backend/scripts/editorial_eval.py": "ae3258a0563fa6e717ffec6b02c40d9fceb44401ddca4a96e4b8ae28551d5e27",
+      "backend/scripts/editorial_score.py": "d6f8c9632daf73b885a4d9c1cb5e0cae8b0a5192f126d96f7c2b80f46b5af748",
+      "backend/app/agents/reviewer_base.py": "cd4bbefb96ff387d550187a6d30a4435196ef4f5160d374a7618b3a58ed57eed",
+      "backend/app/agents/analysis_coordinator.py": "f270b53aa8f551627d68feb6fa81897c78c1e0458bff7a2568b88bf860a70e7f",
+      "backend/app/agents/adjudicator.py": "6d238b0ad195d0a90d9135036b25b6b0d5d8cd63edeb6aadf91e44cc7c271d40",
+      "backend/app/agents/editor.py": "f93a7d7b0685e4d9c15b5c6d57be84fca7cae8e9ce5a207482bdc478df71385f",
+      "backend/app/agents/rubric.py": "0853e1f5f7dd0ba529f2136134de36faad9f693fa539f111a0ae600e136f79ca",
+      "backend/app/agents/reviewer_registry.py": "515147a4d00eb017ed53d61c4884b8d5aa1f47a7bd90eaeb2e735ad0c55b0a01",
+      "backend/app/providers/base.py": "d8e7e46109ad7edb9607ca317e6953b00eb665ccb397edb36a33c5cd33855079",
+      "backend/app/providers/llm.py": "9058df51545e943c40422c97974ba265536e5c496d604b231bb5cbd44c013fd7",
+      "backend/app/config.py": "a8840a5bfb1da9f7d9f02b0278e4eca6d08f26976b7de6d82075cb6323b4791d"
+    }
+  },
+  "matchingRule": {
+    "schemaVersion": 1,
+    "description": "Pre-registered matching rule. A finding can match a gold issue when its time span is within toleranceMs of the issue's span (or one of its additionalSpans) and its dimension is compatible with the issue's category. Matching is one-to-one and greedy.",
+    "toleranceMs": 5000,
+    "issueSeverities": [
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ],
+    "actionableSeverities": [
+      "medium",
+      "high",
+      "critical"
+    ],
+    "categoryDimensions": {
+      "weak_hook": [
+        "pacing_retention",
+        "platform_fit",
+        "audience_brand",
+        "emotional_impact",
+        "clarity"
+      ],
+      "unsupported_claim": [
+        "truth_evidence",
+        "legal_safety"
+      ],
+      "factual_error": [
+        "truth_evidence"
+      ],
+      "jargon": [
+        "clarity",
+        "audience_brand"
+      ],
+      "tangent": [
+        "pacing_retention",
+        "clarity",
+        "platform_fit"
+      ],
+      "pacing_drag": [
+        "pacing_retention",
+        "clarity",
+        "platform_fit"
+      ],
+      "missing_cta": [
+        "conversion_cta",
+        "platform_fit",
+        "audience_brand"
+      ],
+      "safety": [
+        "legal_safety",
+        "truth_evidence"
+      ],
+      "broken_promise": [
+        "pacing_retention",
+        "clarity",
+        "audience_brand",
+        "platform_fit"
+      ],
+      "tone_mismatch": [
+        "audience_brand",
+        "emotional_impact"
+      ],
+      "locale_assumption": [
+        "cultural_localization",
+        "audience_brand"
+      ]
+    }
+  },
+  "labelsUnchangedSinceRun": true,
+  "videos": {
+    "boiled-egg-control": {
+      "title": "The Perfect Boiled Egg, Three Ways",
+      "durationMs": 120493,
+      "clean": true
+    },
+    "espresso-basics": {
+      "title": "Fix Bitter Home Espresso in Three Steps",
+      "durationMs": 143917,
+      "clean": false
+    },
+    "immune-system-cold": {
+      "title": "What Actually Happens When You Catch a Cold",
+      "durationMs": 143801,
+      "clean": false
+    },
+    "index-fund-mistakes": {
+      "title": "3 Beginner Mistakes with Index Funds",
+      "durationMs": 125166,
+      "clean": false
+    },
+    "python-decorators": {
+      "title": "Python Decorators: Write a Timer and a Cache",
+      "durationMs": 152609,
+      "clean": false
+    }
+  },
+  "arms": {
+    "baseline": {
+      "aggregate": {
+        "flawedVideos": 4,
+        "cleanVideos": 1,
+        "goldIssues": 20,
+        "headline": {
+          "matched": 5,
+          "recall": 0.25,
+          "recallCi95": [
+            0.112,
+            0.469
+          ],
+          "findings": 5,
+          "precision": 1.0,
+          "precisionCi95": [
+            0.566,
+            1.0
+          ],
+          "unmatchedFindings": 0,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": 0.0
+        },
+        "actionable": {
+          "matched": 5,
+          "recall": 0.25,
+          "recallCi95": [
+            0.112,
+            0.469
+          ],
+          "findings": 5,
+          "precision": 1.0,
+          "precisionCi95": [
+            0.566,
+            1.0
+          ],
+          "unmatchedFindings": 0,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": 0.0
+        },
+        "timeOnly": {
+          "matched": 5,
+          "recall": 0.25,
+          "recallCi95": [
+            0.112,
+            0.469
+          ],
+          "findings": 5,
+          "precision": 1.0,
+          "precisionCi95": [
+            0.566,
+            1.0
+          ],
+          "unmatchedFindings": 0,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": 0.0
+        },
+        "startErrorMs": {
+          "median": 0,
+          "mean": 1634,
+          "max": 6009,
+          "n": 5
+        },
+        "byCategory": {
+          "broken_promise": {
+            "matched": 0,
+            "total": 2
+          },
+          "factual_error": {
+            "matched": 1,
+            "total": 2
+          },
+          "jargon": {
+            "matched": 1,
+            "total": 2
+          },
+          "locale_assumption": {
+            "matched": 0,
+            "total": 2
+          },
+          "missing_cta": {
+            "matched": 0,
+            "total": 1
+          },
+          "pacing_drag": {
+            "matched": 0,
+            "total": 2
+          },
+          "safety": {
+            "matched": 2,
+            "total": 2
+          },
+          "tangent": {
+            "matched": 0,
+            "total": 2
+          },
+          "tone_mismatch": {
+            "matched": 1,
+            "total": 1
+          },
+          "unsupported_claim": {
+            "matched": 0,
+            "total": 2
+          },
+          "weak_hook": {
+            "matched": 0,
+            "total": 2
+          }
+        },
+        "cost": {
+          "inputTokens": 45239,
+          "outputTokens": 1268,
+          "usd": 0.013211,
+          "usdPerVideo": 0.002642,
+          "modelRequests": 5,
+          "searchQueries": 0,
+          "usdPerMatchedIssue": 0.002642,
+          "failedCalls": 4
+        }
+      },
+      "videos": [
+        {
+          "videoId": "boiled-egg-control",
+          "clean": true,
+          "durationMs": 120493,
+          "issueCount": 0,
+          "strengthCount": 1,
+          "variants": {
+            "headline": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [],
+              "unmatchedFindings": []
+            }
+          },
+          "usage": {
+            "inputTokens": 14093,
+            "outputTokens": 188
+          },
+          "modelRequests": 1,
+          "searchQueries": 0,
+          "costUsd": 0.003805,
+          "errors": []
+        },
+        {
+          "videoId": "espresso-basics",
+          "clean": false,
+          "durationMs": 143917,
+          "issueCount": 5,
+          "strengthCount": 0,
+          "variants": {
+            "headline": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "A1",
+                  "category": "weak_hook",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A2",
+                  "category": "jargon",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A3",
+                  "category": "tangent",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A4",
+                  "category": "locale_assumption",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A5",
+                  "category": "missing_cta",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "A1",
+                  "category": "weak_hook",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A2",
+                  "category": "jargon",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A3",
+                  "category": "tangent",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A4",
+                  "category": "locale_assumption",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A5",
+                  "category": "missing_cta",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "A1",
+                  "category": "weak_hook",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A2",
+                  "category": "jargon",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A3",
+                  "category": "tangent",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A4",
+                  "category": "locale_assumption",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A5",
+                  "category": "missing_cta",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "usage": {
+            "inputTokens": 0,
+            "outputTokens": 0
+          },
+          "modelRequests": 1,
+          "searchQueries": 0,
+          "costUsd": 0.0,
+          "errors": [
+            "ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.', 'status': 'RESOURCE_EXHAUSTED'}}",
+            "ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.', 'status': 'RESOURCE_EXHAUSTED'}}"
+          ]
+        },
+        {
+          "videoId": "immune-system-cold",
+          "clean": false,
+          "durationMs": 143801,
+          "issueCount": 5,
+          "strengthCount": 0,
+          "variants": {
+            "headline": {
+              "findingCount": 3,
+              "matchedCount": 3,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "B1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B2",
+                  "category": "unsupported_claim",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "B3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 6009,
+                  "centerErrorMs": 3005,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "B4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "B5",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "clarity"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 3,
+              "matchedCount": 3,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "B1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B2",
+                  "category": "unsupported_claim",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "B3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 6009,
+                  "centerErrorMs": 3005,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "B4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "B5",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "clarity"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 3,
+              "matchedCount": 3,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "B1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B2",
+                  "category": "unsupported_claim",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "B3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 6009,
+                  "centerErrorMs": 3005,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "B4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "B5",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "clarity"
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "usage": {
+            "inputTokens": 16502,
+            "outputTokens": 671
+          },
+          "modelRequests": 1,
+          "searchQueries": 0,
+          "costUsd": 0.005132,
+          "errors": []
+        },
+        {
+          "videoId": "index-fund-mistakes",
+          "clean": false,
+          "durationMs": 125166,
+          "issueCount": 5,
+          "strengthCount": 0,
+          "variants": {
+            "headline": {
+              "findingCount": 2,
+              "matchedCount": 2,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1280,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3427,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 2,
+              "matchedCount": 2,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1280,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3427,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 2,
+              "matchedCount": 2,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1280,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3427,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "usage": {
+            "inputTokens": 14644,
+            "outputTokens": 409
+          },
+          "modelRequests": 1,
+          "searchQueries": 0,
+          "costUsd": 0.004274,
+          "errors": []
+        },
+        {
+          "videoId": "python-decorators",
+          "clean": false,
+          "durationMs": 152609,
+          "issueCount": 5,
+          "strengthCount": 0,
+          "variants": {
+            "headline": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "D1",
+                  "category": "weak_hook",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D3",
+                  "category": "tangent",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D5",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "D1",
+                  "category": "weak_hook",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D3",
+                  "category": "tangent",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D5",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "D1",
+                  "category": "weak_hook",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D3",
+                  "category": "tangent",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D5",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "usage": {
+            "inputTokens": 0,
+            "outputTokens": 0
+          },
+          "modelRequests": 1,
+          "searchQueries": 0,
+          "costUsd": 0.0,
+          "errors": [
+            "ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The service is currently unavailable.', 'status': 'UNAVAILABLE'}}",
+            "ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The service is currently unavailable.', 'status': 'UNAVAILABLE'}}"
+          ]
+        }
+      ]
+    },
+    "rubric": {
+      "aggregate": {
+        "flawedVideos": 4,
+        "cleanVideos": 1,
+        "goldIssues": 20,
+        "headline": {
+          "matched": 11,
+          "recall": 0.55,
+          "recallCi95": [
+            0.342,
+            0.742
+          ],
+          "findings": 11,
+          "precision": 1.0,
+          "precisionCi95": [
+            0.741,
+            1.0
+          ],
+          "unmatchedFindings": 0,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": 0.0
+        },
+        "actionable": {
+          "matched": 11,
+          "recall": 0.55,
+          "recallCi95": [
+            0.342,
+            0.742
+          ],
+          "findings": 11,
+          "precision": 1.0,
+          "precisionCi95": [
+            0.741,
+            1.0
+          ],
+          "unmatchedFindings": 0,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": 0.0
+        },
+        "timeOnly": {
+          "matched": 11,
+          "recall": 0.55,
+          "recallCi95": [
+            0.342,
+            0.742
+          ],
+          "findings": 11,
+          "precision": 1.0,
+          "precisionCi95": [
+            0.741,
+            1.0
+          ],
+          "unmatchedFindings": 0,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": 0.0
+        },
+        "startErrorMs": {
+          "median": 0,
+          "mean": 1099,
+          "max": 6009,
+          "n": 11
+        },
+        "byCategory": {
+          "broken_promise": {
+            "matched": 0,
+            "total": 2
+          },
+          "factual_error": {
+            "matched": 1,
+            "total": 2
+          },
+          "jargon": {
+            "matched": 2,
+            "total": 2
+          },
+          "locale_assumption": {
+            "matched": 0,
+            "total": 2
+          },
+          "missing_cta": {
+            "matched": 1,
+            "total": 1
+          },
+          "pacing_drag": {
+            "matched": 0,
+            "total": 2
+          },
+          "safety": {
+            "matched": 2,
+            "total": 2
+          },
+          "tangent": {
+            "matched": 2,
+            "total": 2
+          },
+          "tone_mismatch": {
+            "matched": 1,
+            "total": 1
+          },
+          "unsupported_claim": {
+            "matched": 0,
+            "total": 2
+          },
+          "weak_hook": {
+            "matched": 2,
+            "total": 2
+          }
+        },
+        "cost": {
+          "inputTokens": 77733,
+          "outputTokens": 2489,
+          "usd": 0.023166,
+          "usdPerVideo": 0.004633,
+          "modelRequests": 5,
+          "searchQueries": 2,
+          "usdPerMatchedIssue": 0.002106,
+          "failedCalls": 2
+        }
+      },
+      "videos": [
+        {
+          "videoId": "boiled-egg-control",
+          "clean": true,
+          "durationMs": 120493,
+          "issueCount": 0,
+          "strengthCount": 0,
+          "variants": {
+            "headline": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [],
+              "unmatchedFindings": []
+            }
+          },
+          "usage": {
+            "inputTokens": 0,
+            "outputTokens": 0
+          },
+          "modelRequests": 1,
+          "searchQueries": 0,
+          "costUsd": 0.0,
+          "errors": [
+            "ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.', 'status': 'RESOURCE_EXHAUSTED'}}",
+            "ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.', 'status': 'RESOURCE_EXHAUSTED'}}"
+          ]
+        },
+        {
+          "videoId": "espresso-basics",
+          "clean": false,
+          "durationMs": 143917,
+          "issueCount": 5,
+          "strengthCount": 0,
+          "variants": {
+            "headline": {
+              "findingCount": 4,
+              "matchedCount": 4,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "A1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3514,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A2",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 3921,
+                  "centerErrorMs": 2241,
+                  "matchedDimension": "clarity"
+                },
+                {
+                  "id": "A3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A4",
+                  "category": "locale_assumption",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A5",
+                  "category": "missing_cta",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "conversion_cta"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 4,
+              "matchedCount": 4,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "A1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3514,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A2",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 3921,
+                  "centerErrorMs": 2241,
+                  "matchedDimension": "clarity"
+                },
+                {
+                  "id": "A3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A4",
+                  "category": "locale_assumption",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A5",
+                  "category": "missing_cta",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "conversion_cta"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 4,
+              "matchedCount": 4,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "A1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3514,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A2",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 3921,
+                  "centerErrorMs": 2241,
+                  "matchedDimension": "clarity"
+                },
+                {
+                  "id": "A3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A4",
+                  "category": "locale_assumption",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "A5",
+                  "category": "missing_cta",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "conversion_cta"
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "usage": {
+            "inputTokens": 19724,
+            "outputTokens": 827
+          },
+          "modelRequests": 1,
+          "searchQueries": 0,
+          "costUsd": 0.006171,
+          "errors": []
+        },
+        {
+          "videoId": "immune-system-cold",
+          "clean": false,
+          "durationMs": 143801,
+          "issueCount": 5,
+          "strengthCount": 0,
+          "variants": {
+            "headline": {
+              "findingCount": 3,
+              "matchedCount": 3,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "B1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B2",
+                  "category": "unsupported_claim",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "B3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 6009,
+                  "centerErrorMs": 3005,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "B4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "B5",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "clarity"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 3,
+              "matchedCount": 3,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "B1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B2",
+                  "category": "unsupported_claim",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "B3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 6009,
+                  "centerErrorMs": 3005,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "B4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "B5",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "clarity"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 3,
+              "matchedCount": 3,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "B1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B2",
+                  "category": "unsupported_claim",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "B3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 6009,
+                  "centerErrorMs": 3005,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "B4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "B5",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "clarity"
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "usage": {
+            "inputTokens": 19651,
+            "outputTokens": 687
+          },
+          "modelRequests": 1,
+          "searchQueries": 0,
+          "costUsd": 0.005943,
+          "errors": []
+        },
+        {
+          "videoId": "index-fund-mistakes",
+          "clean": false,
+          "durationMs": 125166,
+          "issueCount": 5,
+          "strengthCount": 0,
+          "variants": {
+            "headline": {
+              "findingCount": 2,
+              "matchedCount": 2,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1280,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3427,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 2,
+              "matchedCount": 2,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1280,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3427,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 2,
+              "matchedCount": 2,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1280,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3427,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "usage": {
+            "inputTokens": 17793,
+            "outputTokens": 419
+          },
+          "modelRequests": 1,
+          "searchQueries": 0,
+          "costUsd": 0.005077,
+          "errors": []
+        },
+        {
+          "videoId": "python-decorators",
+          "clean": false,
+          "durationMs": 152609,
+          "issueCount": 5,
+          "strengthCount": 1,
+          "variants": {
+            "headline": {
+              "findingCount": 2,
+              "matchedCount": 2,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "D1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 5048,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 14253,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D5",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 2,
+              "matchedCount": 2,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "D1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 5048,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 14253,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D5",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 2,
+              "matchedCount": 2,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "D1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 5048,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D2",
+                  "category": "factual_error",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 14253,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D5",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "usage": {
+            "inputTokens": 20565,
+            "outputTokens": 556
+          },
+          "modelRequests": 1,
+          "searchQueries": 2,
+          "costUsd": 0.005975,
+          "errors": []
+        }
+      ]
+    },
+    "reviewers": {
+      "aggregate": {
+        "flawedVideos": 4,
+        "cleanVideos": 1,
+        "goldIssues": 20,
+        "headline": {
+          "matched": 19,
+          "recall": 0.95,
+          "recallCi95": [
+            0.764,
+            0.991
+          ],
+          "findings": 46,
+          "precision": 0.413,
+          "precisionCi95": [
+            0.283,
+            0.557
+          ],
+          "unmatchedFindings": 27,
+          "cleanControlFindings": 2,
+          "cleanControlsFlagged": 1,
+          "cleanControlFindingsPerMinute": 1.0
+        },
+        "actionable": {
+          "matched": 19,
+          "recall": 0.95,
+          "recallCi95": [
+            0.764,
+            0.991
+          ],
+          "findings": 45,
+          "precision": 0.422,
+          "precisionCi95": [
+            0.29,
+            0.567
+          ],
+          "unmatchedFindings": 26,
+          "cleanControlFindings": 2,
+          "cleanControlsFlagged": 1,
+          "cleanControlFindingsPerMinute": 1.0
+        },
+        "timeOnly": {
+          "matched": 19,
+          "recall": 0.95,
+          "recallCi95": [
+            0.764,
+            0.991
+          ],
+          "findings": 46,
+          "precision": 0.413,
+          "precisionCi95": [
+            0.283,
+            0.557
+          ],
+          "unmatchedFindings": 27,
+          "cleanControlFindings": 2,
+          "cleanControlsFlagged": 1,
+          "cleanControlFindingsPerMinute": 1.0
+        },
+        "startErrorMs": {
+          "median": 0,
+          "mean": 4027,
+          "max": 41672,
+          "n": 19
+        },
+        "byCategory": {
+          "broken_promise": {
+            "matched": 2,
+            "total": 2
+          },
+          "factual_error": {
+            "matched": 2,
+            "total": 2
+          },
+          "jargon": {
+            "matched": 2,
+            "total": 2
+          },
+          "locale_assumption": {
+            "matched": 2,
+            "total": 2
+          },
+          "missing_cta": {
+            "matched": 1,
+            "total": 1
+          },
+          "pacing_drag": {
+            "matched": 1,
+            "total": 2
+          },
+          "safety": {
+            "matched": 2,
+            "total": 2
+          },
+          "tangent": {
+            "matched": 2,
+            "total": 2
+          },
+          "tone_mismatch": {
+            "matched": 1,
+            "total": 1
+          },
+          "unsupported_claim": {
+            "matched": 2,
+            "total": 2
+          },
+          "weak_hook": {
+            "matched": 2,
+            "total": 2
+          }
+        },
+        "cost": {
+          "inputTokens": 483756,
+          "outputTokens": 11617,
+          "usd": 0.138365,
+          "usdPerVideo": 0.027673,
+          "modelRequests": 45,
+          "searchQueries": 10,
+          "usdPerMatchedIssue": 0.007282,
+          "failedCalls": 0
+        }
+      },
+      "videos": [
+        {
+          "videoId": "boiled-egg-control",
+          "clean": true,
+          "durationMs": 120493,
+          "issueCount": 0,
+          "strengthCount": 6,
+          "variants": {
+            "headline": {
+              "findingCount": 2,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 2,
+              "issues": [],
+              "unmatchedFindings": [
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "off_platform_framing",
+                  "severity": "high",
+                  "startMs": 600,
+                  "endMs": 10724,
+                  "quote": "Rubbery whites, a grey ring around the yolk, shells that will not come off: boiled eggs go wrong in so many ways, and to"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "flat",
+                  "severity": "medium",
+                  "startMs": 600,
+                  "endMs": 6135,
+                  "quote": "Rubbery whites, a grey ring around the yolk, shells that will not come off:"
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 2,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 2,
+              "issues": [],
+              "unmatchedFindings": [
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "off_platform_framing",
+                  "severity": "high",
+                  "startMs": 600,
+                  "endMs": 10724,
+                  "quote": "Rubbery whites, a grey ring around the yolk, shells that will not come off: boiled eggs go wrong in so many ways, and to"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "flat",
+                  "severity": "medium",
+                  "startMs": 600,
+                  "endMs": 6135,
+                  "quote": "Rubbery whites, a grey ring around the yolk, shells that will not come off:"
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 2,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 2,
+              "issues": [],
+              "unmatchedFindings": [
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "off_platform_framing",
+                  "severity": "high",
+                  "startMs": 600,
+                  "endMs": 10724,
+                  "quote": "Rubbery whites, a grey ring around the yolk, shells that will not come off: boiled eggs go wrong in so many ways, and to"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "flat",
+                  "severity": "medium",
+                  "startMs": 600,
+                  "endMs": 6135,
+                  "quote": "Rubbery whites, a grey ring around the yolk, shells that will not come off:"
+                }
+              ]
+            }
+          },
+          "usage": {
+            "inputTokens": 95034,
+            "outputTokens": 1614
+          },
+          "modelRequests": 9,
+          "searchQueries": 2,
+          "costUsd": 0.02618,
+          "errors": []
+        },
+        {
+          "videoId": "espresso-basics",
+          "clean": false,
+          "durationMs": 143917,
+          "issueCount": 5,
+          "strengthCount": 0,
+          "variants": {
+            "headline": {
+              "findingCount": 12,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 7,
+              "issues": [
+                {
+                  "id": "A1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 8043,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A2",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 5020,
+                  "centerErrorMs": 1692,
+                  "matchedDimension": "clarity"
+                },
+                {
+                  "id": "A3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3313,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "A5",
+                  "category": "missing_cta",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "conversion_cta"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "medium",
+                  "startMs": 600,
+                  "endMs": 4331,
+                  "quote": "Hey guys, welcome back to the channel, it's me again."
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "knowledge_gap",
+                  "severity": "medium",
+                  "startMs": 48673,
+                  "endMs": 52489,
+                  "quote": "produces a high TDS with sour acidity on the front end."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "dense_clause_overload",
+                  "severity": "medium",
+                  "startMs": 73687,
+                  "endMs": 79247,
+                  "quote": "Funny enough, this reminds me of last summer, when my cousin got married in Lisbon."
+                },
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "high",
+                  "startMs": 73687,
+                  "endMs": 110531,
+                  "quote": "Funny enough, this reminds me of last summer, when my cousin got married in Lisbon."
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "tone_drift",
+                  "severity": "high",
+                  "startMs": 73687,
+                  "endMs": 110531,
+                  "quote": "Funny enough, this reminds me of last summer, when my cousin got married in Lisbon."
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "empathy_gap",
+                  "severity": "medium",
+                  "startMs": 73687,
+                  "endMs": 110531,
+                  "quote": "Funny enough, this reminds me of last summer, when my cousin got married in Lisbon."
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "locale_assumption",
+                  "severity": "medium",
+                  "startMs": 127715,
+                  "endMs": 129906,
+                  "quote": "grab one at Walmart or Target on your way home."
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 12,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 7,
+              "issues": [
+                {
+                  "id": "A1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 8043,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A2",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 5020,
+                  "centerErrorMs": 1692,
+                  "matchedDimension": "clarity"
+                },
+                {
+                  "id": "A3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3313,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "A5",
+                  "category": "missing_cta",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "conversion_cta"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "medium",
+                  "startMs": 600,
+                  "endMs": 4331,
+                  "quote": "Hey guys, welcome back to the channel, it's me again."
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "knowledge_gap",
+                  "severity": "medium",
+                  "startMs": 48673,
+                  "endMs": 52489,
+                  "quote": "produces a high TDS with sour acidity on the front end."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "dense_clause_overload",
+                  "severity": "medium",
+                  "startMs": 73687,
+                  "endMs": 79247,
+                  "quote": "Funny enough, this reminds me of last summer, when my cousin got married in Lisbon."
+                },
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "high",
+                  "startMs": 73687,
+                  "endMs": 110531,
+                  "quote": "Funny enough, this reminds me of last summer, when my cousin got married in Lisbon."
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "tone_drift",
+                  "severity": "high",
+                  "startMs": 73687,
+                  "endMs": 110531,
+                  "quote": "Funny enough, this reminds me of last summer, when my cousin got married in Lisbon."
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "empathy_gap",
+                  "severity": "medium",
+                  "startMs": 73687,
+                  "endMs": 110531,
+                  "quote": "Funny enough, this reminds me of last summer, when my cousin got married in Lisbon."
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "locale_assumption",
+                  "severity": "medium",
+                  "startMs": 127715,
+                  "endMs": 129906,
+                  "quote": "grab one at Walmart or Target on your way home."
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 12,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 7,
+              "issues": [
+                {
+                  "id": "A1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 8043,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A2",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 5020,
+                  "centerErrorMs": 1692,
+                  "matchedDimension": "clarity"
+                },
+                {
+                  "id": "A3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3313,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "A5",
+                  "category": "missing_cta",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "conversion_cta"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "medium",
+                  "startMs": 600,
+                  "endMs": 4331,
+                  "quote": "Hey guys, welcome back to the channel, it's me again."
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "knowledge_gap",
+                  "severity": "medium",
+                  "startMs": 48673,
+                  "endMs": 52489,
+                  "quote": "produces a high TDS with sour acidity on the front end."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "dense_clause_overload",
+                  "severity": "medium",
+                  "startMs": 73687,
+                  "endMs": 79247,
+                  "quote": "Funny enough, this reminds me of last summer, when my cousin got married in Lisbon."
+                },
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "high",
+                  "startMs": 73687,
+                  "endMs": 110531,
+                  "quote": "Funny enough, this reminds me of last summer, when my cousin got married in Lisbon."
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "tone_drift",
+                  "severity": "high",
+                  "startMs": 73687,
+                  "endMs": 110531,
+                  "quote": "Funny enough, this reminds me of last summer, when my cousin got married in Lisbon."
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "empathy_gap",
+                  "severity": "medium",
+                  "startMs": 73687,
+                  "endMs": 110531,
+                  "quote": "Funny enough, this reminds me of last summer, when my cousin got married in Lisbon."
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "locale_assumption",
+                  "severity": "medium",
+                  "startMs": 127715,
+                  "endMs": 129906,
+                  "quote": "grab one at Walmart or Target on your way home."
+                }
+              ]
+            }
+          },
+          "usage": {
+            "inputTokens": 97725,
+            "outputTokens": 2064
+          },
+          "modelRequests": 9,
+          "searchQueries": 0,
+          "costUsd": 0.027527,
+          "errors": []
+        },
+        {
+          "videoId": "immune-system-cold",
+          "clean": false,
+          "durationMs": 143801,
+          "issueCount": 5,
+          "strengthCount": 1,
+          "variants": {
+            "headline": {
+              "findingCount": 12,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 7,
+              "issues": [
+                {
+                  "id": "B1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 6009,
+                  "centerErrorMs": 3005,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "B4",
+                  "category": "pacing_drag",
+                  "matched": true,
+                  "startErrorMs": 6743,
+                  "centerErrorMs": 3372,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "B5",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "clarity"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "locale_assumption",
+                  "severity": "medium",
+                  "startMs": 37787,
+                  "endMs": 42210,
+                  "quote": "Always wear a hat in winter, because around eighty percent of your body heat escapes through your head."
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "momentum_flatline",
+                  "severity": "high",
+                  "startMs": 61934,
+                  "endMs": 76885,
+                  "quote": "At the cellular level, CD8-positive cytotoxic T lymphocytes undergo clonal expansion after antigen presentation via MHC "
+                },
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "high",
+                  "startMs": 61934,
+                  "endMs": 76885,
+                  "quote": "At the cellular level, CD8-positive cytotoxic T lymphocytes undergo clonal expansion after antigen presentation via MHC "
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "register_mismatch",
+                  "severity": "high",
+                  "startMs": 61934,
+                  "endMs": 76885,
+                  "quote": "At the cellular level, CD8-positive cytotoxic T lymphocytes undergo clonal expansion after antigen presentation via MHC "
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "empathy_gap",
+                  "severity": "medium",
+                  "startMs": 61934,
+                  "endMs": 76885,
+                  "quote": "At the cellular level, CD8-positive cytotoxic T lymphocytes undergo clonal expansion"
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "false_claim",
+                  "severity": "critical",
+                  "startMs": 126968,
+                  "endMs": 131982,
+                  "quote": "Just give them a double dose of paracetamol every few hours until it goes down."
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "locale_assumption",
+                  "severity": "high",
+                  "startMs": 126968,
+                  "endMs": 131982,
+                  "quote": "Just give them a double dose of paracetamol every few hours until it goes down."
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 12,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 7,
+              "issues": [
+                {
+                  "id": "B1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 6009,
+                  "centerErrorMs": 3005,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "B4",
+                  "category": "pacing_drag",
+                  "matched": true,
+                  "startErrorMs": 6743,
+                  "centerErrorMs": 3372,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "B5",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "clarity"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "locale_assumption",
+                  "severity": "medium",
+                  "startMs": 37787,
+                  "endMs": 42210,
+                  "quote": "Always wear a hat in winter, because around eighty percent of your body heat escapes through your head."
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "momentum_flatline",
+                  "severity": "high",
+                  "startMs": 61934,
+                  "endMs": 76885,
+                  "quote": "At the cellular level, CD8-positive cytotoxic T lymphocytes undergo clonal expansion after antigen presentation via MHC "
+                },
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "high",
+                  "startMs": 61934,
+                  "endMs": 76885,
+                  "quote": "At the cellular level, CD8-positive cytotoxic T lymphocytes undergo clonal expansion after antigen presentation via MHC "
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "register_mismatch",
+                  "severity": "high",
+                  "startMs": 61934,
+                  "endMs": 76885,
+                  "quote": "At the cellular level, CD8-positive cytotoxic T lymphocytes undergo clonal expansion after antigen presentation via MHC "
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "empathy_gap",
+                  "severity": "medium",
+                  "startMs": 61934,
+                  "endMs": 76885,
+                  "quote": "At the cellular level, CD8-positive cytotoxic T lymphocytes undergo clonal expansion"
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "false_claim",
+                  "severity": "critical",
+                  "startMs": 126968,
+                  "endMs": 131982,
+                  "quote": "Just give them a double dose of paracetamol every few hours until it goes down."
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "locale_assumption",
+                  "severity": "high",
+                  "startMs": 126968,
+                  "endMs": 131982,
+                  "quote": "Just give them a double dose of paracetamol every few hours until it goes down."
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 12,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 7,
+              "issues": [
+                {
+                  "id": "B1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 6009,
+                  "centerErrorMs": 3005,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "B4",
+                  "category": "pacing_drag",
+                  "matched": true,
+                  "startErrorMs": 6743,
+                  "centerErrorMs": 3372,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "B5",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "clarity"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "locale_assumption",
+                  "severity": "medium",
+                  "startMs": 37787,
+                  "endMs": 42210,
+                  "quote": "Always wear a hat in winter, because around eighty percent of your body heat escapes through your head."
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "momentum_flatline",
+                  "severity": "high",
+                  "startMs": 61934,
+                  "endMs": 76885,
+                  "quote": "At the cellular level, CD8-positive cytotoxic T lymphocytes undergo clonal expansion after antigen presentation via MHC "
+                },
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "high",
+                  "startMs": 61934,
+                  "endMs": 76885,
+                  "quote": "At the cellular level, CD8-positive cytotoxic T lymphocytes undergo clonal expansion after antigen presentation via MHC "
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "register_mismatch",
+                  "severity": "high",
+                  "startMs": 61934,
+                  "endMs": 76885,
+                  "quote": "At the cellular level, CD8-positive cytotoxic T lymphocytes undergo clonal expansion after antigen presentation via MHC "
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "empathy_gap",
+                  "severity": "medium",
+                  "startMs": 61934,
+                  "endMs": 76885,
+                  "quote": "At the cellular level, CD8-positive cytotoxic T lymphocytes undergo clonal expansion"
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "false_claim",
+                  "severity": "critical",
+                  "startMs": 126968,
+                  "endMs": 131982,
+                  "quote": "Just give them a double dose of paracetamol every few hours until it goes down."
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "locale_assumption",
+                  "severity": "high",
+                  "startMs": 126968,
+                  "endMs": 131982,
+                  "quote": "Just give them a double dose of paracetamol every few hours until it goes down."
+                }
+              ]
+            }
+          },
+          "usage": {
+            "inputTokens": 97095,
+            "outputTokens": 2956
+          },
+          "modelRequests": 9,
+          "searchQueries": 3,
+          "costUsd": 0.028708,
+          "errors": []
+        },
+        {
+          "videoId": "index-fund-mistakes",
+          "clean": false,
+          "durationMs": 125166,
+          "issueCount": 5,
+          "strengthCount": 2,
+          "variants": {
+            "headline": {
+              "findingCount": 14,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 9,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": true,
+                  "startErrorMs": 10613,
+                  "centerErrorMs": 11286,
+                  "matchedDimension": "audience_brand"
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 1735,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1080,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 615,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3427,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "low",
+                  "startMs": 36515,
+                  "endMs": 40693,
+                  "quote": "and pick an S and P five hundred fund."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "dense_clause_overload",
+                  "severity": "medium",
+                  "startMs": 79769,
+                  "endMs": 84368,
+                  "quote": "And honestly, if you don't already know that, what are you even doing?"
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "momentum_flatline",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 91222,
+                  "quote": "And honestly, if you don't already know that, what are you even doing? It is the most basic thing in investing, and I ca"
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "tone_mismatch",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 91222,
+                  "quote": "And honestly, if you don't already know that, what are you even doing? It is the most basic thing in investing, and I ca"
+                },
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 84368,
+                  "quote": "And honestly, if you don't already know that, what are you even doing?"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "inappropriate_tone",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 84368,
+                  "quote": "And honestly, if you don't already know that, what are you even doing?"
+                },
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "friction_heavy_ask",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 84368,
+                  "quote": "And honestly, if you don't already know that, what are you even doing?"
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "false_claim",
+                  "severity": "critical",
+                  "startMs": 94283,
+                  "endMs": 103996,
+                  "quote": "I guarantee that if you put your emergency savings into an index fund today, you will double your money in five years. Y"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "emotional_misstep",
+                  "severity": "high",
+                  "startMs": 94283,
+                  "endMs": 101799,
+                  "quote": "I guarantee that if you put your emergency savings into an index fund today, you will double your money in five years."
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 13,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 8,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": true,
+                  "startErrorMs": 10613,
+                  "centerErrorMs": 11286,
+                  "matchedDimension": "audience_brand"
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 1735,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1080,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 615,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3427,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "clarity",
+                  "findingType": "dense_clause_overload",
+                  "severity": "medium",
+                  "startMs": 79769,
+                  "endMs": 84368,
+                  "quote": "And honestly, if you don't already know that, what are you even doing?"
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "momentum_flatline",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 91222,
+                  "quote": "And honestly, if you don't already know that, what are you even doing? It is the most basic thing in investing, and I ca"
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "tone_mismatch",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 91222,
+                  "quote": "And honestly, if you don't already know that, what are you even doing? It is the most basic thing in investing, and I ca"
+                },
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 84368,
+                  "quote": "And honestly, if you don't already know that, what are you even doing?"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "inappropriate_tone",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 84368,
+                  "quote": "And honestly, if you don't already know that, what are you even doing?"
+                },
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "friction_heavy_ask",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 84368,
+                  "quote": "And honestly, if you don't already know that, what are you even doing?"
+                },
+                {
+                  "dimension": "truth_evidence",
+                  "findingType": "false_claim",
+                  "severity": "critical",
+                  "startMs": 94283,
+                  "endMs": 103996,
+                  "quote": "I guarantee that if you put your emergency savings into an index fund today, you will double your money in five years. Y"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "emotional_misstep",
+                  "severity": "high",
+                  "startMs": 94283,
+                  "endMs": 101799,
+                  "quote": "I guarantee that if you put your emergency savings into an index fund today, you will double your money in five years."
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 14,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 9,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": true,
+                  "startErrorMs": 10613,
+                  "centerErrorMs": 10188,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 1735,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1080,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 615,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3427,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "low",
+                  "startMs": 36515,
+                  "endMs": 40693,
+                  "quote": "and pick an S and P five hundred fund."
+                },
+                {
+                  "dimension": "clarity",
+                  "findingType": "dense_clause_overload",
+                  "severity": "medium",
+                  "startMs": 79769,
+                  "endMs": 84368,
+                  "quote": "And honestly, if you don't already know that, what are you even doing?"
+                },
+                {
+                  "dimension": "pacing_retention",
+                  "findingType": "momentum_flatline",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 91222,
+                  "quote": "And honestly, if you don't already know that, what are you even doing? It is the most basic thing in investing, and I ca"
+                },
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "tone_mismatch",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 91222,
+                  "quote": "And honestly, if you don't already know that, what are you even doing? It is the most basic thing in investing, and I ca"
+                },
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 84368,
+                  "quote": "And honestly, if you don't already know that, what are you even doing?"
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "inappropriate_tone",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 84368,
+                  "quote": "And honestly, if you don't already know that, what are you even doing?"
+                },
+                {
+                  "dimension": "conversion_cta",
+                  "findingType": "friction_heavy_ask",
+                  "severity": "high",
+                  "startMs": 79769,
+                  "endMs": 84368,
+                  "quote": "And honestly, if you don't already know that, what are you even doing?"
+                },
+                {
+                  "dimension": "audience_brand",
+                  "findingType": "off_brand_claim",
+                  "severity": "high",
+                  "startMs": 94283,
+                  "endMs": 101799,
+                  "quote": "I guarantee that if you put your emergency savings into an index fund today, you will double your money in five years."
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "emotional_misstep",
+                  "severity": "high",
+                  "startMs": 94283,
+                  "endMs": 101799,
+                  "quote": "I guarantee that if you put your emergency savings into an index fund today, you will double your money in five years."
+                }
+              ]
+            }
+          },
+          "usage": {
+            "inputTokens": 95898,
+            "outputTokens": 3099
+          },
+          "modelRequests": 9,
+          "searchQueries": 2,
+          "costUsd": 0.028623,
+          "errors": []
+        },
+        {
+          "videoId": "python-decorators",
+          "clean": false,
+          "durationMs": 152609,
+          "issueCount": 5,
+          "strengthCount": 1,
+          "variants": {
+            "headline": {
+              "findingCount": 8,
+              "matchedCount": 4,
+              "unmatchedFindingCount": 4,
+              "issues": [
+                {
+                  "id": "D1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 5048,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D2",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 2015,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "D3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 4291,
+                  "centerErrorMs": 12107,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D5",
+                  "category": "broken_promise",
+                  "matched": true,
+                  "startErrorMs": 41672,
+                  "centerErrorMs": 26946,
+                  "matchedDimension": "platform_fit"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "clarity",
+                  "findingType": "ambiguous_referent",
+                  "severity": "medium",
+                  "startMs": 600,
+                  "endMs": 5232,
+                  "quote": "So, um, today we are going to talk about a thing in Python."
+                },
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "high",
+                  "startMs": 600,
+                  "endMs": 5232,
+                  "quote": "So, um, today we are going to talk about a thing in Python."
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "empathy_gap",
+                  "severity": "medium",
+                  "startMs": 600,
+                  "endMs": 5232,
+                  "quote": "So, um, today we are going to talk about a thing in Python."
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "flat",
+                  "severity": "medium",
+                  "startMs": 98943,
+                  "endMs": 103513,
+                  "quote": "Now, I know some of you will ask what editor I am using, and honestly, this is where I need to rant about tabs versus sp"
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 8,
+              "matchedCount": 4,
+              "unmatchedFindingCount": 4,
+              "issues": [
+                {
+                  "id": "D1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 5048,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D2",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 2015,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "D3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 4291,
+                  "centerErrorMs": 12107,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D5",
+                  "category": "broken_promise",
+                  "matched": true,
+                  "startErrorMs": 41672,
+                  "centerErrorMs": 26946,
+                  "matchedDimension": "platform_fit"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "clarity",
+                  "findingType": "ambiguous_referent",
+                  "severity": "medium",
+                  "startMs": 600,
+                  "endMs": 5232,
+                  "quote": "So, um, today we are going to talk about a thing in Python."
+                },
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "high",
+                  "startMs": 600,
+                  "endMs": 5232,
+                  "quote": "So, um, today we are going to talk about a thing in Python."
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "empathy_gap",
+                  "severity": "medium",
+                  "startMs": 600,
+                  "endMs": 5232,
+                  "quote": "So, um, today we are going to talk about a thing in Python."
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "flat",
+                  "severity": "medium",
+                  "startMs": 98943,
+                  "endMs": 103513,
+                  "quote": "Now, I know some of you will ask what editor I am using, and honestly, this is where I need to rant about tabs versus sp"
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 8,
+              "matchedCount": 4,
+              "unmatchedFindingCount": 4,
+              "issues": [
+                {
+                  "id": "D1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 5048,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D2",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 2015,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "D3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 4291,
+                  "centerErrorMs": 12107,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D5",
+                  "category": "broken_promise",
+                  "matched": true,
+                  "startErrorMs": 41672,
+                  "centerErrorMs": 26946,
+                  "matchedDimension": "platform_fit"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "clarity",
+                  "findingType": "ambiguous_referent",
+                  "severity": "medium",
+                  "startMs": 600,
+                  "endMs": 5232,
+                  "quote": "So, um, today we are going to talk about a thing in Python."
+                },
+                {
+                  "dimension": "platform_fit",
+                  "findingType": "platform_pacing_mismatch",
+                  "severity": "high",
+                  "startMs": 600,
+                  "endMs": 5232,
+                  "quote": "So, um, today we are going to talk about a thing in Python."
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "empathy_gap",
+                  "severity": "medium",
+                  "startMs": 600,
+                  "endMs": 5232,
+                  "quote": "So, um, today we are going to talk about a thing in Python."
+                },
+                {
+                  "dimension": "emotional_impact",
+                  "findingType": "flat",
+                  "severity": "medium",
+                  "startMs": 98943,
+                  "endMs": 103513,
+                  "quote": "Now, I know some of you will ask what editor I am using, and honestly, this is where I need to rant about tabs versus sp"
+                }
+              ]
+            }
+          },
+          "usage": {
+            "inputTokens": 98004,
+            "outputTokens": 1884
+          },
+          "modelRequests": 9,
+          "searchQueries": 3,
+          "costUsd": 0.027327,
+          "errors": []
+        }
+      ]
+    },
+    "ensemble_edited": {
+      "aggregate": {
+        "flawedVideos": 4,
+        "cleanVideos": 1,
+        "goldIssues": 20,
+        "headline": {
+          "matched": 17,
+          "recall": 0.85,
+          "recallCi95": [
+            0.64,
+            0.948
+          ],
+          "findings": 19,
+          "precision": 0.895,
+          "precisionCi95": [
+            0.686,
+            0.971
+          ],
+          "unmatchedFindings": 2,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": 0.0
+        },
+        "actionable": {
+          "matched": 17,
+          "recall": 0.85,
+          "recallCi95": [
+            0.64,
+            0.948
+          ],
+          "findings": 18,
+          "precision": 0.944,
+          "precisionCi95": [
+            0.742,
+            0.99
+          ],
+          "unmatchedFindings": 1,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": 0.0
+        },
+        "timeOnly": {
+          "matched": 17,
+          "recall": 0.85,
+          "recallCi95": [
+            0.64,
+            0.948
+          ],
+          "findings": 19,
+          "precision": 0.895,
+          "precisionCi95": [
+            0.686,
+            0.971
+          ],
+          "unmatchedFindings": 2,
+          "cleanControlFindings": 0,
+          "cleanControlsFlagged": 0,
+          "cleanControlFindingsPerMinute": 0.0
+        },
+        "startErrorMs": {
+          "median": 0,
+          "mean": 1425,
+          "max": 6743,
+          "n": 17
+        },
+        "byCategory": {
+          "broken_promise": {
+            "matched": 0,
+            "total": 2
+          },
+          "factual_error": {
+            "matched": 2,
+            "total": 2
+          },
+          "jargon": {
+            "matched": 2,
+            "total": 2
+          },
+          "locale_assumption": {
+            "matched": 2,
+            "total": 2
+          },
+          "missing_cta": {
+            "matched": 1,
+            "total": 1
+          },
+          "pacing_drag": {
+            "matched": 1,
+            "total": 2
+          },
+          "safety": {
+            "matched": 2,
+            "total": 2
+          },
+          "tangent": {
+            "matched": 2,
+            "total": 2
+          },
+          "tone_mismatch": {
+            "matched": 1,
+            "total": 1
+          },
+          "unsupported_claim": {
+            "matched": 2,
+            "total": 2
+          },
+          "weak_hook": {
+            "matched": 2,
+            "total": 2
+          }
+        },
+        "cost": {
+          "inputTokens": 591603,
+          "outputTokens": 22801,
+          "usd": 0.182103,
+          "usdPerVideo": 0.036421,
+          "modelRequests": 55,
+          "searchQueries": 12,
+          "usdPerMatchedIssue": 0.010712,
+          "failedCalls": 2
+        }
+      },
+      "videos": [
+        {
+          "videoId": "boiled-egg-control",
+          "clean": true,
+          "durationMs": 120493,
+          "issueCount": 0,
+          "strengthCount": 6,
+          "variants": {
+            "headline": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 0,
+              "matchedCount": 0,
+              "unmatchedFindingCount": 0,
+              "issues": [],
+              "unmatchedFindings": []
+            }
+          },
+          "usage": {
+            "inputTokens": 98874,
+            "outputTokens": 1830
+          },
+          "modelRequests": 11,
+          "searchQueries": 2,
+          "costUsd": 0.027463,
+          "errors": [
+            "ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.', 'status': 'RESOURCE_EXHAUSTED'}}",
+            "ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.', 'status': 'RESOURCE_EXHAUSTED'}}"
+          ]
+        },
+        {
+          "videoId": "espresso-basics",
+          "clean": false,
+          "durationMs": 143917,
+          "issueCount": 5,
+          "strengthCount": 0,
+          "variants": {
+            "headline": {
+              "findingCount": 6,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 1,
+              "issues": [
+                {
+                  "id": "A1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 8043,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A2",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 5020,
+                  "centerErrorMs": 1692,
+                  "matchedDimension": "clarity"
+                },
+                {
+                  "id": "A3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3313,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "A5",
+                  "category": "missing_cta",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "conversion_cta"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "locale_assumption",
+                  "severity": "medium",
+                  "startMs": 127715,
+                  "endMs": 129906,
+                  "quote": "grab one at Walmart or Target on your way home."
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 6,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 1,
+              "issues": [
+                {
+                  "id": "A1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 8043,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A2",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 5020,
+                  "centerErrorMs": 1692,
+                  "matchedDimension": "clarity"
+                },
+                {
+                  "id": "A3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3313,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "A5",
+                  "category": "missing_cta",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "conversion_cta"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "locale_assumption",
+                  "severity": "medium",
+                  "startMs": 127715,
+                  "endMs": 129906,
+                  "quote": "grab one at Walmart or Target on your way home."
+                }
+              ]
+            },
+            "timeOnly": {
+              "findingCount": 6,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 1,
+              "issues": [
+                {
+                  "id": "A1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 8043,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A2",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 5020,
+                  "centerErrorMs": 1692,
+                  "matchedDimension": "clarity"
+                },
+                {
+                  "id": "A3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "A4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3313,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "A5",
+                  "category": "missing_cta",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "conversion_cta"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "cultural_localization",
+                  "findingType": "locale_assumption",
+                  "severity": "medium",
+                  "startMs": 127715,
+                  "endMs": 129906,
+                  "quote": "grab one at Walmart or Target on your way home."
+                }
+              ]
+            }
+          },
+          "usage": {
+            "inputTokens": 124121,
+            "outputTokens": 5063
+          },
+          "modelRequests": 11,
+          "searchQueries": 0,
+          "costUsd": 0.038625,
+          "errors": []
+        },
+        {
+          "videoId": "immune-system-cold",
+          "clean": false,
+          "durationMs": 143801,
+          "issueCount": 5,
+          "strengthCount": 1,
+          "variants": {
+            "headline": {
+              "findingCount": 5,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "B1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 6009,
+                  "centerErrorMs": 3005,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "B4",
+                  "category": "pacing_drag",
+                  "matched": true,
+                  "startErrorMs": 6743,
+                  "centerErrorMs": 3372,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "B5",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "clarity"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 5,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "B1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 6009,
+                  "centerErrorMs": 3005,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "B4",
+                  "category": "pacing_drag",
+                  "matched": true,
+                  "startErrorMs": 6743,
+                  "centerErrorMs": 3372,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "B5",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "clarity"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 5,
+              "matchedCount": 5,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "B1",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "B3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 6009,
+                  "centerErrorMs": 3005,
+                  "matchedDimension": "legal_safety"
+                },
+                {
+                  "id": "B4",
+                  "category": "pacing_drag",
+                  "matched": true,
+                  "startErrorMs": 6743,
+                  "centerErrorMs": 3372,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "B5",
+                  "category": "jargon",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 0,
+                  "matchedDimension": "clarity"
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "usage": {
+            "inputTokens": 123851,
+            "outputTokens": 6326
+          },
+          "modelRequests": 11,
+          "searchQueries": 3,
+          "costUsd": 0.040452,
+          "errors": []
+        },
+        {
+          "videoId": "index-fund-mistakes",
+          "clean": false,
+          "durationMs": 125166,
+          "issueCount": 5,
+          "strengthCount": 2,
+          "variants": {
+            "headline": {
+              "findingCount": 5,
+              "matchedCount": 4,
+              "unmatchedFindingCount": 1,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 1735,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1080,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 615,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3427,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "low",
+                  "startMs": 36515,
+                  "endMs": 40693,
+                  "quote": "and pick an S and P five hundred fund."
+                }
+              ]
+            },
+            "actionable": {
+              "findingCount": 4,
+              "matchedCount": 4,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 1735,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1080,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 615,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3427,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 5,
+              "matchedCount": 4,
+              "unmatchedFindingCount": 1,
+              "issues": [
+                {
+                  "id": "C1",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "C2",
+                  "category": "unsupported_claim",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 1735,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C3",
+                  "category": "safety",
+                  "matched": true,
+                  "startErrorMs": 2161,
+                  "centerErrorMs": 1080,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "C4",
+                  "category": "locale_assumption",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 615,
+                  "matchedDimension": "cultural_localization"
+                },
+                {
+                  "id": "C5",
+                  "category": "tone_mismatch",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 3427,
+                  "matchedDimension": "audience_brand"
+                }
+              ],
+              "unmatchedFindings": [
+                {
+                  "dimension": "clarity",
+                  "findingType": "unexplained_jargon",
+                  "severity": "low",
+                  "startMs": 36515,
+                  "endMs": 40693,
+                  "quote": "and pick an S and P five hundred fund."
+                }
+              ]
+            }
+          },
+          "usage": {
+            "inputTokens": 120412,
+            "outputTokens": 5711
+          },
+          "modelRequests": 11,
+          "searchQueries": 2,
+          "costUsd": 0.03867,
+          "errors": []
+        },
+        {
+          "videoId": "python-decorators",
+          "clean": false,
+          "durationMs": 152609,
+          "issueCount": 5,
+          "strengthCount": 2,
+          "variants": {
+            "headline": {
+              "findingCount": 3,
+              "matchedCount": 3,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "D1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 5048,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D2",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 2015,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "D3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 4291,
+                  "centerErrorMs": 12107,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D5",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "actionable": {
+              "findingCount": 3,
+              "matchedCount": 3,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "D1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 5048,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D2",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 2015,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "D3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 4291,
+                  "centerErrorMs": 12107,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D5",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            },
+            "timeOnly": {
+              "findingCount": 3,
+              "matchedCount": 3,
+              "unmatchedFindingCount": 0,
+              "issues": [
+                {
+                  "id": "D1",
+                  "category": "weak_hook",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 5048,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D2",
+                  "category": "factual_error",
+                  "matched": true,
+                  "startErrorMs": 0,
+                  "centerErrorMs": 2015,
+                  "matchedDimension": "truth_evidence"
+                },
+                {
+                  "id": "D3",
+                  "category": "tangent",
+                  "matched": true,
+                  "startErrorMs": 4291,
+                  "centerErrorMs": 12107,
+                  "matchedDimension": "pacing_retention"
+                },
+                {
+                  "id": "D4",
+                  "category": "pacing_drag",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                },
+                {
+                  "id": "D5",
+                  "category": "broken_promise",
+                  "matched": false,
+                  "startErrorMs": null,
+                  "centerErrorMs": null,
+                  "matchedDimension": null
+                }
+              ],
+              "unmatchedFindings": []
+            }
+          },
+          "usage": {
+            "inputTokens": 124345,
+            "outputTokens": 3871
+          },
+          "modelRequests": 11,
+          "searchQueries": 5,
+          "costUsd": 0.036893,
+          "errors": []
+        }
+      ]
+    }
+  },
+  "paired": {
+    "baseline__vs__rubric": {
+      "both": 5,
+      "onlyFirst": 0,
+      "onlySecond": 6,
+      "neither": 9
+    },
+    "baseline__vs__reviewers": {
+      "both": 5,
+      "onlyFirst": 0,
+      "onlySecond": 14,
+      "neither": 1
+    },
+    "baseline__vs__ensemble_edited": {
+      "both": 5,
+      "onlyFirst": 0,
+      "onlySecond": 12,
+      "neither": 3
+    },
+    "rubric__vs__reviewers": {
+      "both": 11,
+      "onlyFirst": 0,
+      "onlySecond": 8,
+      "neither": 1
+    },
+    "rubric__vs__ensemble_edited": {
+      "both": 11,
+      "onlyFirst": 0,
+      "onlySecond": 6,
+      "neither": 3
+    },
+    "reviewers__vs__ensemble_edited": {
+      "both": 17,
+      "onlyFirst": 2,
+      "onlySecond": 0,
+      "neither": 1
+    }
+  },
+  "newCallCostUsd": 0.195314,
+  "modelCalls": 60
+}
