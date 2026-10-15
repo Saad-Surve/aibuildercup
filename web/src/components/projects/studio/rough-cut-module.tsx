@@ -30,6 +30,7 @@ import {
   previewRoughCutPlan,
   renderRoughCut,
 } from "@/lib/rough-cut";
+import { ANALYSIS_DIMENSIONS } from "@/lib/types";
 import type {
   Asset,
   Project,
@@ -311,7 +312,15 @@ function CutEditor({
     onError: (error) => toast.error(error.message),
   });
   const rereview = useMutation({
-    mutationFn: () => startAnalysis(projectId, { assetId: cut!.assetId }),
+    // Re-review with the base run's reviewers, or the comparison marks the rest unreviewed.
+    mutationFn: () =>
+      startAnalysis(projectId, {
+        assetId: cut!.assetId,
+        dimensions: [
+          ...(runs.data?.items.find((run) => run.analysisRunId === runId)
+            ?.requestedDimensions ?? ANALYSIS_DIMENSIONS),
+        ],
+      }),
     onSuccess: async (result) => {
       setReviewJobId(result.jobId);
       onJobId(result.jobId);
