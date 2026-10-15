@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api-client";
-import { getGlobalCorpus, getGlossary, putGlossary } from "@/lib/dubbing";
+import { getGlossary, putGlossary } from "@/lib/dubbing";
 import type { GlossaryTerm } from "@/lib/types";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { WORKSPACE_SNAP_TARGET } from "@/lib/workspace";
@@ -57,7 +57,6 @@ function parseTerms(text: string): GlossaryTerm[] {
 /**
  * The project glossary: the creator's own terms, enforced verbatim during the localization
  * adaptation pass. Free-text, one `source = target` per line, so nothing has to be learned.
- * The global corpus version and covered language pairs are shown for context.
  */
 export function GlossaryEditor({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
@@ -67,13 +66,6 @@ export function GlossaryEditor({ projectId }: { projectId: string }) {
   const glossaryQuery = useQuery({
     queryKey: ["glossary", projectId],
     queryFn: () => getGlossary(projectId),
-    retry: false,
-  });
-
-  const corpusQuery = useQuery({
-    queryKey: ["global-corpus"],
-    queryFn: getGlobalCorpus,
-    staleTime: Infinity,
     retry: false,
   });
 
@@ -98,7 +90,7 @@ export function GlossaryEditor({ projectId }: { projectId: string }) {
       toast.success("Glossary saved", {
         description: `${saved.terms.length} term${
           saved.terms.length === 1 ? "" : "s"
-        } · version ${saved.version}`,
+        }`,
       });
     },
     onError: (error) => {
@@ -108,8 +100,6 @@ export function GlossaryEditor({ projectId }: { projectId: string }) {
       });
     },
   });
-
-  const pairCount = corpusQuery.data?.pairs.length ?? 0;
 
   return (
     <Card className={WORKSPACE_SNAP_TARGET}>
@@ -121,20 +111,17 @@ export function GlossaryEditor({ projectId }: { projectId: string }) {
           </CardTitle>
           <div className="flex flex-wrap items-center gap-1.5">
             {glossaryQuery.data ? (
-              <Badge variant="outline">Version {glossaryQuery.data.version}</Badge>
-            ) : null}
-            {corpusQuery.data ? (
-              <Badge variant="secondary">
-                Corpus v{corpusQuery.data.version} · {pairCount} pair
-                {pairCount === 1 ? "" : "s"}
+              <Badge variant="outline">
+                {terms.length} term{terms.length === 1 ? "" : "s"}
               </Badge>
             ) : null}
           </div>
         </div>
         <CardDescription>
           Your own terms, kept verbatim when the transcript is translated. One{" "}
-          <code className="text-foreground">source = target</code> per line. Names and
-          product terms the whole audience should see the same way belong here.
+          <code className="text-foreground">source = target</code> per line.
+          Names and product terms the whole audience should see the same way
+          belong here.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -151,7 +138,9 @@ export function GlossaryEditor({ projectId }: { projectId: string }) {
               rows={6}
               spellCheck={false}
               readOnly={readOnly}
-              placeholder={"credit score = क्रेडिट स्कोर\nfinancial freedom = आर्थिक आज़ादी"}
+              placeholder={
+                "credit score = क्रेडिट स्कोर\nfinancial freedom = आर्थिक आज़ादी"
+              }
               aria-label="Project glossary terms"
             />
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -174,7 +163,9 @@ export function GlossaryEditor({ projectId }: { projectId: string }) {
                         ? Loading03Icon
                         : CheckmarkBadge01Icon
                     }
-                    className={saveMutation.isPending ? "animate-spin" : undefined}
+                    className={
+                      saveMutation.isPending ? "animate-spin" : undefined
+                    }
                   />
                   {saveMutation.isPending ? "Saving…" : "Save glossary"}
                 </Button>

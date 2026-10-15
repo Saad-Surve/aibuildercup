@@ -342,9 +342,8 @@ export function PublishingModule({
             YouTube channel
           </CardTitle>
           <CardDescription>
-            Connect the Gmail account that owns the channel you publish to.
-            Google shows its account chooser, so you can pick a different
-            account than the one you signed in with.
+            Connect the Google account that owns your channel. You can pick any
+            account.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -368,9 +367,8 @@ export function PublishingModule({
             What to upload
           </CardTitle>
           <CardDescription>
-            Pick the cut, the thumbnail, and the caption track. Everything is
-            resolved now, so a later edit cannot change an upload that is
-            already running.
+            Pick the cut, the thumbnail, and the caption track. Later edits will
+            not change an upload that is already running.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -385,9 +383,7 @@ export function PublishingModule({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="source">
-                  {sourceAsset
-                    ? "Original source video"
-                    : "Original source video (missing)"}
+                  {sourceAsset ? "Original video" : "Original video (missing)"}
                 </SelectItem>
                 {readyRenders.map((render) => (
                   <SelectItem
@@ -503,8 +499,7 @@ export function PublishingModule({
         <CardHeader>
           <CardTitle>Listing</CardTitle>
           <CardDescription>
-            Saved packaging fills fields you have not edited. Review the listing
-            before uploading; every field stays editable.
+            Fills empty fields from your saved listing. You can edit everything.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -843,7 +838,7 @@ export function PublishingModule({
                             {warning.step === "thumbnail"
                               ? "Thumbnail"
                               : "Captions"}{" "}
-                            warning:
+                            Warning:
                           </span>{" "}
                           {warning.message}
                         </span>

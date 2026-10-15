@@ -21,7 +21,7 @@ function TranscriptEditRoute() {
       <div className="mx-auto max-w-4xl space-y-4">
         <PageHeader title="Transcript not found" />
         <p className="text-sm text-muted-foreground">
-          No project was specified.
+          This link is missing a project.
         </p>
         <Link
           href="/projects"

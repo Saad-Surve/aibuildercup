@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Creator Helper Studio — design tokens
+ * Resonance — design tokens
  *
  * Thesis: the chrome is monochrome; colour is reserved for review meaning.
  * A single desaturated "signal" blue marks anything interactive (focus, links,
@@ -133,15 +133,23 @@
   line-height: 1.25;
   margin: 0.85rem 0 0.35rem;
 }
-.prose-draft h1 { font-size: 1.3rem; }
-.prose-draft h2 { font-size: 1.1rem; }
-.prose-draft h3 { font-size: 1rem; }
+.prose-draft h1 {
+  font-size: 1.3rem;
+}
+.prose-draft h2 {
+  font-size: 1.1rem;
+}
+.prose-draft h3 {
+  font-size: 1rem;
+}
 .prose-draft ul {
   list-style: disc;
   margin: 0.25rem 0 0.6rem;
   padding-left: 1.3rem;
 }
-.prose-draft li { margin: 0.1rem 0; }
+.prose-draft li {
+  margin: 0.1rem 0;
+}
 .prose-draft blockquote {
   border-left: 3px solid var(--border);
   color: var(--muted-foreground);

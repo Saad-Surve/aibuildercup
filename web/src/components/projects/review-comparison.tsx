@@ -122,7 +122,7 @@ export function ReviewComparison({
       <div className="flex flex-wrap gap-2" aria-label="Review change summary">
         <Stat>
           {summary.flaggedBinsBefore.total} → {summary.flaggedBinsAfter.total}{" "}
-          flagged bins
+          flagged moments
         </Stat>
         <Stat>
           {summary.acceptedFindingsResolved} of {summary.acceptedFindingsTotal}{" "}
@@ -142,8 +142,8 @@ export function ReviewComparison({
         {summary.flaggedBinsAfter.critical} · High{" "}
         {summary.flaggedBinsBefore.high} → {summary.flaggedBinsAfter.high} ·
         Medium {summary.flaggedBinsBefore.medium} →{" "}
-        {summary.flaggedBinsAfter.medium}. Counts use distinct five-second
-        moments across reviewers. Accepted fixes include revised decisions.
+        {summary.flaggedBinsAfter.medium}. Counts are per five-second moment.
+        Accepted fixes include revised decisions.
       </p>
       <div
         role="status"
@@ -156,7 +156,7 @@ export function ReviewComparison({
           ` ${summary.uncomparedFindingsCount} findings cannot be compared reliably and are excluded from resolved/new counts.`}
         {(data.base.status === "partial_failure" ||
           data.target.status === "partial_failure") &&
-          " A review has coverage gaps; an unreviewed moment is not a resolved fix."}
+          " Some moments were not reviewed, so they cannot count as fixed."}
       </div>
       {showPlayers && (
         <div className="grid gap-3 lg:grid-cols-2">
@@ -243,7 +243,7 @@ export function ReviewComparison({
                   `${formatDurationMs(s.startMs)}–${formatDurationMs(s.endMs)}`,
               )
               .join(", ")}
-            . Gaps retain their source position.
+            .
           </p>
         )}
       </section>
@@ -253,8 +253,8 @@ export function ReviewComparison({
             After · unmatched footage on its own timeline
           </h4>
           <p className="text-xs text-muted-foreground">
-            These moments could not be placed on the source. They still count in
-            the after total and can include new problems.
+            These moments could not be matched to the source. They still count
+            toward the after total.
           </p>
           <HeatmapTracks
             bins={data.target.unmappedBins}
@@ -328,8 +328,8 @@ const REASONS = {
   matched: "Comparable finding remains",
   unmatched_target:
     "Newly flagged in the after review; not necessarily caused by the edit",
-  alignment_uncertain: "Timeline alignment is uncertain",
-  review_incomplete: "Target reviewer did not cover this entire moment",
+  alignment_uncertain: "Could not match this to the source timeline",
+  review_incomplete: "Not fully reviewed in the after version",
 };
 
 function Stat({ children }: { children: React.ReactNode }) {
@@ -565,10 +565,9 @@ function ComparisonTransition({
         })}
       </div>
       <p className="text-xs text-muted-foreground" aria-live="polite">
-        Showing {after ? "after" : "before"}. Each cell is five source seconds;
-        arrows navigate, Enter seeks. Critical/high/medium moments are flagged;
-        low and keep remain visible. Hatched cells include removed footage and
-        seek the before video only where no after moment remains.
+        Showing {after ? "after" : "before"}. Each cell is five source seconds.
+        Hatched cells include removed footage. Use arrow keys to navigate and
+        Enter to jump.
       </p>
     </section>
   );
@@ -597,17 +596,16 @@ function InterestComparison({ data }: { data: AnalysisComparison }) {
   return (
     <section className="space-y-2" aria-label="Interest before and after">
       <h4 className="text-sm font-medium">
-        Predicted interest ·{" "}
+        Audience interest ·{" "}
         {aligned ? "before / after overlay" : "separate timelines"}
       </h4>
       <p className="text-xs text-muted-foreground">
-        Before = solid, after = dashed. Relative interest within each video, not
-        measured retention. Unaligned portions of the after curve are not
-        overlaid.
+        Solid: before. Dashed: after. Shows relative interest, not measured
+        retention. Only aligned moments are overlaid.
       </p>
       <svg
         role="img"
-        aria-label="Relative predicted interest: solid before line and dashed after line"
+        aria-label="Relative audience interest: solid before line and dashed after line"
         viewBox={`0 0 1000 ${aligned ? 100 : 200}`}
         className="h-32 w-full rounded-lg border border-border bg-muted/20"
         preserveAspectRatio="none"
@@ -640,7 +638,7 @@ function InterestComparison({ data }: { data: AnalysisComparison }) {
       </svg>
       {change && (
         <p className="text-xs text-muted-foreground">
-          Mean relative distance above baseline:{" "}
+          Average lift above typical:{" "}
           {change.meanAboveBaselineBefore.toFixed(3)} →{" "}
           {change.meanAboveBaselineAfter.toFixed(3)} (
           {change.delta >= 0 ? "+" : ""}

@@ -179,7 +179,7 @@ export function DraftChat({
             </blockquote>
             <button
               type="button"
-              aria-label="Clear context"
+              aria-label="Clear chat"
               onClick={onClearContext}
               className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground"
             >
@@ -214,7 +214,9 @@ export function DraftChat({
             }}
             readOnly={readOnly}
             placeholder={
-              readOnly ? "Read-only demo — chatting is disabled" : "Ask for a change…"
+              readOnly
+                ? "Read-only demo — chatting is disabled"
+                : "Ask for a change…"
             }
             rows={2}
             className="field-sizing-content min-h-9 resize-none"

@@ -37,14 +37,13 @@ export function PackagingModule({
             Thumbnail concepts
           </CardTitle>
           <CardDescription>
-            Options grounded in what the video actually says: each one cites the
-            moment it came from, keeps your real face, and is scored on
-            legibility, honesty, and platform fit. Edit any concept in plain
-            language, then apply the winner.
+            Concepts cite the moment they came from, keep your face, and are
+            scored on legibility, honesty, and fit. Edit in plain language, then
+            apply the winner.
           </CardDescription>
           {thumbnailConcept ? (
             <p className="text-xs text-muted-foreground">
-              Current packaging promise:{" "}
+              Current promise:{" "}
               <span className="text-foreground">{thumbnailConcept}</span>
             </p>
           ) : null}

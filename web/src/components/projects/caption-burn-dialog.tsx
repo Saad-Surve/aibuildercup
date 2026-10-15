@@ -623,7 +623,7 @@ export function CaptionBurnPanel({
             {style.background === "box" ? (
               <>
                 <ColorControl
-                  label="Box colour"
+                  label="Box color"
                   value={style.backgroundColor}
                   onChange={(value) => update({ backgroundColor: value })}
                 />
@@ -754,7 +754,9 @@ export function CaptionBurnPanel({
                     variant="ghost"
                     aria-label="Delete render"
                     disabled={deleteMutation.isPending || readOnly}
-                    onClick={() => deleteMutation.mutate(render.captionRenderId)}
+                    onClick={() =>
+                      deleteMutation.mutate(render.captionRenderId)
+                    }
                   >
                     <Icon icon={Delete02Icon} />
                   </Button>
@@ -791,11 +793,10 @@ export function CaptionBurnDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Icon icon={ClosedCaptionIcon} className="text-muted-foreground" />
-            Burn captions onto the video
+            Add captions to your video
           </DialogTitle>
           <DialogDescription>
-            Render a new MP4 with styled captions from this transcript. The
-            original file is never changed.
+            Create a new video with styled captions from this transcript.
           </DialogDescription>
         </DialogHeader>
         <CaptionBurnPanel

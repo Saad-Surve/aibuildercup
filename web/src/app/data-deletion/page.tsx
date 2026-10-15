@@ -11,7 +11,7 @@ import { LEGAL_CONTACT_EMAIL } from "@/lib/legal";
 export const metadata: Metadata = {
   title: "Data Deletion Instructions — Resonance",
   description:
-    "How to delete your account, projects, and platform data from the Resonance Creator Helper Studio.",
+    "How to delete your account, projects, and platform data from the Resonance.",
 };
 
 const SECTIONS: readonly LegalSectionLink[] = [
@@ -62,9 +62,7 @@ export default function DataDeletionPage() {
             authorization, the channel or account data the features you use
             require.
           </li>
-          <li>
-            Basic operational logs used to run and secure the service.
-          </li>
+          <li>Basic operational logs used to run and secure the service.</li>
         </ul>
       </LegalSection>
 
@@ -76,16 +74,16 @@ export default function DataDeletionPage() {
         <ol className="list-decimal space-y-2 pl-5">
           <li>Sign in to the studio.</li>
           <li>
-            Open your <span className="font-medium text-foreground">Profile</span>{" "}
-            from the avatar menu.
+            Open your{" "}
+            <span className="font-medium text-foreground">Profile</span> from
+            the avatar menu.
           </li>
           <li>
             In the{" "}
-            <span className="font-medium text-foreground">
-              Delete account
-            </span>{" "}
-            card, choose <span className="font-medium text-foreground">Delete account</span> and
-            confirm.
+            <span className="font-medium text-foreground">Delete account</span>{" "}
+            card, choose{" "}
+            <span className="font-medium text-foreground">Delete account</span>{" "}
+            and confirm.
           </li>
         </ol>
         <p>
@@ -96,21 +94,19 @@ export default function DataDeletionPage() {
       </LegalSection>
 
       <LegalSection id="delete-project" title="Delete a project or item">
-        <p>
-          To remove a single project without deleting your account:
-        </p>
+        <p>To remove a single project without deleting your account:</p>
         <ol className="list-decimal space-y-2 pl-5">
           <li>Open the project from your dashboard.</li>
           <li>
-            Use the{" "}
-            <span className="font-medium text-foreground">Delete</span> action in
-            the project workspace and confirm.
+            Use the <span className="font-medium text-foreground">Delete</span>{" "}
+            action in the project workspace and confirm.
           </li>
         </ol>
         <p>
-          You can also delete individual items &mdash; drafts, thumbnails, clips,
-          caption renders, and localizations &mdash; from their panels inside a
-          project. Deleting a project removes its stored files and records.
+          You can also delete individual items &mdash; drafts, thumbnails,
+          clips, caption renders, and localizations &mdash; from their panels
+          inside a project. Deleting a project removes its stored files and
+          records.
         </p>
       </LegalSection>
 
@@ -120,10 +116,11 @@ export default function DataDeletionPage() {
           account, go to{" "}
           <span className="font-medium text-foreground">Settings</span>{" "}
           <InlineArrow />{" "}
-          <span className="font-medium text-foreground">Connections</span>, choose
-          the connected channel or account, and disconnect it. This revokes our
-          access and deletes the stored token. Content already generated from
-          that connection stays in your projects until you delete it.
+          <span className="font-medium text-foreground">Connections</span>,
+          choose the connected channel or account, and disconnect it. This
+          revokes our access and deletes the stored token. Content already
+          generated from that connection stays in your projects until you delete
+          it.
         </p>
         <p>
           You can also revoke access directly from the platform&rsquo;s own

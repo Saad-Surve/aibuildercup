@@ -119,7 +119,7 @@ async def run_dub(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="Dub job is missing its localization id.",
+            message="This dub could not start. Try dubbing again.",
             code="DUB_FAILED",
         )
         return None
@@ -136,7 +136,7 @@ async def run_dub(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="Localization record not found.",
+            message="This dub could not be found. Try dubbing again.",
             code="DUB_FAILED",
         )
         return None
@@ -351,7 +351,7 @@ async def _dub(
             job_id=job_id,
             percent=80,
             step="muxing",
-            message="Muxing the dubbed audio onto the video",
+            message="Combining the dubbed audio with the video",
         )
         out_path = os.path.join(tmpdir, "dubbed.mp4")
         keep_original = bool(
@@ -668,7 +668,7 @@ async def _synthesize(
                     job_id=job_id,
                     percent=15 + int(60 * done / max(1, total)),
                     step="synthesizing",
-                    message=f"Synthesizing speech ({done}/{total})",
+                    message=f"Generating voices ({done}/{total})",
                 )
     finally:
         for task in tasks:
@@ -796,7 +796,7 @@ def _failure_message(exc: BaseException) -> str:
     if isinstance(exc, VideoToolError):
         detail = str(exc).strip()
         if detail:
-            return f"Dubbing failed: {detail}"
+            return "Dubbing failed. Try again."
     return "Dubbing failed. Try again."
 
 

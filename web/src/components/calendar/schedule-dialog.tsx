@@ -234,11 +234,11 @@ export function ScheduleDialog({
     },
     onSuccess: () => {
       if (schedule) invalidate(schedule.projectId);
-      toast.success("Slot removed");
+      toast.success("Slot deleted");
       setOpen(false);
     },
     onError: (caught) =>
-      setError(describe(caught, "Could not remove the slot.")),
+      setError(describe(caught, "Could not delete the slot. Try again.")),
   });
 
   const busy = saveMutation.isPending || deleteMutation.isPending;
@@ -370,20 +370,20 @@ export function ScheduleDialog({
               {schedule.connectionDisplayName
                 ? ` · ${schedule.connectionDisplayName}`
                 : ""}
-              . Moving the slot moves its go-public time.
+              . Moving this slot changes when the video goes public.
             </p>
           ) : null}
           {!editing && initialPublishId ? (
             <p className="text-xs text-muted-foreground">
-              This wires the slot to the upload below — saving moves the
-              upload&apos;s go-public time to the chosen slot.
+              Linked to the upload below. Saving changes when the video goes
+              public.
             </p>
           ) : null}
           {!editing && !initialPublishId ? (
             <p className="text-xs text-muted-foreground">
               {platform.trim() === "youtube"
                 ? "Saving uploads the video and schedules it to go public at the chosen time."
-                : "Slots for this platform are plans only — nothing uploads."}
+                : "Plan only. This will not publish automatically."}
             </p>
           ) : null}
 
@@ -422,7 +422,7 @@ export function ScheduleDialog({
                   }}
                 >
                   <Icon icon={Delete02Icon} />
-                  {confirmingDelete ? "Confirm remove" : "Remove"}
+                  {confirmingDelete ? "Confirm delete" : "Delete"}
                 </Button>
               </DisabledReason>
             </div>

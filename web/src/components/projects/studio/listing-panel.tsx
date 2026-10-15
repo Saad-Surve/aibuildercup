@@ -197,7 +197,7 @@ export function ListingPanel({
         </details>
       ) : saved?.status === "ready" ? (
         <p className="text-xs text-muted-foreground">
-          Grounded in this video. No creator history was used.
+          Based on this video only.
         </p>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
@@ -237,8 +237,7 @@ export function ListingPanel({
         ) : null}
       </div>
       <p className="text-xs text-muted-foreground">
-        Generate new listing replaces the saved fields. Save your edits to use
-        them in Publish to YouTube.
+        Generating replaces saved fields. Save to keep your edits.
       </p>
     </div>
   );

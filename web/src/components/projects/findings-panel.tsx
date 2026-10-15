@@ -256,7 +256,7 @@ function FindingRow({
         ...allFindings.filter((f) => corroboratingIds.has(f.findingId)),
       ].map((f) =>
         f.reviewerRunId === "rubric"
-          ? "All-rubric review"
+          ? "Whole-video review"
           : dimensionLabel(f.dimension),
       ),
     ),
@@ -324,9 +324,9 @@ function FindingRow({
       {finding.editorial && (
         <div className="space-y-1 border-t border-border/60 bg-muted/20 px-3 py-2 text-xs">
           <p className="font-medium">
-            Editor: {finding.editorial.verdict}
+            Editor&apos;s note
             {finding.editorial.factualStatus === "unverified" &&
-              " · Unverified claim objection"}
+              " · not independently verified"}
           </p>
           <p className="text-muted-foreground">{finding.editorial.reason}</p>
           {finding.editorial.mergedInto && (
@@ -382,7 +382,7 @@ function FindingRow({
             {finding.reconciliation.reason}
           </p>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-            <span>Reconciles</span>
+            <span>Combines</span>
             {finding.reconciliation.findingIds.map((id) => {
               const related = allFindings.find((item) => item.findingId === id);
               return related ? (
@@ -512,16 +512,15 @@ function EmptyState({
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {incomplete
-              ? "Run the analysis again to check the remaining parts."
-              : "The reviewers found no specific edits to suggest. Unmarked time has no score."}
+              ? "Run review again to check the remaining parts."
+              : "Reviewers found nothing specific to change. Unmarked time has no score."}
           </p>
         </>
       ) : (
         <>
           <p className="text-sm text-foreground">No findings yet.</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Run an analysis and the reviewers will mark what works and what
-            breaks.
+            Run review to see timestamped findings and proposed edits.
           </p>
         </>
       )}

@@ -17,7 +17,13 @@ import { DisabledReason } from "@/components/common/disabled-reason";
 import { DubCaptionsDialog } from "@/components/projects/studio/dub-captions-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -220,12 +226,6 @@ export function DubbingPanel({
                           )}`
                         : (item.error?.message ?? "Working…")}
                     </p>
-                    {item.status === "ready" ? (
-                      <p className="text-xs text-muted-foreground/70">
-                        Corpus v{item.corpusVersion} · Glossary v
-                        {item.glossaryVersion}
-                      </p>
-                    ) : null}
                   </div>
                   {item.status === "ready" && item.downloadUrl ? (
                     <Button
@@ -274,7 +274,7 @@ export function DubbingPanel({
                         onClick={() => setCaptionsTarget(item)}
                       >
                         <Icon icon={TextFontIcon} />
-                        Burn
+                        Add captions
                       </Button>
                     </DisabledReason>
                   ) : null}
@@ -407,8 +407,8 @@ function DubDialog({
         <DialogHeader>
           <DialogTitle>Dub into another language</DialogTitle>
           <DialogDescription>
-            The transcript is translated, re-voiced with Text-to-Speech, and muxed
-            back onto the video at the original timing.
+            The transcript is translated and re-voiced with natural AI voices,
+            then laid back onto the video at the original timing.
           </DialogDescription>
         </DialogHeader>
 
@@ -451,7 +451,7 @@ function DubDialog({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              With multiple speakers, later speakers borrow other voices
+              For multiple speakers, additional voices are assigned
               automatically.
             </p>
           </div>
@@ -489,7 +489,9 @@ function DubDialog({
                   icon={
                     createMutation.isPending ? Loading03Icon : TranslationIcon
                   }
-                  className={createMutation.isPending ? "animate-spin" : undefined}
+                  className={
+                    createMutation.isPending ? "animate-spin" : undefined
+                  }
                 />
                 {createMutation.isPending ? "Starting…" : "Start dubbing"}
               </Button>

@@ -42,7 +42,7 @@ export function Logo({
           </span>
           {showSubtitle ? (
             <span className="mt-1 text-[0.6rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Creator Helper Studio
+              Creator studio
             </span>
           ) : null}
         </span>

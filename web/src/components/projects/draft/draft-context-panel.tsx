@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { SparklesIcon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
-import { InlineArrow } from "@/components/common/inline-arrow";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -38,9 +37,8 @@ function StyleSignals({ style }: { style: ContentStyleSummary }) {
         </div>
       ) : null}
       <p className="text-xs text-muted-foreground">
-        {style.videoCount} videos · ~{style.avgTitleWords} words/title ·{" "}
-        {style.titleWithNumberPct}% of titles use a number ·{" "}
-        {style.videosPerMonth}/month
+        {style.videoCount} videos · Avg. words per title: {style.avgTitleWords}{" "}
+        · Titles with a number: {style.titleWithNumberPct}%
       </p>
     </div>
   );
@@ -163,25 +161,22 @@ export function DraftContextPanel({
 
         {!query.isLoading && !context?.available ? (
           <p className="text-sm text-muted-foreground">
-            No channel content yet. Connect your YouTube channel from{" "}
-            <span className="font-medium">
-              Profile <InlineArrow /> Connected channels
-            </span>
-            , use “Read channel content for the AI”, then regenerate the draft.
+            Connect YouTube in Settings and turn on “Use my videos to match my
+            style”, then regenerate the draft.
           </p>
         ) : null}
 
         {context?.available ? (
           <>
             {context.sourceType === "folder_import" ? (
-              <Badge variant="outline">Imported creator library</Badge>
+              <Badge variant="outline">Creator library</Badge>
             ) : null}
             {context.style ? <StyleSignals style={context.style} /> : null}
 
             {context.examples.length ? (
               <div className="space-y-2">
                 <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  Retrieved examples ({context.examples.length})
+                  Matched examples ({context.examples.length})
                 </p>
                 <ul className="space-y-2">
                   {context.examples.map((example) => (

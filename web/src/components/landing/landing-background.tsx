@@ -6,7 +6,7 @@ import { InlineArrow } from "@/components/common/inline-arrow";
  * strictly at the periphery so the hero stays dominant:
  *
  *   left edge  — review-timeline card (the flagship heatmap critique),
- *   right edge — short-clip card (thumbnail + captions + locale),
+ *   right edge — dubbed-video card (thumbnail + captions + locale),
  *   bottom     — a loose waveform sculpture (left) and an export chip (right).
  *
  * The two side cards mirror each other (equal size, opposing ±8° tilt, same
@@ -109,17 +109,17 @@ export function LandingBackground() {
         </div>
       </div>
 
-      {/* ——— right vignette: short clip ——— */}
+      {/* ——— right vignette: dubbed video ——— */}
       <div className="absolute -right-20 top-[16%] hidden w-72 lg:block">
         <div className="relative rotate-[8deg]">
           <div className="absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle,rgba(124,58,237,0.13),transparent_70%)] blur-2xl" />
           <div className="relative rounded-2xl border border-black/[0.06] bg-white/75 p-3.5 shadow-xl shadow-black/[0.06] backdrop-blur-xl">
             <div className="flex items-center justify-between px-0.5">
               <span className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-foreground/60">
-                Clip · 9:16
+                Dubbed video · demo
               </span>
               <span className="tabular text-[0.65rem] text-foreground/45">
-                0:32
+                08:40
               </span>
             </div>
             {/* thumbnail */}
@@ -219,14 +219,14 @@ export function LandingBackground() {
             </span>
             <span>
               <span className="block text-[0.68rem] font-semibold text-foreground/70">
-                Export ready
+                Captions ready
               </span>
               <span className="mt-1 block h-1 w-28 overflow-hidden rounded-full bg-foreground/[0.08]">
                 <span className="block h-full w-3/4 rounded-full bg-gradient-to-r from-sky-500/80 via-violet-500/80 to-amber-500/80" />
               </span>
             </span>
             <span className="tabular text-[0.62rem] text-foreground/45">
-              4K
+              MP4
             </span>
           </div>
         </div>

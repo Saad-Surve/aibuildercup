@@ -20,7 +20,7 @@ import type { Job, Project } from "@/lib/types";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
 
-/** The job carries the provider's real failure reason; it is the best message to show. */
+/** Friendly failure messages are saved with the job for display after a reload. */
 function jobErrorMessage(job: Job | null): string | null {
   const message = job?.error?.message;
   return typeof message === "string" && message.trim() ? message : null;
@@ -29,8 +29,13 @@ function jobErrorMessage(job: Job | null): string | null {
 const STEP_LABELS: Record<string, string> = {
   queued: "Queued",
   speech_to_text: "Transcribing",
-  segmenting: "Segmenting",
+  segmenting: "Organizing transcript",
   analyzing: "Reviewing",
+  loading_transcript: "Loading transcript",
+  inspecting_video: "Checking footage",
+  aggregating: "Building heatmap",
+  adjudicating: "Checking findings",
+  polishing: "Refining transcript",
   ready: "Ready",
   done: "Done",
   failed: "Failed",
@@ -116,7 +121,7 @@ export function ProcessingStatusCard({
         <CardDescription>
           {failed
             ? "The transcript could not be generated. You can retry without re-uploading."
-            : "We are transcribing your video, then the reviewers run over the transcript."}
+            : "Your video is being transcribed. You can run review when it is ready."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">

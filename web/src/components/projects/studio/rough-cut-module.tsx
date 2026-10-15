@@ -307,7 +307,7 @@ function CutEditor({
       });
       setChosenAssetId(null);
       setConfirmDiscard(false);
-      toast.success("Rough cut discarded");
+      toast.success("Rough cut deleted");
     },
     onError: (error) => toast.error(error.message),
   });
@@ -477,10 +477,10 @@ function CutEditor({
                 }
               >
                 {discard.isPending
-                  ? "Discarding…"
+                  ? "Deleting…"
                   : confirmDiscard
-                    ? "Confirm discard"
-                    : "Discard"}
+                    ? "Confirm delete"
+                    : "Delete preview"}
               </Button>
               {confirmDiscard && (
                 <Button
@@ -526,7 +526,7 @@ function CutEditor({
           )}
           {confirmDiscard && (
             <p className="text-xs text-muted-foreground">
-              Discard removes this preview, its transcript and completed
+              Deleting removes this preview, its transcript and completed
               reviews.
             </p>
           )}
@@ -535,21 +535,22 @@ function CutEditor({
               <Button
                 variant="outline"
                 disabled={download.isPending}
+                title="Opens in Premiere, Final Cut, and DaVinci Resolve"
                 onClick={() => download.mutate("cmx3600")}
               >
-                Download EDL
+                Download edit list (.edl)
               </Button>
               <Button
                 variant="outline"
                 disabled={download.isPending}
                 onClick={() => download.mutate("markdown")}
               >
-                Markdown edit plan
+                Edit plan (.md)
               </Button>
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                EDL frame rate
+                Timeline frame rate
                 <select
-                  aria-label="EDL frame rate"
+                  aria-label="Timeline frame rate"
                   className="rounded-md border bg-background p-1 text-foreground"
                   value={fps}
                   onChange={(event) => setFps(Number(event.target.value))}
@@ -720,8 +721,8 @@ function CutEditor({
           {initial.findings.length > 0 && (
             <p className="border-t pt-3 text-xs text-muted-foreground">
               {selected.length} selected · {plan.removedSpans.length} safe
-              removal{plan.removedSpans.length === 1 ? "" : "s"} · Cuts stay at
-              speech boundaries. Very short or oversized cuts are skipped.
+              removal{plan.removedSpans.length === 1 ? "" : "s"} · Cuts snap to
+              speech pauses. Very short or long cuts are skipped.
             </p>
           )}
           {readyInserts.length > 0 && (
@@ -730,8 +731,8 @@ function CutEditor({
                 Add rendered packaging inserts
               </legend>
               <p className="text-xs text-muted-foreground">
-                Overlay existing footage at its original moment. The cut keeps
-                its timing and audio.
+                Overlays footage at its original moment, keeping its timing and
+                audio.
               </p>
               {readyInserts.map((insert) => {
                 const planned = plan.inserts.find(
@@ -777,8 +778,8 @@ function CutEditor({
           )}
           {cut && (
             <p className="mt-2 text-xs text-muted-foreground">
-              Changing the plan affects the next render. Downloads and approval
-              use the preview shown above.
+              Changes apply to the next preview. Downloads and approval use the
+              current preview.
             </p>
           )}
         </CardContent>
@@ -959,7 +960,7 @@ function ComparePlayers({
             >
               <track
                 kind="captions"
-                label="Derived transcript"
+                label="Rough-cut transcript"
                 src={captions.data}
               />
             </video>

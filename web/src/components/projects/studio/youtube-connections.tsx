@@ -313,7 +313,7 @@ export function YouTubeConnections({
                         type="button"
                         size="icon-sm"
                         variant="ghost"
-                        aria-label="Read channel content for the AI"
+                        aria-label="Use my videos to match my style"
                         title="Read your published videos so the writer can match your style"
                         onClick={() =>
                           contentMutation.mutate(connection.connectionId)

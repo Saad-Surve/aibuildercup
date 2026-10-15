@@ -9,8 +9,7 @@ import { LEGAL_CONTACT_EMAIL } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Terms of Service — Resonance",
-  description:
-    "The terms that govern your use of the Resonance Creator Helper Studio.",
+  description: "The terms that govern your use of the Resonance.",
 };
 
 const SECTIONS: readonly LegalSectionLink[] = [
@@ -207,10 +206,7 @@ export default function TermsOfServicePage() {
         </p>
       </LegalSection>
 
-      <LegalSection
-        id="termination"
-        title="Suspension and termination"
-      >
+      <LegalSection id="termination" title="Suspension and termination">
         <p>
           You may stop using the Service and delete your account at any time;
           deleting your account removes your data as described in our Privacy

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Analytics01Icon,
   Calendar01Icon,
   ConstellationIcon,
   DashboardSquare01Icon,
@@ -31,7 +30,6 @@ interface NavItem {
   href: string;
   label: string;
   icon: IconSvgElement;
-  ready: boolean;
 }
 
 const NAV: NavItem[] = [
@@ -39,23 +37,15 @@ const NAV: NavItem[] = [
     href: "/dashboard",
     label: "Dashboard",
     icon: DashboardSquare01Icon,
-    ready: true,
   },
-  { href: "/projects", label: "Projects", icon: FolderOpenIcon, ready: true },
+  { href: "/projects", label: "Projects", icon: FolderOpenIcon },
   {
     href: "/library",
     label: "Creator library",
     icon: ConstellationIcon,
-    ready: true,
   },
-  { href: "/calendar", label: "Calendar", icon: Calendar01Icon, ready: true },
-  {
-    href: "/audience",
-    label: "Audience insights",
-    icon: Analytics01Icon,
-    ready: false,
-  },
-  { href: "/settings", label: "Connectors", icon: Plug01Icon, ready: true },
+  { href: "/calendar", label: "Calendar", icon: Calendar01Icon },
+  { href: "/settings", label: "Settings", icon: Plug01Icon },
 ];
 
 const COLLAPSE_KEY = "hc-sidebar-collapsed";
@@ -146,18 +136,6 @@ function NavLink({
   active: boolean;
   collapsed: boolean;
 }) {
-  if (!item.ready) {
-    return (
-      <div
-        title={collapsed ? item.label : undefined}
-        className="flex h-9 items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm text-muted-foreground/50"
-      >
-        <Icon icon={item.icon} />
-        <NavLabel collapsed={collapsed}>{item.label}</NavLabel>
-      </div>
-    );
-  }
-
   return (
     <Link
       href={item.href}
@@ -183,7 +161,6 @@ function isActive(pathname: string, href: string): boolean {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const readyItems = NAV.filter((item) => item.ready);
   const [collapsed, setCollapsed] = useSidebarCollapsed();
   // A page can put its own navigation in the sticky header (see `useSetHeaderNav`).
   const [headerNav, setHeaderNavState] = useState<ReactNode>(null);
@@ -288,7 +265,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </header>
 
           <nav className="flex gap-1 overflow-x-auto border-b border-transparent px-3 py-2 shadow-[inset_0_-1px_0_0_var(--color-border)] md:hidden">
-            {readyItems.map((item) => {
+            {NAV.map((item) => {
               const active = isActive(pathname, item.href);
               return (
                 <Link

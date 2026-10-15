@@ -708,9 +708,9 @@ async def run_packaging(*, owner_uid: str, project_id: str, job_id: str) -> None
         logger.exception("Packaging job %s failed", job_id)
         # Expose actionable app/model errors, without SDK tracebacks or credentials.
         message = (
-            str(exc)[:300]
+            "Generation could not finish. Try again."
             if isinstance(exc, (ConflictError, ValueError)) or type(exc).__name__ == "VideoGenError"
-            else "Generation failed. Retry when the provider is available."
+            else "Generation is unavailable right now. Try again shortly."
         )
         try:
             record = service.client.get_document(target)

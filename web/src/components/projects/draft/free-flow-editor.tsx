@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Loading03Icon,
   MagicWand01Icon,
@@ -97,7 +91,8 @@ export function FreeFlowEditor({
   const lastRendered = useRef<string | null>(null);
 
   const derivedMarkdown = useMemo(
-    () => (draft.blocks.length ? draft.blocks.map(activeText).join("\n\n") : ""),
+    () =>
+      draft.blocks.length ? draft.blocks.map(activeText).join("\n\n") : "",
     [draft.blocks],
   );
   const docMarkdown =
@@ -233,7 +228,8 @@ export function FreeFlowEditor({
 
   useEffect(() => {
     document.addEventListener("selectionchange", refreshToolbar);
-    return () => document.removeEventListener("selectionchange", refreshToolbar);
+    return () =>
+      document.removeEventListener("selectionchange", refreshToolbar);
   }, [refreshToolbar]);
 
   function format(command: string, value?: string) {
@@ -531,7 +527,7 @@ export function FreeFlowEditor({
             }}
           >
             <Icon icon={MagicWand01Icon} />
-            Ask AI
+            Ask writing partner
           </Button>
         </div>
       ) : null}

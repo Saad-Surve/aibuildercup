@@ -242,8 +242,8 @@ export default function ProfilePage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete your account?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Everything you have created in Creator Helper Studio will be
-                  removed and you will be signed out. This cannot be undone.
+                  Everything you have created in Resonance will be removed and
+                  you will be signed out. This cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

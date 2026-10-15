@@ -73,10 +73,7 @@ export function DraftBriefDialog({
       <DialogContent className="max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            The brief is the only thing the writing partner needs. You can
-            change it any time.
-          </DialogDescription>
+          <DialogDescription>Edit the brief any time.</DialogDescription>
         </DialogHeader>
 
         <FieldGroup>
@@ -194,7 +191,7 @@ export function DraftBriefDialog({
               </Select>
               <p className="text-xs text-muted-foreground">
                 Uses that video&apos;s transcript, accepted review findings and
-                interest peaks. Needs a finished transcript.
+                audience interest. Needs a finished transcript.
               </p>
             </Field>
           ) : null}

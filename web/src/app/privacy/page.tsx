@@ -11,7 +11,7 @@ import { LEGAL_CONTACT_EMAIL } from "@/lib/legal";
 export const metadata: Metadata = {
   title: "Privacy Policy — Resonance",
   description:
-    "How Resonance collects, uses, shares, and deletes information across the Creator Helper Studio.",
+    "How Resonance collects, uses, shares, and deletes information across Resonance.",
 };
 
 const SECTIONS: readonly LegalSectionLink[] = [
@@ -47,17 +47,14 @@ export default function PrivacyPolicyPage() {
     >
       <LegalSection id="overview" title="Overview">
         <p>
-          This policy applies to the Resonance Creator Helper Studio and the web
-          application at this domain (the &ldquo;Service&rdquo;). By using the
-          Service you agree to the collection and use of information described
-          here. If you do not agree, please do not use the Service.
+          This policy applies to the Resonance and the web application at this
+          domain (the &ldquo;Service&rdquo;). By using the Service you agree to
+          the collection and use of information described here. If you do not
+          agree, please do not use the Service.
         </p>
       </LegalSection>
 
-      <LegalSection
-        id="information-we-collect"
-        title="Information we collect"
-      >
+      <LegalSection id="information-we-collect" title="Information we collect">
         <p>
           <span className="font-medium text-foreground">
             Account information.
@@ -203,10 +200,10 @@ export default function PrivacyPolicyPage() {
         <p>
           We retain your content for as long as your account is active and as
           needed to provide the Service. Generated artifacts are kept so you can
-          revisit them until you delete the project or your account.
-          Operational logs are retained for a limited period for security and
-          debugging, and some residual copies may remain in encrypted backups
-          for a short time after deletion.
+          revisit them until you delete the project or your account. Operational
+          logs are retained for a limited period for security and debugging, and
+          some residual copies may remain in encrypted backups for a short time
+          after deletion.
         </p>
       </LegalSection>
 
@@ -289,12 +286,12 @@ export default function PrivacyPolicyPage() {
 
       <LegalSection id="rights" title="Your privacy rights">
         <p>
-          Depending on where you live, you may have the right to access, correct,
-          delete, or receive a copy of your personal information, and to restrict
-          or object to certain processing. You may also have the right not to be
-          discriminated against for exercising these rights. We do not sell your
-          personal information or share it for cross-context behavioral
-          advertising.
+          Depending on where you live, you may have the right to access,
+          correct, delete, or receive a copy of your personal information, and
+          to restrict or object to certain processing. You may also have the
+          right not to be discriminated against for exercising these rights. We
+          do not sell your personal information or share it for cross-context
+          behavioral advertising.
         </p>
         <p>
           To exercise any of these rights, email{" "}

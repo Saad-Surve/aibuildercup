@@ -7,7 +7,6 @@ import { toast } from "sonner";
 
 import { PlatformLogo } from "@/components/calendar/platform";
 import { Icon } from "@/components/common/icon";
-import { InlineArrow } from "@/components/common/inline-arrow";
 import { DisabledReason } from "@/components/common/disabled-reason";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -37,14 +41,6 @@ function describe(error: unknown, fallback: string): string {
   return fallback;
 }
 
-/*
- * Bookmarklet: the `substack.sid` cookie only exists on substack.com, so a page
- * on our origin can't read it. The creator drags this to their bookmarks bar,
- * opens Substack, and clicks it there — it copies the cookie to the clipboard.
- */
-const SUBSTACK_COOKIE_BOOKMARKLET =
-  "javascript:(()=>{const m=document.cookie.match(/(?:^|;\\s*)substack\\.sid=([^;]+)/);if(!m){alert('Not signed in to Substack in this tab.');return;}const v=decodeURIComponent(m[1]);navigator.clipboard.writeText(v).then(()=>alert('Substack cookie copied. Paste it into Creator Studio.')).catch(()=>prompt('Copy this value:',v));})()";
-
 const PLATFORMS: {
   platform: CrosspostPlatform;
   name: string;
@@ -55,22 +51,20 @@ const PLATFORMS: {
     platform: "medium",
     name: "Medium",
     detail: "Stories and essays",
-    connectHint:
-      "Needs a legacy integration token (Medium stopped issuing new ones in Jan 2025).",
+    connectHint: "Requires an existing Medium integration token.",
   },
   {
     platform: "substack",
     name: "Substack",
     detail: "Newsletters and posts",
     connectHint:
-      "Connect with one pasted session cookie — your publication is detected automatically (the cookie expires, so expect to reconnect).",
+      "Paste your Substack sign-in cookie to connect. You may need to reconnect occasionally.",
   },
   {
     platform: "reddit",
     name: "Reddit",
     detail: "Posts and discussions",
-    connectHint:
-      "OAuth sign-in. Free tier covers personal posting (100 calls/min).",
+    connectHint: "Sign in with Reddit to post to your profile or subreddits.",
   },
 ];
 
@@ -148,11 +142,13 @@ export function TextPlatformConnections({
       setDialog(null);
       refresh();
     },
-    onError: (caught) => setError(describe(caught, "Could not connect Medium.")),
+    onError: (caught) =>
+      setError(describe(caught, "Could not connect Medium.")),
   });
 
   const substackMutation = useMutation({
-    mutationFn: () => connectSubstack(sid.trim(), subdomain.trim() || undefined),
+    mutationFn: () =>
+      connectSubstack(sid.trim(), subdomain.trim() || undefined),
     onSuccess: () => {
       toast.success("Substack connected");
       setSid("");
@@ -180,14 +176,12 @@ export function TextPlatformConnections({
   });
 
   const redditMutation = useMutation({
-    mutationFn: () =>
-      startRedditOAuth(
-        redirectPath ? { redirectPath } : {},
-      ),
+    mutationFn: () => startRedditOAuth(redirectPath ? { redirectPath } : {}),
     onSuccess: (started) => {
       window.location.href = started.authorizationUrl;
     },
-    onError: (caught) => toast.error(describe(caught, "Could not start Reddit OAuth.")),
+    onError: (caught) =>
+      toast.error(describe(caught, "Could not connect Reddit. Try again.")),
   });
 
   const deleteMutation = useMutation({
@@ -249,7 +243,9 @@ export function TextPlatformConnections({
                     <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
                       <button
                         type="button"
-                        onClick={() => deleteMutation.mutate(connection.connectionId)}
+                        onClick={() =>
+                          deleteMutation.mutate(connection.connectionId)
+                        }
                         disabled={busy || readOnly}
                         className="shrink-0 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
                       >
@@ -260,7 +256,9 @@ export function TextPlatformConnections({
                 ))}
               </ul>
             ) : (
-              <p className="text-xs text-muted-foreground">{entry.connectHint}</p>
+              <p className="text-xs text-muted-foreground">
+                {entry.connectHint}
+              </p>
             )}
 
             <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
@@ -319,24 +317,19 @@ export function TextPlatformConnections({
                   placeholder="181d415f…"
                   onChange={(event) => setToken(event.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Medium <InlineArrow /> Settings <InlineArrow /> Security{" "}
-                  <InlineArrow /> Integration tokens. Only pre-2025 tokens work;
-                  new ones are no longer issued.
-                </p>
               </Field>
             ) : (
               <>
                 <Field>
                   <FieldLabel htmlFor="substack-sid" required>
-                    Substack session cookie
+                    Paste your Substack sign-in cookie
                   </FieldLabel>
                   <Input
                     id="substack-sid"
                     type="password"
                     value={sid}
                     autoComplete="off"
-                    placeholder="substack.sid=… (or just the value)"
+                    placeholder="Paste the cookie value"
                     onChange={(event) => {
                       setSid(event.target.value);
                       setPublications([]);
@@ -344,22 +337,8 @@ export function TextPlatformConnections({
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Fastest: drag{" "}
-                    <a
-                      href={SUBSTACK_COOKIE_BOOKMARKLET}
-                      draggable
-                      onClick={(event) => event.preventDefault()}
-                      title="Drag me to your bookmarks bar, then click me on Substack"
-                      className="cursor-grab font-medium text-signal underline-offset-4 hover:underline"
-                    >
-                      Copy Substack cookie
-                    </a>{" "}
-                    to your bookmarks bar, open Substack, click it, then paste
-                    here. Or copy <code>substack.sid</code> from devtools{" "}
-                    <InlineArrow /> Application <InlineArrow /> Cookies. Paste the
-                    value, the <code>substack.sid=…</code> pair, or the whole
-                    cookie header — we find it. Your publication is detected for
-                    you.
+                    Your publication is detected automatically. Reconnect if
+                    your sign-in expires.
                   </p>
                 </Field>
                 {publications.length > 0 ? (
@@ -385,7 +364,7 @@ export function TextPlatformConnections({
                 ) : null}
                 <Field>
                   <FieldLabel htmlFor="substack-subdomain">
-                    Publication subdomain (optional)
+                    Publication address (optional)
                   </FieldLabel>
                   <Input
                     id="substack-subdomain"
@@ -395,8 +374,7 @@ export function TextPlatformConnections({
                     onChange={(event) => setSubdomain(event.target.value)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Leave blank — the cookie finds your publication. Only fill it
-                    in if your account has several.
+                    Leave blank unless you have several publications.
                   </p>
                 </Field>
               </>

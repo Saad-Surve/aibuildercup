@@ -408,13 +408,13 @@ def _failure_message(exc: BaseException) -> str:
     """An actionable, SDK-free reason a generation failed, shown to the creator."""
     code = getattr(exc, "code", None)
     if code == 429:
-        return "The writing model is rate-limited right now. Wait a minute, then generate again."
+        return "Your writing partner is busy right now. Wait a minute, then generate again."
     if isinstance(exc, (ValueError, RuntimeError)) and not isinstance(exc, NotFoundError):
         return (
-            "The writing model returned an unusable response. "
+            "The writing partner could not finish this draft. "
             "Your brief is saved. Generate again."
         )
-    return "The writing model could not be reached. Your brief is saved. Generate again."
+    return "The writing partner could not be reached. Your brief is saved. Generate again."
 
 
 def _looks_like_clear(message: str) -> bool:
@@ -699,15 +699,15 @@ class DraftService:
             )
             reply, title, clear_draft, remove_ids, edits = self._parse_assist(result.data)
             grounding = _grounding_from(result.data.get("sources"), result.grounding)
-        except Exception as exc:  # noqa: BLE001 - keep the user's message on failure
+        except Exception:  # noqa: BLE001 - keep the user's message on failure
             logger.exception("Draft assist failed")
-            reply = "I could not reach the writing model just now. Your draft is safe — try again."
+            reply = "I could not finish just now. Your draft is saved — try again."
             title = ""
             clear_draft = False
             remove_ids = []
             edits = []
             grounding = None
-            draft.error = str(exc)[:300]
+            draft.error = "The writing partner could not respond. Try again."
         if clear_draft:
             draft.blocks = []
         elif remove_ids:

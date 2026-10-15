@@ -66,7 +66,7 @@ export const ONBOARDING_STEPS: StepMeta[] = [
     id: "platforms",
     label: "Platforms",
     title: "Where do you publish?",
-    description: "Platform fit checks aspect, length, and policy expectations.",
+    description: "Scores fit for each platform.",
   },
   {
     id: "persona",

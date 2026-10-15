@@ -13,8 +13,8 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <PageHeader
-        title="Connectors"
-        description="Connected accounts and where your work goes."
+        title="Connected accounts"
+        description="Connect YouTube and your writing platforms."
       />
 
       <Card>

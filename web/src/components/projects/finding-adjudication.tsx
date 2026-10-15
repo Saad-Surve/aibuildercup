@@ -76,9 +76,7 @@ export function FindingAdjudicationCard({
         <span className="rounded-full border border-border px-2 py-0.5">
           Not checked
         </span>
-        <span>
-          Independent footage check unavailable or outside this run’s limit.
-        </span>
+        <span>This finding could not be checked against the footage.</span>
       </div>
     );
   const verdict = VERDICTS[check.verdict];
@@ -86,7 +84,7 @@ export function FindingAdjudicationCard({
     <div className="space-y-2 border-t border-border/60 bg-muted/20 px-3 py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-[11px] font-medium tracking-wide text-muted-foreground">
-          INDEPENDENT CHECK
+          Footage check
         </span>
         <span
           className={cn(

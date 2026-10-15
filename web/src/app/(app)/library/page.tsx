@@ -7,10 +7,7 @@ import { ArrowUpRight01Icon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
 import { PageHeader } from "@/components/common/page-header";
-import {
-  PlatformLogo,
-  platformLabel,
-} from "@/components/calendar/platform";
+import { PlatformLogo, platformLabel } from "@/components/calendar/platform";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/lib/api-client";
@@ -110,11 +107,15 @@ export default function LibraryPage() {
       setNotice(
         next.errorMessage ??
           (next.indexedNodes === next.totalNodes
-            ? "Your library is ready to search."
-            : "Batch saved. Continue indexing to add the remaining material."),
+            ? "Creator library is ready to search."
+            : "Saved. Process more to add the rest."),
       );
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Indexing failed. Try again.");
+      setNotice(
+        e instanceof Error
+          ? e.message
+          : "Could not process your library. Try again.",
+      );
       void refetch();
     } finally {
       setBusy(null);
@@ -204,7 +205,7 @@ export default function LibraryPage() {
               <div
                 className="h-1.5 w-24 overflow-hidden rounded-full bg-muted"
                 role="progressbar"
-                aria-label="Library indexing"
+                aria-label="Library processing"
                 aria-valuenow={data.indexedNodes}
                 aria-valuemin={0}
                 aria-valuemax={data.totalNodes}
@@ -221,19 +222,15 @@ export default function LibraryPage() {
                 disabled={
                   !!busy || readOnly || data.indexedNodes === data.totalNodes
                 }
-                title={
-                  readOnly
-                    ? READ_ONLY_REASON
-                    : "Adds up to 16 passages or images per batch"
-                }
+                title={readOnly ? READ_ONLY_REASON : "Process your library"}
               >
                 {busy === "index"
-                  ? "Indexing batch…"
+                  ? "Processing…"
                   : data.indexedNodes === data.totalNodes
                     ? "Library ready"
                     : data.indexedNodes
-                      ? "Continue indexing"
-                      : "Index library"}
+                      ? "Process more"
+                      : "Process library"}
               </Button>
             </div>
           </div>
@@ -244,8 +241,8 @@ export default function LibraryPage() {
           )}
           {readOnly && (
             <p className="text-xs text-muted-foreground">
-              Browse the map and source passages. Indexing and new searches are
-              disabled for this read-only account.
+              Browse the map and source passages. Processing and new searches
+              are disabled in the demo.
             </p>
           )}
           <form onSubmit={find} className="flex gap-2">
@@ -338,8 +335,7 @@ export default function LibraryPage() {
               <div>
                 <p className="text-sm font-medium">Your work, connected</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Select a source to reveal its closest semantic neighbors.
-                  Links use similarity in the full embedding space.
+                  Select a source to see related material.
                 </p>
               </div>
               <div className="flex gap-1" aria-label="Filter by material">
@@ -364,7 +360,7 @@ export default function LibraryPage() {
               <div
                 ref={mapRef}
                 className="relative h-[400px] overflow-hidden bg-muted/15 sm:h-[540px]"
-                aria-label="Approximate content similarity map"
+                aria-label="Related material map"
               >
                 <div
                   className="absolute inset-0 transition-transform duration-300 motion-reduce:transition-none"
@@ -440,11 +436,11 @@ export default function LibraryPage() {
                         ∴
                       </span>
                       <p className="mt-4 text-sm font-medium">
-                        The map starts with your first index
+                        The map appears after your first batch is processed
                       </p>
                       <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">
-                        Your sources are listed below. Index a batch to see how
-                        passages and images relate.
+                        Your sources are listed below. Process a batch to see
+                        how passages and images relate.
                       </p>
                     </div>
                   )}
@@ -604,7 +600,7 @@ export default function LibraryPage() {
                         <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                           Closest related sources
                         </p>
-                        {neighbors.map(({ node, similarity, relation }) => (
+                        {neighbors.map(({ node, relation }) => (
                           <button
                             key={node.id}
                             onClick={() => {
@@ -636,7 +632,6 @@ export default function LibraryPage() {
                                       ? "image"
                                       : "words")
                                   : node.modality}{" "}
-                                · cosine {similarity.toFixed(3)}
                               </span>
                             </span>
                           </button>
@@ -645,14 +640,14 @@ export default function LibraryPage() {
                     )}
                     <p className="mt-5 text-xs text-muted-foreground">
                       {selected.indexed
-                        ? "Available for semantic retrieval"
-                        : "Waiting to be indexed"}
+                        ? "Searchable"
+                        : "Waiting to be processed"}
                     </p>
                   </>
                 ) : (
                   <div className="flex h-full flex-col justify-center">
                     <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Source inspector
+                      Source details
                     </p>
                     <h2 className="mt-3 text-lg font-semibold">
                       Every point has a source
@@ -667,13 +662,7 @@ export default function LibraryPage() {
               </aside>
             </div>
             <div className="flex flex-wrap justify-between gap-2 border-t px-5 py-3 text-[10px] text-muted-foreground">
-              <span>
-                Approximate 2D projection · image tiles connect to their true
-                positions · distances are not quality scores
-              </span>
-              <span className="font-mono">
-                {data.model} · {data.dimensions} dimensions
-              </span>
+              <span>Closer items are more related.</span>
             </div>
           </div>
           <div>
@@ -684,16 +673,16 @@ export default function LibraryPage() {
               <span className="text-xs text-muted-foreground">
                 {search
                   ? search.mode === "semantic"
-                    ? "Matched by meaning"
-                    : "Matched by words · semantic search unavailable"
+                    ? "Related"
+                    : "Matched by words. Search by meaning is unavailable right now."
                   : "Choose a row to inspect it"}
               </span>
             </div>
             {search?.mode === "semantic" &&
               data.indexedNodes < data.totalNodes && (
                 <p className="mb-3 text-xs text-muted-foreground">
-                  Search covers the indexed material. Continue indexing to
-                  include the remaining sources.
+                  Search covers processed material. Process more to include the
+                  rest.
                 </p>
               )}
             {rows.length ? (
@@ -736,13 +725,6 @@ export default function LibraryPage() {
               </p>
             )}
           </div>
-          {data.omittedPassages > 0 && (
-            <p className="text-xs text-muted-foreground">
-              The map includes up to six passages sampled across each source,
-              ten thumbnails and 300 nodes. {data.omittedPassages} additional
-              passages are outside that scope.
-            </p>
-          )}
         </>
       ) : null}
     </div>

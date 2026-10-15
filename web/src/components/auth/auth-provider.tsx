@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInAsDemo = useCallback(async () => {
     setError(null);
     if (!DEMO_ENABLED) {
-      setError("The demo account is not configured.");
+      setError("The demo is unavailable right now.");
       return;
     }
     try {

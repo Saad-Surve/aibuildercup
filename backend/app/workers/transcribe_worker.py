@@ -103,13 +103,13 @@ async def run_transcribe(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="Transcription job is missing its asset id.",
+            message="This video could not be found. Upload it again.",
         )
         await asyncio.to_thread(
             projects.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
-            message="Transcription failed: missing asset.",
+            message="This video could not be found. Upload it again.",
         )
         return None
 
@@ -120,13 +120,13 @@ async def run_transcribe(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="Source asset not found.",
+            message="This video could not be found. Upload it again.",
         )
         await asyncio.to_thread(
             projects.mark_failed,
             owner_uid=owner_uid,
             project_id=project_id,
-            message="Transcription failed: source video missing.",
+            message="This video could not be found. Upload it again.",
         )
         return None
 
@@ -190,7 +190,7 @@ async def run_transcribe(
                     job_id=job_id,
                     percent=30,
                     step="speech_to_text",
-                    message="Retrying with normalized audio",
+                    message="Preparing the audio and trying again",
                 )
                 retry_response = await _retry_with_normalized_audio(
                     storage_path=asset["storagePath"],
@@ -216,7 +216,7 @@ async def run_transcribe(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message=f"Speech recognition failed: {exc}",
+            message="Transcription failed. Retry without uploading again.",
         )
         # Keep the concrete reason visible after a reload, including resumable polling errors.
         await asyncio.to_thread(
@@ -244,7 +244,7 @@ async def run_transcribe(
         job_id=job_id,
         percent=70,
         step="segmenting",
-        message="Segmenting transcript",
+        message="Organizing transcript",
     )
     segments = build_segments(words)
 
@@ -331,8 +331,8 @@ def _failure_message(exc: BaseException) -> str:
     """User-facing reason stored on the project so a failure survives a page reload."""
     detail = str(exc).strip()
     if not detail:
-        return "Transcription failed. Retry from the workspace."
-    return f"Transcription failed: {detail}"
+        return "Transcription failed. Retry without uploading again."
+    return "Transcription failed. Retry without uploading again."
 
 
 async def _probe_media_duration(

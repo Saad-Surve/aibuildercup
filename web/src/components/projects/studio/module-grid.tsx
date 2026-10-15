@@ -14,20 +14,18 @@ import {
 } from "@/lib/studio";
 import { cn } from "@/lib/utils";
 
-type Availability = "ready" | "needs-video" | "needs-transcript" | "soon";
+type Availability = "ready" | "needs-video" | "needs-transcript";
 
 const AVAILABILITY_STYLE: Record<Availability, string> = {
   ready: "border-sev-good/30 bg-sev-good/10 text-sev-good",
   "needs-video": "border-border bg-muted text-muted-foreground",
   "needs-transcript": "border-sev-low/30 bg-sev-low/10 text-sev-low",
-  soon: "border-border bg-muted text-muted-foreground",
 };
 
 const AVAILABILITY_LABEL: Record<Availability, string> = {
   ready: "Ready",
   "needs-video": "Needs video",
   "needs-transcript": "Needs transcript",
-  soon: "Coming soon",
 };
 
 function availability(
@@ -35,7 +33,6 @@ function availability(
   hasVideo: boolean,
   hasTranscript: boolean,
 ): Availability {
-  if (!module.ready) return "soon";
   if (module.needsTranscript) {
     if (!hasVideo) return "needs-video";
     if (!hasTranscript) return "needs-transcript";

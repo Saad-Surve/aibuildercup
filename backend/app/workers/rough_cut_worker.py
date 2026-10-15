@@ -389,7 +389,10 @@ async def _render_rough_cut(
             and terminal_job.get("status") != "cancelled"
         ):
             await asyncio.to_thread(
-                jobs.mark_failed, **args, code="ROUGH_CUT_FAILED", message=str(exc)
+                jobs.mark_failed,
+                **args,
+                code="ROUGH_CUT_FAILED",
+                message="The rough cut could not be created. Try again."
             )
 
 

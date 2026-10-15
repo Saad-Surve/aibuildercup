@@ -114,7 +114,7 @@ function InsertCard({
             </p>
           )}
           <span className="text-[10px] tracking-wider text-[#b2b4cb] uppercase">
-            Concept preview · 6-second insert
+            6-second insert
           </span>
         </div>
       )}
@@ -157,8 +157,8 @@ function InsertCard({
             ) : null}
             <p className="text-xs font-medium">
               {insert.generationMode === "image-to-video"
-                ? "Starts from this source frame"
-                : "Matches the source's observed look"}
+                ? "Starts from this frame"
+                : "Matches this video's look"}
             </p>
             <p className="text-xs leading-relaxed text-muted-foreground">
               {insert.visualStyle.summary}
@@ -234,7 +234,7 @@ function InsertCard({
               {insert.generationMode === "image-to-video"
                 ? "Describe motion; the source frame supplies the look. "
                 : insert.visualStyle
-                  ? "The observed source style is included with your direction. "
+                  ? "Your video's style is applied. "
                   : ""}
               AI-generated illustration. Review it before adding it to your
               video.
@@ -301,11 +301,11 @@ function InsertCard({
                 ? "Rendering…"
                 : insert.status === "failed"
                   ? insert.canRetry
-                    ? "Resume render"
-                    : "Render unavailable"
+                    ? "Resume"
+                    : "Unavailable"
                   : insert.kind === "broll"
                     ? `Generate footage · ≤$${insert.estimatedCostUsd.toFixed(2)}`
-                    : "Render graphic"}
+                    : "Create graphic"}
             </Button>
           )}
           <Button
@@ -401,15 +401,14 @@ export function VisualInsertsPanel({ projectId }: { projectId: string }) {
         </Button>
         {inserts.data ? (
           <span className="text-xs text-muted-foreground">
-            {inserts.data.paidRendersRemaining} paid footage renders left for
-            this project
+            {inserts.data.paidRendersRemaining} AI footage clips left for this
+            project
           </span>
         ) : null}
       </div>
       <p className="text-xs text-muted-foreground">
-        Suggestions use the video and transcript. Graphics render without a
-        video-model charge; footage is generated only when you choose it.
-        Download a clip to add in your editor.
+        Suggestions use the video and transcript. Footage is generated only when
+        you choose it. Download a clip to add in your editor.
       </p>
       {inserts.error ? (
         <p role="alert" className="text-sm text-destructive">

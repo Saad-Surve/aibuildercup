@@ -9,6 +9,7 @@ The service only owns persistence and the job hand-off; `dub_worker` does the tr
 and FFmpeg work.
 """
 
+import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import uuid4
@@ -36,6 +37,8 @@ from app.services.localization_corpus import corpus_for
 from app.services.project_service import ProjectService
 from app.services.storage_service import StorageClient
 from app.services.transcript_service import TranscriptService
+
+logger = logging.getLogger(__name__)
 
 
 def is_owner(document: dict[str, Any], owner_uid: str) -> bool:
@@ -147,8 +150,9 @@ class LocalizationService:
             # than part-way through a paid TTS run.
             default_voice(payload.targetLanguage, payload.voice)
         except ValueError as exc:
+            logger.warning("unsupported dubbing language or voice", exc_info=True)
             raise BadRequestError(
-                str(exc),
+                "This voice is unavailable for this language. Choose another voice.",
                 code="UNSUPPORTED_LANGUAGE",
                 details={"targetLanguage": payload.targetLanguage},
             ) from exc

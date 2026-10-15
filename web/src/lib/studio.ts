@@ -27,8 +27,6 @@ export interface StudioModule {
   icon: typeof ClosedCaptionIcon;
   /** Whether the module is useless until a transcript exists. */
   needsTranscript: boolean;
-  /** Wired-up modules open; placeholders are shown as coming soon. */
-  ready: boolean;
 }
 
 export const STUDIO_MODULES: StudioModule[] = [
@@ -36,19 +34,17 @@ export const STUDIO_MODULES: StudioModule[] = [
     id: "transcript",
     label: "Transcript",
     description:
-      "The timestamped words. Edit them, label speakers, and re-run recognition.",
+      "Edit timestamped words, label speakers, and run transcription again.",
     icon: ClosedCaptionIcon,
     needsTranscript: true,
-    ready: true,
   },
   {
     id: "review",
-    label: "Review + Findings",
+    label: "Review",
     description:
-      "Nine reviewers score the cut and pin findings to the timeline heatmap.",
+      "Nine reviewers flag moments with explanations and proposed edits.",
     icon: SparklesIcon,
     needsTranscript: true,
-    ready: true,
   },
   {
     id: "rough-cut",
@@ -57,25 +53,21 @@ export const STUDIO_MODULES: StudioModule[] = [
       "Turn accepted edits into a preview. Compare, decide, and export your edit plan.",
     icon: FileVideoIcon,
     needsTranscript: true,
-    ready: true,
   },
   {
     id: "captions",
-    label: "Burn Captions",
-    description:
-      "Render a styled, captioned MP4 from the transcript. The original is untouched.",
+    label: "Captions",
+    description: "Add styled captions to your video from the transcript.",
     icon: FileVideoIcon,
     needsTranscript: true,
-    ready: true,
   },
   {
     id: "packaging",
-    label: "Thumbnail, Clips & SEO",
+    label: "Thumbnails & listing",
     description:
       "Create thumbnails, contextual visual inserts, and an editable YouTube listing.",
     icon: ImageAdd01Icon,
     needsTranscript: false,
-    ready: true,
   },
   {
     id: "localization",
@@ -84,16 +76,13 @@ export const STUDIO_MODULES: StudioModule[] = [
       "Translate and dub the video into your target languages with a glossary.",
     icon: Megaphone01Icon,
     needsTranscript: true,
-    ready: true,
   },
   {
     id: "publishing",
-    label: "Publish to YouTube",
-    description:
-      "Push the finished video, thumbnail, and captions to a connected channel.",
+    label: "Publish",
+    description: "Publish your video, thumbnail, and captions to YouTube.",
     icon: CloudUploadIcon,
     needsTranscript: true,
-    ready: true,
   },
 ];
 
