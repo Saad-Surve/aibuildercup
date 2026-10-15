@@ -376,7 +376,8 @@ async def run_analysis(
             * len(contexts)
             * rounds
             * estimate_cost_usd(
-                LlmUsage(input_tokens=64_000, output_tokens=32_768),
+                # Observed reviewer calls use ~15-31k input and 4-6k output tokens.
+                LlmUsage(input_tokens=32_000, output_tokens=8_192),
                 input_price_per_mtok=settings.llm_input_price_per_mtok,
                 output_price_per_mtok=settings.llm_output_price_per_mtok,
             )
