@@ -38,9 +38,8 @@ export function DubCaptionsDialog({
         <DialogHeader>
           <DialogTitle>Caption this dub</DialogTitle>
           <DialogDescription>
-            Burn the localized captions onto the dubbed video
-            {language ? ` (${language.toUpperCase()})` : ""}. The dub file itself is
-            never changed — a new captioned MP4 is rendered.
+            Create a video with localized captions{" "}
+            {language ? ` (${language.toUpperCase()})` : ""} from this dub.
           </DialogDescription>
         </DialogHeader>
         <CaptionBurnPanel

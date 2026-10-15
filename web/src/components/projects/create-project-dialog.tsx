@@ -73,7 +73,7 @@ const KIND_OPTIONS: {
   {
     value: "draft",
     label: "Start a draft",
-    description: "Write with a versioned assistant for content or a script.",
+    description: "Write a post or script with your writing partner.",
     icon: PencilEdit02Icon,
   },
 ];
@@ -185,7 +185,7 @@ export function CreateProjectDialog() {
         <DialogHeader>
           <DialogTitle>New project</DialogTitle>
           <DialogDescription>
-            Pick the studio you want. You can change the details later.
+            Start with a video or a draft. You can change the details later.
           </DialogDescription>
         </DialogHeader>
 

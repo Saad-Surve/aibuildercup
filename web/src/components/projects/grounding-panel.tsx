@@ -37,7 +37,7 @@ export function GroundingPanel({
       <div className="px-3 py-2 text-sm break-words">
         Grounded with Google Search
         <span className="ml-1.5 text-muted-foreground">
-          — claim checks by the truth reviewer and editor
+          — claims checked against sources
         </span>
       </div>
       <div className="space-y-3 border-t border-border p-3">

@@ -45,8 +45,9 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Resonance — Creator Helper Studio",
-  description: "AI review studio for creators.",
+  title: "Resonance — AI review studio for creators",
+  description:
+    "An editorial review you can check before you publish. AI suggests. The creator decides.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

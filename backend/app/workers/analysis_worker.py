@@ -136,7 +136,7 @@ async def run_analysis(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="Analysis job is missing its analysis run id.",
+            message="This review could not start. Run review again.",
             code="ANALYZE_FAILED",
         )
         return None
@@ -155,7 +155,7 @@ async def run_analysis(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="Analysis run not found.",
+            message="This review could not be found. Run review again.",
             code="ANALYZE_FAILED",
         )
         return None
@@ -167,7 +167,7 @@ async def run_analysis(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="Analysis run has no dimensions to run.",
+            message="This review could not start. Run review again.",
             code="ANALYZE_FAILED",
         )
         return None
@@ -193,7 +193,7 @@ async def run_analysis(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="Transcript for this analysis is gone. Start a new analysis.",
+            message="The transcript is unavailable. Generate it again, then run review.",
             code="ANALYZE_FAILED",
         )
         await asyncio.to_thread(
@@ -224,7 +224,7 @@ async def run_analysis(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="Transcript has no segments to review.",
+            message="This transcript has no text to review.",
             code="ANALYZE_FAILED",
         )
         await asyncio.to_thread(
@@ -367,7 +367,7 @@ async def run_analysis(
             on_outcome=on_outcome,
         )
     except Exception as exc:  # noqa: BLE001 - record the failure on the job and the run
-        logger.exception("analyze job %s: fan-out failed", job_id)
+        logger.exception(f"analyze job %s: fan-out failed: {exc}", job_id)
         if interest_task is not None:
             interest_task.cancel()
         await asyncio.to_thread(
@@ -375,7 +375,7 @@ async def run_analysis(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message=f"Analysis failed: {exc}",
+            message="The review failed. Run review again.",
             code="ANALYZE_FAILED",
         )
         await asyncio.to_thread(
@@ -387,7 +387,7 @@ async def run_analysis(
             summary=summarize_findings([]),
             cost_usd=0.0,
             completed_dimensions=[],
-            error={"code": "ANALYZE_FAILED", "message": str(exc)[:500]},
+            error={"code": "ANALYZE_FAILED", "message": "The review failed. Run review again."},
         )
         return None
 
@@ -771,7 +771,7 @@ async def run_analysis(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="Every reviewer failed. Nothing to show for this run.",
+            message="The review failed. Run review again.",
             code="ANALYZE_FAILED",
         )
     else:

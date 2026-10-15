@@ -644,8 +644,8 @@ export function ThumbnailPanel({
           </div>
           <Progress value={percent} />
           <p className="text-xs text-muted-foreground">
-            The planner is reading {projectName}&apos;s transcript and review
-            findings, pulling real frames of you, then rendering each concept.
+            Reading {projectName}&apos;s transcript and review findings, pulling
+            real frames of you, then rendering each concept.
           </p>
         </div>
       ) : null}
@@ -730,9 +730,7 @@ export function ThumbnailPanel({
           <Icon icon={SparklesIcon} className="size-6 text-muted-foreground" />
           <p className="text-sm font-medium">No thumbnail concepts yet</p>
           <p className="max-w-md text-xs text-muted-foreground">
-            Generate options grounded in the video: each concept cites the
-            moment it came from, keeps your real face, and is scored on
-            legibility, honesty, and platform fit.
+            Choose an aspect ratio and create your first concepts.
           </p>
         </div>
       )}

@@ -192,9 +192,8 @@ export function ImportStep({
           className="min-h-28 font-mono text-sm"
         />
         <FieldDescription>
-          One per line. YouTube, Instagram, X, Facebook, TikTok, or LinkedIn. We
-          research public profiles and cite what we find. These links prefill
-          your profile; they do not connect an account or import full articles.
+          One per line. We look up public profiles and cite what we find. This
+          prefills your profile; it does not connect accounts.
         </FieldDescription>
       </Field>
 
@@ -241,7 +240,7 @@ export function IdentityStep({ answers, update }: DataStepProps) {
           aria-required="true"
         />
         <FieldDescription>
-          Shown on your profile and used by the persona.
+          Shown on your profile and used to personalize suggestions.
         </FieldDescription>
       </Field>
 
@@ -351,7 +350,7 @@ export function AudienceStep({ answers, update }: DataStepProps) {
           id="audience"
           value={answers.audience ?? ""}
           onChange={(event) => update({ audience: event.target.value })}
-          placeholder="Indian students and early-career professionals."
+          placeholder="Students and early-career professionals."
           className="min-h-24"
         />
         <FieldDescription>
@@ -369,7 +368,7 @@ export function AudienceStep({ answers, update }: DataStepProps) {
             onChange={(event) =>
               update({ audienceLocation: event.target.value })
             }
-            placeholder="India, metro and tier-2"
+            placeholder="Cities, towns, and regions"
           />
         </Field>
         <Field>
@@ -449,7 +448,7 @@ export function PlatformsStep({ answers, update }: DataStepProps) {
     <FieldGroup>
       <ChipField
         label="Publishing platforms"
-        hint="Account connections for analytics come later. For now, just tell us where you post."
+        hint="You can connect accounts later in Settings. For now, tell us where you post."
         options={PLATFORM_OPTIONS.map((option) => ({
           ...option,
           logoSrc: platformLogoSrc(option.value),

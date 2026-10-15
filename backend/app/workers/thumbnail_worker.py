@@ -179,7 +179,7 @@ async def run_thumbnail_generation(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="Thumbnail job is missing its concept ids.",
+            message="The thumbnail request was incomplete. Try again.",
             code="THUMBNAIL_FAILED",
         )
         return None
@@ -477,7 +477,7 @@ async def _generate_batch(
                 owner_uid=owner_uid,
                 project_id=project_id,
                 thumbnail_id=thumbnail_id,
-                message=str(exc)[:300] or "Generation failed.",
+                message="This thumbnail could not be created. Try again.",
             )
 
     await asyncio.to_thread(
@@ -487,7 +487,7 @@ async def _generate_batch(
         job_id=job_id,
         percent=95,
         step="finishing",
-        message="Finalising thumbnails",
+        message="Finishing thumbnails",
     )
     await asyncio.to_thread(
         jobs.mark_succeeded,
@@ -1020,9 +1020,9 @@ def _failure_message(exc: BaseException) -> str:
     if isinstance(exc, VideoToolError):
         detail = str(exc).strip()
         if detail:
-            return f"Thumbnail generation failed: {detail}"
+            return "Thumbnails could not be created. Try again."
     if isinstance(exc, ImageGenError):
-        return "Thumbnail generation failed: the image model was unavailable."
+        return "Thumbnails are unavailable right now. Try again shortly."
     return "Thumbnail generation failed. Try again."
 
 

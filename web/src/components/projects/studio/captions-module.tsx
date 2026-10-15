@@ -24,7 +24,7 @@ export function CaptionsModule({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Icon icon={ClosedCaptionIcon} className="text-muted-foreground" />
-          Burn captions
+          Captions
         </CardTitle>
         <CardDescription>
           Render a new MP4 with styled captions from this transcript. The

@@ -34,7 +34,7 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-5xl space-y-8">
       <PageHeader
         title={firstName ? `Welcome, ${firstName}` : "Welcome"}
-        description="Upload a video for a transcript and reviewer heatmap, or start a versioned draft."
+        description="Upload a video for a transcript and reviewer heatmap, or start a draft."
         actions={
           query.isLoading || projects.length > 0 ? (
             <CreateProjectDialog />
@@ -72,7 +72,7 @@ export default function DashboardPage() {
               <EmptyDescription>
                 Upload a video to get a timestamped transcript and a
                 multi-reviewer heatmap under the timeline — or start a draft and
-                write with a versioned assistant.
+                write with a writing partner.
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>

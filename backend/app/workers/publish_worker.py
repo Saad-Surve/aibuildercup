@@ -129,7 +129,7 @@ async def run_publish(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="Publish job is missing its publish id.",
+            message="This upload could not start. Start a new upload.",
             code="PUBLISH_FAILED",
         )
         return None
@@ -144,7 +144,7 @@ async def run_publish(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="The publish record no longer exists.",
+            message="This upload was deleted. Start a new one.",
             code="PUBLISH_FAILED",
         )
         return publish_id
@@ -351,7 +351,7 @@ async def run_publish(
                     project_id=project_id,
                     publish_id=publish_id,
                     status=PublishStatus.processing,
-                    step=f"Thumbnail skipped ({exc.code})",
+                    step="Thumbnail skipped",
                 )
 
         if publish.get("captionFormat") != PublishCaptionFormat.none.value:
@@ -467,7 +467,7 @@ async def run_publish(
         )
         return publish_id
     except Exception as exc:  # noqa: BLE001 - normalised into a failed publish
-        logger.exception("publish %s failed", publish_id)
+        logger.exception(f"publish %s failed: {exc}", publish_id)
         _fail(
             jobs,
             publishes,
@@ -476,7 +476,7 @@ async def run_publish(
             job_id=job_id,
             publish_id=publish_id,
             code="PUBLISH_FAILED",
-            message=str(exc) or "Publishing failed.",
+            message="Publishing failed. Check your connected account and try again.",
         )
         return publish_id
     finally:

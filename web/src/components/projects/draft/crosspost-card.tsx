@@ -20,7 +20,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -30,18 +35,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ApiError } from "@/lib/api-client";
-import {
-  crosspost,
-  listConnections,
-  syncCrosspost,
-} from "@/lib/connections";
+import { crosspost, listConnections, syncCrosspost } from "@/lib/connections";
 import { draftToText } from "@/lib/draft-export";
 import { getDraft } from "@/lib/drafts";
-import type {
-  CrosspostPlatform,
-  CrosspostResult,
-  Draft,
-} from "@/lib/types";
+import type { CrosspostPlatform, CrosspostResult, Draft } from "@/lib/types";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
 
@@ -226,7 +223,7 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
             prefill();
           }}
         >
-          Post this draft
+          Publish this draft
         </Button>
       </DisabledReason>
     );
@@ -251,8 +248,8 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
         <DialogHeader>
           <DialogTitle>Cross-post this draft</DialogTitle>
           <DialogDescription>
-            Sends the text to one of your connected writing platforms. Defaults
-            are safe: platform drafts and your own Reddit profile.
+            Sends the text to one of your connected writing platforms. Posts as
+            a draft on the platform, or to your own Reddit profile, by default.
           </DialogDescription>
         </DialogHeader>
 
@@ -307,195 +304,240 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
               </p>
             ) : null}
 
-        <FieldGroup>
-          <Field>
-            <FieldLabel required>Account</FieldLabel>
-            <Select value={effectiveConnectionId} onValueChange={(value) => setConnectionId(value ?? "")}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={`Pick your ${PLATFORM_LABEL[effectivePlatform]} account`}>
-                  {(value: unknown) =>
-                    typeof value === "string" && value.length > 0
-                      ? (options.find((item) => item.connectionId === value)?.displayName ?? value)
-                      : `Pick your ${PLATFORM_LABEL[effectivePlatform]} account`
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {options.map((item) => (
-                  <SelectItem key={item.connectionId} value={item.connectionId}>
-                    {item.displayName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
+            <FieldGroup>
+              <Field>
+                <FieldLabel required>Account</FieldLabel>
+                <Select
+                  value={effectiveConnectionId}
+                  onValueChange={(value) => setConnectionId(value ?? "")}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={`Pick your ${PLATFORM_LABEL[effectivePlatform]} account`}
+                    >
+                      {(value: unknown) =>
+                        typeof value === "string" && value.length > 0
+                          ? (options.find((item) => item.connectionId === value)
+                              ?.displayName ?? value)
+                          : `Pick your ${PLATFORM_LABEL[effectivePlatform]} account`
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {options.map((item) => (
+                      <SelectItem
+                        key={item.connectionId}
+                        value={item.connectionId}
+                      >
+                        {item.displayName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
 
-          <Field>
-            <FieldLabel htmlFor="crosspost-title" required>
-              Title
-            </FieldLabel>
-            <Input
-              id="crosspost-title"
-              value={title ?? ""}
-              maxLength={300}
-              onChange={(event) => setTitle(event.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              The body always comes from the editor pane — whatever it holds is
-              what gets {syncable ? "synced" : "posted"}.
-            </p>
-          </Field>
+              <Field>
+                <FieldLabel htmlFor="crosspost-title" required>
+                  Title
+                </FieldLabel>
+                <Input
+                  id="crosspost-title"
+                  value={title ?? ""}
+                  maxLength={300}
+                  onChange={(event) => setTitle(event.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  The text in the editor is what gets{" "}
+                  {syncable ? "synced" : "posted"}.
+                </p>
+              </Field>
 
-          {effectivePlatform === "medium" ? (
-            <Field>
-              <FieldLabel>Visibility</FieldLabel>
-              <Select value={publishStatus} onValueChange={(value) => setPublishStatus(value ?? "draft")}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft (only you)</SelectItem>
-                  <SelectItem value="unlisted">Unlisted (link only)</SelectItem>
-                  <SelectItem value="public">Public</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-          ) : null}
-
-          {effectivePlatform === "substack" ? (
-            <>
-              <div className="grid grid-cols-2 gap-4">
+              {effectivePlatform === "medium" ? (
                 <Field>
-                  <FieldLabel>Mode</FieldLabel>
-                  <Select value={substackMode} onValueChange={(value) => setSubstackMode(value ?? "draft")}>
+                  <FieldLabel>Visibility</FieldLabel>
+                  <Select
+                    value={publishStatus}
+                    onValueChange={(value) =>
+                      setPublishStatus(value ?? "draft")
+                    }
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="publish">Publish now</SelectItem>
-                      <SelectItem value="schedule">Schedule</SelectItem>
+                      <SelectItem value="draft">Draft (only you)</SelectItem>
+                      <SelectItem value="unlisted">
+                        Unlisted (link only)
+                      </SelectItem>
+                      <SelectItem value="public">Public</SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>
-                <Field>
-                  <FieldLabel>Audience</FieldLabel>
-                  <Select value={audience} onValueChange={(value) => setAudience(value ?? "everyone")}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="everyone">Everyone</SelectItem>
-                      <SelectItem value="subscribers_only">Subscribers</SelectItem>
-                      <SelectItem value="paid_subscribers_only">Paid</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
-              {substackMode === "publish" ? (
-                <label className="flex items-start gap-2 text-sm">
-                  <Checkbox
-                    checked={sendEmail}
-                    onCheckedChange={(value) => setSendEmail(Boolean(value))}
-                  />
-                  <span>
-                    Email subscribers on publish
-                    <span className="block text-xs text-muted-foreground">
-                      Irreversible once sent.
-                    </span>
-                  </span>
-                </label>
               ) : null}
-              {substackMode === "schedule" ? (
-                <Field>
-                  <FieldLabel htmlFor="crosspost-schedule" required>
-                    Send at (UTC)
-                  </FieldLabel>
-                  <Input
-                    id="crosspost-schedule"
-                    type="datetime-local"
-                    value={scheduleAt}
-                    onChange={(event) => setScheduleAt(event.target.value)}
-                  />
-                </Field>
+
+              {effectivePlatform === "substack" ? (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field>
+                      <FieldLabel>Mode</FieldLabel>
+                      <Select
+                        value={substackMode}
+                        onValueChange={(value) =>
+                          setSubstackMode(value ?? "draft")
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="publish">Publish now</SelectItem>
+                          <SelectItem value="schedule">Schedule</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    <Field>
+                      <FieldLabel>Audience</FieldLabel>
+                      <Select
+                        value={audience}
+                        onValueChange={(value) =>
+                          setAudience(value ?? "everyone")
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="everyone">Everyone</SelectItem>
+                          <SelectItem value="subscribers_only">
+                            Subscribers
+                          </SelectItem>
+                          <SelectItem value="paid_subscribers_only">
+                            Paid
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </div>
+                  {substackMode === "publish" ? (
+                    <label className="flex items-start gap-2 text-sm">
+                      <Checkbox
+                        checked={sendEmail}
+                        onCheckedChange={(value) =>
+                          setSendEmail(Boolean(value))
+                        }
+                      />
+                      <span>
+                        Email subscribers on publish
+                        <span className="block text-xs text-muted-foreground">
+                          Irreversible once sent.
+                        </span>
+                      </span>
+                    </label>
+                  ) : null}
+                  {substackMode === "schedule" ? (
+                    <Field>
+                      <FieldLabel htmlFor="crosspost-schedule" required>
+                        Send at (UTC)
+                      </FieldLabel>
+                      <Input
+                        id="crosspost-schedule"
+                        type="datetime-local"
+                        value={scheduleAt}
+                        onChange={(event) => setScheduleAt(event.target.value)}
+                      />
+                    </Field>
+                  ) : null}
+                </>
               ) : null}
-            </>
-          ) : null}
 
-          {effectivePlatform === "reddit" ? (
-            <div className="grid grid-cols-2 gap-4">
-              <Field>
-                <FieldLabel htmlFor="crosspost-subreddit">Subreddit</FieldLabel>
-                <Input
-                  id="crosspost-subreddit"
-                  value={subreddit}
-                  autoComplete="off"
-                  placeholder="Blank = your own profile"
-                  onChange={(event) => setSubreddit(event.target.value)}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="crosspost-url">Link URL (optional)</FieldLabel>
-                <Input
-                  id="crosspost-url"
-                  value={linkUrl}
-                  autoComplete="off"
-                  placeholder="Blank = text post"
-                  onChange={(event) => setLinkUrl(event.target.value)}
-                />
-              </Field>
-            </div>
-          ) : null}
+              {effectivePlatform === "reddit" ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <Field>
+                    <FieldLabel htmlFor="crosspost-subreddit">
+                      Subreddit
+                    </FieldLabel>
+                    <Input
+                      id="crosspost-subreddit"
+                      value={subreddit}
+                      autoComplete="off"
+                      placeholder="Blank = your own profile"
+                      onChange={(event) => setSubreddit(event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="crosspost-url">
+                      Link URL (optional)
+                    </FieldLabel>
+                    <Input
+                      id="crosspost-url"
+                      value={linkUrl}
+                      autoComplete="off"
+                      placeholder="Blank = text post"
+                      onChange={(event) => setLinkUrl(event.target.value)}
+                    />
+                  </Field>
+                </div>
+              ) : null}
 
-          {error ? <FieldError>{error}</FieldError> : null}
-          {result ? (
-            <p className="text-xs text-muted-foreground">
-              {result.status === "draft" ? "Draft saved: " : result.status === "scheduled" ? "Scheduled: " : "Live: "}
-              <a
-                href={result.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-signal hover:underline"
+              {error ? <FieldError>{error}</FieldError> : null}
+              {result ? (
+                <p className="text-xs text-muted-foreground">
+                  {result.status === "draft"
+                    ? "Draft saved: "
+                    : result.status === "scheduled"
+                      ? "Scheduled: "
+                      : "Live: "}
+                  <a
+                    href={result.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-signal hover:underline"
+                  >
+                    Open on {PLATFORM_LABEL[effectivePlatform]}
+                    <Icon icon={ArrowUpRight01Icon} className="size-3" />
+                  </a>
+                </p>
+              ) : null}
+            </FieldGroup>
+
+            <DialogFooter className="mt-5 flex-wrap gap-2">
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline" disabled={busy} />
+                }
               >
-                Open on {PLATFORM_LABEL[effectivePlatform]}
-                <Icon icon={ArrowUpRight01Icon} className="size-3" />
-              </a>
-            </p>
-          ) : null}
-        </FieldGroup>
-
-        <DialogFooter className="mt-5 flex-wrap gap-2">
-          <DialogClose
-            render={<Button type="button" variant="outline" disabled={busy} />}
-          >
-            Close
-          </DialogClose>
-          <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
-            <Button
-              type="button"
-              disabled={busy || readOnly || (!showSync && !effectiveConnectionId)}
-              onClick={() =>
-                showSync ? syncMutation.mutate() : postMutation.mutate()
-              }
-              className={cn(busy && "opacity-70")}
-            >
-              {busy ? (
-                <Icon icon={Loading03Icon} className="animate-spin" />
-              ) : (
-                <PlatformLogo platform={effectivePlatform} size={14} />
-              )}
-              {postMutation.isPending || syncMutation.isPending
-                ? "Posting…"
-                : showSync
-                  ? "Sync changes"
-                  : effectivePlatform === "substack" && substackMode !== "draft"
-                    ? substackMode === "schedule"
-                      ? "Schedule post"
-                      : "Publish post"
-                    : "Post"}
-            </Button>
-          </DisabledReason>
-        </DialogFooter>
+                Close
+              </DialogClose>
+              <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
+                <Button
+                  type="button"
+                  disabled={
+                    busy || readOnly || (!showSync && !effectiveConnectionId)
+                  }
+                  onClick={() =>
+                    showSync ? syncMutation.mutate() : postMutation.mutate()
+                  }
+                  className={cn(busy && "opacity-70")}
+                >
+                  {busy ? (
+                    <Icon icon={Loading03Icon} className="animate-spin" />
+                  ) : (
+                    <PlatformLogo platform={effectivePlatform} size={14} />
+                  )}
+                  {postMutation.isPending || syncMutation.isPending
+                    ? "Posting…"
+                    : showSync
+                      ? "Sync changes"
+                      : effectivePlatform === "substack" &&
+                          substackMode !== "draft"
+                        ? substackMode === "schedule"
+                          ? "Schedule post"
+                          : "Publish"
+                        : "Post"}
+                </Button>
+              </DisabledReason>
+            </DialogFooter>
           </>
         )}
       </DialogContent>

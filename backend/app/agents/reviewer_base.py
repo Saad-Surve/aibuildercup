@@ -734,13 +734,14 @@ class LlmReviewer:
             nonlocal index
             try:
                 parts = await toolkit.execute(name, arguments)
-            except Exception as exc:  # noqa: BLE001 - provider handles the failed tool
+            except Exception:  # noqa: BLE001 - provider handles the failed tool
+                logger.warning("review footage check failed", exc_info=True)
                 records.append(
                     ToolCallRecord(
                         tool=name,
                         timestamp_ms=_as_int(arguments.get("timestampMs")) or 0,
                         ok=False,
-                        error=str(exc)[:300],
+                        error="This footage could not be checked. Run review again.",
                     )
                 )
                 raise

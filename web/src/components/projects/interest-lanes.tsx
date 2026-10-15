@@ -334,8 +334,8 @@ export function InterestLanes({
 
       <p className="text-[10px] text-muted-foreground">
         {curve.baselineSource?.source === "creator"
-          ? `Channel drop-off · ${curve.baselineSource.channelName ?? "your audience"} · ${curve.baselineSource.videos} videos`
-          : "Generic drop-off"}
+          ? `Channel curve · ${curve.baselineSource.channelName ?? "your audience"} · ${curve.baselineSource.videos} videos`
+          : "Typical curve"}
       </p>
 
       {infoOpen && (
@@ -384,11 +384,11 @@ function infoText(curve: InterestCurve): string {
       ? new Date(source.calibratedAt).toLocaleDateString()
       : "the last calibration";
     parts.push(
-      `The dashed line uses ${source.channelName ?? "your channel"}'s drop-off shape, blended with the generic head: ${source.videos} videos and ${source.views.toLocaleString()} views, calibrated ${date}. This adapts the drop-off shape to your audience; it does not measure how well the content model fits them. The public-data scores above do not evaluate channel calibration.`,
+      `The dashed line uses ${source.channelName ?? "your channel"}'s viewing pattern, blended with the typical curve: ${source.videos} videos and ${source.views.toLocaleString()} views, calibrated ${date}. This adapts the drop-off shape to your audience; it does not measure how well the content model fits them. The public-data scores above do not evaluate channel calibration.`,
     );
   } else {
     parts.push(
-      `The dashed line uses the generic drop-off shape. ${source?.reason === "Using the generic drop-off shape." ? "" : (source?.reason ?? "")}`.trim(),
+      `The dashed line shows the typical curve. ${source?.reason === "Using the generic drop-off shape." ? "" : (source?.reason ?? "")}`.trim(),
     );
   }
   parts.push(
@@ -412,7 +412,7 @@ function infoText(curve: InterestCurve): string {
 }
 
 const SIGNAL_ROWS = [
-  { key: "wpm", label: "Pace", unit: "wpm" },
+  { key: "wpm", label: "Pace", unit: "words/min" },
   { key: "pauseMs", label: "Pauses", unit: "ms" },
 ] as const;
 
@@ -564,7 +564,7 @@ export function InterestReadout({ point }: { point: InterestPoint }) {
           {drivers.arrow} {drivers.items.slice(0, 3).join(", ")}
         </span>
       )}
-      {typeof wpm === "number" && <span>{Math.round(wpm)} wpm</span>}
+      {typeof wpm === "number" && <span>{Math.round(wpm)} words/min</span>}
       {typeof pause === "number" && (
         <span>longest pause {(pause / 1000).toFixed(1)}s</span>
       )}

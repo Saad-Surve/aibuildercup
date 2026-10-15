@@ -5,7 +5,7 @@ person needs to know: contracts, infra, deployed state, open decisions, or verif
 Keep it current rather than chronological. Delete what is no longer true. History lives in
 `git log -- docs/current-progress`; earlier notes can be recovered with `git show <rev>:<path>`.
 
-Last updated: 2026-10-14.
+Last updated: 2026-10-15.
 
 ## Status
 
@@ -15,6 +15,18 @@ drafts with grounded writing, captions, localization and dubbing, thumbnails, pa
 optional Veo inserts, YouTube connector with publishing, a content calendar that uploads
 scheduled videos, Medium, Substack and Reddit connectors with cross-posting, creator library
 retrieval, and a read-only demo. Feature detail is in `README.md` and `docs/architecture.md`.
+
+UI copy on local `chore/ui-polish` is prepared for the creator demo (not pushed or deployed).
+The landing page describes the supported review, rough-cut, and publishing flows. The unfinished
+audience navigation, placeholder platform cards, and static translation preview are removed;
+Localization retains dubbing and the glossary. Job failures use friendly retry guidance, with
+exception details kept in logs. API contracts and persisted data shapes are unchanged. Humation
+branding and the Google stack names are intentionally retained.
+
+Copy-pass verification: web lint, ESLint, TypeScript, and production export; backend ruff and mypy.
+The exported landing page was checked at desktop and phone widths, including the rough-cut
+example. Signed-in flows and live provider jobs were not exercised. Existing image, array-sort,
+and static-export rewrite warnings remain.
 
 What is not yet proven is live, end-to-end behavior on the current code. See
 "Verification gaps" below.
@@ -435,8 +447,8 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
    use it. Pixel conditioning applies only when a clean source frame exists.
 6. **Localization comparison and flag UI** (design §7 and §12). Store per-segment source and
    localized pairs. Add `POST /projects/{id}/localizations/{localizationId}/flag` and a comparison
-   view. Also decide the fate of the static "Transcript translation" card. Cloud Translation
-   glossary registration is not done. The glossary is enforced in the Gemini pass only.
+   view. The static "Transcript translation" card is removed on `chore/ui-polish`;
+   dubbing and the glossary remain. Cloud Translation glossary registration is not done. The glossary is enforced in the Gemini pass only.
 7. **Writer quality.** Video context, temperature and token limits are in (see "Review loop
    work"). Thumbnail planner and listing prompts with the new context are not verified live, and
    `activeAnalysisRunId` can be dropped from project creation.

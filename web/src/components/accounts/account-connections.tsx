@@ -25,7 +25,7 @@ export function AccountConnections({
           <div>
             <h2 className="text-sm font-semibold">YouTube</h2>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Videos, available captions, thumbnails and audience insights.
+              Videos, captions, thumbnails and channel analytics.
             </p>
           </div>
         </div>
@@ -45,42 +45,6 @@ export function AccountConnections({
         <TextPlatformConnections redirectPath={redirectPath} />
       </section>
       <Separator />
-      <div className="grid gap-3 sm:grid-cols-2">
-        {[
-          {
-            name: "Instagram",
-            detail: "Reels and visual posts",
-            platform: "instagram",
-          },
-          { name: "X", detail: "Posts and conversations", platform: "x" },
-          {
-            name: "Facebook",
-            detail: "Videos and page posts",
-            platform: "facebook",
-          },
-          {
-            name: "LinkedIn",
-            detail: "Writing and professional updates",
-            platform: "linkedin",
-          },
-        ].map((platform) => (
-          <div
-            key={platform.name}
-            className="flex items-center gap-3 rounded-xl border px-4 py-3"
-          >
-            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
-              <PlatformLogo platform={platform.platform} size={16} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{platform.name}</p>
-              <p className="text-xs text-muted-foreground">{platform.detail}</p>
-            </div>
-            <span className="text-[10px] text-muted-foreground">
-              Coming soon
-            </span>
-          </div>
-        ))}
-      </div>
       <p className="text-xs leading-5 text-muted-foreground">
         Your published work helps drafts follow your voice and gives thumbnails
         visual references. Explore the material in your{" "}
@@ -88,7 +52,7 @@ export function AccountConnections({
           href="/library"
           className="inline-flex items-center gap-1 text-signal hover:underline"
         >
-          creator library
+          Creator library
           <Icon icon={ArrowRight01Icon} className="size-3" />
         </Link>
         .

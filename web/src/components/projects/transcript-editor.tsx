@@ -447,8 +447,7 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
         {backLink}
         <PageHeader title="Editing is disabled" />
         <p className="max-w-prose text-sm text-muted-foreground">
-          {READ_ONLY_REASON} Use the version picker on the project workspace to
-          browse every saved transcript.
+          {READ_ONLY_REASON} Use the version picker to browse saved transcripts.
         </p>
       </div>
     );
@@ -500,7 +499,7 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
               />
             ) : (
               <div className="flex aspect-video w-full items-center justify-center bg-muted text-center text-xs text-muted-foreground ring-1 ring-foreground/10">
-                Video is not available in this browser.
+                Video preview is unavailable. Upload the video again.
               </div>
             )}
           </div>
@@ -563,9 +562,8 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
                     <DialogHeader>
                       <DialogTitle>Rename speaker</DialogTitle>
                       <DialogDescription>
-                        Move every line by one speaker onto another — useful
-                        when diarization splits one voice in two — and
-                        optionally give the speaker a name.
+                        Combine lines when one voice was split into two
+                        speakers, and add a name if you like.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="grid grid-cols-2 gap-3">

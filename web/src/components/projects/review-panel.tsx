@@ -216,7 +216,7 @@ export function ReviewPanel({
       setStartError(
         error instanceof ApiError
           ? error.message
-          : "The analysis could not be started.",
+          : "The review could not start. Try again.",
       );
     },
   });
@@ -278,7 +278,7 @@ export function ReviewPanel({
                 <span className="h-4 w-px bg-border" aria-hidden="true" />
                 <span className="text-sm text-muted-foreground">
                   {run?.status === "ready" && reviewIncomplete
-                    ? "Finished with gaps"
+                    ? "Completed with gaps"
                     : statusLabel(run, hasTranscript)}
                 </span>
               </div>
@@ -336,8 +336,8 @@ export function ReviewPanel({
                   {startMutation.isPending
                     ? "Starting…"
                     : runs.length > 0
-                      ? "Run analysis again"
-                      : "Run analysis"}
+                      ? "Run review again"
+                      : "Run review"}
                 </Button>
               </DisabledReason>
             </div>
@@ -360,7 +360,7 @@ export function ReviewPanel({
                 className="size-4 shrink-0 text-signal"
               />
               <span className="flex-1">
-                A newer transcript is ready. Run the review again to grade this
+                A newer transcript is ready. Run review again to check this
                 revision.
               </span>
               <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
@@ -369,7 +369,7 @@ export function ReviewPanel({
                   onClick={() => startMutation.mutate()}
                   disabled={startMutation.isPending || readOnly}
                 >
-                  {startMutation.isPending ? "Starting…" : "Run analysis again"}
+                  {startMutation.isPending ? "Starting…" : "Run review again"}
                 </Button>
               </DisabledReason>
             </div>
@@ -377,7 +377,7 @@ export function ReviewPanel({
 
           {/* Instrument readout: flagged-moment score, severity census, spend. */}
           <div className="tabular flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-            <span title="Average quality of reported moments; unmarked time is not graded.">
+            <span title="Average score of flagged moments. Unmarked time has no score.">
               Flagged moments{" "}
               <span className="text-foreground">
                 {formatScore(run?.overallScore ?? null)}
@@ -542,7 +542,7 @@ function statusLabel(run: AnalysisRun | null, hasTranscript: boolean): string {
     case "ready":
       return "Finished";
     case "partial_failure":
-      return "Finished with gaps";
+      return "Completed with gaps";
     case "failed":
       return "Failed";
     case "running":

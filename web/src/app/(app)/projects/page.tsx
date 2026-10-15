@@ -30,7 +30,7 @@ export default function ProjectsPage() {
     <div className="mx-auto max-w-5xl space-y-8">
       <PageHeader
         title="Projects"
-        description="Video projects get a transcript, reviewer heatmap, and captions. Draft projects get a versioned writing studio."
+        description="Video projects get a transcript, reviewer heatmap, and captions. Draft projects get a writing workspace."
         actions={
           query.isLoading || projects.length > 0 ? (
             <CreateProjectDialog />
@@ -57,7 +57,7 @@ export default function ProjectsPage() {
             <EmptyTitle>No projects yet</EmptyTitle>
             <EmptyDescription>
               Create a video project to upload a video and run the reviewers, or
-              a draft project to write with a versioned assistant.
+              a draft project to write with a writing partner.
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>

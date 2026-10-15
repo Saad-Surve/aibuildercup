@@ -277,8 +277,8 @@ async def run_dimension(
             try:
                 result = await reviewer.review(context, reviewer_run_id=reviewer_run_id)
             except Exception as exc:  # noqa: BLE001 - one reviewer must not sink the run
-                logger.exception("%s: chunk failed", reviewer.dimension.value)
-                failures.append(f"{type(exc).__name__}: {exc}")
+                logger.exception("%s: chunk failed: %s", reviewer.dimension.value, exc)
+                failures.append("Part of this video could not be reviewed. Run review again.")
                 continue
         successes += 1
         segment_count += len(context.segments)

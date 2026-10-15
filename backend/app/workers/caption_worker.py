@@ -116,7 +116,7 @@ def _encode_progress_reporter(
                 job_id=job_id,
                 percent=percent,
                 step="rendering",
-                message="Burning captions onto the video",
+                message="Adding captions to the video",
             )
         except Exception:  # noqa: BLE001 - progress must never fail the render
             logger.warning("caption render: progress update failed", exc_info=True)
@@ -202,7 +202,7 @@ async def run_caption_render(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="Caption render job is missing its render id.",
+            message="Captions could not be added. Try again.",
             code="CAPTION_RENDER_FAILED",
         )
         return None
@@ -219,7 +219,7 @@ async def run_caption_render(
             owner_uid=owner_uid,
             project_id=project_id,
             job_id=job_id,
-            message="Caption render record not found.",
+            message="This captioned video could not be found. Add captions again.",
             code="CAPTION_RENDER_FAILED",
         )
         return None
@@ -235,7 +235,7 @@ async def run_caption_render(
                 "storagePaths": [render.get("storagePath")] if render.get("storagePath") else [],
                 "captionRenderId": caption_render_id,
             },
-            message="Already rendered",
+            message="Already captioned",
         )
         return caption_render_id
 
@@ -396,7 +396,7 @@ async def _render(
             job_id=job_id,
             percent=_ENCODE_PERCENT_START,
             step="rendering",
-            message="Burning captions onto the video",
+            message="Adding captions to the video",
         )
         args = _ffmpeg_command(
             ffmpeg_path=settings.ffmpeg_path,
@@ -486,8 +486,8 @@ def _failure_message(exc: BaseException) -> str:
     if isinstance(exc, VideoToolError):
         detail = str(exc).strip()
         if detail:
-            return f"Caption render failed: {detail}"
-    return "Caption render failed. Try again."
+            return "Captions could not be added. Try again."
+    return "Captions could not be added. Try again."
 
 
 # --------------------------------------------------------------------------- wiring

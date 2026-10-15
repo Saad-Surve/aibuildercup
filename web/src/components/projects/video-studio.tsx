@@ -145,7 +145,7 @@ export function VideoStudio({
           projectId,
           type: "source_video",
           status: "uploaded",
-          storagePath: "Cached in this browser",
+          storagePath: "Local video",
           mimeType: blob.type || "video/mp4",
           sizeBytes: blob.size,
           durationMs: null,
@@ -187,13 +187,7 @@ export function VideoStudio({
       />,
     );
     return () => setHeaderNav(null);
-  }, [
-    effectiveSource,
-    projectId,
-    activeModule,
-    onModuleSelect,
-    setHeaderNav,
-  ]);
+  }, [effectiveSource, projectId, activeModule, onModuleSelect, setHeaderNav]);
 
   // Opening a module brings the right pane up to the page's existing snap stop
   // (`lg:snap-start lg:scroll-mt-20`) instead of moving the whole page. `scrollIntoView`
@@ -333,7 +327,6 @@ export function VideoStudio({
         return (
           <LocalizationModule
             projectId={projectId}
-            primaryLanguage={project.primaryLanguage}
             targetLanguages={project.targetLanguages}
           />
         );
@@ -383,7 +376,7 @@ export function VideoStudio({
                         icon={FileVideoIcon}
                         className="text-muted-foreground"
                       />
-                      <CardTitle>Source video</CardTitle>
+                      <CardTitle>Original video</CardTitle>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {sourceAsset && (

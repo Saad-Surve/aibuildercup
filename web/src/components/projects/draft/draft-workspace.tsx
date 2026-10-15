@@ -187,7 +187,9 @@ export function DraftWorkspace({
       queryClient.setQueryData(["draft", projectId], next);
       setBriefOpen(false);
       void queryClient.invalidateQueries({ queryKey: ["projects"] });
-      void queryClient.invalidateQueries({ queryKey: ["draft-context", projectId] });
+      void queryClient.invalidateQueries({
+        queryKey: ["draft-context", projectId],
+      });
       if (next.status === "failed") {
         toast.error(next.error ?? "The draft could not be generated.");
       }
@@ -357,7 +359,9 @@ export function DraftWorkspace({
         queryClient.getQueryData<Draft>(["draft", projectId]) ?? draft;
       const hasContent = (fresh?.blocks.length ?? 0) > 0;
       if (!hasContent) {
-        throw new Error("Write the draft first — there is nothing to send yet.");
+        throw new Error(
+          "Write the draft first — there is nothing to send yet.",
+        );
       }
       const platforms = (fresh?.brief.platform ?? "")
         .split(",")
@@ -437,7 +441,10 @@ export function DraftWorkspace({
                 variant="outline"
                 onClick={() => sendToVideoMutation.mutate()}
                 disabled={
-                  readOnly || sendToVideoMutation.isPending || generating || empty
+                  readOnly ||
+                  sendToVideoMutation.isPending ||
+                  generating ||
+                  empty
                 }
                 title={
                   empty
@@ -446,7 +453,9 @@ export function DraftWorkspace({
                 }
               >
                 <Icon icon={FileVideoIcon} />
-                {sendToVideoMutation.isPending ? "Converting…" : "Convert to video"}
+                {sendToVideoMutation.isPending
+                  ? "Converting…"
+                  : "Convert to video"}
               </Button>
             </DisabledReason>
           )}
@@ -476,7 +485,7 @@ export function DraftWorkspace({
           </AlertTitle>
           <AlertDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>
-              {draft.error ?? "The writing model did not respond."}
+              {draft.error ?? "The writing partner did not respond. Try again."}
             </span>
             <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
               <Button
@@ -496,11 +505,13 @@ export function DraftWorkspace({
       {draft.videoContext && !generating ? (
         <p className="text-xs text-muted-foreground">
           Drew on {draft.videoContext.projectName || "a video"}
-          {draft.videoContext.source === "linked" ? " (made from this draft)" : ""}
+          {draft.videoContext.source === "linked"
+            ? " (made from this draft)"
+            : ""}
           {": "}
           {draft.videoContext.findingCount} review finding
           {draft.videoContext.findingCount === 1 ? "" : "s"},{" "}
-          {draft.videoContext.peakCount} interest peak
+          {draft.videoContext.peakCount} audience interest moment
           {draft.videoContext.peakCount === 1 ? "" : "s"}
           {draft.videoContext.usedPersona ? ", your persona" : ""}.
         </p>
@@ -561,7 +572,7 @@ export function DraftWorkspace({
             onSelectText={setContextText}
             onUseContext={(text) => {
               setContextText(text);
-              toast.success("Added to the chat context");
+              toast.success("Added to chat");
             }}
           />
         )}
@@ -574,9 +585,7 @@ export function DraftWorkspace({
           hasContent={!empty}
           onSend={(message) => {
             const trimmed = contextText.trim();
-            const quoted = trimmed
-              ? `> ${trimmed.replace(/\n/g, "\n> ")}`
-              : "";
+            const quoted = trimmed ? `> ${trimmed.replace(/\n/g, "\n> ")}` : "";
             const full = quoted ? `${quoted}\n\n${message}` : message;
             const target = trimmed
               ? findBlockForSelection(draft.blocks, trimmed)

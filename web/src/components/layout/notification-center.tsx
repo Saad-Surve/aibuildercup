@@ -164,11 +164,11 @@ async function pollOnce(uid: string): Promise<void> {
               kind: "transcription",
               title:
                 project.status === "ready"
-                  ? `“${project.name}” finished processing`
-                  : `“${project.name}” failed processing`,
+                  ? `Transcript ready · ${project.name}`
+                  : `Processing failed · ${project.name}`,
               body:
                 project.status === "ready"
-                  ? "The transcript is ready to review."
+                  ? "Open the project to read and edit your transcript."
                   : (project.progress?.message ??
                     "Check the project for details."),
               href: workspaceHref(project.projectId),
@@ -178,8 +178,6 @@ async function pollOnce(uid: string): Promise<void> {
       }
     } else if (prev.status !== project.status) {
       if (project.status === "ready") {
-        const wasTranscribing =
-          prev.stage?.includes("transcri") || stage?.includes("transcri");
         consider(
           `project:${project.projectId}:ready:${project.updatedAt}`,
           true,
@@ -187,8 +185,8 @@ async function pollOnce(uid: string): Promise<void> {
             pushNotification({
               id: `project:${project.projectId}:ready:${project.updatedAt}`,
               kind: "transcription",
-              title: `“${project.name}” ${wasTranscribing ? "transcription finished" : "finished processing"}`,
-              body: "The transcript is ready to review.",
+              title: `Transcript ready · ${project.name}`,
+              body: "Open the project to read and edit your transcript.",
               href: workspaceHref(project.projectId),
             }),
           true,
@@ -204,7 +202,7 @@ async function pollOnce(uid: string): Promise<void> {
             pushNotification({
               id: `project:${project.projectId}:${project.status}:${project.updatedAt}`,
               kind: "transcription",
-              title: `“${project.name}” failed processing`,
+              title: `Processing failed · ${project.name}`,
               body:
                 project.progress?.message ?? "Check the project for details.",
               href: workspaceHref(project.projectId),
@@ -394,8 +392,7 @@ async function pollOnce(uid: string): Promise<void> {
                 id: `schedule:${schedule.scheduleId}:blocked`,
                 kind: "schedule",
                 title: `“${schedule.title}” is blocked`,
-                body:
-                  schedule.statusDetail ?? "Open the calendar for details.",
+                body: schedule.statusDetail ?? "Open the calendar for details.",
                 href: "/calendar",
               }),
             true,

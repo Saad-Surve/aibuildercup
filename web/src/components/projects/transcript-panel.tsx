@@ -202,9 +202,7 @@ export function TranscriptPanel({
                   onClick={() => rerun.mutate()}
                   disabled={rerun.isPending || processing || readOnly}
                   title={
-                    processing
-                      ? "Transcription is already running"
-                      : undefined
+                    processing ? "Transcription is already running" : undefined
                   }
                 >
                   <Icon icon={SparklesIcon} />
@@ -310,7 +308,7 @@ export function TranscriptPanel({
           <CardTitle>Transcript unavailable</CardTitle>
           <CardDescription>
             {failureMessage ??
-              "Transcription did not finish for this video. Retry from the workspace to try again."}
+              "Transcription did not finish. Try again from the workspace."}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -325,7 +323,7 @@ export function TranscriptPanel({
           <CardTitle>Transcribing…</CardTitle>
         </div>
         <CardDescription>
-          Word timestamps land here as soon as speech recognition finishes.
+          Timestamped words appear here when transcription finishes.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">

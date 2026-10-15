@@ -124,9 +124,7 @@ export function VideoRevisions({
           <DialogHeader>
             <DialogTitle>Video revisions</DialogTitle>
             <DialogDescription>
-              Every upload is kept, so transcripts and reviews stay attributable
-              to the revision they were built from. Switch back to an earlier
-              revision any time — nothing is deleted.
+              Every upload is kept. Switch back to an earlier revision any time.
             </DialogDescription>
           </DialogHeader>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -183,9 +181,7 @@ export function NewRevisionButton({
         <DialogHeader>
           <DialogTitle>Upload a new revision</DialogTitle>
           <DialogDescription>
-            This becomes the project&apos;s active video and is transcribed
-            automatically. Earlier revisions and their transcripts are kept, and
-            you can re-run the review once the new transcript is ready.
+            This becomes the active video and is transcribed automatically.
           </DialogDescription>
         </DialogHeader>
         <VideoDropzone projectId={projectId} onQueued={handleQueued} />
@@ -216,7 +212,7 @@ function RevisionRow({
         <span>{format(new Date(revision.createdAt), "d MMM yyyy")}</span>
         <span className="tabular">{formatBytes(revision.sizeBytes)}</span>
         {revision.transcriptVersion != null ? (
-          <span>Transcript v{revision.transcriptVersion}</span>
+          <span>Transcript {revision.transcriptVersion}</span>
         ) : (
           <span>No transcript</span>
         )}

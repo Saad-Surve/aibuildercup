@@ -73,16 +73,15 @@ export function InterestCalibrationPanel() {
   return (
     <div className="mt-3 space-y-2 border-t border-border/70 pt-3">
       <p>
-        Calibrate the drop-off shape using your own YouTube Analytics retention.
-        Existing compatible runs update automatically. No past transcripts or AI
-        calls are needed.
+        Match the audience-interest curve to your channel&apos;s YouTube
+        retention.
       </p>
       {state && state.status !== "not_started" && (
         <div aria-live="polite" className="space-y-1">
           <p>
             {state.channelName && `${state.channelName} · `}
             {state.status === "ready"
-              ? "Channel shape ready"
+              ? "Channel curve ready"
               : state.status === "insufficient_data"
                 ? "Not enough data"
                 : state.status === "calibrating"
@@ -142,16 +141,15 @@ export function InterestCalibrationPanel() {
         </p>
       ) : coolingDown ? (
         <p>
-          Available again {new Date(nextAllowed!).toLocaleString()}. One attempt
-          per 24 hours, including failed attempts.
+          Available again {new Date(nextAllowed!).toLocaleString()}. You can
+          calibrate once every 24 hours.
         </p>
       ) : channels.length === 0 && !connections.isPending ? (
         <p>Connect YouTube in Settings to calibrate to your channel.</p>
       ) : (
         <p>
-          Uses up to 40 recent uploads and the past year of retention, ending
-          three days ago. Needs three videos per duration bucket, each with at
-          least 100 views. One channel applies across your workspace.
+          Uses up to 40 recent uploads. Needs three videos per length with at
+          least 100 views each. Applies across your workspace.
         </p>
       )}
       {error && (

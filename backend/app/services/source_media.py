@@ -54,7 +54,8 @@ async def stage_source(
                 storage.signed_download_url, source_path, expires_seconds=_SOURCE_URL_TTL_SECONDS
             )
         except Exception as exc:  # noqa: BLE001 - surface a clear reason to the user
-            raise VideoToolError(f"Could not access the source video: {exc}") from exc
+            logger.warning("could not access source video", exc_info=True)
+            raise VideoToolError("Could not access the original video. Try again.") from exc
 
     metadata = await asyncio.to_thread(
         probe_video_metadata, source, ffprobe_path=settings.ffprobe_path

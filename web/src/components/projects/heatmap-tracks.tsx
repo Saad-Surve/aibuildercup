@@ -181,7 +181,7 @@ export function HeatmapTracks({
   if (durationMs <= 0 || dimensions.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No timeline to plot against yet.
+        The heatmap appears once the transcript is ready.
       </p>
     );
   }
@@ -551,7 +551,7 @@ function ReadoutStrip({
       ) : (
         <span>
           {dimensions} reviewer {dimensions === 1 ? "track" : "tracks"} · hover
-          a segment to inspect it. Gaps have no score.
+          a segment for details. Gaps have no score.
         </span>
       )}
     </div>

@@ -44,45 +44,35 @@ const CARD_SURFACE =
 
 const PLATFORMS = [
   {
-    logo: "/instagram.svg",
-    name: "Instagram",
-    detail: "Reels, captions, covers",
-    brand: "#E1306C",
-  },
-  {
-    logo: "/tiktok-mono.svg",
-    name: "TikTok",
-    detail: "Hooks, captions, sounds",
-    brand: "#000000",
-  },
-  {
     logo: "/youtube.svg",
     name: "YouTube",
-    detail: "Shorts, chapters, thumbnails",
+    detail: "Videos, captions, thumbnails",
     brand: "#FF0000",
   },
   {
-    logo: "/x.svg",
-    name: "X",
-    detail: "Clips, threads, snippets",
-    brand: "#000000",
+    logo: "/medium.svg",
+    name: "Medium",
+    detail: "Stories and essays",
+    brand: "#242424",
   },
   {
-    logo: "/facebook.svg",
-    name: "Facebook",
-    detail: "Reels, pages, cross-posts",
-    brand: "#1877F2",
+    logo: "/substack.svg",
+    name: "Substack",
+    detail: "Newsletters and posts",
+    brand: "#FF6719",
+  },
+  {
+    logo: "/reddit.svg",
+    name: "Reddit",
+    detail: "Posts and discussions",
+    brand: "#FF4500",
   },
 ];
 
-const ALSO_ON = [
-  { logo: "/linkedin.svg", name: "LinkedIn" },
-  { logo: "/medium.svg", name: "Medium" },
-  { logo: "/substack.svg", name: "Substack" },
-];
+const ALSO_ON = PLATFORMS.slice(1);
 
 const DERIVS: { title: string; meta: ReactNode; color: string }[] = [
-  { title: "Short clip", meta: "0:32 · 9:16", color: "#f43f5e" },
+  { title: "Thumbnail", meta: "YouTube · 16:9", color: "#f43f5e" },
   {
     title: "Captions",
     meta: (
@@ -98,7 +88,7 @@ const DERIVS: { title: string; meta: ReactNode; color: string }[] = [
 /* ——— flow orchestration: one master rAF timeline ———
  *
  * A single loop drives the whole platforms stage: input packets arrive
- * Short clip -> Captions -> Blog draft, the centre pulses while processing,
+ * Thumbnail -> Captions -> Blog draft, the centre pulses while processing,
  * then output packets distribute top to bottom, then a calm settle before
  * the loop restarts. Packets are HTML dots positioned each frame with
  * path.getPointAtLength(), so they follow the true elbow geometry around
@@ -113,7 +103,7 @@ const FLOW_IN = [
   { at: 1.4, dur: 0.7 },
 ];
 const FLOW_PROCESS = { at: 2.1, dur: 0.5 };
-const FLOW_OUT = [2.6, 3.2, 3.8, 4.4, 5.0].map((at) => ({ at, dur: 0.6 }));
+const FLOW_OUT = [2.6, 3.2, 3.8, 4.4].map((at) => ({ at, dur: 0.6 }));
 
 function easeInOutCubic(p: number) {
   return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
@@ -454,14 +444,14 @@ function TranscriptDemo({ active }: { active: boolean }) {
   );
 }
 
-/* ——— demo 3: select the hot zone, cut the clip ——— */
+/* ——— demo 3: preview an accepted removal ——— */
 
-const CLIP_BARS = [
+const CUT_BARS = [
   6, 10, 8, 14, 9, 12, 7, 11, 16, 22, 27, 20, 25, 29, 23, 18, 10, 8, 12, 7, 9,
   11, 8, 6,
 ];
 
-function renderClipBars(bars: number[], tone: string) {
+function renderCutBars(bars: number[], tone: string) {
   return bars.map((h, i) => (
     <span
       key={i}
@@ -471,12 +461,12 @@ function renderClipBars(bars: number[], tone: string) {
   ));
 }
 
-function ClipDemo({ active }: { active: boolean }) {
+function RoughCutDemo({ active }: { active: boolean }) {
   const [cut, setCut] = useState(false);
   const reduced = useReducedMotion();
-  const before = CLIP_BARS.slice(0, 8);
-  const zone = CLIP_BARS.slice(8, 16);
-  const after = CLIP_BARS.slice(16);
+  const before = CUT_BARS.slice(0, 8);
+  const zone = CUT_BARS.slice(8, 16);
+  const after = CUT_BARS.slice(16);
 
   useEffect(() => {
     if (!active || reduced) return;
@@ -489,13 +479,13 @@ function ClipDemo({ active }: { active: boolean }) {
       <div className="flex h-[76px] items-end gap-1.5 overflow-hidden">
         <div
           className="flex h-full min-w-0 items-end gap-[3px] overflow-hidden transition-all duration-500"
-          style={{ flex: cut ? "0 1 0%" : "1 1 0%", opacity: cut ? 0 : 1 }}
+          style={{ flex: "1 1 0%" }}
         >
-          {renderClipBars(before, "bg-foreground/15")}
+          {renderCutBars(before, "bg-foreground/15")}
         </div>
         <div
           className="relative flex h-full min-w-0 items-end gap-[3px] transition-all duration-500"
-          style={{ flex: "1 1 0%" }}
+          style={{ flex: cut ? "0 1 0%" : "1 1 0%", opacity: cut ? 0 : 1 }}
         >
           {!cut && (
             <>
@@ -509,7 +499,7 @@ function ClipDemo({ active }: { active: boolean }) {
               />
             </>
           )}
-          {renderClipBars(
+          {renderCutBars(
             zone,
             cut
               ? "bg-rose-500"
@@ -518,9 +508,9 @@ function ClipDemo({ active }: { active: boolean }) {
         </div>
         <div
           className="flex h-full min-w-0 items-end gap-[3px] overflow-hidden transition-all duration-500"
-          style={{ flex: cut ? "0 1 0%" : "1 1 0%", opacity: cut ? 0 : 1 }}
+          style={{ flex: "1 1 0%" }}
         >
-          {renderClipBars(after, "bg-foreground/15")}
+          {renderCutBars(after, "bg-foreground/15")}
         </div>
       </div>
       <div className="mt-2.5 flex items-center justify-between border-t border-black/[0.05] pt-2.5">
@@ -529,10 +519,10 @@ function ClipDemo({ active }: { active: boolean }) {
           onClick={() => setCut((c) => !c)}
           className="cursor-pointer rounded-full bg-rose-600 px-3 py-1 text-[0.68rem] font-semibold text-white transition-colors hover:bg-rose-700"
         >
-          {cut ? "Reset" : "Cut clip"}
+          {cut ? "Show original" : "Preview accepted edit"}
         </button>
         <span className="tabular text-[0.68rem] font-medium text-foreground/55">
-          {cut ? "9:16 · 0:32" : "Most replayed · 0:32"}
+          {cut ? "Rough cut preview" : "Demo · accepted removal"}
         </span>
       </div>
     </div>
@@ -598,7 +588,7 @@ function LocaleDemo({ active }: { active: boolean }) {
               मानसून इस साल जल्दी आ गया।
             </p>
             <p className="mt-1 text-[0.65rem] text-foreground/50">
-              Glossary applied · Dub voice-matched
+              Glossary applied · Dub ready
             </p>
           </>
         )}
@@ -641,19 +631,19 @@ const SCHEDULED_POSTS: ScheduledPost[] = [
   },
   {
     day: 13,
-    project: "Hook breakdown short",
-    platform: "TikTok",
+    project: "The hook, explained",
+    platform: "YouTube",
     time: "6:30 PM",
     color: "#8b5cf6", // violet-500
-    logo: "/tiktok-mono.svg",
+    logo: "/youtube.svg",
   },
   {
     day: 21,
     project: "Behind the scenes",
-    platform: "Instagram",
+    platform: "YouTube",
     time: "12:00 PM",
     color: "#f43f5e", // rose-500
-    logo: "/instagram.svg",
+    logo: "/youtube.svg",
   },
 ];
 
@@ -933,8 +923,8 @@ interface Feature {
 
 const FEATURES: Feature[] = [
   {
-    title: "A critique you can see",
-    copy: "Truth, clarity, structure, legal, culture, and platform fit — scored second by second under your timeline. Drag the cursor.",
+    title: "A review you can check",
+    copy: "Nine reviewers flag moments with proposed edits. Fact checks are grounded with Google Search. Accept, revise, or dismiss each finding.",
     render: (active) => (
       <HeatDemo key={active ? "on" : "off"} active={active} />
     ),
@@ -950,10 +940,10 @@ const FEATURES: Feature[] = [
     hover: "group-hover:text-amber-600",
   },
   {
-    title: "Shorts that cut themselves",
-    copy: "The hottest zone gets selected and cut into a vertical clip. Try it.",
+    title: "Your edits, ready to preview",
+    copy: "Preview accepted cuts, then re-review to see which fixes are resolved. You approve what stays.",
     render: (active) => (
-      <ClipDemo key={active ? "on" : "off"} active={active} />
+      <RoughCutDemo key={active ? "on" : "off"} active={active} />
     ),
     hover: "group-hover:text-rose-600",
   },
@@ -966,14 +956,14 @@ const FEATURES: Feature[] = [
     hover: "group-hover:text-indigo-600",
   },
   {
-    title: "Every post, on a schedule",
-    copy: "Schedule your posts from within the app",
+    title: "Your YouTube publishing calendar",
+    copy: "Schedule YouTube uploads and plan your next posts in one calendar.",
     render: (active) => <CalendarDemo active={active} />,
     hover: "group-hover:text-fuchsia-600",
   },
   {
-    title: "One upload, a week of posts",
-    copy: "Social drafts and long-form blogs written in your voice, from the same source video.",
+    title: "Keep writing in your voice",
+    copy: "Draft posts for Medium, Substack, and Reddit with a writing partner that draws on your creator library.",
     render: (active) => (
       <PostsDemo key={active ? "on" : "off"} active={active} />
     ),
@@ -987,23 +977,30 @@ const STEPS = [
   {
     icon: Upload01Icon,
     title: "Drop in one video",
-    copy: "Your source of truth. We transcribe and index every second of it.",
+    copy: "Start with a timestamped transcript you can search and edit.",
   },
   {
     icon: ChartBarBigIcon,
-    title: "Read the heat",
-    copy: "Reviewers score each moment. Fix the red, keep the green.",
+    title: "Review and decide",
+    copy: "Check findings on the heatmap. Accept, revise, or dismiss the proposed edits.",
   },
   {
     icon: Rocket01Icon,
-    title: "Ship everywhere",
-    copy: "Clips, captions, posts, and dubbing — formatted for each platform.",
+    title: "Publish and cross-post",
+    copy: "Prepare captions, dubs, thumbnails, and a listing. Publish to YouTube or cross-post your writing.",
   },
 ];
 
 export function LandingPage() {
-  const { profile, status, error, signInWithGoogle, signInAsDemo, demoAvailable, signOut } =
-    useAuth();
+  const {
+    profile,
+    status,
+    error,
+    signInWithGoogle,
+    signInAsDemo,
+    demoAvailable,
+    signOut,
+  } = useAuth();
   const router = useRouter();
   const [hoverCard, setHoverCard] = useState<string | null>(null);
   const { flowStageRef } = useFlowStage();
@@ -1048,19 +1045,19 @@ export function LandingPage() {
           />
 
           <h1 className="mt-6 max-w-[16ch] font-serif text-5xl leading-[1.05] font-medium tracking-tight text-balance sm:text-6xl lg:text-7xl">
-            Create Without Limits
+            Review before you publish
           </h1>
 
           <p className="mt-6 max-w-xl text-pretty text-base text-muted-foreground sm:text-lg">
-            Your all-in-one creative studio for artists, filmmakers &amp;
-            digital creators
+            An editorial review for YouTube creators, with findings you can
+            check. AI suggests. The creator decides.
           </p>
 
           <div className="mt-8 flex flex-col items-center gap-4">
             {status === "error" ? (
               <div className="flex flex-col items-center gap-3">
                 <p role="alert" className="text-sm text-destructive">
-                  {error ?? "We couldn't reach the studio API."}
+                  {error ?? "We couldn't reach your studio. Please try again."}
                 </p>
                 <Button
                   variant="outline"
@@ -1101,9 +1098,9 @@ export function LandingPage() {
           {[
             "Timestamped transcript",
             "Heatmap review",
-            "Short-form clips",
+            "Rough cut & re-review",
             "Captions & dubbing",
-            "Studio chat",
+            "Thumbnails & listing",
           ].map((pill) => (
             <span
               key={pill}
@@ -1119,11 +1116,11 @@ export function LandingPage() {
       <section id="platforms" className="scroll-mt-28">
         <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
           <h2 className="max-w-xl font-heading text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-            Publish everywhere you already are
+            Publish to YouTube. Cross-post your writing.
           </h2>
           <p className="mt-3 max-w-xl text-pretty text-muted-foreground">
-            Connect once — clips, captions, and posts flow out of the studio
-            formatted for every destination.
+            Publish videos, captions, and thumbnails to YouTube. Cross-post
+            drafts to Medium, Substack, and Reddit.
           </p>
 
           {/* mobile: stacked flow */}
@@ -1205,7 +1202,7 @@ export function LandingPage() {
                   vectorEffect="non-scaling-stroke"
                 />
               ))}
-              {[10, 30, 50, 70, 90].map((y, j) => (
+              {[12, 37, 63, 88].map((y, j) => (
                 <path
                   key={`out-${y}`}
                   data-flow-path={3 + j}
@@ -1221,7 +1218,7 @@ export function LandingPage() {
               ))}
             </svg>
             {/* travelling packets, positioned every frame by the timeline */}
-            {Array.from({ length: 8 }).map((_, i) => {
+            {Array.from({ length: 3 + PLATFORMS.length }).map((_, i) => {
               const color = i < 3 ? DERIVS[i].color : PLATFORMS[i - 3].brand;
               return (
                 <span
@@ -1276,7 +1273,7 @@ export function LandingPage() {
                 className="absolute flex w-20 -translate-x-1/2 flex-col items-center gap-1.5"
                 style={{
                   left: "86%",
-                  top: `${[10, 30, 50, 70, 90][i]}%`,
+                  top: `${[12, 37, 63, 88][i]}%`,
                   transform: "translate(-50%, -50%)",
                 }}
               >
@@ -1298,7 +1295,7 @@ export function LandingPage() {
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
             <span className="text-xs font-medium text-muted-foreground">
-              Also ships to
+              Cross-post drafts to
             </span>
             {ALSO_ON.map((item) => (
               <span
@@ -1329,11 +1326,12 @@ export function LandingPage() {
             Features
           </p>
           <h2 className="mt-3 max-w-xl font-heading text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-            One upload, a whole catalogue
+            From first review to ready to publish
           </h2>
           <p className="mt-3 max-w-xl text-pretty text-muted-foreground">
-            Upload a single video and the studio transcribes it, critiques it,
-            and multiplies it — all in your voice.
+            Check the nine-reviewer heatmap alongside a relative
+            audience-interest curve learned from YouTube Most Replayed data.
+            These interactive examples show the workflow.
           </p>
           {/* oxlint-disable jsx-a11y/no-noninteractive-element-interactions -- card hover only previews each demo; every demo stays fully operable via keyboard and buttons. */}
           <div className="mt-8 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -1382,7 +1380,7 @@ export function LandingPage() {
       <section id="workflow" className="scroll-mt-28 border-t border-border/60">
         <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
           <h2 className="mx-auto max-w-xl text-center font-heading text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-            From raw footage to everywhere in three moves
+            From raw footage to published in three steps
           </h2>
           <ol className="relative mt-14 grid gap-10 sm:grid-cols-3 sm:gap-6">
             <div
@@ -1422,8 +1420,8 @@ export function LandingPage() {
                 Your next video deserves a studio
               </h2>
               <p className="mt-4 max-w-md text-pretty text-sm text-white/80 sm:text-base">
-                Join Resonance and turn one upload into transcripts, reviews,
-                clips, posts, and dubbing.
+                Bring your video to Resonance for a review you can check, edits
+                you control, and a publishing workflow that follows through.
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <button
@@ -1431,7 +1429,7 @@ export function LandingPage() {
                   onClick={signInWithGoogle}
                   className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-white px-7 text-sm font-semibold whitespace-nowrap text-zinc-900 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.5)] transition-all duration-200 hover:-translate-y-px hover:shadow-[0_20px_48px_-16px_rgba(0,0,0,0.55)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
                 >
-                  Start creating
+                  Sign in with Google
                   <Icon icon={ArrowRight01Icon} className="size-4" />
                 </button>
                 {demoAvailable ? (
@@ -1445,7 +1443,7 @@ export function LandingPage() {
                 ) : null}
               </div>
               <p className="mt-5 text-xs text-white/70">
-                Free to start · Continue with Google · Your footage stays yours
+                AI suggests. The creator decides.
               </p>
             </div>
           </div>
@@ -1459,8 +1457,7 @@ export function LandingPage() {
             <div className="max-w-xs">
               <Logo />
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-                A digital creator studio for artists, filmmakers &amp; digital
-                creators.
+                AI review studio for YouTube creators.
               </p>
             </div>
             <div className="flex gap-16">
@@ -1561,7 +1558,7 @@ export function LandingPage() {
             </div>
           </div>
           <div className="mt-12 flex flex-col gap-2 border-t border-border/60 pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <p>Resonance · A digital creator studio</p>
+            <p>Resonance · AI review studio for creators</p>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
               <a
                 href="/privacy"
@@ -1570,7 +1567,7 @@ export function LandingPage() {
                 Privacy Policy
               </a>
               <p>
-                © {new Date().getFullYear()} Resonance. Create without limits.
+                © {new Date().getFullYear()} Resonance. Review, refine, publish.
               </p>
             </div>
           </div>

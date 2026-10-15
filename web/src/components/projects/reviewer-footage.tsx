@@ -37,7 +37,7 @@ export function ReviewerFootage({
   const seenPaths = new Set<string>();
   for (const reviewer of reviewers) {
     (reviewer.toolCalls ?? []).forEach((call, index) => {
-      // Shared samples are supplied to several reviewers but shown once.
+      // Sample frames are supplied to several reviewers but shown once.
       if (call.contentPath && seenPaths.has(call.contentPath)) return;
       if (call.contentPath) seenPaths.add(call.contentPath);
       items.push({
@@ -131,8 +131,8 @@ function FootageCard({
         className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left"
       >
         <span className="truncate text-xs">
-          {call.label.startsWith("Shared sample:")
-            ? "Shared sample"
+          {call.label.startsWith("Sample frame:")
+            ? "Sample frame"
             : dimensionLabel(item.dimension)}
         </span>
         <span className="shrink-0 tabular text-xs text-time underline-offset-2 hover:underline">

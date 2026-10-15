@@ -184,12 +184,13 @@ class ConnectionService:
         platform = str(state_data.get("platform") or ConnectionPlatform.youtube.value)
 
         if error:
+            logger.warning("connection sign-in failed: %s", error)
             return self._error_redirect(
-                redirect_path, platform, f"The provider returned an error: {error}"
+                redirect_path, platform, "Sign-in could not finish. Try connecting again."
             )
         if not code:
             return self._error_redirect(
-                redirect_path, platform, "The provider did not return an authorization code."
+                redirect_path, platform, "Sign-in could not finish. Try connecting again."
             )
 
         if platform == ConnectionPlatform.reddit.value:

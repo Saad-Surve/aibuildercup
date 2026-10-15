@@ -117,7 +117,7 @@ export function LegalPage({
 
       <footer className="border-t border-border/60">
         <div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-8 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>Resonance &middot; A digital creator studio</p>
+          <p>Resonance &middot; AI review studio for creators</p>
           <div className="flex items-center gap-5">
             <Link
               href="/privacy"
