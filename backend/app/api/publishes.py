@@ -73,8 +73,11 @@ def list_publishes(
     projectId: str,
     user: UserDep,
     service: ServiceDep,
+    refreshLive: bool = False,
 ) -> PublishList:
-    return PublishList(items=service.list(owner_uid=user.uid, project_id=projectId))
+    return PublishList(
+        items=service.list(owner_uid=user.uid, project_id=projectId, refresh_live=refreshLive)
+    )
 
 
 @router.get("/projects/{projectId}/publishes/{publishId}", response_model=Publish)

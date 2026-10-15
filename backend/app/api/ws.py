@@ -179,7 +179,11 @@ async def _reader(
             continue
 
         kind = message.get("type")
-        if kind == "subscribe.project":
+        if kind == "subscribe.owner":
+            hub.subscribe_owner(owner_uid, queue)
+        elif kind == "unsubscribe.owner":
+            hub.unsubscribe_owner(owner_uid, queue)
+        elif kind == "subscribe.project":
             await _handle_subscribe(
                 socket, hub, owner_uid, queue, message, jobs, projects, send_lock
             )

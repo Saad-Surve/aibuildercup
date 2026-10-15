@@ -36,6 +36,7 @@ class EventHub:
     def __init__(self) -> None:
         # (owner_uid, project_id) -> the socket queues subscribed to that project.
         self._subscribers: dict[tuple[str, str], list[asyncio.Queue[dict]]] = {}
+        self._owners: dict[str, list[asyncio.Queue[dict]]] = {}
         # The loop the sockets live on, captured on first connect so a publish
         # from a worker thread can still deliver safely.
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -54,7 +55,22 @@ class EventHub:
         Callers use this to skip building expensive event payloads (extra
         Firestore reads) when nobody is listening.
         """
-        return bool(self.queues_for(owner_uid, project_id))
+        with self._lock:
+            return bool(self._subscribers.get((owner_uid, project_id)))
+
+    def subscribe_owner(self, owner_uid: str, queue: asyncio.Queue[dict]) -> None:
+        with self._lock:
+            queues = self._owners.setdefault(owner_uid, [])
+            if queue not in queues:
+                queues.append(queue)
+
+    def unsubscribe_owner(self, owner_uid: str, queue: asyncio.Queue[dict]) -> None:
+        with self._lock:
+            queues = self._owners.get(owner_uid, [])
+            if queue in queues:
+                queues.remove(queue)
+            if not queues:
+                self._owners.pop(owner_uid, None)
 
     def subscribe(self, owner_uid: str, project_id: str, queue: asyncio.Queue[dict]) -> None:
         """Start delivering events for a project to a socket queue."""
@@ -68,6 +84,9 @@ class EventHub:
     ) -> None:
         """Remove one queue from every project it subscribed to."""
         with self._lock:
+            if project is None:
+                for owner_uid in list(self._owners):
+                    self.unsubscribe_owner(owner_uid, queue)
             keys = [project] if project is not None else list(self._subscribers)
             for key in keys:
                 queues = self._subscribers.get(key, [])
@@ -109,7 +128,12 @@ class EventHub:
         the number of queues the event was delivered to (0 is normal — publish
         happens whether or not anyone is watching).
         """
-        queues = self.queues_for(owner_uid, project_id)
+        with self._lock:
+            queues = list(
+                dict.fromkeys(
+                    [*self.queues_for(owner_uid, project_id), *self._owners.get(owner_uid, [])]
+                )
+            )
         delivered = 0
         for queue in list(queues):
             try:

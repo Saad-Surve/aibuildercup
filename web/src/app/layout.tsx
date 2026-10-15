@@ -27,6 +27,7 @@ const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
   display: "swap",
+  preload: false,
 });
 
 // Caption preview fonts. These mirror the TTF families bundled for the FFmpeg burn-in
@@ -35,6 +36,7 @@ const montserrat = Montserrat({
   variable: "--font-montserrat",
   subsets: ["latin"],
   display: "swap",
+  preload: false,
 });
 
 const poppins = Poppins({
@@ -42,6 +44,7 @@ const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "700"],
   display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {

@@ -6,8 +6,13 @@ import type {
   PublishRequest,
 } from "@/lib/types";
 
-export function listPublishes(projectId: string): Promise<PublishList> {
-  return apiFetch<PublishList>(`/projects/${projectId}/publishes`);
+export function listPublishes(
+  projectId: string,
+  refreshLive = false,
+): Promise<PublishList> {
+  return apiFetch<PublishList>(
+    `/projects/${projectId}/publishes?refreshLive=${refreshLive}`,
+  );
 }
 
 export function getPublish(

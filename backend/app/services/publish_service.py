@@ -412,7 +412,7 @@ class PublishService:
 
     # ------------------------------------------------------------------ read
 
-    def list(self, *, owner_uid: str, project_id: str) -> list[Publish]:
+    def list(self, *, owner_uid: str, project_id: str, refresh_live: bool = True) -> list[Publish]:
         self.projects.get(owner_uid=owner_uid, project_id=project_id)
         rows = self.client.query_collection(
             publishes_collection_path(owner_uid, project_id),
@@ -430,7 +430,8 @@ class PublishService:
             for publish_id, data in rows
             if data.get("ownerUid") == owner_uid
         ]
-        items = self._reconcile_live(owner_uid, project_id, items)
+        if refresh_live:
+            items = self._reconcile_live(owner_uid, project_id, items)
         return [publish for _, publish, _ in items]
 
     def get(self, *, owner_uid: str, project_id: str, publish_id: str) -> Publish:
@@ -598,17 +599,14 @@ class PublishService:
             tokens, video_id=str(video_id), publish_at=iso
         )
 
-    def _promote_due(
-        self, owner_uid: str, project_id: str, publish: Publish
-    ) -> Publish:
+    def _promote_due(self, owner_uid: str, project_id: str, publish: Publish) -> Publish:
         """Flip a scheduled upload to `published` once its go-public time passes.
 
         YouTube holds the video private until `publishAt`, so until then the
         publish stays `processing` and its linked calendar slot stays
         `scheduled`. There is no scheduler in this runtime, so promotion happens
-        lazily when a publish is read — the notification watcher polls `list`
-        every cycle, so the "went live" notification and the calendar flip both
-        fire then.
+        lazily when a publish is read. Visible scheduled uploads keep a polling
+        fallback until promotion; published uploads are terminal for polling.
         """
         if (
             publish.status != PublishStatus.processing

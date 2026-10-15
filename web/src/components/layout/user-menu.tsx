@@ -11,7 +11,6 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 
 import { useAuth } from "@/components/auth/auth-provider";
-import { UserAvatar } from "@/components/avatar/user-avatar";
 import { Icon } from "@/components/common/icon";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,11 +24,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUserAvatar } from "@/lib/avatar";
 
 export function UserMenu() {
   const { user, profile, signOut } = useAuth();
-  const avatar = useUserAvatar();
   const { theme, setTheme } = useTheme();
   const name = profile?.displayName ?? user?.displayName ?? "Creator";
   const email = profile?.email ?? user?.email ?? "";
@@ -47,7 +44,12 @@ export function UserMenu() {
       >
         <span className="rounded-full bg-gradient-to-br from-cyan-400 via-fuchsia-500 to-orange-400 p-[2px]">
           <span className="block rounded-full bg-background p-[2px]">
-            <UserAvatar state={avatar} size={30} title={name} />
+            <span
+              title={name}
+              className="flex size-[30px] items-center justify-center rounded-full bg-signal/15 text-xs font-semibold text-signal"
+            >
+              {name.trim().slice(0, 1).toUpperCase()}
+            </span>
           </span>
         </span>
       </DropdownMenuTrigger>

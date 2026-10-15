@@ -64,6 +64,7 @@ def list_schedules(
     scheduler: SchedulerDep,
     start: Annotated[datetime | None, Query()] = None,
     end: Annotated[datetime | None, Query()] = None,
+    refreshLive: bool = False,
 ) -> ScheduleList:
     items = service.list_for_owner(owner_uid=user.uid, start=start, end=end)
     changed = _sweep_slots(
@@ -76,7 +77,7 @@ def list_schedules(
         scheduler=scheduler,
     )
     if any(item.publishId for item in items):
-        changed |= _reconcile_linked_uploads(user.uid, items, publishes)
+        changed |= _reconcile_linked_uploads(user.uid, items, publishes, refresh_live=refreshLive)
     if changed:
         items = service.list_for_owner(owner_uid=user.uid, start=start, end=end)
     return ScheduleList(items=items)
@@ -91,6 +92,7 @@ def list_project_schedules(
     connections: ConnectionsDep,
     background_tasks: BackgroundTasks,
     scheduler: SchedulerDep,
+    refreshLive: bool = False,
 ) -> ScheduleList:
     items = service.list_for_project(owner_uid=user.uid, project_id=projectId)
     changed = _sweep_slots(
@@ -103,7 +105,7 @@ def list_project_schedules(
         scheduler=scheduler,
     )
     if any(item.publishId for item in items):
-        changed |= _reconcile_linked_uploads(user.uid, items, publishes)
+        changed |= _reconcile_linked_uploads(user.uid, items, publishes, refresh_live=refreshLive)
     if changed:
         items = service.list_for_project(owner_uid=user.uid, project_id=projectId)
     return ScheduleList(items=items)
@@ -260,7 +262,7 @@ def _call_off_pending_upload(
 
 
 def _reconcile_linked_uploads(
-    owner_uid: str, items: list[Schedule], publishes: PublishService
+    owner_uid: str, items: list[Schedule], publishes: PublishService, *, refresh_live: bool = True
 ) -> bool:
     """Reconcile live videos when the calendar is read.
 
@@ -269,14 +271,18 @@ def _reconcile_linked_uploads(
     the (throttled, batched) deletion check and cancels linked slots. Returns True
     when any linked project was checked, so the caller re-reads before responding.
     """
-    project_ids = sorted({item.projectId for item in items if item.publishId})
+    project_ids = sorted(
+        {
+            item.projectId
+            for item in items
+            if item.publishId and (refresh_live or item.status == ScheduleStatus.scheduled)
+        }
+    )
     for project_id in project_ids:
         try:
-            publishes.list(owner_uid=owner_uid, project_id=project_id)
+            publishes.list(owner_uid=owner_uid, project_id=project_id, refresh_live=refresh_live)
         except Exception:  # noqa: BLE001 - the calendar must still render
-            logger.warning(
-                "calendar: reconcile failed for project %s", project_id, exc_info=True
-            )
+            logger.warning("calendar: reconcile failed for project %s", project_id, exc_info=True)
     return bool(project_ids)
 
 

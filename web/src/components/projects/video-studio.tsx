@@ -27,6 +27,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useProjectTranscript } from "@/hooks/use-project-transcript";
 import { useSetHeaderNav } from "@/lib/header-nav";
 import { getVideoBlobForProject } from "@/lib/local-media";
@@ -223,6 +224,8 @@ export function VideoStudio({
     );
   }
 
+  if (assetsLoading) return <Skeleton className="h-[min(70vh,48rem)] w-full" />;
+
   if (!effectiveSource) {
     return (
       <div className="space-y-6">
@@ -261,6 +264,9 @@ export function VideoStudio({
       );
     }
     if (!activeModuleInfo) return null;
+    if (activeModuleInfo.needsTranscript && transcriptQuery.isLoading) {
+      return <Skeleton className="h-80 w-full" />;
+    }
     if (activeModuleInfo.needsTranscript && !hasTranscript) {
       return (
         <TranscriptGate

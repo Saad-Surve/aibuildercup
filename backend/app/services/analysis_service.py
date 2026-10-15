@@ -232,8 +232,7 @@ class AnalysisCapExceeded(ConflictError):
 def ensure_within_budget(spent_usd: float, *, max_project_cost_usd: float) -> None:
     if spent_usd >= max_project_cost_usd:
         raise AnalysisCapExceeded(
-            "This project has used its analysis budget. Raise max_project_cost_usd to "
-            "allow more runs.",
+            "This project has reached its review limit. Create a new project to review again.",
             details={"spentUsd": spent_usd, "maxProjectCostUsd": max_project_cost_usd},
         )
 

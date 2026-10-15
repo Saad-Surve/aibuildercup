@@ -46,8 +46,10 @@ def list_projects(
     offset = decode_page_token(pageToken)
     items, has_more = service.list(owner_uid=user.uid, limit=limit, offset=offset)
     next_token = encode_page_token(offset + len(items)) if has_more else None
+    items = [_with_poster(service, item) for item in items]
+    service.attach_source_summaries(user.uid, items)
     return ProjectList(
-        items=[_with_poster(service, item) for item in items],
+        items=items,
         nextPageToken=next_token,
     )
 

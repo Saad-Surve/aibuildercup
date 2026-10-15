@@ -219,7 +219,11 @@ export function TranscriptEditor({ projectId }: { projectId: string }) {
     queryKey: ["assets", projectId],
     queryFn: () => listAssets(projectId),
   });
-  const transcriptQuery = useProjectTranscript(projectId, { shouldPoll: true });
+  const transcriptQuery = useProjectTranscript(projectId, {
+    shouldPoll: ["processing", "uploading"].includes(
+      projectQuery.data?.status ?? "",
+    ),
+  });
 
   const transcript = transcriptQuery.data;
   const segments = draft ?? transcript?.segments ?? [];

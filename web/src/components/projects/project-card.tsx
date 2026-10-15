@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { FileVideoIcon, PencilEdit02Icon } from "@hugeicons/core-free-icons";
 import { format } from "date-fns";
 
@@ -11,15 +11,11 @@ import { Icon } from "@/components/common/icon";
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ensurePoster, ensureProjectPoster } from "@/lib/local-media";
-import {
-  formatBytes,
-  formatTimestamp,
-  listAssets,
-  pickSourceAsset,
-} from "@/lib/projects";
+import { getCachedPosterForProject } from "@/lib/local-media";
+import { formatBytes, formatTimestamp } from "@/lib/projects";
 import { workspaceHref } from "@/lib/studio";
 import type { Project } from "@/lib/types";
+import { prefetchProject } from "@/lib/project-prefetch";
 
 /*
  * Card thumbnail: the poster frame captured from the project's uploaded
@@ -37,42 +33,16 @@ function ProjectThumb({
   /** Applied thumbnail cover; takes precedence over the captured frame poster. */
   posterUrl: string | null;
 }) {
-  const assetsQuery = useQuery({
-    queryKey: ["assets", projectId],
-    queryFn: () => listAssets(projectId),
-    // The cover is server-provided, so skip the asset/frame work entirely.
-    enabled: !posterUrl,
-    staleTime: 60_000,
-  });
   const [poster, setPoster] = useState<string | null>(null);
-
   useEffect(() => {
-    if (posterUrl) return;
-    if (assetsQuery.isLoading || assetsQuery.isError || poster) return;
-    const source = pickSourceAsset(assetsQuery.data?.items, activeAssetId);
-    let alive = true;
-    void (async () => {
-      const url = source
-        ? await ensurePoster({
-            projectId,
-            assetId: source.assetId,
-            sizeBytes: source.sizeBytes,
-          })
-        : await ensureProjectPoster(projectId);
-      if (alive && url) setPoster(url);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [
-    posterUrl,
-    assetsQuery.isLoading,
-    assetsQuery.isError,
-    assetsQuery.data,
-    poster,
-    projectId,
-    activeAssetId,
-  ]);
+    // Read only the local frame cache; cards must never download/decode a video.
+    if (!activeAssetId) return;
+    const timer = window.setTimeout(
+      () => setPoster(getCachedPosterForProject(projectId)),
+      0,
+    );
+    return () => window.clearTimeout(timer);
+  }, [projectId, activeAssetId]);
 
   const cover = posterUrl ?? poster;
   if (cover) {
@@ -148,20 +118,15 @@ export function ProjectCardSkeleton() {
 
 export function ProjectCard({ project }: { project: Project }) {
   const isDraft = project.kind === "draft";
-  const assetsQuery = useQuery({
-    queryKey: ["assets", project.projectId],
-    queryFn: () => listAssets(project.projectId),
-    enabled: !isDraft,
-    staleTime: 60_000,
-  });
-  const source = pickSourceAsset(
-    assetsQuery.data?.items,
-    project.sourceAssetId,
-  );
+  const client = useQueryClient();
+  const source = project.sourceSummary;
+  const prefetch = () => prefetchProject(client, project);
 
   return (
     <Link
       href={workspaceHref(project.projectId)}
+      onMouseEnter={prefetch}
+      onFocus={prefetch}
       className="group block rounded-lg focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <Card className="h-full transition-shadow group-hover:shadow-md group-hover:ring-foreground/20">

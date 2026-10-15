@@ -335,7 +335,7 @@ export function VisualInsertsPanel({ projectId }: { projectId: string }) {
         (item) => item.status === "queued" || item.status === "rendering",
       )
         ? 3000
-        : 600_000,
+        : false,
   });
   const jobId = inserts.data?.suggestionJobId;
   const job = useQuery({

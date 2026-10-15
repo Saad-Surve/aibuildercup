@@ -18,6 +18,7 @@ export class ApiError extends Error {
 
 async function authHeaders(): Promise<Headers> {
   const headers = new Headers({ "Content-Type": "application/json" });
+  await auth.authStateReady();
   const user = auth.currentUser;
   if (user) {
     headers.set("Authorization", `Bearer ${await user.getIdToken()}`);

@@ -4,9 +4,13 @@ Like Firestore, Storage is behind a narrow protocol so feature code and tests ne
 Google SDK. Only object paths are stored in Firestore; signed URLs are generated on demand.
 """
 
+from collections import OrderedDict
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from threading import Lock
+from time import monotonic
 from typing import Any, Protocol, runtime_checkable
+from urllib.parse import parse_qs, urlsplit
 
 from app.config import get_settings
 
@@ -35,6 +39,16 @@ def validate_object_path(path: str) -> str:
         if segment in ("", ".", ".."):
             raise InvalidObjectPath(f"Invalid object path: {path!r}")
     return path
+
+
+def signed_url_expiry(url: str, fallback: datetime) -> datetime:
+    """V4 cache hits keep the original signing date and TTL."""
+    try:
+        query = parse_qs(urlsplit(url).query)
+        signed_at = datetime.strptime(query["X-Goog-Date"][0], "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC)
+        return signed_at + timedelta(seconds=int(query["X-Goog-Expires"][0]))
+    except (KeyError, ValueError, IndexError):
+        return fallback
 
 
 @runtime_checkable
@@ -74,6 +88,9 @@ class GoogleStorageClient:
         self._signing_service_account = signing_service_account
         self._credentials: Any = None
         self._signing_lock = Lock()
+        self._url_lock = Lock()
+        self._url_stripes = [Lock() for _ in range(32)]
+        self._urls: OrderedDict[tuple, tuple[float, str]] = OrderedDict()
 
     def _signing_credentials(self) -> dict[str, Any]:
         """Credentials usable for a V4 signed URL.
@@ -117,18 +134,32 @@ class GoogleStorageClient:
         expires_seconds: int,
         content_type: str | None = None,
     ) -> str:
-        from datetime import timedelta
-
-        blob = self._bucket.blob(validate_object_path(path))
-        return str(
-            blob.generate_signed_url(
-                version="v4",
-                expiration=timedelta(seconds=expires_seconds),
-                method=method,
-                content_type=content_type,
-                **self._signing_credentials(),
+        path = validate_object_path(path)
+        key = (self._bucket.name, path, method, content_type, expires_seconds)
+        with self._url_stripes[hash(key) % len(self._url_stripes)]:
+            now = monotonic()
+            with self._url_lock:
+                cached = self._urls.get(key)
+                if cached and cached[0] > now:
+                    self._urls.move_to_end(key)
+                    return cached[1]
+            blob = self._bucket.blob(path)
+            url = str(
+                blob.generate_signed_url(
+                    version="v4",
+                    expiration=timedelta(seconds=expires_seconds),
+                    method=method,
+                    content_type=content_type,
+                    **self._signing_credentials(),
+                )
             )
-        )
+            # Count validity from before signing, and leave a five-minute safety window.
+            with self._url_lock:
+                self._urls[key] = (now + max(0, expires_seconds - 300), url)
+                self._urls.move_to_end(key)
+                while len(self._urls) > 2048:
+                    self._urls.popitem(last=False)
+            return url
 
     def upload_text(
         self, path: str, text: str, *, content_type: str = "text/markdown"
