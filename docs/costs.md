@@ -85,7 +85,8 @@ At the published `us-central1` instance-based rate, **one vCPU + 1 GiB for 300 s
 is $0.006** before free allowances: `300 × (0.000018 + 0.000002)`.
 A continuously allocated instance for 30 days would be **$51.84** under that assumption.
 Actual lifetime/allocation must come from Cloud Monitoring and Billing. Min-instances
-zero permits scale-to-zero; max-instances one limits aggregate compute but also throughput.
+one is currently enabled through judging (about $1.73/day before allowances); setting it
+back to zero permits scale-to-zero. Max-instances one limits aggregate compute but also throughput.
 
 Storage costs include source videos, output MP4/audio, thumbnails, retained revisions,
 operations and data transfer. Versioned buckets also retain noncurrent objects. The
@@ -114,7 +115,7 @@ Python floats and metadata occupy more space. This is not measured Firestore sto
 | Adjudicator | At most 12 one-attempt calls/run total (`MAX_ADJUDICATOR_CALLS`), including at most four conflict calls (`MAX_CONFLICT_CALLS`); atomic run-owned call slots survive retries. 32k-character prompts, one frame and optionally a ten-second silent clip, max 2,048 output/reasoning tokens; no Search | Uses `MODEL_ADJUDICATOR` or the reviewer model, with optional separate price settings. Each call needs remaining project budget for a conservative 12k input / 2,048 output estimate. Reported usage (or the allowance on uncertain failure) adds to `costEstimateUsd`. Input/media allowance is an estimate, not a billing hard cap. |
 | Channel calibration | At most 40 videos / 43 YouTube requests, 180-second provider deadline, one attempt per user per 24 hours; no Gemini calls | API quota and Firestore I/O still apply; insufficient data consumes the cooldown. |
 | Rough cut / comparison | Deterministic plan, FFmpeg render and derived transcript; comparison makes no model calls or writes | Rendering/storage/egress and a fresh re-review still cost money; this is not free editing. |
-| Concurrency | Four reviewers and four TTS requests by default; one deployed API instance | Controls pressure, not total usage across all workflows. |
+| Concurrency | Ten reviewers and four TTS requests by default; one deployed API instance | Controls pressure, not total usage across all workflows. |
 | Cloud budget | ₹8,500 configured budget with notifications and billing-detachment function | Billing data/notifications are delayed. This is a backstop, not an immediate hard cap. |
 
 STT now saves operation names before polling and resumes those operations rather than

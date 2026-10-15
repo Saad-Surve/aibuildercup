@@ -16,7 +16,8 @@ optional Veo inserts, YouTube connector with publishing, a content calendar that
 scheduled videos, Medium, Substack and Reddit connectors with cross-posting, creator library
 retrieval, and a read-only demo. Feature detail is in `README.md` and `docs/architecture.md`.
 
-UI copy on local `chore/ui-polish` is prepared for the creator demo (not pushed or deployed).
+UI copy and performance work are merged into local `main` (`7cb49a4`, `f565087`), verified
+and ready for deployment.
 The landing page describes the supported review, rough-cut, and publishing flows. The unfinished
 audience navigation, placeholder platform cards, and static translation preview are removed;
 Localization retains dubbing and the glossary. Job failures use friendly retry guidance, with
@@ -25,13 +26,20 @@ branding and the Google stack names are intentionally retained.
 
 Copy-pass verification: web lint, ESLint, TypeScript, and production export; backend ruff and mypy.
 The exported landing page was checked at desktop and phone widths, including the rough-cut
-example. Signed-in flows and live provider jobs were not exercised. Existing image, array-sort,
+example. Read-only demo sign-in, dashboard, project workspace and Review were checked locally against
+live Firestore on 2026-10-15; Calendar and Settings were also checked. Fresh provider jobs and
+write flows remain unverified. Existing image, array-sort,
 and static-export rewrite warnings remain.
+
+Cloud Run keeps one warm instance (`min-instances 1`, workflow `53aab18`, deployed and
+confirmed 2026-10-15), at approximately $1.73/day before allowances. Return it to zero after
+judging if idle costs are no longer justified. Reviewer/orchestrator models remain 3.8 Flash:
+the 3.5 Flash-Lite dev comparison lost three planted issues and had quota/service failures.
 
 What is not yet proven is live, end-to-end behavior on the current code. See
 "Verification gaps" below.
 
-## Performance work on `perf/snappy` (local, not pushed or deployed)
+## Performance work (merged into `main`)
 
 - Notifications observe shared query data and an owner subscription on the existing tab-wide
   WebSocket. The watcher makes **zero HTTP requests**; its first cache scan waits for idle,
@@ -76,7 +84,8 @@ What is not yet proven is live, end-to-end behavior on the current code. See
   (158 files). Uvicorn booted without reload on 8090; `/api/readyz` returned 200 and OpenAPI
   returned GZip. Local smoke checks confirmed owner isolation/deduplication, bounded call
   allowance and streaming bypass. No tests/dependencies added. No infra/workflow changes,
-  deployment or paid model calls. Authenticated browser/GCP behavior and actual latency/pipeline
+  deployment or paid model calls. Local read-only authenticated browsing against live GCP now passes; dashboard startup made
+  only demo-session, profile and project-list requests. Actual deployed latency/pipeline
   timing remain unmeasured; increased concurrency still needs a bounded live run for quota,
   CPU and memory pressure. Spend checks remain token-price estimates, not a billing hard cap.
 
