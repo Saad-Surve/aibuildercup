@@ -1,4 +1,7 @@
+import asyncio
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
@@ -41,6 +44,7 @@ from app.auth.read_only import (
 )
 from app.config import get_settings
 from app.errors import AppError, error_body
+from app.middleware.json_gzip import JsonGZipMiddleware
 
 _HTTP_CODES = {
     400: "BAD_REQUEST",
@@ -57,16 +61,31 @@ def _request_id(request: Request) -> str | None:
     return getattr(request.state, "request_id", None)
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # On one vCPU asyncio otherwise gets only five executor threads. Ten blocking
+    # model calls must leave headroom for Firestore progress and evidence writes.
+    executor = ThreadPoolExecutor(max_workers=32, thread_name_prefix="studio")
+    asyncio.get_running_loop().set_default_executor(executor)
+    try:
+        yield
+    finally:
+        executor.shutdown(wait=True)
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
+        lifespan=lifespan,
         title="Creator Helper Studio API",
         version="0.1.0",
         docs_url="/docs" if settings.is_local else None,
         redoc_url=None,
         openapi_url="/openapi.json" if settings.is_local else None,
     )
+
+    app.add_middleware(JsonGZipMiddleware, minimum_size=1024)
 
     # Registered before CORS so CORS wraps it: a read-only 403 then still carries the CORS
     # headers the browser needs to surface the error. (Starlette wraps last-added outermost,

@@ -5,7 +5,7 @@ person needs to know: contracts, infra, deployed state, open decisions, or verif
 Keep it current rather than chronological. Delete what is no longer true. History lives in
 `git log -- docs/current-progress`; earlier notes can be recovered with `git show <rev>:<path>`.
 
-Last updated: 2026-10-14.
+Last updated: 2026-10-15.
 
 ## Status
 
@@ -18,6 +18,55 @@ retrieval, and a read-only demo. Feature detail is in `README.md` and `docs/arch
 
 What is not yet proven is live, end-to-end behavior on the current code. See
 "Verification gaps" below.
+
+## Performance work on `perf/snappy` (local, not pushed or deployed)
+
+- Notifications observe shared query data and an owner subscription on the existing tab-wide
+  WebSocket. The watcher makes **zero HTTP requests**; its first cache scan waits for idle,
+  hidden tabs skip scans, and the minute timer only checks local schedule reminders. Owner
+  frames carry no snapshots and cause no Firestore reads. Terminal events reconcile only
+  matching observed resources. Events missed while offline, and resources never observed in
+  this tab, reconcile on the next normal view/focus fetch; there is no durable notification feed.
+- Returning users render the shell from a local profile hint while Firebase restores and `/me`
+  validates in the background. API calls wait for Firebase restoration; ownership/read-only
+  enforcement stays server-side. Sign-out/account switches clear cached state. First-time users
+  retain the onboarding gate. Transient `/me` errors retain an established cached shell.
+- Workspace project/assets/transcript queries start together, with project-list placeholder
+  data and early VideoStudio chunk loading. Cards prefetch these on hover/focus. Missing-video
+  and missing-transcript states wait for their queries. Cards no longer request asset lists or
+  download/decode remote videos for posters; applied covers and existing local posters remain.
+- **Contracts:** `Project.sourceSummary` adds active asset id, duration, size, upload date and
+  poster URL on `GET /projects`, using one batched asset read. Publish/schedule list endpoints
+  accept `refreshLive` (default false); views request reconciliation once, interval refetches
+  read saved state only. WebSocket client messages add `subscribe.owner`/`unsubscribe.owner`,
+  scoped exclusively to the authenticated UID and deduplicated with project subscriptions.
+  OpenAPI/events are updated; no persisted Firestore shape or indexes change.
+- Published/planned items and idle visual inserts stop polling. Hidden tabs pause fallback
+  polling. Rough cuts poll their existing job instead of repeatedly downloading the asset
+  list. Signed media/evidence URL renewal while visible remains separate from job polling.
+  The header uses an initial in a fixed-size circle; avatar artwork stays on the profile/editor
+  route. Marketing/caption fonts are no longer preloaded globally. Persona uses React Query.
+- Bounded, thread-safe process caches reuse signed URLs only with more than five minutes left,
+  immutable transcript generations, revision joins and library PCA/neighbors. Cached URL
+  responses report the original expiry. Revision joins use index counts for cache versions;
+  library versions use projected embedding timestamps/model metadata instead of full vectors.
+  Ownership is checked before cache lookup; all caches disappear on container restart.
+- Complete JSON responses >=1 KB are GZipped; streaming bodies/SSE/WebSockets bypass compression.
+  The API lifespan gives `asyncio.to_thread` 32 workers so model calls leave I/O headroom on
+  one vCPU. Reviewer concurrency defaults to 10. The rubric starts alongside reviewers when a
+  conservative reviewer/interest/prior-call allowance fits; near the cap it retains the serial
+  fallback. Editor and adjudicator use waves of at most three, reserve all in-flight call
+  estimates before launch, and merge summaries in input order. Durable atomic call slots and
+  per-call limits remain. Prompts, versions, model requests, thinking and token limits are
+  unchanged (AST-checked); no evaluation outputs were regenerated.
+- Verification: web oxlint, ESLint, TypeScript and static export pass (four existing library
+  `<img>` ESLint warnings; existing static-export rewrite notices). Backend ruff and mypy pass
+  (158 files). Uvicorn booted without reload on 8090; `/api/readyz` returned 200 and OpenAPI
+  returned GZip. Local smoke checks confirmed owner isolation/deduplication, bounded call
+  allowance and streaming bypass. No tests/dependencies added. No infra/workflow changes,
+  deployment or paid model calls. Authenticated browser/GCP behavior and actual latency/pipeline
+  timing remain unmeasured; increased concurrency still needs a bounded live run for quota,
+  CPU and memory pressure. Spend checks remain token-price estimates, not a billing hard cap.
 
 ## Review loop work on local `main` (2026-10-14, not pushed or deployed)
 
@@ -173,9 +222,10 @@ Calendar and publishing (2026-10-11 to 10-12):
 - Go-live is lazy. There is no scheduler. `_promote_due` runs on publish list and get, so a
   scheduled post flips to `published` only while something polls. The calendar and studio poll
   while any item is non-terminal.
-- YouTube deletions are detected on read, not by a job. `_reconcile_live` runs on publish list and
-  get, and `_reconcile_linked_uploads` runs on the calendar list endpoints. Each live video is
-  re-checked at most every 60s. A deleted video marks the publish `deleted` and cancels its slot.
+- YouTube deletions are detected on explicit view, not by a job. Publish/schedule list reads
+  reconcile only with `refreshLive=true`; one-publish GET still reconciles. Each live video is
+  re-checked at most every 60s when requested. A deleted video marks the publish `deleted` and
+  cancels its slot. Published items do not keep polling.
 - Rescheduling a dead or failed upload re-uploads it (`recreate_for_schedule`). Rescheduling a
   still-waiting upload moves its go-live time. A live (`published`) upload stays blocked.
 - Deleting a slot cancels a queued upload job that has not reached YouTube. Deleting a publish

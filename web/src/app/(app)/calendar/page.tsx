@@ -8,6 +8,7 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent,
 } from "react";
+import { useViewReconciliation } from "@/hooks/use-view-reconciliation";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -264,7 +265,10 @@ function layoutDaySlots(items: Schedule[]): PlacedSlot[] {
   const height = (SLOT_MINUTES / 60) * HOUR_PX;
   return sorted.map((schedule, i) => ({
     schedule,
-    top: Math.max(0, Math.min((starts[i] / 60) * HOUR_PX, 24 * HOUR_PX - height)),
+    top: Math.max(
+      0,
+      Math.min((starts[i] / 60) * HOUR_PX, 24 * HOUR_PX - height),
+    ),
     height,
     leftPct: (lanes[i] / counts[i]) * 100,
     widthPct: 100 / counts[i],
@@ -291,7 +295,10 @@ function WeekTimeGrid({
   onDayHeader: (day: Date) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const hours = useMemo(() => Array.from({ length: 24 }, (_, hour) => hour), []);
+  const hours = useMemo(
+    () => Array.from({ length: 24 }, (_, hour) => hour),
+    [],
+  );
   const columns = "3.5rem repeat(7, minmax(0, 1fr))";
 
   const initialTop = useMemo(() => {
@@ -314,7 +321,8 @@ function WeekTimeGrid({
   }, [initialTop]);
 
   const nowDate = new Date(now);
-  const nowTop = ((nowDate.getHours() * 60 + nowDate.getMinutes()) / 60) * HOUR_PX;
+  const nowTop =
+    ((nowDate.getHours() * 60 + nowDate.getMinutes()) / 60) * HOUR_PX;
 
   function createAtHour(
     day: Date,
@@ -327,7 +335,7 @@ function WeekTimeGrid({
     if (event.detail !== 0) {
       const rect = event.currentTarget.getBoundingClientRect();
       const offset = Math.max(0, Math.min(HOUR_PX, event.clientY - rect.top));
-      minutes = hour * 60 + Math.floor((offset / HOUR_PX) * 60 / 15) * 15;
+      minutes = hour * 60 + Math.floor(((offset / HOUR_PX) * 60) / 15) * 15;
     }
     const next = new Date(day);
     next.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
@@ -437,7 +445,10 @@ function WeekTimeGrid({
                       <span className="shrink-0 font-medium tabular-nums">
                         {format(new Date(slot.schedule.scheduledAt), "HH:mm")}
                       </span>
-                      <PlatformLogo platform={slot.schedule.platform} size={12} />
+                      <PlatformLogo
+                        platform={slot.schedule.platform}
+                        size={12}
+                      />
                       <span className="min-w-0 flex-1 truncate">
                         {slot.schedule.title}
                       </span>
@@ -485,25 +496,20 @@ function CalendarInner() {
     [window],
   );
 
+  const reconcileOnView = useViewReconciliation(`${startISO}:${endISO}`);
   const schedulesQuery = useQuery({
     queryKey: ["schedules", startISO, endISO],
-    queryFn: () => listSchedules({ start: startISO, end: endISO }),
-    // While any slot is still waiting to go live, poll so a scheduled upload's
-    // status flips in place once its go-public time passes (the backend promotes
-    // it lazily when publishes are read).
+    queryFn: () =>
+      listSchedules({
+        start: startISO,
+        end: endISO,
+        refreshLive: reconcileOnView(),
+      }),
+    // Scheduled uploads still need lazy go-live promotion. Planned and published
+    // slots are idle; their status is refreshed on view/focus or explicit refresh.
     refetchInterval: (query) => {
       const items = query.state.data?.items ?? [];
-      // Poll while any slot is still live: planned/scheduled flip at go-live or
-      // when a blocker clears, and published must keep polling so a video
-      // deleted directly on YouTube flips to cancelled here (the backend
-      // deletion check only runs when the calendar is read). Only cancelled and
-      // failed are terminal.
-      const waiting = items.some(
-        (item) =>
-          item.status === "planned" ||
-          item.status === "scheduled" ||
-          item.status === "published",
-      );
+      const waiting = items.some((item) => item.status === "scheduled");
       return waiting ? 60_000 : false;
     },
   });
@@ -606,22 +612,24 @@ function CalendarInner() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center rounded-lg border border-border p-0.5">
-              {(["month", "week", "day", "upcoming"] as CalendarView[]).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setView(option)}
-                  aria-pressed={view === option}
-                  className={cn(
-                    "rounded-md px-3 py-1.5 text-sm capitalize transition-colors",
-                    view === option
-                      ? "bg-signal/10 font-medium text-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {option}
-                </button>
-              ))}
+              {(["month", "week", "day", "upcoming"] as CalendarView[]).map(
+                (option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setView(option)}
+                    aria-pressed={view === option}
+                    className={cn(
+                      "rounded-md px-3 py-1.5 text-sm capitalize transition-colors",
+                      view === option
+                        ? "bg-signal/10 font-medium text-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {option}
+                  </button>
+                ),
+              )}
             </div>
             <Button
               type="button"

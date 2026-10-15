@@ -389,7 +389,7 @@ export function ThumbnailPanel({
         ? false
         : 2000;
     },
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
     retry: false,
   });
 

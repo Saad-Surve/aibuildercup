@@ -19,11 +19,13 @@ from app.schemas.projects import (
     Project,
     ProjectKind,
     ProjectProgress,
+    ProjectSourceSummary,
     ProjectStatus,
     UpdateProject,
 )
 from app.services.firestore_service import (
     FirestoreClient,
+    asset_path,
     project_object_prefix,
     project_path,
     projects_collection_path,
@@ -93,6 +95,25 @@ class ProjectService:
         self.client = client
         self.storage = storage
         self.url_ttl_seconds = url_ttl_seconds
+
+    def attach_source_summaries(self, owner_uid: str, projects: list[Project]) -> None:
+        # One batch RPC for active assets; ownership is checked on both sides of the join.
+        paths = {
+            p.projectId: asset_path(owner_uid, p.projectId, p.sourceAssetId)
+            for p in projects
+            if p.sourceAssetId
+        }
+        assets = self.client.get_documents(list(paths.values()))
+        for project in projects:
+            data = assets.get(paths.get(project.projectId, ""))
+            if data and is_owner(data, owner_uid) and data.get("deletedAt") is None:
+                project.sourceSummary = ProjectSourceSummary(
+                    assetId=project.sourceAssetId or "",
+                    durationMs=data.get("durationMs"),
+                    sizeBytes=int(data.get("sizeBytes", 0)),
+                    createdAt=data["createdAt"],
+                    posterUrl=project.posterUrl,
+                )
 
     def poster_url(self, project: Project) -> str | None:
         """Signed URL for the applied thumbnail cover, or None.

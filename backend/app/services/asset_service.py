@@ -34,8 +34,13 @@ from app.services.firestore_service import (
     transcripts_collection_path,
 )
 from app.services.job_service import JobService
+from app.services.process_cache import ProcessCache
 from app.services.project_service import ProjectService
-from app.services.storage_service import StorageClient
+from app.services.storage_service import StorageClient, signed_url_expiry
+
+_REVISION_METADATA: ProcessCache[tuple[dict[str, tuple[str, int]], dict[str, int]]] = ProcessCache(
+    128, ttl=60
+)
 
 # Allowed source video content types mapped to the object extension.
 ALLOWED_SOURCE_TYPES: dict[str, str] = {
@@ -155,7 +160,7 @@ class AssetService:
             assetId=asset_id,
             storagePath=storage_path,
             uploadUrl=upload_url,
-            expiresAt=now + timedelta(seconds=ttl),
+            expiresAt=signed_url_expiry(upload_url, now + timedelta(seconds=ttl)),
             requiredHeaders={"Content-Type": content_type},
         )
 
@@ -279,11 +284,10 @@ class AssetService:
         )
         ttl = self.settings.upload_url_ttl_seconds
         now = datetime.now(UTC)
+        url = self.storage.signed_download_url(data["storagePath"], expires_seconds=ttl)
         return DownloadUrl(
-            url=self.storage.signed_download_url(
-                data["storagePath"], expires_seconds=ttl
-            ),
-            expiresAt=now + timedelta(seconds=ttl),
+            url=url,
+            expiresAt=signed_url_expiry(url, now + timedelta(seconds=ttl)),
         )
 
     def get_asset(self, *, owner_uid: str, project_id: str, asset_id: str) -> Asset:
@@ -328,39 +332,58 @@ class AssetService:
         legacy_number = {asset.assetId: index + 1 for index, asset in enumerate(ascending)}
         active_id = project.sourceAssetId or (sources[0].assetId if sources else None)
 
-        # Newest transcript per source asset.
-        latest_transcript: dict[str, tuple[str, int]] = {}
-        for transcript_id, data in self.client.query_collection(
-            transcripts_collection_path(owner_uid, project_id),
-            filters=[],
-            order_by=[],
-            limit=100,
-            offset=0,
-        ):
-            if not is_owner(data, owner_uid):
-                continue
-            source_id = data.get("sourceAssetId")
-            if not source_id:
-                continue
-            version = int(data.get("version", 0) or 0)
-            current = latest_transcript.get(str(source_id))
-            if current is None or version > current[1]:
-                latest_transcript[str(source_id)] = (transcript_id, version)
+        # Counts use index aggregation, not full run documents. Most overview visits
+        # can reuse the join; a new/deleted transcript or run immediately changes the key.
+        counts = tuple(
+            self.client.count_collection(path, filters=[], limit=limit)
+            for path, limit in [
+                (transcripts_collection_path(owner_uid, project_id), 100),
+                (analysis_runs_collection_path(owner_uid, project_id), 200),
+            ]
+        )
 
-        # Analysis runs per source asset.
-        analysis_counts: dict[str, int] = {}
-        for _run_id, data in self.client.query_collection(
-            analysis_runs_collection_path(owner_uid, project_id),
-            filters=[],
-            order_by=[],
-            limit=200,
-            offset=0,
-        ):
-            if not is_owner(data, owner_uid):
-                continue
-            source_id = data.get("sourceAssetId")
-            if source_id:
-                analysis_counts[str(source_id)] = analysis_counts.get(str(source_id), 0) + 1
+        def load_metadata() -> tuple[dict[str, tuple[str, int]], dict[str, int]]:
+            # Newest transcript per source asset.
+            latest_transcript: dict[str, tuple[str, int]] = {}
+            for transcript_id, data in self.client.query_collection(
+                transcripts_collection_path(owner_uid, project_id),
+                filters=[],
+                order_by=[],
+                limit=100,
+                offset=0,
+                fields=["ownerUid", "sourceAssetId", "version"],
+            ):
+                if not is_owner(data, owner_uid):
+                    continue
+                source_id = data.get("sourceAssetId")
+                if not source_id:
+                    continue
+                version = int(data.get("version", 0) or 0)
+                current = latest_transcript.get(str(source_id))
+                if current is None or version > current[1]:
+                    latest_transcript[str(source_id)] = (transcript_id, version)
+
+            # Analysis runs per source asset.
+            analysis_counts: dict[str, int] = {}
+            for _run_id, data in self.client.query_collection(
+                analysis_runs_collection_path(owner_uid, project_id),
+                filters=[],
+                order_by=[],
+                limit=200,
+                offset=0,
+                fields=["ownerUid", "sourceAssetId"],
+            ):
+                if not is_owner(data, owner_uid):
+                    continue
+                source_id = data.get("sourceAssetId")
+                if source_id:
+                    analysis_counts[str(source_id)] = analysis_counts.get(str(source_id), 0) + 1
+            return latest_transcript, analysis_counts
+
+        latest_transcript, analysis_counts = _REVISION_METADATA.get_or_load(
+            (self.client, owner_uid, project_id, counts),
+            load_metadata,
+        )
 
         revisions: list[Revision] = []
         for asset in sources:

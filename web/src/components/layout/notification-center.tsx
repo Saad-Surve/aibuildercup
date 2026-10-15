@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
   Calendar01Icon,
   Cancel01Icon,
@@ -25,8 +26,8 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { listAnalysisRuns } from "@/lib/analysis";
-import { listLocalizations } from "@/lib/dubbing";
+import type { listAnalysisRuns } from "@/lib/analysis";
+import type { listLocalizations } from "@/lib/dubbing";
 import {
   clearNotifications,
   dismissNotification,
@@ -39,9 +40,10 @@ import {
   type AppNotification,
   type NotificationKind,
 } from "@/lib/notifications";
-import { listCaptionRenders, listProjects } from "@/lib/projects";
-import { listPublishes } from "@/lib/publishes";
-import { listSchedules } from "@/lib/schedules";
+import type { listCaptionRenders, listProjects } from "@/lib/projects";
+import type { listPublishes } from "@/lib/publishes";
+import type { listSchedules } from "@/lib/schedules";
+import { useNotificationEvents } from "@/hooks/use-notification-events";
 import { workspaceHref } from "@/lib/studio";
 import { cn } from "@/lib/utils";
 
@@ -105,7 +107,6 @@ function recentlyUpdated(
   return Date.now() - when < hours * 3600 * 1000;
 }
 
-const POLL_MS = 60_000;
 const UPCOMING_MS = 60 * 60 * 1000;
 const MAX_NEW_PER_POLL = 8;
 
@@ -116,7 +117,7 @@ interface Pending {
 }
 
 /**
- * Polls the endpoints the app already has and records a notification when
+ * Observes the shared query cache (including realtime updates) and records a notification when
  * something transitions into a terminal state: transcription finished/failed,
  * an upload published/failed, a scheduled slot went live, a caption render or
  * dub finished, an analysis run completed. A schedule starting within the hour
@@ -124,9 +125,10 @@ interface Pending {
  *
  * On the very first run there is no baseline, so only recently-updated terminal
  * items notify (a returning creator still learns what finished while away)
- * and everything else is recorded silently.
+ * and everything else is recorded silently. No notification scan fetches data.
+ * Off-page results appear when the corresponding data is next observed by the app.
  */
-async function pollOnce(uid: string): Promise<void> {
+async function pollOnce(uid: string, client: QueryClient): Promise<void> {
   const { snapshot: seen, baseline } = readSeen(uid);
   const pending: Pending[] = [];
   function consider(
@@ -137,17 +139,30 @@ async function pollOnce(uid: string): Promise<void> {
   ): void {
     // A genuinely new transition always notifies; a baseline item only when
     // it finished recently (and the poll still caps the burst).
-    if (fresh || (baseline && recent)) {
+    if (fresh || recent) {
       pending.push({ id, recent, push });
     }
   }
 
   let projects: Awaited<ReturnType<typeof listProjects>>["items"] = [];
   try {
-    projects = (await listProjects()).items.slice(0, 50);
+    projects =
+      client.getQueryData<Awaited<ReturnType<typeof listProjects>>>([
+        "projects",
+      ])?.items ?? [];
+    const known = new Map(
+      projects.map((project) => [project.projectId, project]),
+    );
+    for (const [, project] of client.getQueriesData<(typeof projects)[number]>({
+      queryKey: ["project"],
+    })) {
+      if (project) known.set(project.projectId, project);
+    }
+    projects = [...known.values()];
   } catch {
     return; // Offline or signed out mid-poll: try again next round.
   }
+  if (projects.length === 0) return;
   const names = new Map(projects.map((p) => [p.projectId, p.name]));
 
   for (const project of projects) {
@@ -216,21 +231,19 @@ async function pollOnce(uid: string): Promise<void> {
     seen.projects[project.projectId] = { status: project.status, stage };
   }
 
-  const perProject = await Promise.allSettled(
-    projects.map(async (project) => {
-      const [publishes, renders, dubs, analyses] = await Promise.all([
-        listPublishes(project.projectId).catch(() => ({ items: [] })),
-        listCaptionRenders(project.projectId).catch(() => ({ items: [] })),
-        listLocalizations(project.projectId).catch(() => ({ items: [] })),
-        listAnalysisRuns(project.projectId).catch(() => ({ items: [] })),
-      ]);
-      return { project, publishes, renders, dubs, analyses };
-    }),
-  );
-
-  for (const result of perProject) {
-    if (result.status !== "fulfilled") continue;
-    const { project, publishes, renders, dubs, analyses } = result.value;
+  for (const project of projects) {
+    const publishes = client.getQueryData<
+      Awaited<ReturnType<typeof listPublishes>>
+    >(["publishes", project.projectId]) ?? { items: [] };
+    const renders = client.getQueryData<
+      Awaited<ReturnType<typeof listCaptionRenders>>
+    >(["caption-renders", project.projectId]) ?? { items: [] };
+    const dubs = client.getQueryData<
+      Awaited<ReturnType<typeof listLocalizations>>
+    >(["localizations", project.projectId]) ?? { items: [] };
+    const analyses = client.getQueryData<
+      Awaited<ReturnType<typeof listAnalysisRuns>>
+    >(["analysis-runs", project.projectId]) ?? { items: [] };
 
     for (const publish of publishes.items) {
       const prev = seen.publishes[publish.publishId];
@@ -335,11 +348,20 @@ async function pollOnce(uid: string): Promise<void> {
 
   try {
     const now = Date.now();
-    const windowStart = new Date(now - 30 * 24 * 3600 * 1000).toISOString();
-    const windowEnd = new Date(now + 90 * 24 * 3600 * 1000).toISOString();
-    const schedules = (
-      await listSchedules({ start: windowStart, end: windowEnd })
-    ).items;
+    const schedules = [
+      ...new Map(
+        [
+          ...client.getQueriesData<Awaited<ReturnType<typeof listSchedules>>>({
+            queryKey: ["schedules"],
+          }),
+          ...client.getQueriesData<Awaited<ReturnType<typeof listSchedules>>>({
+            queryKey: ["project-schedules"],
+          }),
+        ]
+          .flatMap(([, data]) => data?.items ?? [])
+          .map((schedule) => [schedule.scheduleId, schedule]),
+      ).values(),
+    ];
     for (const schedule of schedules) {
       const prev = seen.schedules[schedule.scheduleId];
       seen.schedules[schedule.scheduleId] = schedule.status;
@@ -394,8 +416,7 @@ async function pollOnce(uid: string): Promise<void> {
                 id: `schedule:${schedule.scheduleId}:blocked`,
                 kind: "schedule",
                 title: `“${schedule.title}” is blocked`,
-                body:
-                  schedule.statusDetail ?? "Open the calendar for details.",
+                body: schedule.statusDetail ?? "Open the calendar for details.",
                 href: "/calendar",
               }),
             true,
@@ -436,8 +457,10 @@ async function pollOnce(uid: string): Promise<void> {
 }
 
 export function NotificationWatcher() {
+  const client = useQueryClient();
   const { user } = useAuth();
   const uid = user?.uid ?? null;
+  useNotificationEvents(uid);
   const busy = useRef(false);
 
   useEffect(() => {
@@ -446,21 +469,47 @@ export function NotificationWatcher() {
     const scope: string = uid;
     let stopped = false;
     async function tick(): Promise<void> {
-      if (busy.current || stopped) return;
+      if (busy.current || stopped || document.hidden) return;
       busy.current = true;
       try {
-        await pollOnce(scope);
+        await pollOnce(scope, client);
       } finally {
         busy.current = false;
       }
     }
-    void tick();
-    const timer = setInterval(() => void tick(), POLL_MS);
+    const schedule = () => {
+      if (!ready || document.hidden) return;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void tick(), 250);
+    };
+    let ready = false;
+    const begin = () => {
+      ready = true;
+      schedule();
+    };
+    let timer = window.setTimeout(begin, 2000);
+    const idle = window.requestIdleCallback?.(
+      () => {
+        window.clearTimeout(timer);
+        begin();
+      },
+      { timeout: 2000 },
+    );
+    const unsubscribe = client.getQueryCache().subscribe((event) => {
+      if (event.type === "updated" && event.action.type === "success")
+        schedule();
+    });
+    document.addEventListener("visibilitychange", schedule);
+    const reminders = window.setInterval(schedule, 60_000);
     return () => {
       stopped = true;
-      window.clearInterval(timer);
+      window.clearTimeout(timer);
+      if (idle != null) window.cancelIdleCallback(idle);
+      window.clearInterval(reminders);
+      unsubscribe();
+      document.removeEventListener("visibilitychange", schedule);
     };
-  }, [uid]);
+  }, [uid, client]);
 
   return null;
 }

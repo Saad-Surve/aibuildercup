@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useViewReconciliation } from "@/hooks/use-view-reconciliation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert02Icon,
@@ -197,9 +198,10 @@ export function PublishingModule({
     queryKey: ["thumbnails", projectId],
     queryFn: () => listThumbnails(projectId),
   });
+  const reconcileOnView = useViewReconciliation(projectId);
   const publishesQuery = useQuery({
     queryKey: ["publishes", projectId],
-    queryFn: () => listPublishes(projectId),
+    queryFn: () => listPublishes(projectId, reconcileOnView()),
     refetchInterval: (query) => {
       const items = query.state.data?.items ?? [];
       const active = items.some(
@@ -209,11 +211,9 @@ export function PublishingModule({
           item.status === "processing",
       );
       if (active) return 4000;
-      // Keep checking live videos so a deletion on YouTube syncs back here.
-      const live = items.some((item) => item.status === "published");
-      return live ? 120_000 : false;
+      return false;
     },
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
   });
 
   const sourceAsset = pickSourceAsset(assetsQuery.data?.items, activeSourceId);

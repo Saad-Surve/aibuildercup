@@ -106,7 +106,7 @@ export function ReviewPanel({
     // down, so a finished review can never leave the panel stuck on "Reviewing".
     refetchInterval: (query) =>
       !live && (query.state.data?.items ?? []).some(isInFlight) ? 8000 : false,
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
   });
   const runs = useMemo(() => runsQuery.data?.items ?? [], [runsQuery.data]);
   const activeRun: AnalysisRun | null =
@@ -119,7 +119,7 @@ export function ReviewPanel({
     enabled: Boolean(activeRunId),
     refetchInterval: (query) =>
       !live && isInFlight(query.state.data) ? 5000 : false,
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
   });
 
   // The freshest view of the run: the realtime-patched single run once it
@@ -144,7 +144,7 @@ export function ReviewPanel({
     queryFn: () => listReviewers(projectId, activeRunId as string),
     enabled: Boolean(activeRunId),
     refetchInterval: !live && isRunning ? 5000 : false,
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
   });
 
   const heatmapQuery = useQuery({
@@ -152,7 +152,7 @@ export function ReviewPanel({
     queryFn: () => getHeatmap(projectId, activeRunId as string),
     enabled: Boolean(activeRunId),
     refetchInterval: !live && isRunning ? 8000 : false,
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
   });
 
   // 404 resolves to null (older run, feature off), so no retry and no error UI.
@@ -161,7 +161,7 @@ export function ReviewPanel({
     queryFn: () => getAnalysisInterest(projectId, activeRunId as string),
     enabled: Boolean(activeRunId),
     refetchInterval: !live && isRunning ? 8000 : false,
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
     retry: false,
   });
 
@@ -170,7 +170,7 @@ export function ReviewPanel({
     queryFn: () => listFindings(projectId, activeRunId as string),
     enabled: Boolean(activeRunId),
     refetchInterval: !live && isRunning ? 8000 : false,
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
   });
 
   // The interval queries stop the instant the run settles, which can drop the

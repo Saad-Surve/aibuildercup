@@ -92,6 +92,13 @@ export interface Project {
   } | null;
   /** The project's active source-video asset. */
   sourceAssetId: string | null;
+  sourceSummary?: {
+    assetId: string;
+    durationMs: number | null;
+    sizeBytes: number;
+    createdAt: string;
+    posterUrl: string | null;
+  } | null;
   /** Revision number of the active source video; null if none uploaded. */
   sourceRevision: number | null;
   /** Number of source-video revisions uploaded for this project. */

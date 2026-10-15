@@ -87,10 +87,17 @@ session; the client subscribes per project after connecting. Frame schemas are d
 Client → server (JSON, one object per frame):
 
 ```json
+{"type": "subscribe.owner"}
+{"type": "unsubscribe.owner"}
 {"type": "subscribe.project", "projectId": "project-id"}
 {"type": "unsubscribe.project", "projectId": "project-id"}
 {"type": "ping"}
 ```
+
+Owner subscriptions receive the existing progress/completion frames for the authenticated UID
+across projects. They have no snapshot and perform no per-project reads. A queue subscribed to
+both the owner and a project receives each event once. Reconnect restores subscriptions;
+resources missed while disconnected reconcile on their next normal view/focus fetch.
 
 Server → client:
 

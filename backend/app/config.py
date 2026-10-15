@@ -225,7 +225,7 @@ class Settings(BaseSettings):
     pubsub_push_audience: str | None = None
     pubsub_push_service_account: str | None = None
 
-    max_reviewer_concurrency: int = 4
+    max_reviewer_concurrency: int = 10
     max_project_cost_usd: float = 5.0
 
     # LLM prices in USD per 1M tokens, used to turn reported token usage into `costEstimateUsd`.

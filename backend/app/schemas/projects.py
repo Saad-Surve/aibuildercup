@@ -58,6 +58,14 @@ class ProjectProgress(BaseModel):
     message: str | None = None
 
 
+class ProjectSourceSummary(BaseModel):
+    assetId: str
+    durationMs: int | None = None
+    sizeBytes: int
+    createdAt: datetime
+    posterUrl: str | None = None
+
+
 class Project(BaseModel):
     projectId: str
     name: str
@@ -79,6 +87,7 @@ class Project(BaseModel):
     progress: ProjectProgress | None = None
     #: Active source-video pointer and revision summary (see `Revision`).
     sourceAssetId: str | None = None
+    sourceSummary: ProjectSourceSummary | None = None
     sourceRevision: int | None = None
     revisionCount: int = 0
     #: Cloud Storage object of the applied thumbnail concept, if any. The API mints

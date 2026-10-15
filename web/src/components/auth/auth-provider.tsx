@@ -7,6 +7,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import {
@@ -24,6 +25,12 @@ import { ApiError, apiFetch } from "@/lib/api-client";
 import { API_BASE_URL } from "@/lib/api-base";
 import { DEMO_ENABLED } from "@/lib/demo";
 import { auth } from "@/lib/firebase";
+import {
+  readAuthCache,
+  writeAuthCache,
+  subscribeAuthCache,
+  serverAuthCache,
+} from "@/lib/auth-cache";
 import type { Me } from "@/lib/types";
 
 export type AuthStatus = "loading" | "signed_out" | "signed_in" | "error";
@@ -54,6 +61,11 @@ function describeError(error: unknown): string {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const cached = useSyncExternalStore(
+    subscribeAuthCache,
+    readAuthCache,
+    serverAuthCache,
+  );
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Me | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
@@ -67,30 +79,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
       if (!active) return;
       profileRequest?.abort();
-      if (previousUid !== nextUser?.uid) queryClient.clear();
+      if ((previousUid ?? readAuthCache()?.uid) !== nextUser?.uid)
+        queryClient.clear();
       previousUid = nextUser?.uid;
       setUser(nextUser);
 
       if (!nextUser) {
+        writeAuthCache(null);
         setProfile(null);
         setError(null);
         setStatus("signed_out");
         return;
       }
 
-      setStatus("loading");
+      const restored = readAuthCache();
+      if (restored?.uid === nextUser.uid) {
+        setProfile(restored);
+        setStatus("signed_in");
+      } else {
+        writeAuthCache(null);
+        setProfile(null);
+        setStatus("loading");
+      }
       setError(null);
       const controller = new AbortController();
       profileRequest = controller;
       try {
         const me = await apiFetch<Me>("/me", { signal: controller.signal });
         if (!active || controller.signal.aborted) return;
+        writeAuthCache(me);
         setProfile(me);
         setStatus("signed_in");
       } catch (caught) {
         if (!active || controller.signal.aborted) return;
         setError(describeError(caught));
-        setStatus("error");
+        const authoritative =
+          caught instanceof ApiError &&
+          (caught.status === 401 || caught.status === 403);
+        if (!authoritative && readAuthCache()?.uid === nextUser.uid) {
+          setStatus("signed_in");
+        } else {
+          writeAuthCache(null);
+          setStatus("error");
+        }
       }
     });
 
@@ -132,7 +163,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await firebaseSignOut(auth);
-  }, []);
+    writeAuthCache(null);
+    queryClient.clear();
+  }, [queryClient]);
 
   const signInAsDemo = useCallback(async () => {
     setError(null);
@@ -163,6 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const me = await apiFetch<Me>("/me");
       if (auth.currentUser !== currentUser) return;
+      writeAuthCache(me);
       setProfile(me);
       setError(null);
       setStatus("signed_in");
@@ -175,8 +209,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       user,
-      profile,
-      status,
+      profile: profile ?? (status === "loading" ? cached : null),
+      status:
+        status === "loading" && cached?.onboardingCompleted
+          ? ("signed_in" as const)
+          : status,
       error,
       signInWithGoogle,
       signInAsDemo,
@@ -186,6 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }),
     [
       user,
+      cached,
       profile,
       status,
       error,

@@ -22,7 +22,10 @@ from app.services.firestore_service import (
     transcript_vtt_object_path,
     transcripts_collection_path,
 )
+from app.services.process_cache import ProcessCache
 from app.services.storage_service import StorageClient
+
+_TRANSCRIPTS: ProcessCache[Transcript] = ProcessCache(32)
 
 # Segmentation bounds: keep cues readable and the heatmap bins (5s) meaningful.
 MAX_WORDS_PER_SEGMENT = 14
@@ -290,16 +293,33 @@ class TranscriptService:
         data = self.client.get_document(transcript_path(owner_uid, project_id, transcript_id))
         if data is None or not is_owner(data, owner_uid):
             raise NotFoundError("Transcript not found", details={"projectId": project_id})
-        rows = self.client.query_collection(
-            f"{transcript_path(owner_uid, project_id, transcript_id)}/segments",
-            filters=[],
-            order_by=[("index", "ASCENDING")],
-            limit=2000,
-            offset=0,
+
+        # Edits always create a fresh transcript id. Metadata is still read and owned
+        # before consulting the cache, so deletion/replacement never bypasses authorization.
+        def load() -> Transcript:
+            rows = self.client.query_collection(
+                f"{transcript_path(owner_uid, project_id, transcript_id)}/segments",
+                filters=[],
+                order_by=[("index", "ASCENDING")],
+                limit=2000,
+                offset=0,
+            )
+            segments = [
+                {"segmentId": seg_id, **doc} for seg_id, doc in rows if is_owner(doc, owner_uid)
+            ]
+            return _to_transcript(transcript_id, data, segments)
+
+        return _TRANSCRIPTS.get_or_load(
+            (
+                self.client,
+                owner_uid,
+                project_id,
+                transcript_id,
+                data.get("version"),
+                data.get("updatedAt"),
+            ),
+            load,
         )
-        # The segment id is the document id; reattach it for the public shape.
-        segments = [{"segmentId": seg_id, **doc} for seg_id, doc in rows]
-        return _to_transcript(transcript_id, data, segments)
 
     def get_segment(self, *, owner_uid: str, project_id: str, segment_id: str) -> TranscriptSegment:
         project = self.client.get_document(project_path(owner_uid, project_id))

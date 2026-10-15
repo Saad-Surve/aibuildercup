@@ -126,6 +126,12 @@ __all__ = [
 class FirestoreClient(Protocol):
     def get_document(self, path: str) -> dict[str, Any] | None: ...
 
+    def get_documents(self, paths: list[str]) -> dict[str, dict[str, Any]]: ...
+
+    def count_collection(
+        self, collection_path: str, *, filters: list[tuple[str, str, Any]], limit: int
+    ) -> int: ...
+
     def set_document(self, path: str, data: dict[str, Any]) -> None: ...
 
     def set_owned_child(
@@ -158,6 +164,7 @@ class FirestoreClient(Protocol):
         order_by: list[tuple[str, str]],
         limit: int,
         offset: int,
+        fields: list[str] | None = None,
     ) -> list[tuple[str, dict[str, Any]]]: ...
 
     def query_collection_group(
@@ -180,6 +187,26 @@ class GoogleFirestoreClient:
         if not snapshot.exists:
             return None
         return snapshot.to_dict()
+
+    def get_documents(self, paths: list[str]) -> dict[str, dict[str, Any]]:
+        if not paths:
+            return {}
+        return {
+            doc.reference.path: doc.to_dict() or {}
+            for doc in self._client.get_all([self._client.document(path) for path in paths])
+            if doc.exists
+        }
+
+    def count_collection(
+        self, collection_path: str, *, filters: list[tuple[str, str, Any]], limit: int
+    ) -> int:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
+        query = self._client.collection(collection_path)
+        for field, op, value in filters:
+            query = query.where(filter=FieldFilter(field, op, value))
+        result = query.limit(limit).count().get()
+        return int(result[0][0].value) if result else 0
 
     def set_document(self, path: str, data: dict[str, Any]) -> None:
         self._client.document(path).set(data)
@@ -336,6 +363,7 @@ class GoogleFirestoreClient:
         order_by: list[tuple[str, str]],
         limit: int,
         offset: int,
+        fields: list[str] | None = None,
     ) -> list[tuple[str, dict[str, Any]]]:
         from google.cloud.firestore_v1.base_query import FieldFilter
 
@@ -345,6 +373,8 @@ class GoogleFirestoreClient:
         for field, direction in order_by:
             query = query.order_by(field, direction=direction)
         query = query.offset(offset).limit(limit)
+        if fields is not None:
+            query = query.select(fields)
         return [(doc.id, doc.to_dict() or {}) for doc in query.stream()]
 
     def query_collection_group(

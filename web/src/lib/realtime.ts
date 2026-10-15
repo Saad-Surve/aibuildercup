@@ -111,6 +111,9 @@ const IDLE_CLOSE_MS = 30_000;
 
 const projectHandlers = new Map<string, Set<MessageHandler>>();
 const statusHandlers = new Set<StatusHandler>();
+const ownerHandlers = new Set<MessageHandler>();
+let socketUid: string | null = null;
+const hasSubscribers = () => projectHandlers.size > 0 || ownerHandlers.size > 0;
 
 let socket: WebSocket | null = null;
 let connecting = false;
@@ -179,7 +182,7 @@ function teardown(): void {
 }
 
 function scheduleReconnect(): void {
-  if (reconnectTimer || projectHandlers.size === 0) return;
+  if (reconnectTimer || !hasSubscribers()) return;
   if (
     typeof document !== "undefined" &&
     document.visibilityState === "hidden"
@@ -202,27 +205,28 @@ function scheduleReconnect(): void {
 
 async function connect(): Promise<void> {
   if (typeof window === "undefined") return;
-  if (socket || connecting || projectHandlers.size === 0) return;
+  if (socket || connecting || !hasSubscribers()) return;
 
   connecting = true;
   const attempt = ++connectionAttempt;
 
   setStatus("connecting");
   let token: string | undefined;
+  const user = auth.currentUser;
   try {
-    token = await auth.currentUser?.getIdToken();
+    token = await user?.getIdToken();
   } catch {
     token = undefined;
   }
   if (attempt !== connectionAttempt) return;
   connecting = false;
-  if (!token) {
+  if (!token || user !== auth.currentUser) {
     // Signed out or auth not ready yet; retry with backoff.
     setStatus("closed");
     scheduleReconnect();
     return;
   }
-  if (projectHandlers.size === 0) {
+  if (!hasSubscribers()) {
     setStatus("closed");
     return;
   }
@@ -236,6 +240,7 @@ async function connect(): Promise<void> {
     return;
   }
   socket = next;
+  socketUid = user?.uid ?? null;
 
   next.addEventListener(
     "open",
@@ -244,6 +249,7 @@ async function connect(): Promise<void> {
       reconnectAttempt = 0;
       setStatus("open");
       // Re-subscribe everything: a fresh connect replays no server state.
+      if (ownerHandlers.size > 0) send({ type: "subscribe.owner" });
       for (const projectId of projectHandlers.keys())
         subscribeOnSocket(projectId);
       pingTimer = setInterval(() => send({ type: "ping" }), CLIENT_PING_MS);
@@ -270,9 +276,10 @@ async function connect(): Promise<void> {
       return;
     }
     if (message.type === "pong" || message.type === "error") return;
+    if (socketUid !== auth.currentUser?.uid) return;
+    for (const handler of ownerHandlers) handler(message);
     const handlers = projectHandlers.get(message.projectId);
-    if (!handlers) return;
-    for (const handler of handlers) handler(message);
+    if (handlers) for (const handler of handlers) handler(message);
   });
 
   next.addEventListener(
@@ -290,7 +297,11 @@ async function connect(): Promise<void> {
 
 function ensureConnected(): void {
   if (typeof window === "undefined") return;
-  if (socket || reconnectTimer || projectHandlers.size === 0) return;
+  if (socket && socketUid !== auth.currentUser?.uid) {
+    teardown();
+    setStatus("closed");
+  }
+  if (socket || reconnectTimer || !hasSubscribers()) return;
   void connect();
 }
 
@@ -321,15 +332,35 @@ export function subscribeProject(
     if (current.size === 0) {
       projectHandlers.delete(projectId);
       send({ type: "unsubscribe.project", projectId });
-      if (projectHandlers.size === 0) {
+      if (!hasSubscribers()) {
         idleTimer = setTimeout(() => {
           idleTimer = null;
-          if (projectHandlers.size === 0) {
+          if (!hasSubscribers()) {
             teardown();
             setStatus("closed");
           }
         }, IDLE_CLOSE_MS);
       }
+    }
+  };
+}
+
+/** Reuse this tab's socket for owner-wide notifications, without project snapshots. */
+export function subscribeOwner(handler: MessageHandler): () => void {
+  if (idleTimer) {
+    clearTimeout(idleTimer);
+    idleTimer = null;
+  }
+  const first = ownerHandlers.size === 0;
+  ownerHandlers.add(handler);
+  ensureConnected();
+  if (first && status === "open") send({ type: "subscribe.owner" });
+  return () => {
+    ownerHandlers.delete(handler);
+    if (ownerHandlers.size === 0) send({ type: "unsubscribe.owner" });
+    if (!hasSubscribers()) {
+      teardown();
+      setStatus("closed");
     }
   };
 }
@@ -350,7 +381,7 @@ export function currentRealtimeStatus(): RealtimeStatus {
 
 if (typeof window !== "undefined") {
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && projectHandlers.size > 0) {
+    if (document.visibilityState === "visible" && hasSubscribers()) {
       if (reconnectTimer) {
         clearTimeout(reconnectTimer);
         reconnectTimer = null;

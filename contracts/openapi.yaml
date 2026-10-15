@@ -1866,6 +1866,11 @@ paths:
       - { $ref: "#/components/parameters/ProjectId" }
     get:
       summary: List publish attempts for a project, newest first
+      parameters:
+        - name: refreshLive
+          in: query
+          description: Recheck live YouTube videos on explicit view/refresh only; background polls leave this false.
+          schema: { type: boolean, default: false }
       responses:
         "200":
           description: OK
@@ -1945,6 +1950,10 @@ paths:
         Reads sweep: blocked YouTube slots re-try arming, blocked slots whose time
         passed flip to `failed`, and uploads stuck `queued` past go-live re-fire.
       parameters:
+        - name: refreshLive
+          in: query
+          description: Recheck live YouTube videos on explicit view/refresh only; background polls leave this false.
+          schema: { type: boolean, default: false }
         - name: start
           in: query
           required: false
@@ -1966,6 +1975,11 @@ paths:
       - { $ref: "#/components/parameters/ProjectId" }
     get:
       summary: List a project's calendar slots, oldest first
+      parameters:
+        - name: refreshLive
+          in: query
+          description: Recheck live YouTube videos on explicit view/refresh only; background polls leave this false.
+          schema: { type: boolean, default: false }
       responses:
         "200":
           description: OK
@@ -3028,6 +3042,16 @@ components:
         isDemo: { type: boolean, default: false }
         demoProfileId: { type: [string, "null"] }
 
+    ProjectSourceSummary:
+      type: object
+      required: [assetId, durationMs, sizeBytes, createdAt, posterUrl]
+      properties:
+        assetId: { type: string }
+        durationMs: { type: [integer, "null"] }
+        sizeBytes: { type: integer, format: int64 }
+        createdAt: { type: string, format: date-time }
+        posterUrl: { type: [string, "null"] }
+
     Project:
       allOf:
         - $ref: "#/components/schemas/CreateProject"
@@ -3048,6 +3072,11 @@ components:
             sourceAssetId:
               type: [string, "null"]
               description: The project's active source-video asset.
+            sourceSummary:
+              description: Active source metadata, populated on GET /projects without per-card asset requests.
+              oneOf:
+                - $ref: "#/components/schemas/ProjectSourceSummary"
+                - type: "null"
             sourceRevision:
               type: [integer, "null"]
               description: Revision number of the active source video; null if none uploaded.
@@ -4298,9 +4327,17 @@ components:
         type: { type: string, enum: [subscribe.project] }
         projectId: { type: string }
 
+    WsSubscribeOwner:
+      type: object
+      description: Subscribe to lightweight events for the authenticated owner across projects; no snapshot or Firestore fan-out.
+      required: [type]
+      properties:
+        type: { type: string, enum: [subscribe.owner, unsubscribe.owner] }
+
     WsClientMessage:
       oneOf:
         - $ref: "#/components/schemas/WsSubscribeProject"
+        - $ref: "#/components/schemas/WsSubscribeOwner"
         - $ref: "#/components/schemas/WsUnsubscribeProject"
         - $ref: "#/components/schemas/WsPing"
 

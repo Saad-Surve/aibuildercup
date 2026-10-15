@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useViewReconciliation } from "@/hooks/use-view-reconciliation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -16,12 +17,7 @@ import { PlatformLogo } from "@/components/calendar/platform";
 import { ScheduleDialog } from "@/components/calendar/schedule-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listProjectSchedules } from "@/lib/schedules";
 import type { Publish, Schedule } from "@/lib/types";
@@ -55,20 +51,15 @@ export function ProjectSchedules({
 }) {
   const [dialog, setDialog] = useState<DialogState | null>(null);
 
+  const reconcileOnView = useViewReconciliation(projectId);
   const schedulesQuery = useQuery({
     queryKey: ["project-schedules", projectId],
-    queryFn: () => listProjectSchedules(projectId),
-    // Same live-set as the calendar: keep polling so go-live flips, blockers
-    // clearing, and YouTube deletions all land here without a manual refresh.
-    // Only cancelled and failed are terminal.
+    queryFn: () => listProjectSchedules(projectId, reconcileOnView()),
+    // Scheduled uploads still need lazy go-live promotion. Planned and published
+    // slots are idle; their status is refreshed on view/focus or explicit refresh.
     refetchInterval: (query) => {
       const items = query.state.data?.items ?? [];
-      const waiting = items.some(
-        (item) =>
-          item.status === "planned" ||
-          item.status === "scheduled" ||
-          item.status === "published",
-      );
+      const waiting = items.some((item) => item.status === "scheduled");
       return waiting ? 60_000 : false;
     },
   });
@@ -125,8 +116,7 @@ export function ProjectSchedules({
                         : ""}
                     </span>
                     {item.statusDetail &&
-                    (item.status === "planned" ||
-                      item.status === "failed") ? (
+                    (item.status === "planned" || item.status === "failed") ? (
                       <span className="block truncate text-xs text-destructive">
                         {item.statusDetail}
                       </span>

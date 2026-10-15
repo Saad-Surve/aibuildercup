@@ -11,6 +11,7 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.agents.analysis_coordinator import REVIEWER_CLASSES
+from app.agents.concurrency import budgeted_map
 from app.agents.reviewer_base import SCORE_ANCHORS, SegmentRef
 from app.config import Settings
 from app.providers.base import LlmProvider, LlmUsage
@@ -288,36 +289,28 @@ async def adjudicate(
         len(conflict_clusters(findings, limit=settings.max_conflict_calls)),
     )
     finding_limit = settings.max_adjudicator_calls - conflict_slots
-    usage = LlmUsage()
 
-    def can_call() -> bool:
-        return (
-            summary.callCount < settings.max_adjudicator_calls
-            and summary.costEstimateUsd + estimate <= max(0.0, budget_usd)
-        )
-
-    def charge(tokens: LlmUsage) -> None:
-        nonlocal usage
+    def charge(summary: AdjudicatorSummary, tokens: LlmUsage) -> None:
         usage = LlmUsage(
-            input_tokens=usage.input_tokens + tokens.input_tokens,
-            output_tokens=usage.output_tokens + tokens.output_tokens,
+            input_tokens=summary.tokenUsage.input + tokens.input_tokens,
+            output_tokens=summary.tokenUsage.output + tokens.output_tokens,
         )
         summary.tokenUsage = TokenUsage(input=usage.input_tokens, output=usage.output_tokens)
         summary.costEstimateUsd = round(
             summary.costEstimateUsd + adjudicator_cost(tokens, settings), 6
         )
 
-    def failed(label: str, exc: Exception, *, uncertain_charge: bool) -> None:
+    def failed(
+        summary: AdjudicatorSummary, label: str, exc: Exception, *, uncertain_charge: bool
+    ) -> None:
         summary.errorCount += 1
         summary.errors.append(f"{label}: {type(exc).__name__}")
         if uncertain_charge:
             summary.costEstimateUsd = round(summary.costEstimateUsd + estimate, 6)
         logger.warning("adjudicator %s failed: %s", label, type(exc).__name__)
 
-    for finding in eligible:
-        if summary.findingCallCount >= finding_limit or not can_call():
-            summary.skippedCount += 1
-            continue
+    async def check_finding(finding: Finding) -> AdjudicatorSummary:
+        summary = AdjudicatorSummary(model=model, promptVersion=ADJUDICATOR_PROMPT_VERSION)
         called = False
         charged = False
         slot: str | None = None
@@ -348,7 +341,7 @@ async def adjudicate(
                 slot = await reserve_call("finding", finding.findingId, finding_limit)
                 if slot is None:
                     summary.skippedCount += 1
-                    continue
+                    return summary
             summary.callCount += 1
             summary.findingCallCount += 1
             called = True
@@ -363,7 +356,7 @@ async def adjudicate(
                 max_output_tokens=MAX_OUTPUT_TOKENS,
             )
             completion_usage = completion.usage
-            charge(completion.usage)
+            charge(summary, completion.usage)
             charged = True
             verdict = VerdictResponse.model_validate(completion.data)
             if verdict.verdict == "downgrade":
@@ -389,16 +382,17 @@ async def adjudicate(
         except Exception as exc:  # noqa: BLE001 - one failed check never fails the run
             if isinstance(exc, abort_on):
                 raise
-            failed(finding.findingId, exc, uncertain_charge=called and not charged)
+            failed(summary, finding.findingId, exc, uncertain_charge=called and not charged)
             if slot is not None and settle_call is not None:
                 try:
                     await settle_call(slot, completion_usage, type(exc).__name__)
                 except Exception:  # noqa: BLE001
                     logger.warning("adjudicator could not settle reserved slot %s", slot)
 
-    for group in conflict_clusters(findings, limit=conflict_slots):
-        if not can_call():
-            break
+        return summary
+
+    async def check_conflict(group: list[Finding]) -> AdjudicatorSummary:
+        summary = AdjudicatorSummary(model=model, promptVersion=ADJUDICATOR_PROMPT_VERSION)
         called = False
         charged = False
         slot = None
@@ -412,7 +406,7 @@ async def adjudicate(
                     "conflict", ",".join(f.findingId for f in group), finding_limit
                 )
                 if slot is None:
-                    break
+                    return summary
             summary.callCount += 1
             summary.conflictCallCount += 1
             called = True
@@ -427,13 +421,13 @@ async def adjudicate(
                 max_output_tokens=MAX_OUTPUT_TOKENS,
             )
             completion_usage = completion.usage
-            charge(completion.usage)
+            charge(summary, completion.usage)
             charged = True
             result = ConflictResponse.model_validate(completion.data)
             if not result.hasConflict:
                 if slot is not None and settle_call is not None:
                     await settle_call(slot, completion_usage, None)
-                continue
+                return summary
             if not result.recommendation:
                 raise ValueError("A real conflict needs a reconciled recommendation")
             reconciliation = FindingReconciliation(
@@ -452,12 +446,44 @@ async def adjudicate(
         except Exception as exc:  # noqa: BLE001
             if isinstance(exc, abort_on):
                 raise
-            failed("conflict", exc, uncertain_charge=called and not charged)
+            failed(summary, "conflict", exc, uncertain_charge=called and not charged)
             if slot is not None and settle_call is not None:
                 try:
                     await settle_call(slot, completion_usage, type(exc).__name__)
                 except Exception:  # noqa: BLE001
                     logger.warning("adjudicator could not settle reserved slot %s", slot)
+        return summary
+
+    def merge(results: list[AdjudicatorSummary]) -> None:
+        for result in results:
+            summary.callCount += result.callCount
+            summary.findingCallCount += result.findingCallCount
+            summary.conflictCallCount += result.conflictCallCount
+            summary.skippedCount += result.skippedCount
+            summary.errorCount += result.errorCount
+            summary.errors.extend(result.errors)
+            summary.tokenUsage.input += result.tokenUsage.input
+            summary.tokenUsage.output += result.tokenUsage.output
+            summary.costEstimateUsd = round(summary.costEstimateUsd + result.costEstimateUsd, 6)
+
+    results, skipped = await budgeted_map(
+        eligible,
+        check_finding,
+        budget_usd=budget_usd,
+        call_estimate=estimate,
+        max_calls=finding_limit,
+    )
+    merge(results)
+    summary.skippedCount += len(skipped)
+    # Conflict candidates depend on the finding verdicts; preserve that stage boundary.
+    results, _ = await budgeted_map(
+        conflict_clusters(findings, limit=conflict_slots),
+        check_conflict,
+        budget_usd=budget_usd - summary.costEstimateUsd,
+        call_estimate=estimate,
+        max_calls=settings.max_adjudicator_calls - summary.callCount,
+    )
+    merge(results)
     logger.info(
         "adjudicator done: %d calls (%d findings, %d conflicts), %d errors, %d skipped, $%.6f",
         summary.callCount,

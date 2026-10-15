@@ -26,7 +26,10 @@ from app.schemas.creator_library import (
 from app.services.connection_service import ConnectionService
 from app.services.creator_import_service import CreatorImportService, import_path
 from app.services.firestore_service import FirestoreClient, connection_path, user_path
+from app.services.process_cache import ProcessCache
 from app.services.storage_service import StorageClient
+
+_LAYOUTS: ProcessCache[dict[str, CreatorLibraryNode]] = ProcessCache(16)
 
 logger = logging.getLogger(__name__)
 _VERSION = "creator-passages-v1"
@@ -353,14 +356,51 @@ class CreatorLibraryService:
         if source is None:
             return response
         passages, omitted = self._passages(source)
-        vectors = self._vectors(source, uid)
+        # Chunk vectors are immutable between index writes (which replace createdAt).
+        # Read only version metadata on a hit; no 600-vector transfer or PCA per GET.
+        versions = self.client.query_collection(
+            f"{source.path}/semanticChunks",
+            filters=[("ownerUid", "==", uid)],
+            order_by=[],
+            limit=600,
+            offset=0,
+            fields=["ownerUid", "createdAt", "updatedAt", "model", "dimensions", "promptVersion"],
+        )
         previews: dict[str, str | None] = {}
         nodes = [self._preview(uid, p, previews) for p in passages]
-        indexed = [node for node in nodes if node.id in vectors]
-        coords = project_vectors([vectors[node.id] for node in indexed])
-        for node, (x, y) in zip(indexed, coords, strict=True):
-            node.indexed, node.x, node.y = True, x, y
-        add_neighbors(indexed, vectors)
+
+        def load_layout() -> dict[str, CreatorLibraryNode]:
+            vectors = self._vectors(source, uid)
+            indexed = [node.model_copy(deep=True) for node in nodes if node.id in vectors]
+            coords = project_vectors([vectors[node.id] for node in indexed])
+            for node, (x, y) in zip(indexed, coords, strict=True):
+                node.indexed, node.x, node.y = True, x, y
+            add_neighbors(indexed, vectors)
+            return {node.id: node for node in indexed}
+
+        layout = _LAYOUTS.get_or_load(
+            (
+                self.client,
+                uid,
+                source.path,
+                self.settings.model_embedding,
+                self.settings.embedding_dimensions,
+                _VERSION,
+                _hash(sorted(versions)),
+                tuple(node.id for node in nodes),
+            ),
+            load_layout,
+        )
+        for node in nodes:
+            cached = layout.get(node.id)
+            if cached:
+                node.indexed, node.x, node.y, node.related = (
+                    True,
+                    cached.x,
+                    cached.y,
+                    cached.related,
+                )
+        indexed = [node for node in nodes if node.indexed]
         return CreatorLibrary(
             sourceType=source.source_type,
             displayName=source.display_name,

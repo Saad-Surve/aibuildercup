@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Delete02Icon, Edit02Icon } from "@hugeicons/core-free-icons";
 
@@ -72,31 +73,18 @@ export default function ProfilePage() {
   const { signOut } = useAuth();
   const router = useRouter();
 
-  const [persona, setPersona] = useState<Persona | null>(null);
-  const [personaError, setPersonaError] = useState<string | null>(null);
-  const [loadingPersona, setLoadingPersona] = useState(true);
+  const personaQuery = useQuery({
+    queryKey: ["persona"],
+    queryFn: () => apiFetch<Persona>("/persona"),
+  });
+  const persona = personaQuery.data;
+  const personaError = personaQuery.error ? describe(personaQuery.error) : null;
+  const loadingPersona = personaQuery.isLoading;
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const readOnly = useReadOnly();
-
-  useEffect(() => {
-    let active = true;
-    apiFetch<Persona>("/persona")
-      .then((value) => {
-        if (active) setPersona(value);
-      })
-      .catch((caught) => {
-        if (active) setPersonaError(describe(caught));
-      })
-      .finally(() => {
-        if (active) setLoadingPersona(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   async function deleteAccount() {
     setDeleting(true);

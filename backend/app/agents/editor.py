@@ -9,6 +9,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.agents.concurrency import budgeted_map
 from app.agents.reviewer_base import SegmentRef
 from app.config import Settings
 from app.providers.base import LlmProvider, LlmUsage
@@ -318,7 +319,10 @@ async def edit_findings(
     estimate = editor_call_estimate(settings)
     if not groups:
         summary.skippedCount = len(eligible)
-    for index, group in enumerate(groups):
+
+    async def edit_group(item: tuple[int, list[Finding]]) -> EditorSummary:
+        index, group = item
+        summary = EditorSummary(model=model, promptVersion=EDITOR_PROMPT_VERSION)
         slot = None
         usage = None
         called = False
@@ -330,12 +334,12 @@ async def edit_findings(
                 or (summary.costEstimateUsd + estimate > max(0.0, budget_usd))
             ):
                 summary.skippedCount += len(group)
-                continue
+                return summary
             if reserve_call is not None:
                 slot = await reserve_call(str(index))
                 if slot is None:
                     summary.skippedCount += len(group)
-                    continue
+                    return summary
             summary.callCount += 1
             called = True
             grounded = settings.truth_grounding_enabled and any(
@@ -474,6 +478,26 @@ async def edit_findings(
                     await settle_call(slot, usage, type(exc).__name__)
                 except Exception:  # noqa: BLE001
                     logger.warning("editor could not settle slot %s", slot)
+        return summary
+
+    results, skipped = await budgeted_map(
+        list(enumerate(groups)),
+        edit_group,
+        budget_usd=budget_usd,
+        call_estimate=estimate,
+        max_calls=settings.max_editor_calls,
+    )
+    summary.skippedCount += sum(len(group) for _, group in skipped)
+    for result in results:
+        summary.callCount += result.callCount
+        summary.skippedCount += result.skippedCount
+        summary.errorCount += result.errorCount
+        summary.errors.extend(result.errors)
+        summary.tokenUsage.input += result.tokenUsage.input
+        summary.tokenUsage.output += result.tokenUsage.output
+        summary.costEstimateUsd = round(summary.costEstimateUsd + result.costEstimateUsd, 6)
+        summary.searchQueries.extend(result.searchQueries)
+        summary.searchSuggestions = summary.searchSuggestions or result.searchSuggestions
     summary.keptCount = sum(
         f.editorial is not None and f.editorial.verdict == "keep" for f in findings
     )

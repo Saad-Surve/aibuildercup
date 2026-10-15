@@ -9,16 +9,23 @@ import type {
 export function listSchedules(input?: {
   start?: string;
   end?: string;
+  refreshLive?: boolean;
 }): Promise<ScheduleList> {
   const params = new URLSearchParams();
+  if (input?.refreshLive) params.set("refreshLive", "true");
   if (input?.start) params.set("start", input.start);
   if (input?.end) params.set("end", input.end);
   const query = params.size > 0 ? `?${params.toString()}` : "";
   return apiFetch<ScheduleList>(`/schedules${query}`);
 }
 
-export function listProjectSchedules(projectId: string): Promise<ScheduleList> {
-  return apiFetch<ScheduleList>(`/projects/${projectId}/schedules`);
+export function listProjectSchedules(
+  projectId: string,
+  refreshLive = false,
+): Promise<ScheduleList> {
+  return apiFetch<ScheduleList>(
+    `/projects/${projectId}/schedules?refreshLive=${refreshLive}`,
+  );
 }
 
 export function createSchedule(

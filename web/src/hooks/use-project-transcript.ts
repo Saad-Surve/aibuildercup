@@ -30,10 +30,8 @@ export const TRANSCRIPT_POLL_MS = 10_000;
  *    invalidates it (transcript.ready / project ready / transcribe job success).
  *    When true it falls back to a slow interval so a dropped socket cannot leave
  *    the panel empty forever.
- *  - **Poll while the tab is backgrounded.** TanStack skips an interval tick
- *    entirely when the window is unfocused unless `refetchIntervalInBackground`
- *    is set. Transcription outlasts a tab switch, so the fallback must survive
- *    one.
+ *  - **Pause fallback polling in hidden tabs.** Focus and realtime invalidation
+ *    refresh the transcript when the creator returns.
  *  - **Fresh once it exists.** A query with no data is always stale, so the
  *    first fetch and any refetch while the transcript is missing are unaffected.
  *    Once the transcript exists it is stable for a minute, which stops each pane
@@ -47,18 +45,23 @@ export const TRANSCRIPT_POLL_MS = 10_000;
  */
 export function useProjectTranscript(
   projectId: string,
-  options?: { shouldPoll?: boolean; version?: number | null },
+  options?: {
+    shouldPoll?: boolean;
+    version?: number | null;
+    enabled?: boolean;
+  },
 ) {
   const shouldPoll = options?.shouldPoll ?? false;
   const version = options?.version ?? null;
   return useQuery<Transcript>({
     queryKey: ["transcript", projectId, version ?? "active"],
     queryFn: () => getTranscript(projectId, version),
+    enabled: options?.enabled ?? true,
     retry: false,
     staleTime: (query) => (query.state.data ? 60_000 : 0),
     refetchOnMount: true,
     refetchOnWindowFocus: true,
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
     // Only the active transcript polls; a pinned older version is static.
     refetchInterval: (query) =>
       query.state.data || !shouldPoll || version != null

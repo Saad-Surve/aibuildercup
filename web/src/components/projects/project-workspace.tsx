@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
@@ -14,8 +14,9 @@ import { PipelineStrip } from "@/components/projects/script-link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProjectEvents } from "@/hooks/use-project-events";
 import { useStudioModule } from "@/hooks/use-studio-module";
-import { getJob, getProject } from "@/lib/projects";
-import type { Job } from "@/lib/types";
+import { useProjectTranscript } from "@/hooks/use-project-transcript";
+import { getJob, getProject, listAssets } from "@/lib/projects";
+import type { Job, ProjectList } from "@/lib/types";
 
 function WorkspaceLoading() {
   return <Skeleton className="h-[min(70vh,48rem)] w-full" />;
@@ -48,6 +49,7 @@ export function ProjectWorkspace({
   projectId: string;
   moduleId: string;
 }) {
+  const client = useQueryClient();
   const [jobId, setJobId] = useState<string | null>(null);
 
   // The active module lives in state and is mirrored into the URL with
@@ -65,13 +67,33 @@ export function ProjectWorkspace({
   const projectQuery = useQuery({
     queryKey: ["project", projectId],
     queryFn: () => getProject(projectId),
+    placeholderData: () =>
+      client
+        .getQueryData<ProjectList>(["projects"])
+        ?.items.find((project) => project.projectId === projectId),
     refetchInterval: (query) => {
       const status = query.state.data?.status;
       const running = status === "processing" || status === "uploading";
       return running && !connected ? 8000 : false;
     },
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
   });
+
+  const video = projectQuery.data?.kind !== "draft";
+  useQuery({
+    queryKey: ["assets", projectId],
+    queryFn: () => listAssets(projectId),
+    enabled: video,
+  });
+  useProjectTranscript(projectId, {
+    enabled: video,
+    shouldPoll:
+      !connected &&
+      ["processing", "uploading"].includes(projectQuery.data?.status ?? ""),
+  });
+  useEffect(() => {
+    if (video) void import("@/components/projects/video-studio");
+  }, [video]);
 
   const jobQuery = useQuery<Job>({
     queryKey: ["job", jobId],
@@ -82,7 +104,7 @@ export function ProjectWorkspace({
       const running = status === "queued" || status === "running";
       return running && !connected ? 8000 : false;
     },
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
   });
 
   if (projectQuery.isLoading) {
@@ -171,9 +193,7 @@ export function ProjectWorkspace({
         </div>
       </div>
 
-      {project.kind === "draft" ? null : (
-        <PipelineStrip project={project} />
-      )}
+      {project.kind === "draft" ? null : <PipelineStrip project={project} />}
       {project.kind === "draft" ? (
         <DraftWorkspace project={project} />
       ) : (

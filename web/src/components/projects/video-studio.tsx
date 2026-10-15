@@ -27,6 +27,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useProjectTranscript } from "@/hooks/use-project-transcript";
 import { useSetHeaderNav } from "@/lib/header-nav";
 import { getVideoBlobForProject } from "@/lib/local-media";
@@ -187,13 +188,7 @@ export function VideoStudio({
       />,
     );
     return () => setHeaderNav(null);
-  }, [
-    effectiveSource,
-    projectId,
-    activeModule,
-    onModuleSelect,
-    setHeaderNav,
-  ]);
+  }, [effectiveSource, projectId, activeModule, onModuleSelect, setHeaderNav]);
 
   // Opening a module brings the right pane up to the page's existing snap stop
   // (`lg:snap-start lg:scroll-mt-20`) instead of moving the whole page. `scrollIntoView`
@@ -228,6 +223,8 @@ export function VideoStudio({
       }),
     );
   }
+
+  if (assetsLoading) return <Skeleton className="h-[min(70vh,48rem)] w-full" />;
 
   if (!effectiveSource) {
     return (
@@ -267,6 +264,9 @@ export function VideoStudio({
       );
     }
     if (!activeModuleInfo) return null;
+    if (activeModuleInfo.needsTranscript && transcriptQuery.isLoading) {
+      return <Skeleton className="h-80 w-full" />;
+    }
     if (activeModuleInfo.needsTranscript && !hasTranscript) {
       return (
         <TranscriptGate

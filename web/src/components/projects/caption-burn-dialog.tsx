@@ -344,7 +344,7 @@ export function CaptionBurnPanel({
         : 2000;
     },
     // Keep the render progress moving even if the tab loses focus mid-encode.
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
     retry: false,
   });
 
@@ -754,7 +754,9 @@ export function CaptionBurnPanel({
                     variant="ghost"
                     aria-label="Delete render"
                     disabled={deleteMutation.isPending || readOnly}
-                    onClick={() => deleteMutation.mutate(render.captionRenderId)}
+                    onClick={() =>
+                      deleteMutation.mutate(render.captionRenderId)
+                    }
                   >
                     <Icon icon={Delete02Icon} />
                   </Button>

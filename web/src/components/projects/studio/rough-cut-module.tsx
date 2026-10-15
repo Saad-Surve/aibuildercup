@@ -210,7 +210,7 @@ function CutEditor({
       )
         ? false
         : 1500,
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
   });
   const reviewJob = useQuery({
     queryKey: ["job", reviewJobId],
@@ -241,14 +241,6 @@ function CutEditor({
   const assets = useQuery({
     queryKey: ["assets", projectId],
     queryFn: () => listAssets(projectId),
-    refetchInterval: (query) =>
-      pending &&
-      !job.error &&
-      !["failed", "cancelled"].includes(job.data?.status ?? "") &&
-      !query.state.data?.items.some((a) => a.assetId === pending.assetId)
-        ? 2000
-        : false,
-    refetchIntervalInBackground: true,
   });
   useEffect(() => {
     if (job.data?.status !== "succeeded") return;
@@ -356,7 +348,7 @@ function CutEditor({
             run.sourceAssetId === cut.assetId &&
             (run.status === "ready" || run.status === "partial_failure"),
         )
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+        .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
     : undefined;
 
   return (

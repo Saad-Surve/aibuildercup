@@ -27,6 +27,7 @@ from app.agents.analysis_coordinator import (
     build_review_contexts,
     build_reviewers,
     chunk_segments,
+    rubric_call_estimate,
     run_reviewers,
     run_rubric_review,
 )
@@ -327,6 +328,94 @@ async def run_analysis(
         if settings.interest_curve_enabled
         else None
     )
+
+    # Admit the independent rubric before reviewer fan-out. Keep a conservative
+    # allowance for all reviewer chunks/tool rounds, interest and durable prior calls.
+    async def reserve_rubric() -> str | None:
+        return await asyncio.to_thread(
+            analyses.reserve_rubric_call,
+            owner_uid=owner_uid,
+            project_id=project_id,
+            analysis_run_id=analysis_run_id,
+        )
+
+    async def settle_rubric(slot: str, usage: LlmUsage | None, error: str | None) -> None:
+        await asyncio.to_thread(
+            analyses.settle_rubric_call,
+            owner_uid=owner_uid,
+            slot=slot,
+            usage=usage,
+            error=error,
+        )
+
+    rubric_task = None
+    try:
+        spent_before, adjudicator_before, editor_before = await asyncio.gather(
+            asyncio.to_thread(
+                analyses.spent_usd,
+                owner_uid=owner_uid,
+                project_id=project_id,
+                exclude_run_id=analysis_run_id,
+            ),
+            asyncio.to_thread(
+                analyses.adjudicator_spent_usd,
+                owner_uid=owner_uid,
+                project_id=project_id,
+                analysis_run_id=analysis_run_id,
+            ),
+            asyncio.to_thread(
+                analyses.editor_spent_usd,
+                owner_uid=owner_uid,
+                project_id=project_id,
+                analysis_run_id=analysis_run_id,
+            ),
+        )
+        rounds = 1 + (settings.visual_tool_max_rounds if visual_tools is not None else 0)
+        reviewer_allowance = (
+            len(reviewers)
+            * len(contexts)
+            * rounds
+            * estimate_cost_usd(
+                LlmUsage(input_tokens=64_000, output_tokens=32_768),
+                input_price_per_mtok=settings.llm_input_price_per_mtok,
+                output_price_per_mtok=settings.llm_output_price_per_mtok,
+            )
+        )
+        interest_allowance = (
+            estimate_cost_usd(
+                LlmUsage(input_tokens=48_000, output_tokens=16_000),
+                input_price_per_mtok=settings.llm_input_price_per_mtok,
+                output_price_per_mtok=settings.llm_output_price_per_mtok,
+            )
+            if interest_task is not None
+            else 0.0
+        )
+        parallel_budget = (
+            settings.max_project_cost_usd
+            - spent_before
+            - adjudicator_before
+            - editor_before
+            - reviewer_allowance
+            - interest_allowance
+        )
+        if parallel_budget >= rubric_call_estimate(settings):
+            rubric_task = asyncio.create_task(
+                run_rubric_review(
+                    llm,
+                    settings=settings,
+                    segments=segments,
+                    context=contexts[0],
+                    media=tuple(frame.media for c in contexts for frame in c.sampled_frames),
+                    budget_usd=parallel_budget,
+                    reserve_call=reserve_rubric,
+                    settle_call=settle_rubric,
+                )
+            )
+        # Near the cap, retain the serial path: actual reviewer charges may free
+        # enough room for the same rubric request after the reviewers settle.
+    except Exception:
+        logger.warning("Could not reserve concurrent rubric allowance", exc_info=True)
+
     completed: list[DimensionOutcome] = []
     outcome_lock = asyncio.Lock()
     total_dimensions = max(1, len(dimensions))
@@ -368,8 +457,13 @@ async def run_analysis(
         )
     except Exception as exc:  # noqa: BLE001 - record the failure on the job and the run
         logger.exception("analyze job %s: fan-out failed", job_id)
-        if interest_task is not None:
-            interest_task.cancel()
+        for task in (interest_task, rubric_task):
+            if task is not None:
+                task.cancel()
+        await asyncio.gather(
+            *(task for task in (interest_task, rubric_task) if task is not None),
+            return_exceptions=True,
+        )
         await asyncio.to_thread(
             jobs.mark_failed,
             owner_uid=owner_uid,
@@ -475,37 +569,24 @@ async def run_analysis(
                 error=error,
             )
 
-        async def reserve_rubric() -> str | None:
-            return await asyncio.to_thread(
-                analyses.reserve_rubric_call,
-                owner_uid=owner_uid,
-                project_id=project_id,
-                analysis_run_id=analysis_run_id,
+        rubric_findings, rubric_summary = (
+            await rubric_task
+            if rubric_task is not None
+            else await run_rubric_review(
+                llm,
+                settings=settings,
+                segments=segments,
+                context=contexts[0],
+                media=tuple(frame.media for c in contexts for frame in c.sampled_frames),
+                budget_usd=settings.max_project_cost_usd
+                - spent
+                - review_cost
+                - prior_adjudicator_cost
+                - prior_editor_cost
+                - interest_reserve,
+                reserve_call=reserve_rubric,
+                settle_call=settle_rubric,
             )
-
-        async def settle_rubric(slot: str, usage: LlmUsage | None, error: str | None) -> None:
-            await asyncio.to_thread(
-                analyses.settle_rubric_call,
-                owner_uid=owner_uid,
-                slot=slot,
-                usage=usage,
-                error=error,
-            )
-
-        rubric_findings, rubric_summary = await run_rubric_review(
-            llm,
-            settings=settings,
-            segments=segments,
-            context=contexts[0],
-            media=tuple(frame.media for c in contexts for frame in c.sampled_frames),
-            budget_usd=settings.max_project_cost_usd
-            - spent
-            - review_cost
-            - prior_adjudicator_cost
-            - prior_editor_cost
-            - interest_reserve,
-            reserve_call=reserve_rubric,
-            settle_call=settle_rubric,
         )
         if rubric_summary.skippedCount:
             rubric_findings = [
