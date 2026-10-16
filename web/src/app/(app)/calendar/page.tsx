@@ -684,8 +684,9 @@ function CalendarInner() {
                 {titleFor(view, cursor)}
               </h2>
               <p className="text-xs text-muted-foreground tabular-nums">
-                {all.length} slot{all.length === 1 ? "" : "s"} ·{" "}
-                {counts.scheduled} scheduled
+                {all.length === 0
+                  ? "No scheduled content"
+                  : `${all.length} slot${all.length === 1 ? "" : "s"} · ${counts.scheduled} scheduled`}
               </p>
             </div>
 
@@ -882,17 +883,6 @@ function CalendarInner() {
                 </div>
               </div>
             )}
-
-            {!schedulesQuery.isLoading && all.length === 0 ? (
-              <Empty className="border border-dashed py-12">
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <Icon icon={Calendar01Icon} />
-                  </EmptyMedia>
-                  <EmptyTitle>Nothing on the calendar</EmptyTitle>
-                </EmptyHeader>
-              </Empty>
-            ) : null}
           </CardContent>
         </Card>
       </div>
