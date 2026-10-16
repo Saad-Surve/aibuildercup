@@ -183,10 +183,15 @@ def prepare_import(folder: Path) -> PreparedImport:
 
 
 def item_content_hash(prepared: PreparedImport, item: Any) -> str:
+    item_payload = item.model_dump(mode="json")
+    # Schema v1 bundles created before the optional license field must retain their
+    # existing content hashes and precomputed preset vectors.
+    if item_payload.get("license") is None:
+        item_payload.pop("license", None)
     return hashlib.sha256(
         json.dumps(
             {
-                "item": item.model_dump(mode="json"),
+                "item": item_payload,
                 "files": {
                     name: prepared.files[name].digest
                     for name in (item.textFile, item.thumbnailFile, item.mediaFile)

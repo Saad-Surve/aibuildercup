@@ -1,0 +1,71 @@
+{
+  "bundleId": "vlogbrothers-prehero-cc-by",
+  "channelId": "UCGaVdbSav8xWuFWTadK6loA",
+  "channelUrl": "https://www.youtube.com/@vlogbrothers",
+  "creator": {
+    "name": "vlogbrothers",
+    "language": "en",
+    "links": ["https://www.youtube.com/@vlogbrothers"],
+    "bio": "User-supplied library label: selected pre-21 October 2025 vlogbrothers videos by John and Hank Green, spanning books, writing, online creativity, Nerdfighteria and other recurring topics. Source material remains attributed CC BY and is context from earlier work, not evidence about a current video."
+  },
+  "attribution": "John Green / Hank Green (vlogbrothers), CC BY 4.0",
+  "requiredLicense": "Creative Commons Attribution license (reuse allowed)",
+  "publishedBefore": "2025-10-21",
+  "itemLimit": 29,
+  "thumbnailLimit": 10,
+  "captionRequestLimit": 29,
+  "localWhisperFallback": true,
+  "localWhisperLimit": 29,
+  "whisperModel": "mlx-community/whisper-large-v3-turbo",
+  "excludedIds": {
+    "JhVJMO0wgTE": "Sensitive evaluation-only video; excluded from the demo library"
+  },
+  "excludedTerms": [
+    "Call of Duty",
+    "Black Ops 6",
+    "book-sales correction",
+    "book sales correction"
+  ],
+  "facets": {
+    "books and publishing": ["book", "publishing", "reading", "writing", "novel", "bestseller"],
+    "creator economy": ["youtube", "youtuber", "influencer", "views", "paid", "tiktok"],
+    "internet and platforms": ["internet", "google", "ai image", "content"],
+    "nerdfighteria": ["nerdfighter", "project for awesome", "p4a"],
+    "art and storytelling": ["art", "movies", "story"]
+  },
+  "videoUrls": [
+    "https://www.youtube.com/watch?v=MgfZHaylL5A",
+    "https://www.youtube.com/watch?v=Fj-INVmmILo",
+    "https://www.youtube.com/watch?v=BBvze0lGcZg",
+    "https://www.youtube.com/watch?v=JhVJMO0wgTE",
+    "https://www.youtube.com/watch?v=oqE_3CQpQf4",
+    "https://www.youtube.com/watch?v=uoHWeuep5wk",
+    "https://www.youtube.com/watch?v=80SCl6n0TEo",
+    "https://www.youtube.com/watch?v=xgcOzBNdYlA",
+    "https://www.youtube.com/watch?v=GFGSXP1eABY",
+    "https://www.youtube.com/watch?v=Dc0gPrpdlTc",
+    "https://www.youtube.com/watch?v=jkdYQD-yuVY",
+    "https://www.youtube.com/watch?v=ep9_JuN24Eo",
+    "https://www.youtube.com/watch?v=69dv6UkNHnY",
+    "https://www.youtube.com/watch?v=GBIIMkd-VlQ",
+    "https://www.youtube.com/watch?v=ZMTConHyTYU",
+    "https://www.youtube.com/watch?v=kqPZg4gULaQ",
+    "https://www.youtube.com/watch?v=X5bkge-w2og",
+    "https://www.youtube.com/watch?v=TEQmOUZahz4",
+    "https://www.youtube.com/watch?v=jX1k32OL8CU",
+    "https://www.youtube.com/watch?v=ikf9Cvfou5w",
+    "https://www.youtube.com/watch?v=QghbHQq6eHw",
+    "https://www.youtube.com/watch?v=JiMXb2NkAxQ",
+    "https://www.youtube.com/watch?v=5qhqnGed9jM",
+    "https://www.youtube.com/watch?v=j48Z7dqBcWM",
+    "https://www.youtube.com/watch?v=I8HAzNzfzaI",
+    "https://www.youtube.com/watch?v=1sX0PjAd3-Q",
+    "https://www.youtube.com/watch?v=DWReago8zrM",
+    "https://www.youtube.com/watch?v=UDYbdLain2E",
+    "https://www.youtube.com/watch?v=0kKxzhkxOeM",
+    "https://www.youtube.com/watch?v=33v9AM3uASY",
+    "https://www.youtube.com/watch?v=vIlui4uXvfc",
+    "https://www.youtube.com/watch?v=sqPylfqIQFw",
+    "https://www.youtube.com/watch?v=ZXUx7neINIY"
+  ]
+}

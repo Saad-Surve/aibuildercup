@@ -5,6 +5,9 @@
 fixtures/media
 .tmp
 
+# Operator-collected creator-library snapshots (metadata, captions, thumbnails and ASR output)
+backend/creator-libraries/
+
 # Background dev server logs
 .logs/
 

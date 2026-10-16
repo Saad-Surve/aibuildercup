@@ -443,8 +443,8 @@ a removed source/account cannot be resurrected by an in-flight embedding respons
 its ordinary `creatorImports` subtree. Only `CREATOR_PRESET_ENABLED` selects those imports;
 flag off uses real connections. Shared ZIP originals in `creator-presets/` are operator-owned
 and have an explicit preset removal CLI, while account deletion removes every user copy.
-Imported items retain platform, source language, attribution, content type, fetch time and
-collection method. API node `related` contains three actual cosine neighbors from other
+Imported items retain platform, source language, attribution, optional declared license,
+content type, fetch time and collection method. API node `related` contains three actual cosine neighbors from other
 items plus the closest other modality when absent (explicit `cross_modal` relation), computed
 from current model vectors; these are not stored confidence or quality scores.
 

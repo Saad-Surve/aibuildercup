@@ -28,6 +28,7 @@ OAuth token, or publishing connection. Default execution validates locally witho
       "mediaFile": "videos/video-01.mp4",
       "url": "https://example.com/video-01",
       "language": "en",
+      "license": "Creative Commons Attribution license (reuse allowed)",
       "publishedAt": "2026-10-01T12:00:00Z"
     },
     {
@@ -89,7 +90,7 @@ in Firestore; thumbnail reference generation reads stored image bytes directly.
 ## Public corpus provenance and backend presets
 
 Optional per-item fields: `platform` (<=40 chars), `contentType` (<=80), `attribution`
-(<=200), `collectionMethod` (<=80), timezone-aware `fetchedAt`. Defaults are unknown/supplied.
+(<=200), `license` (<=120), `collectionMethod` (<=80), timezone-aware `fetchedAt`. Defaults are unknown/supplied.
 They distinguish captions, channel descriptions, authored posts, brand biographies and user
 assertions; missing captions are never replaced with generated transcripts. `tags` are source
 metadata or explicitly marked collection facets, not model-derived clusters. Language records

@@ -24,7 +24,9 @@ Localization retains dubbing and the glossary. Job failures use friendly retry g
 exception details kept in logs. API contracts and persisted data shapes are unchanged. Humation
 branding and the Google stack names are intentionally retained.
 
-Cross-language dubbing is fixed on `t3/62e8bb10` but is not deployed. Cloud Run failed four
+Cross-language dubbing is fixed and deployed (`bbdbba7`, 2026-10-16); the API role and the
+Translation/TTS services were applied with a targeted `terraform apply`. A dub through the
+deployed app has not been run yet. Cloud Run had failed four
 attempts at Translation with `cloudtranslate.generalModels.predict` denied: dubbing moved inline
 to `creator-studio-api`, while `roles/cloudtranslate.user` remained on the retired
 `creator-studio-localization` account. Terraform now assigns the role to the API account and owns
@@ -75,8 +77,8 @@ What is not yet proven is live, end-to-end behavior on the current code. See
 - Published/planned items and idle visual inserts stop polling. Hidden tabs pause fallback
   polling. Rough cuts poll their existing job instead of repeatedly downloading the asset
   list. Signed media/evidence URL renewal while visible remains separate from job polling.
-  The header uses an initial in a fixed-size circle; avatar artwork stays on the profile/editor
-  route. Marketing/caption fonts are no longer preloaded globally. Persona uses React Query.
+  The header shows the user's Humation avatar (the owner asked to keep it; artwork loads lazily).
+  Marketing/caption fonts are no longer preloaded globally. Persona uses React Query.
 - Bounded, thread-safe process caches reuse signed URLs only with more than five minutes left,
   immutable transcript generations, revision joins and library PCA/neighbors. Cached URL
   responses report the original expiry. Revision joins use index counts for cache versions;
@@ -451,8 +453,14 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
   The URL is only on the publish, so it is not verified from the calendar.
 - Draft generation with live Search grounding, and the Search Suggestions panel.
 - Multi-line Markdown in draft variants.
-- Live creator-library indexing on a real folder import. The import path is lint- and
-  type-checked only. A real folder has not been supplied.
+- Creator library: both the owner account and `demoCreatorHabeasCodus` have the import
+  `vlogbrothers-prehero-cc-by` active (2026-10-16): 29 CC BY Vlogbrothers videos published before
+  the demo hero `BBvze0lGcZg` (hero, later videos and eval-only videos excluded), 10 thumbnails,
+  142/142 nodes indexed, about $0.035. Config `fixtures/creator-sources/vlogbrothers.json`; the
+  collected folder is gitignored under `backend/creator-libraries/`. `source()` no longer
+  replaces a deliberately imported non-preset bundle with the `CREATOR_PRESET_OBJECT` preset.
+  Undo with `scripts/import_creator.py remove --uid <uid> --bundle-id vlogbrothers-prehero-cc-by
+  --apply`; the preset (`arun-prabhudesai`) then reinstalls on the next read.
 - The Docker image for the API. A change to the Dockerfile was reviewed but not built.
 - Browser click-through of the draft editor, drawer, read-only states and mobile workspace.
   Several UI changes were checked by build and reasoning only.
@@ -529,9 +537,10 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
    `activeAnalysisRunId` can be dropped from project creation.
 8. **Connector scope and infra cleanup.** Native Bluesky and Mastodon connectors are candidates.
    The unused BigQuery datasets, worker subscriptions, dead-letter topics and five worker service
-   accounts were removed from Terraform on 2026-10-14 but NOT applied. `terraform plan`: 5 add, 1
-   change, 45 destroy. Three adds are the pending dubbing fix (API Translation role plus Terraform
-   ownership of the already-enabled Translation/TTS APIs); the other add/change are pre-existing
+   accounts were removed from Terraform on 2026-10-14. The targeted dubbing apply on 2026-10-16
+   also destroyed the five unused service accounts (analysis, localization, media, social_sync,
+   web) as dependencies; nothing ran as them, and they are undeletable until about 2026-11-15.
+   The rest is NOT applied. The remaining add/change are pre-existing
    drift (deployer secretmanager.viewer, the killswitch object, the known budget diff). Check the 9
    BigQuery tables are empty, then apply.
    Possibly unused and kept: `raw-social`/`exports` buckets, `meta-app-*` and

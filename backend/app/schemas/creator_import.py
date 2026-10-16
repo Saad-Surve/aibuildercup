@@ -46,6 +46,7 @@ class ImportItem(ImportModel):
     platform: str = Field(default="unknown", max_length=40)
     contentType: str = Field(default="supplied", max_length=80)
     attribution: str = Field(default="", max_length=200)
+    license: str | None = Field(default=None, max_length=120)
     collectionMethod: str = Field(default="supplied", max_length=80)
     fetchedAt: datetime | None = None
     publishedAt: datetime | None = None

@@ -70,8 +70,9 @@ The deployment workflow accepts these as GitHub repository variables; changing d
 configuration requires a deployment. See [HANDOFF.md](current-progress/HANDOFF.md) for current
 deployed state. Local development reads backend `.env`.
 
-True: library reads automatically install this corpus and precomputed vectors for the existing
-user; draft context and thumbnail retrieval use it. The source is visibly Arun's library with
+True: library reads automatically install this corpus and precomputed vectors when no explicit
+operator import is active; draft context and thumbnail retrieval use the selected library. The
+preset source is visibly Arun's library with
 honest platform/language/attribution details, without operator instructions in the product.
 False: automatic preset installation is skipped. An active folder import still supplies
 library, draft context and thumbnail selection; otherwise the latest synced connection is used. Changing the flag never overwrites their
@@ -91,7 +92,8 @@ semantic search and real related-source cards support exploration.
 User copies are under `users/{uid}/creatorImports/...` and matching Storage user prefixes.
 Account deletion covers originals, semantic chunks, query cache and daily embedding budgets.
 The operator importer `remove` also removes an individual owned copy. While the flag remains
-on, the next library read reinstalls a removed preset. Disable it and remove the active owned
+on, the next library read reinstalls a removed preset when no other operator import is active.
+Disable it and remove the active owned
 import to return to connections; the flag alone does not change an existing import selection.
 
 Shared immutable versions intentionally survive account deletion. Remove one explicitly:
