@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpRight01Icon } from "@hugeicons/core-free-icons";
@@ -10,20 +10,139 @@ import { PageHeader } from "@/components/common/page-header";
 import { PlatformLogo, platformLabel } from "@/components/calendar/platform";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { apiFetch } from "@/lib/api-client";
 import { languageLabel } from "@/lib/onboarding";
-import type { CreatorLibrary, LibrarySearch } from "@/lib/creator-library";
+import type {
+  CreatorLibrary,
+  LibraryNode,
+  LibrarySearch,
+} from "@/lib/creator-library";
 import { useReadOnly, READ_ONLY_REASON } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
-import { thumbnailLabels } from "@/lib/library-layout";
 
 const position = (value: number | null) => 8 + (value ?? 0.5) * 84;
 const formatTime = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 
+function nodeTypeLabel(node: LibraryNode) {
+  if (node.modality === "image") return "Thumbnail";
+  if (node.kind === "profile") return "Profile";
+  if (node.kind === "video") return "Video passage";
+  return node.kind === "article" ? "Article" : "Post";
+}
+
+function relationLabel(
+  selected: LibraryNode,
+  neighbor: LibraryNode,
+  relation: "nearest" | "cross_modal",
+) {
+  if (relation === "cross_modal" || selected.modality !== neighbor.modality) {
+    if (neighbor.modality === "image") {
+      return "Thumbnail matches this passage";
+    }
+    if (selected.modality === "image") {
+      return "Passage matches this thumbnail";
+    }
+    return "Words and image share the same idea";
+  }
+  if (selected.modality === "image" && neighbor.modality === "image") {
+    return "Similar visual style";
+  }
+  if (selected.kind === "profile" || neighbor.kind === "profile") {
+    return "Similar creator context";
+  }
+  return "Similar wording";
+}
+
+function ThumbnailImage({
+  src,
+  alt,
+  className,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) {
+  return <img src={src} alt={alt} loading="lazy" className={className} />;
+}
+
+function NodeMarker({ node }: { node: LibraryNode }) {
+  if (node.modality === "image") {
+    return (
+      <span className="grid size-4 place-items-center rounded-[3px] border-2 border-chart-3 bg-background shadow-sm">
+        <span className="h-1.5 w-2 rounded-[1px] bg-chart-3" />
+      </span>
+    );
+  }
+  if (node.kind === "profile") {
+    return (
+      <span className="grid size-5 place-items-center rounded-full border-2 border-foreground bg-background shadow-sm">
+        <span className="size-1.5 rounded-full bg-foreground" />
+      </span>
+    );
+  }
+  if (node.kind === "article" || node.kind === "post") {
+    return (
+      <span className="size-3.5 rotate-45 rounded-[3px] border-2 border-background bg-chart-2 shadow-sm" />
+    );
+  }
+  return (
+    <span className="size-3.5 rounded-full border-2 border-background bg-signal shadow-sm" />
+  );
+}
+
+function MapLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t bg-muted/15 px-5 py-3 text-[11px] text-muted-foreground">
+      <span className="font-medium text-foreground">Map key</span>
+      <span className="flex items-center gap-1.5">
+        <span className="size-2.5 rounded-full bg-signal" />
+        Video passage
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="size-2.5 rotate-45 rounded-[2px] bg-chart-2" />
+        Article or post
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="grid size-3 place-items-center rounded-[2px] border border-chart-3 bg-background">
+          <span className="h-1 w-1.5 rounded-[1px] bg-chart-3" />
+        </span>
+        Thumbnail
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="grid size-3 place-items-center rounded-full border border-foreground bg-background">
+          <span className="size-1 rounded-full bg-foreground" />
+        </span>
+        Profile
+      </span>
+      <span className="hidden h-4 w-px bg-border sm:block" />
+      <span className="flex items-center gap-1.5">
+        <svg aria-hidden="true" width="24" height="6" viewBox="0 0 24 6">
+          <path d="M1 3h22" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+        Same kind
+      </span>
+      <span className="flex items-center gap-1.5">
+        <svg aria-hidden="true" width="24" height="6" viewBox="0 0 24 6">
+          <path
+            d="M1 3h22"
+            stroke="currentColor"
+            strokeDasharray="4 3"
+            strokeWidth="1.5"
+          />
+        </svg>
+        Words ↔ image
+      </span>
+    </div>
+  );
+}
+
 export default function LibraryPage() {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [mapSize, setMapSize] = useState({ width: 800, height: 540 });
   const cache = useQueryClient();
   const readOnly = useReadOnly();
   const { data, isPending, error, refetch } = useQuery({
@@ -54,26 +173,10 @@ export default function LibraryPage() {
   const plotted = nodes.filter(
     (n) => n.indexed && n.x !== null && n.y !== null,
   );
-  const labels = thumbnailLabels(plotted, mapSize.width, mapSize.height);
-  useEffect(() => {
-    if (!data?.totalNodes) return;
-    const element = mapRef.current;
-    if (!element) return;
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry.contentRect.width > 0)
-        setMapSize({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
-        });
-    });
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [data?.totalNodes]);
-  const selected =
-    search?.matches.find((n) => n.id === selectedId) ??
-    data?.nodes.find((n) => n.id === selectedId) ??
-    nodes.find((n) => n.modality === "image" && n.indexed) ??
-    nodes[0];
+  const selected = selectedId
+    ? (search?.matches.find((n) => n.id === selectedId) ??
+      data?.nodes.find((n) => n.id === selectedId))
+    : undefined;
   const selectedPlot = plotted.find((n) => n.id === selected?.id);
   const relationNode = data?.nodes.find((n) => n.id === selected?.id);
   const neighbors = (relationNode?.related ?? []).flatMap((edge) => {
@@ -83,6 +186,13 @@ export default function LibraryPage() {
       : [];
   });
   const relatedIds = new Set(neighbors.map(({ node }) => node.id));
+  const labeledIds = new Set([
+    ...(selectedPlot ? [selectedPlot.id] : []),
+    ...neighbors
+      .filter(({ node }) => plotted.some((item) => item.id === node.id))
+      .slice(0, 3)
+      .map(({ node }) => node.id),
+  ]);
   const topics = Array.from(
     new Set((data?.nodes ?? []).flatMap((n) => n.tags)),
   ).toSorted();
@@ -299,7 +409,7 @@ export default function LibraryPage() {
                   )}
                 >
                   {n.thumbnailUrl && (
-                    <img
+                    <ThumbnailImage
                       src={n.thumbnailUrl}
                       alt=""
                       className="aspect-video w-full rounded-md object-cover"
@@ -317,7 +427,10 @@ export default function LibraryPage() {
               <button
                 key={value}
                 type="button"
-                onClick={() => setTopic(value)}
+                onClick={() => {
+                  setTopic(value);
+                  setSelectedId(null);
+                }}
                 aria-pressed={topic === value}
                 className={cn(
                   "rounded-full border px-3 py-1 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-signal",
@@ -330,12 +443,21 @@ export default function LibraryPage() {
               </button>
             ))}
           </div>
-          <div className="overflow-hidden rounded-2xl border">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3">
+          <section
+            className="overflow-hidden rounded-2xl border"
+            aria-labelledby="library-map-title"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
               <div>
-                <p className="text-sm font-medium">Your work, connected</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Select a source to see related material.
+                <h2 id="library-map-title" className="text-sm font-medium">
+                  Your work, connected
+                </h2>
+                <p
+                  id="library-map-explainer"
+                  className="mt-1 text-xs leading-5 text-muted-foreground"
+                >
+                  Closer together means a similar topic or style; lines show the
+                  strongest connections for the item you select.
                 </p>
               </div>
               <div className="flex gap-1" aria-label="Filter by material">
@@ -345,7 +467,10 @@ export default function LibraryPage() {
                     size="sm"
                     variant={filter === value ? "secondary" : "ghost"}
                     aria-pressed={filter === value}
-                    onClick={() => setFilter(value)}
+                    onClick={() => {
+                      setFilter(value);
+                      setSelectedId(null);
+                    }}
                   >
                     {value === "all"
                       ? "Everything"
@@ -356,11 +481,13 @@ export default function LibraryPage() {
                 ))}
               </div>
             </div>
-            <div className="grid lg:grid-cols-[1fr_320px]">
+            <MapLegend />
+            <div className="grid lg:grid-cols-[minmax(0,1fr)_320px]">
               <div
-                ref={mapRef}
-                className="relative h-[400px] overflow-hidden bg-muted/15 sm:h-[540px]"
+                className="relative h-[400px] overflow-hidden border-t bg-muted/10 sm:h-[540px] lg:border-t-0"
+                role="group"
                 aria-label="Related material map"
+                aria-describedby="library-map-explainer"
               >
                 <div
                   className="absolute inset-0 transition-transform duration-300 motion-reduce:transition-none"
@@ -369,45 +496,20 @@ export default function LibraryPage() {
                     transformOrigin: `${position(selectedPlot?.x ?? null)}% ${position(selectedPlot?.y ?? null)}%`,
                   }}
                 >
+                  {selectedPlot && (
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute size-44 -translate-x-1/2 -translate-y-1/2 rounded-full bg-signal/8 blur-2xl"
+                      style={{
+                        left: `${position(selectedPlot.x)}%`,
+                        top: `${position(selectedPlot.y)}%`,
+                      }}
+                    />
+                  )}
                   <svg
-                    className="pointer-events-none absolute inset-0 size-full text-border"
+                    className="pointer-events-none absolute inset-0 size-full"
                     aria-hidden="true"
                   >
-                    <defs>
-                      <pattern
-                        id="library-grid"
-                        width="24"
-                        height="24"
-                        patternUnits="userSpaceOnUse"
-                      >
-                        <circle cx="1" cy="1" r="0.8" fill="currentColor" />
-                      </pattern>
-                    </defs>
-                    <rect
-                      width="100%"
-                      height="100%"
-                      fill="url(#library-grid)"
-                    />
-                    {plotted
-                      .filter((n) => n.modality === "image")
-                      .map((n) => (
-                        <g key={`anchor-${n.id}`}>
-                          <line
-                            x1={`${position(n.x)}%`}
-                            y1={`${position(n.y)}%`}
-                            x2={`${labels.get(n.id)?.x ?? position(n.x)}%`}
-                            y2={`${labels.get(n.id)?.y ?? position(n.y)}%`}
-                            stroke="currentColor"
-                            strokeWidth="1"
-                          />
-                          <circle
-                            cx={`${position(n.x)}%`}
-                            cy={`${position(n.y)}%`}
-                            r="3"
-                            fill="var(--signal)"
-                          />
-                        </g>
-                      ))}
                     {selectedPlot &&
                       plotted
                         .filter((n) => relatedIds.has(n.id))
@@ -419,14 +521,16 @@ export default function LibraryPage() {
                             x2={`${position(n.x)}%`}
                             y2={`${position(n.y)}%`}
                             stroke="var(--signal)"
-                            strokeOpacity="0.65"
+                            strokeOpacity="0.72"
                             strokeDasharray={
                               neighbors.find((edge) => edge.node.id === n.id)
-                                ?.relation === "cross_modal"
+                                ?.relation === "cross_modal" ||
+                              selectedPlot.modality !== n.modality
                                 ? "5 4"
                                 : undefined
                             }
                             strokeWidth="1.5"
+                            vectorEffect="non-scaling-stroke"
                           />
                         ))}
                   </svg>
@@ -444,67 +548,96 @@ export default function LibraryPage() {
                       </p>
                     </div>
                   )}
-                  {plotted.map((n, i) => (
-                    <button
-                      key={n.id}
-                      type="button"
-                      onClick={() => setSelectedId(n.id)}
-                      aria-label={`${n.modality === "image" ? "Thumbnail" : "Passage"}: ${n.title}`}
-                      aria-pressed={selected?.id === n.id}
-                      title={`${n.title} · ${languageLabel(n.language)} · ${n.contentType}`}
-                      className={cn(
-                        "absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-signal shadow-sm outline-offset-4 focus-visible:outline-2 focus-visible:outline-signal",
-                        n.modality === "image"
-                          ? "h-10 w-[70px] overflow-hidden rounded-md sm:h-[52px] sm:w-[92px]"
-                          : n.kind === "profile"
-                            ? "size-6"
-                            : "size-3.5 hover:scale-125",
-                        n.modality === "text" &&
-                          n.kind === "post" &&
-                          "bg-chart-2",
-                        n.modality === "text" &&
-                          n.kind === "article" &&
-                          "bg-chart-3",
-                        relatedIds.has(n.id) && "ring-2 ring-signal/40",
-                        selected &&
-                          !relatedIds.has(n.id) &&
-                          n.id !== selected.id &&
-                          !search &&
-                          "opacity-60",
-                        selected?.id === n.id &&
-                          "ring-2 ring-signal ring-offset-3 ring-offset-background",
-                        search && !matches.has(n.id) && "opacity-20",
-                        search && matches.has(n.id) && "ring-2 ring-signal/30",
-                      )}
-                      style={{
-                        left: `${labels.get(n.id)?.x ?? position(n.x)}%`,
-                        top: `${labels.get(n.id)?.y ?? position(n.y)}%`,
-                        zIndex:
-                          selected?.id === n.id
-                            ? 20
-                            : n.modality === "image"
-                              ? 10
-                              : (i % 3) + 1,
-                      }}
-                    >
-                      {n.modality === "image" && n.thumbnailUrl ? (
-                        <img
-                          src={n.thumbnailUrl}
-                          alt=""
-                          className="size-full object-cover"
-                        />
-                      ) : n.modality === "image" ? (
-                        <span className="text-xs text-white">▧</span>
-                      ) : n.kind === "profile" ? (
-                        <span className="text-xs text-primary-foreground">
-                          ◎
-                        </span>
-                      ) : null}
-                    </button>
-                  ))}
+                  {plotted.map((n, i) => {
+                    const isSelected = selected?.id === n.id;
+                    const isRelated = relatedIds.has(n.id);
+                    const isDimmed =
+                      (!!selected && !isSelected && !isRelated) ||
+                      (!!search && !matches.has(n.id));
+                    const showLabel = labeledIds.has(n.id);
+                    const labelOnLeft = position(n.x) > 68;
+                    return (
+                      <Tooltip key={n.id}>
+                        <TooltipTrigger
+                          render={
+                            <button
+                              type="button"
+                              onClick={() => setSelectedId(n.id)}
+                              aria-label={`${nodeTypeLabel(n)}: ${n.title}. ${languageLabel(n.language)}`}
+                              aria-pressed={isSelected}
+                              className={cn(
+                                "absolute grid size-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full outline-none transition-[opacity,transform,box-shadow] duration-150 hover:scale-110 focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none motion-reduce:hover:scale-100",
+                                isRelated && "ring-1 ring-signal/50",
+                                isSelected &&
+                                  "bg-background/80 ring-2 ring-signal ring-offset-2 ring-offset-background",
+                                isDimmed &&
+                                  "opacity-20 hover:opacity-70 focus-visible:opacity-100",
+                                search &&
+                                  matches.has(n.id) &&
+                                  "ring-2 ring-signal/35",
+                              )}
+                              style={{
+                                left: `${position(n.x)}%`,
+                                top: `${position(n.y)}%`,
+                                zIndex: isSelected
+                                  ? 20
+                                  : isRelated
+                                    ? 10
+                                    : (i % 3) + 1,
+                              }}
+                            />
+                          }
+                        >
+                          <NodeMarker node={n} />
+                          {showLabel && (
+                            <span
+                              className={cn(
+                                "pointer-events-none absolute top-1/2 block max-w-32 -translate-y-1/2 truncate rounded-md border bg-background/95 px-1.5 py-0.5 text-[9px] shadow-sm",
+                                labelOnLeft
+                                  ? "right-full mr-1.5"
+                                  : "left-full ml-1.5",
+                                isSelected
+                                  ? "font-medium text-foreground"
+                                  : "text-muted-foreground",
+                              )}
+                            >
+                              {n.title}
+                            </span>
+                          )}
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="top"
+                          sideOffset={8}
+                          className="block w-60 overflow-hidden border bg-popover p-0 text-popover-foreground shadow-lg motion-reduce:data-open:animate-none motion-reduce:data-closed:animate-none"
+                        >
+                          {n.modality === "image" && n.thumbnailUrl && (
+                            <ThumbnailImage
+                              src={n.thumbnailUrl}
+                              alt=""
+                              className="aspect-video w-full object-cover"
+                            />
+                          )}
+                          <span className="block px-3 py-2.5">
+                            <span className="block line-clamp-2 font-medium leading-4">
+                              {n.title}
+                            </span>
+                            <span className="mt-1 block text-[10px] text-muted-foreground">
+                              {nodeTypeLabel(n)} · {languageLabel(n.language)}
+                            </span>
+                          </span>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
                 </div>
+                {plotted.length > 0 && !selected && (
+                  <div className="pointer-events-none absolute bottom-4 left-1/2 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-lg border bg-background/95 px-3 py-2 text-center text-xs text-muted-foreground shadow-sm">
+                    Click a marker—or Tab to one—to reveal its closest
+                    connections.
+                  </div>
+                )}
                 <div
-                  className="absolute right-4 top-4 flex items-center gap-1 rounded-lg border bg-background/95 p-1 shadow-sm"
+                  className="absolute right-3 top-3 flex items-center gap-1 rounded-lg border bg-background/95 p-1 shadow-sm sm:right-4 sm:top-4"
                   aria-label="Map zoom"
                 >
                   <Button
@@ -524,44 +657,33 @@ export default function LibraryPage() {
                     variant="ghost"
                     aria-label="Zoom into selected source"
                     onClick={() => setZoom(Math.min(3, zoom + 0.5))}
-                    disabled={zoom === 3}
+                    disabled={!selectedPlot || zoom === 3}
                   >
                     +
                   </Button>
                 </div>
-                <div className="pointer-events-none absolute bottom-4 left-5 flex items-center gap-4 text-[10px] text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <span className="size-2 rounded-full bg-signal" />
-                    Passage
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="size-2.5 rounded-sm border border-signal" />
-                    Thumbnail
-                  </span>
-                </div>
               </div>
               <aside
-                className="border-t bg-background p-5 lg:max-h-[540px] lg:overflow-y-auto lg:border-t-0 lg:border-l"
+                className="min-h-64 border-t bg-background p-5 lg:max-h-[540px] lg:overflow-y-auto lg:border-t-0 lg:border-l"
                 aria-label="Selected source"
                 aria-live="polite"
               >
                 {selected ? (
                   <>
                     <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                      {selected.kind} ·{" "}
-                      {selected.modality === "image" ? "thumbnail" : "passage"}
+                      {nodeTypeLabel(selected)}
                       {selected.startSeconds !== null
                         ? ` · ${formatTime(selected.startSeconds)}`
                         : ""}
                     </p>
-                    <h2 className="mt-2 text-base font-semibold leading-snug">
+                    <h3 className="mt-2 text-base font-semibold leading-snug">
                       {selected.title}
-                    </h2>
+                    </h3>
                     {selected.thumbnailUrl && (
-                      <img
+                      <ThumbnailImage
                         src={selected.thumbnailUrl}
                         alt={`Thumbnail for ${selected.title}`}
-                        className="mt-4 w-full rounded-lg border"
+                        className="mt-4 aspect-video w-full rounded-lg border object-cover"
                       />
                     )}
                     <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
@@ -589,7 +711,7 @@ export default function LibraryPage() {
                         href={selected.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-4 inline-flex items-center gap-1 text-xs text-signal hover:underline"
+                        className="mt-4 inline-flex items-center gap-1 text-xs text-signal hover:underline focus-visible:outline-2 focus-visible:outline-signal"
                       >
                         Open original
                         <Icon icon={ArrowUpRight01Icon} className="size-3" />
@@ -598,7 +720,7 @@ export default function LibraryPage() {
                     {neighbors.length > 0 && (
                       <div className="mt-5 space-y-2 border-t pt-4">
                         <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                          Closest related sources
+                          Why these are close
                         </p>
                         {neighbors.map(({ node, relation }) => (
                           <button
@@ -608,39 +730,53 @@ export default function LibraryPage() {
                               setTopic("all");
                               setFilter("all");
                             }}
-                            className="flex w-full items-center gap-2 rounded-lg border p-2 text-left hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-signal"
+                            className="flex w-full items-center gap-2.5 rounded-lg border p-2.5 text-left hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-signal"
                           >
                             {node.thumbnailUrl ? (
-                              <img
+                              <ThumbnailImage
                                 src={node.thumbnailUrl}
                                 alt=""
-                                className="h-8 w-12 shrink-0 rounded object-cover"
+                                className="h-10 w-14 shrink-0 rounded object-cover"
                               />
                             ) : (
-                              <span className="grid size-8 shrink-0 place-items-center rounded bg-muted text-signal">
-                                ¶
+                              <span className="grid size-10 shrink-0 place-items-center rounded-md bg-muted">
+                                <NodeMarker node={node} />
                               </span>
                             )}
                             <span className="min-w-0 flex-1">
-                              <span className="line-clamp-2 text-[11px] leading-4">
+                              <span className="block text-[10px] font-medium text-signal">
+                                {relationLabel(selected, node, relation)}
+                              </span>
+                              <span className="mt-0.5 line-clamp-2 block text-[11px] leading-4">
                                 {node.title}
                               </span>
-                              <span className="text-[9px] text-muted-foreground">
-                                {relation === "cross_modal"
-                                  ? "Closest " +
-                                    (node.modality === "image"
-                                      ? "image"
-                                      : "words")
-                                  : node.modality}{" "}
-                              </span>
                             </span>
+                            <svg
+                              aria-hidden="true"
+                              className="shrink-0 text-muted-foreground"
+                              width="20"
+                              height="6"
+                              viewBox="0 0 20 6"
+                            >
+                              <path
+                                d="M1 3h18"
+                                stroke="currentColor"
+                                strokeDasharray={
+                                  relation === "cross_modal" ||
+                                  selected.modality !== node.modality
+                                    ? "4 3"
+                                    : undefined
+                                }
+                                strokeWidth="1.5"
+                              />
+                            </svg>
                           </button>
                         ))}
                       </div>
                     )}
                     <p className="mt-5 text-xs text-muted-foreground">
                       {selected.indexed
-                        ? "Searchable"
+                        ? "Ready to use in search and drafts"
                         : "Waiting to be processed"}
                     </p>
                   </>
@@ -649,22 +785,25 @@ export default function LibraryPage() {
                     <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                       Source details
                     </p>
-                    <h2 className="mt-3 text-lg font-semibold">
-                      Every point has a source
-                    </h2>
+                    <h3 className="mt-3 text-lg font-semibold">
+                      Pick a marker to start
+                    </h3>
                     <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                      Choose a passage or thumbnail to see the original
-                      evidence. Search to find related material across words and
-                      images.
+                      Select any passage, post, thumbnail or profile. Its
+                      strongest connections will appear on the map, with the
+                      reason each one is related.
                     </p>
+                    <div className="mt-5 flex items-center gap-3 rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-background shadow-sm ring-1 ring-border">
+                        <span className="size-3 rounded-full bg-signal" />
+                      </span>
+                      Click a dot, or use Tab and Enter.
+                    </div>
                   </div>
                 )}
               </aside>
             </div>
-            <div className="flex flex-wrap justify-between gap-2 border-t px-5 py-3 text-[10px] text-muted-foreground">
-              <span>Closer items are more related.</span>
-            </div>
-          </div>
+          </section>
           <div>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold">
