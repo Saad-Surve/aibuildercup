@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpRight01Icon } from "@hugeicons/core-free-icons";
@@ -48,7 +48,6 @@ function relationLabel(
     if (selected.modality === "image") {
       return "Passage matches this thumbnail";
     }
-    return "Words and image share the same idea";
   }
   if (selected.modality === "image" && neighbor.modality === "image") {
     return "Similar visual style";
@@ -59,40 +58,55 @@ function relationLabel(
   return "Similar wording";
 }
 
-function ThumbnailImage({
-  src,
-  alt,
-  className,
+function NodeMarker({
+  node,
+  compact = false,
 }: {
-  src: string;
-  alt: string;
-  className?: string;
+  node: Pick<LibraryNode, "kind" | "modality">;
+  compact?: boolean;
 }) {
-  return <img src={src} alt={alt} loading="lazy" className={className} />;
-}
-
-function NodeMarker({ node }: { node: LibraryNode }) {
+  const compactClass = compact ? "scale-75" : undefined;
   if (node.modality === "image") {
     return (
-      <span className="grid size-4 place-items-center rounded-[3px] border-2 border-chart-3 bg-background shadow-sm">
+      <span
+        className={cn(
+          "grid size-4 place-items-center rounded-[3px] border-2 border-chart-3 bg-background shadow-sm",
+          compactClass,
+        )}
+      >
         <span className="h-1.5 w-2 rounded-[1px] bg-chart-3" />
       </span>
     );
   }
   if (node.kind === "profile") {
     return (
-      <span className="grid size-5 place-items-center rounded-full border-2 border-foreground bg-background shadow-sm">
+      <span
+        className={cn(
+          "grid size-5 place-items-center rounded-full border-2 border-foreground bg-background shadow-sm",
+          compactClass,
+        )}
+      >
         <span className="size-1.5 rounded-full bg-foreground" />
       </span>
     );
   }
   if (node.kind === "article" || node.kind === "post") {
     return (
-      <span className="size-3.5 rotate-45 rounded-[3px] border-2 border-background bg-chart-2 shadow-sm" />
+      <span
+        className={cn(
+          "size-3.5 rotate-45 rounded-[3px] border-2 border-background bg-chart-2 shadow-sm",
+          compactClass,
+        )}
+      />
     );
   }
   return (
-    <span className="size-3.5 rounded-full border-2 border-background bg-signal shadow-sm" />
+    <span
+      className={cn(
+        "size-3.5 rounded-full border-2 border-background bg-signal shadow-sm",
+        compactClass,
+      )}
+    />
   );
 }
 
@@ -101,22 +115,26 @@ function MapLegend() {
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t bg-muted/15 px-5 py-3 text-[11px] text-muted-foreground">
       <span className="font-medium text-foreground">Map key</span>
       <span className="flex items-center gap-1.5">
-        <span className="size-2.5 rounded-full bg-signal" />
+        <span className="grid size-4 place-items-center">
+          <NodeMarker node={{ modality: "text", kind: "video" }} compact />
+        </span>
         Video passage
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="size-2.5 rotate-45 rounded-[2px] bg-chart-2" />
+        <span className="grid size-4 place-items-center">
+          <NodeMarker node={{ modality: "text", kind: "article" }} compact />
+        </span>
         Article or post
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="grid size-3 place-items-center rounded-[2px] border border-chart-3 bg-background">
-          <span className="h-1 w-1.5 rounded-[1px] bg-chart-3" />
+        <span className="grid size-4 place-items-center">
+          <NodeMarker node={{ modality: "image", kind: "video" }} compact />
         </span>
         Thumbnail
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="grid size-3 place-items-center rounded-full border border-foreground bg-background">
-          <span className="size-1 rounded-full bg-foreground" />
+        <span className="grid size-4 place-items-center">
+          <NodeMarker node={{ modality: "text", kind: "profile" }} compact />
         </span>
         Profile
       </span>
@@ -125,7 +143,7 @@ function MapLegend() {
         <svg aria-hidden="true" width="24" height="6" viewBox="0 0 24 6">
           <path d="M1 3h22" stroke="currentColor" strokeWidth="1.5" />
         </svg>
-        Same kind
+        Similar material
       </span>
       <span className="flex items-center gap-1.5">
         <svg aria-hidden="true" width="24" height="6" viewBox="0 0 24 6">
@@ -136,7 +154,7 @@ function MapLegend() {
             strokeWidth="1.5"
           />
         </svg>
-        Words ↔ image
+        Text ↔ thumbnail match
       </span>
     </div>
   );
@@ -154,6 +172,7 @@ export default function LibraryPage() {
   const [filter, setFilter] = useState<"all" | "text" | "image">("all");
   const [topic, setTopic] = useState("all");
   const [zoom, setZoom] = useState(1);
+  const [openTooltipId, setOpenTooltipId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [searchState, setSearchState] = useState<{
     fingerprint: string;
@@ -164,35 +183,81 @@ export default function LibraryPage() {
   const fingerprint = data?.nodes.map((n) => n.id).join(",") ?? "";
   const search =
     searchState?.fingerprint === fingerprint ? searchState.result : null;
-  const matches = new Map(search?.matches.map((n) => [n.id, n]) ?? []);
-  const nodes = (data?.nodes ?? []).filter(
-    (n) =>
-      (filter === "all" || n.modality === filter) &&
-      (topic === "all" || n.tags.includes(topic)),
+  const allNodesById = useMemo(
+    () => new Map((data?.nodes ?? []).map((node) => [node.id, node])),
+    [data?.nodes],
   );
-  const plotted = nodes.filter(
-    (n) => n.indexed && n.x !== null && n.y !== null,
+  const matches = useMemo(
+    () => new Map(search?.matches.map((n) => [n.id, n]) ?? []),
+    [search],
   );
+  const nodes = useMemo(
+    () =>
+      (data?.nodes ?? []).filter(
+        (node) =>
+          (filter === "all" || node.modality === filter) &&
+          (topic === "all" || node.tags.includes(topic)),
+      ),
+    [data?.nodes, filter, topic],
+  );
+  const plotted = useMemo(
+    () =>
+      nodes.filter(
+        (node) => node.indexed && node.x !== null && node.y !== null,
+      ),
+    [nodes],
+  );
+  const plottedById = useMemo(
+    () => new Map(plotted.map((node) => [node.id, node])),
+    [plotted],
+  );
+  const plottedIds = useMemo(() => new Set(plottedById.keys()), [plottedById]);
   const selected = selectedId
     ? (search?.matches.find((n) => n.id === selectedId) ??
-      data?.nodes.find((n) => n.id === selectedId))
+      allNodesById.get(selectedId))
     : undefined;
-  const selectedPlot = plotted.find((n) => n.id === selected?.id);
-  const relationNode = data?.nodes.find((n) => n.id === selected?.id);
+  const selectedPlot = selected ? plottedById.get(selected.id) : undefined;
+  const relationNode = selected ? allNodesById.get(selected.id) : undefined;
   const neighbors = (relationNode?.related ?? []).flatMap((edge) => {
-    const node = data?.nodes.find((n) => n.id === edge.nodeId);
-    return node
+    const node = allNodesById.get(edge.nodeId);
+    return node && plottedIds.has(node.id)
       ? [{ node, similarity: edge.similarity, relation: edge.relation }]
       : [];
   });
   const relatedIds = new Set(neighbors.map(({ node }) => node.id));
-  const labeledIds = new Set([
-    ...(selectedPlot ? [selectedPlot.id] : []),
-    ...neighbors
-      .filter(({ node }) => plotted.some((item) => item.id === node.id))
-      .slice(0, 3)
-      .map(({ node }) => node.id),
-  ]);
+  const labelPlacements = new Map<
+    string,
+    { side: "left" | "right"; offset: number }
+  >();
+  if (selectedPlot) {
+    const placed = [selectedPlot];
+    labelPlacements.set(selectedPlot.id, {
+      side: position(selectedPlot.x) > 68 ? "left" : "right",
+      offset: 0,
+    });
+    for (const { node } of neighbors) {
+      const plottedNode = plottedById.get(node.id);
+      if (!plottedNode || labelPlacements.size === 4) break;
+      const overlaps = placed.some(
+        (other) =>
+          Math.abs((plottedNode.x ?? 0.5) - (other.x ?? 0.5)) < 0.12 &&
+          Math.abs((plottedNode.y ?? 0.5) - (other.y ?? 0.5)) < 0.12,
+      );
+      if (overlaps) continue;
+      const placementIndex = labelPlacements.size;
+      const naturalSide = position(plottedNode.x) > 68 ? "left" : "right";
+      labelPlacements.set(plottedNode.id, {
+        side:
+          placementIndex % 2 === 0
+            ? naturalSide === "left"
+              ? "right"
+              : "left"
+            : naturalSide,
+        offset: [0, -12, 12, -18][placementIndex],
+      });
+      placed.push(plottedNode);
+    }
+  }
   const topics = Array.from(
     new Set((data?.nodes ?? []).flatMap((n) => n.tags)),
   ).toSorted();
@@ -204,6 +269,12 @@ export default function LibraryPage() {
           (topic === "all" || n.tags.includes(topic)),
       )
     : nodes;
+
+  function selectNode(id: string | null) {
+    setSelectedId(id);
+    setZoom(1);
+    setOpenTooltipId(null);
+  }
 
   async function index() {
     setBusy("index");
@@ -242,7 +313,7 @@ export default function LibraryPage() {
         body: JSON.stringify({ query: query.trim() }),
       });
       setSearchState({ fingerprint, result });
-      setSelectedId(result.matches[0]?.id ?? null);
+      selectNode(result.matches[0]?.id ?? null);
     } catch (e) {
       setNotice(e instanceof Error ? e.message : "Search failed. Try again.");
     } finally {
@@ -381,7 +452,7 @@ export default function LibraryPage() {
                 variant="ghost"
                 onClick={() => {
                   setSearchState(null);
-                  setSelectedId(null);
+                  selectNode(null);
                 }}
               >
                 Clear
@@ -397,7 +468,7 @@ export default function LibraryPage() {
                 <button
                   key={n.id}
                   onClick={() => {
-                    setSelectedId(n.id);
+                    selectNode(n.id);
                     setFilter("all");
                     setTopic("all");
                   }}
@@ -409,9 +480,10 @@ export default function LibraryPage() {
                   )}
                 >
                   {n.thumbnailUrl && (
-                    <ThumbnailImage
+                    <img
                       src={n.thumbnailUrl}
                       alt=""
+                      loading="lazy"
                       className="aspect-video w-full rounded-md object-cover"
                     />
                   )}
@@ -429,7 +501,7 @@ export default function LibraryPage() {
                 type="button"
                 onClick={() => {
                   setTopic(value);
-                  setSelectedId(null);
+                  selectNode(null);
                 }}
                 aria-pressed={topic === value}
                 className={cn(
@@ -469,7 +541,7 @@ export default function LibraryPage() {
                     aria-pressed={filter === value}
                     onClick={() => {
                       setFilter(value);
-                      setSelectedId(null);
+                      selectNode(null);
                     }}
                   >
                     {value === "all"
@@ -481,7 +553,9 @@ export default function LibraryPage() {
                 ))}
               </div>
             </div>
-            <MapLegend />
+            <div className="hidden sm:block">
+              <MapLegend />
+            </div>
             <div className="grid lg:grid-cols-[minmax(0,1fr)_320px]">
               <div
                 className="relative h-[400px] overflow-hidden border-t bg-muted/10 sm:h-[540px] lg:border-t-0"
@@ -552,26 +626,32 @@ export default function LibraryPage() {
                     const isSelected = selected?.id === n.id;
                     const isRelated = relatedIds.has(n.id);
                     const isDimmed =
-                      (!!selected && !isSelected && !isRelated) ||
-                      (!!search && !matches.has(n.id));
-                    const showLabel = labeledIds.has(n.id);
-                    const labelOnLeft = position(n.x) > 68;
+                      !isSelected &&
+                      !isRelated &&
+                      (!!selected || (!!search && !matches.has(n.id)));
+                    const labelPlacement = labelPlacements.get(n.id);
                     return (
-                      <Tooltip key={n.id}>
+                      <Tooltip
+                        key={n.id}
+                        open={openTooltipId === n.id}
+                        onOpenChange={(open) =>
+                          setOpenTooltipId(open ? n.id : null)
+                        }
+                      >
                         <TooltipTrigger
                           render={
                             <button
                               type="button"
-                              onClick={() => setSelectedId(n.id)}
+                              onClick={() => selectNode(n.id)}
                               aria-label={`${nodeTypeLabel(n)}: ${n.title}. ${languageLabel(n.language)}`}
                               aria-pressed={isSelected}
                               className={cn(
-                                "absolute grid size-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full outline-none transition-[opacity,transform,box-shadow] duration-150 hover:scale-110 focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none motion-reduce:hover:scale-100",
+                                "absolute grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full outline-none transition-[opacity,transform,box-shadow] duration-150 hover:scale-110 focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none motion-reduce:hover:scale-100",
                                 isRelated && "ring-1 ring-signal/50",
                                 isSelected &&
                                   "bg-background/80 ring-2 ring-signal ring-offset-2 ring-offset-background",
                                 isDimmed &&
-                                  "opacity-20 hover:opacity-70 focus-visible:opacity-100",
+                                  "opacity-40 hover:opacity-70 focus-visible:opacity-100",
                                 search &&
                                   matches.has(n.id) &&
                                   "ring-2 ring-signal/35",
@@ -589,31 +669,35 @@ export default function LibraryPage() {
                           }
                         >
                           <NodeMarker node={n} />
-                          {showLabel && (
+                          {labelPlacement && (
                             <span
                               className={cn(
-                                "pointer-events-none absolute top-1/2 block max-w-32 -translate-y-1/2 truncate rounded-md border bg-background/95 px-1.5 py-0.5 text-[9px] shadow-sm",
-                                labelOnLeft
+                                "pointer-events-none absolute top-1/2 block max-w-32 truncate rounded-md border bg-background/95 px-1.5 py-0.5 text-[9px] shadow-sm",
+                                labelPlacement.side === "left"
                                   ? "right-full mr-1.5"
                                   : "left-full ml-1.5",
                                 isSelected
                                   ? "font-medium text-foreground"
                                   : "text-muted-foreground",
                               )}
+                              style={{
+                                transform: `translateY(calc(-50% + ${labelPlacement.offset}px))`,
+                              }}
                             >
                               {n.title}
                             </span>
                           )}
                         </TooltipTrigger>
                         <TooltipContent
-                          side="top"
+                          side={position(n.y) < 25 ? "bottom" : "top"}
                           sideOffset={8}
                           className="block w-60 overflow-hidden border bg-popover p-0 text-popover-foreground shadow-lg motion-reduce:data-open:animate-none motion-reduce:data-closed:animate-none"
                         >
                           {n.modality === "image" && n.thumbnailUrl && (
-                            <ThumbnailImage
+                            <img
                               src={n.thumbnailUrl}
                               alt=""
+                              loading="lazy"
                               className="aspect-video w-full object-cover"
                             />
                           )}
@@ -656,12 +740,15 @@ export default function LibraryPage() {
                     size="icon-sm"
                     variant="ghost"
                     aria-label="Zoom into selected source"
-                    onClick={() => setZoom(Math.min(3, zoom + 0.5))}
-                    disabled={!selectedPlot || zoom === 3}
+                    onClick={() => setZoom(Math.min(2, zoom + 0.5))}
+                    disabled={!selectedPlot || zoom === 2}
                   >
                     +
                   </Button>
                 </div>
+              </div>
+              <div className="sm:hidden">
+                <MapLegend />
               </div>
               <aside
                 className="min-h-64 border-t bg-background p-5 lg:max-h-[540px] lg:overflow-y-auto lg:border-t-0 lg:border-l"
@@ -679,10 +766,34 @@ export default function LibraryPage() {
                     <h3 className="mt-2 text-base font-semibold leading-snug">
                       {selected.title}
                     </h3>
+                    {!selectedPlot && (
+                      <div className="mt-4 rounded-lg border border-signal/30 bg-signal/5 p-3">
+                        <p className="text-xs font-medium">
+                          Not shown in this view
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                          This item is outside the current material or topic
+                          filter.
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2"
+                          onClick={() => {
+                            setFilter("all");
+                            setTopic("all");
+                            setZoom(1);
+                          }}
+                        >
+                          Show in Everything
+                        </Button>
+                      </div>
+                    )}
                     {selected.thumbnailUrl && (
-                      <ThumbnailImage
+                      <img
                         src={selected.thumbnailUrl}
                         alt={`Thumbnail for ${selected.title}`}
+                        loading="lazy"
                         className="mt-4 aspect-video w-full rounded-lg border object-cover"
                       />
                     )}
@@ -726,16 +837,17 @@ export default function LibraryPage() {
                           <button
                             key={node.id}
                             onClick={() => {
-                              setSelectedId(node.id);
+                              selectNode(node.id);
                               setTopic("all");
                               setFilter("all");
                             }}
                             className="flex w-full items-center gap-2.5 rounded-lg border p-2.5 text-left hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-signal"
                           >
                             {node.thumbnailUrl ? (
-                              <ThumbnailImage
+                              <img
                                 src={node.thumbnailUrl}
                                 alt=""
+                                loading="lazy"
                                 className="h-10 w-14 shrink-0 rounded object-cover"
                               />
                             ) : (
@@ -830,7 +942,7 @@ export default function LibraryPage() {
                   <button
                     key={n.id}
                     type="button"
-                    onClick={() => setSelectedId(n.id)}
+                    onClick={() => selectNode(n.id)}
                     aria-pressed={selectedId === n.id}
                     className={cn(
                       "flex w-full items-start gap-4 border-b px-5 py-3 text-left last:border-0 hover:bg-muted/30 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-signal",
