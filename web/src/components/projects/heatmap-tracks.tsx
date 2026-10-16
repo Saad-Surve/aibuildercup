@@ -24,6 +24,11 @@ import {
   LABEL_COLUMN,
   usableCurve,
 } from "@/components/projects/interest-lanes";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type {
   AnalysisDimension,
   HeatmapBin,
@@ -188,12 +193,7 @@ export function HeatmapTracks({
 
   return (
     <div className="space-y-2">
-      <ReadoutStrip
-        bin={hoveredBin}
-        point={hoveredPoint}
-        gap={hoveredGap}
-        dimensions={dimensions.length}
-      />
+      <ReadoutStrip bin={hoveredBin} point={hoveredPoint} gap={hoveredGap} />
 
       <div className="overflow-hidden rounded-lg border border-border/70 bg-card/40">
         <TimeRuler ticks={rulerTicks} />
@@ -291,7 +291,18 @@ function TimeRuler({ ticks }: { ticks: number[] }) {
           );
         })}
       </div>
-      <span className="w-9 shrink-0" aria-hidden="true" />
+      <Tooltip>
+        <TooltipTrigger
+          aria-label="About reviewer scores"
+          className="w-10 shrink-0 cursor-help text-right text-[9px] font-medium tracking-wide text-muted-foreground uppercase decoration-dotted underline-offset-2 hover:text-foreground hover:underline"
+        >
+          Score
+        </TooltipTrigger>
+        <TooltipContent side="left">
+          Duration-weighted average quality of reported moments in this reviewer
+          lens. Unflagged time is excluded.
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }
@@ -478,8 +489,8 @@ const TrackRow = memo(function TrackRow({
       </div>
 
       <span
-        className="tabular w-9 shrink-0 text-right text-[11px] text-muted-foreground"
-        aria-hidden="true"
+        className="tabular w-10 shrink-0 text-right text-[11px] text-muted-foreground"
+        title="Average score for flagged moments in this reviewer lens"
       >
         {score === undefined ? "—" : formatScore(score)}
       </span>
@@ -491,7 +502,6 @@ function ReadoutStrip({
   bin,
   point,
   gap,
-  dimensions,
 }: {
   bin: HeatmapBin | null;
   point: InterestCurve["points"][number] | null;
@@ -500,12 +510,16 @@ function ReadoutStrip({
     covered: boolean;
     removed?: boolean;
   } | null;
-  dimensions: number;
 }) {
   return (
     <div
       aria-live="polite"
-      className="tabular flex min-h-8 flex-wrap items-center gap-x-3 gap-y-0.5 rounded-lg border border-border/70 bg-muted/40 px-3 text-[11px] text-muted-foreground"
+      className={cn(
+        "tabular flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground",
+        point || gap || bin
+          ? "min-h-8 rounded-lg border border-border/70 bg-muted/40 px-3"
+          : "min-h-5 px-1 text-muted-foreground/70",
+      )}
     >
       {point ? (
         <InterestReadout point={point} />
@@ -550,8 +564,7 @@ function ReadoutStrip({
         </>
       ) : (
         <span>
-          {dimensions} reviewer {dimensions === 1 ? "track" : "tracks"} · hover
-          a segment for details. Gaps have no score.
+          Hover for details · click to jump · blank spans have no flagged score
         </span>
       )}
     </div>

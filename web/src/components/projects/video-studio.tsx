@@ -41,10 +41,7 @@ import {
 } from "@/lib/projects";
 import { type StudioModuleId, moduleById } from "@/lib/studio";
 import type { Asset, CaptionStyle, Job, Project } from "@/lib/types";
-import {
-  WORKSPACE_PANE_CARD,
-  WORKSPACE_PANE_STACK_SPACER,
-} from "@/lib/workspace";
+import { WORKSPACE_PANE_STACK_SPACER } from "@/lib/workspace";
 
 /**
  * The video studio: the source video stays pinned on the left while the right
@@ -264,6 +261,13 @@ export function VideoStudio({
   }
 
   const activeModuleInfo = moduleById(activeModule);
+  const sourceDuration = durationMs ?? effectiveSource.durationMs;
+  const sourceMetadata = [
+    friendlyVideoType(effectiveSource.mimeType),
+    sourceDuration != null ? formatTimestamp(sourceDuration) : null,
+    formatBytes(effectiveSource.sizeBytes),
+    `Uploaded ${format(new Date(effectiveSource.createdAt), "d MMM yyyy")}`,
+  ].filter(Boolean);
 
   function renderModule() {
     if (activeModule === "overview") {
@@ -389,8 +393,8 @@ export function VideoStudio({
         ) : (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
             <div className="lg:sticky lg:top-20">
-              <Card className={WORKSPACE_PANE_CARD}>
-                <CardHeader className="shrink-0">
+              <Card>
+                <CardHeader>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <Icon
@@ -413,12 +417,13 @@ export function VideoStudio({
                   </div>
                   <CardDescription>
                     {displayRevision != null
-                      ? `Revision ${displayRevision} · ${effectiveSource.mimeType}`
-                      : effectiveSource.mimeType}
+                      ? `Revision ${displayRevision} · `
+                      : ""}
+                    {sourceMetadata.join(" · ")}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="flex min-h-0 flex-1 flex-col">
-                  <div className="flex min-h-0 flex-1 items-center [&>*]:w-full">
+                <CardContent>
+                  <div className="[&>*]:w-full">
                     <SourceVideoPlayer
                       projectId={projectId}
                       asset={effectiveSource}
@@ -427,33 +432,6 @@ export function VideoStudio({
                       coverUrl={project.posterUrl}
                     />
                   </div>
-                  <dl className="mt-3 grid shrink-0 grid-cols-3 gap-2 text-xs">
-                    <div>
-                      <dt className="text-muted-foreground/70">Duration</dt>
-                      <dd className="tabular text-foreground">
-                        {(durationMs ?? effectiveSource.durationMs) != null
-                          ? formatTimestamp(
-                              durationMs ?? effectiveSource.durationMs ?? 0,
-                            )
-                          : "—"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted-foreground/70">Size</dt>
-                      <dd className="tabular text-foreground">
-                        {formatBytes(effectiveSource.sizeBytes)}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted-foreground/70">Uploaded</dt>
-                      <dd className="text-foreground">
-                        {format(
-                          new Date(effectiveSource.createdAt),
-                          "d MMM yyyy",
-                        )}
-                      </dd>
-                    </div>
-                  </dl>
                 </CardContent>
               </Card>
 
@@ -488,4 +466,16 @@ export function VideoStudio({
       </div>
     </CaptionPreviewProvider>
   );
+}
+
+function friendlyVideoType(mimeType: string): string {
+  const subtype = mimeType.split("/").at(-1)?.toLowerCase();
+  const labels: Record<string, string> = {
+    mp4: "MP4",
+    quicktime: "MOV",
+    webm: "WebM",
+    mpeg: "MPEG",
+    "x-matroska": "MKV",
+  };
+  return labels[subtype ?? ""] ?? "Video";
 }
