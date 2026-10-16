@@ -100,6 +100,7 @@ function ModuleTab({
       variant={active && !inHeader ? "secondary" : "ghost"}
       nativeButton={false}
       className={cn(
+        inHeader && "max-md:h-9 max-md:px-3",
         inHeader &&
           (active
             ? "border-signal/60 text-foreground"

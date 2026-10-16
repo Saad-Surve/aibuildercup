@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -162,6 +168,8 @@ function isActive(pathname: string, href: string): boolean {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useSidebarCollapsed();
+  const mobileHeaderNavRef = useRef<HTMLDivElement>(null);
+  const mobileNavRef = useRef<HTMLElement>(null);
   // A page can put its own navigation in the sticky header (see `useSetHeaderNav`).
   const [headerNav, setHeaderNavState] = useState<ReactNode>(null);
   const setHeaderNav = useCallback((node: ReactNode) => {
@@ -172,6 +180,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.add("no-scrollbar");
     return () => document.documentElement.classList.remove("no-scrollbar");
   }, []);
+
+  // Horizontal rows should open with the current destination visible. This is
+  // especially important for Calendar, Settings, and later studio modules,
+  // which otherwise begin outside a phone viewport with no indication of the
+  // active location.
+  useEffect(() => {
+    if (!pathname || window.matchMedia("(min-width: 768px)").matches) return;
+    mobileNavRef.current
+      ?.querySelector<HTMLElement>('[aria-current="page"]')
+      ?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!headerNav || window.matchMedia("(min-width: 768px)").matches) return;
+    mobileHeaderNavRef.current
+      ?.querySelector<HTMLElement>('[aria-current="page"]')
+      ?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [headerNav]);
 
   function toggleCollapsed() {
     setCollapsed(!collapsed);
@@ -255,39 +281,57 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="md:hidden">
               <Logo compact href="/dashboard" />
             </div>
-            <div className="no-scrollbar flex min-w-0 flex-1 items-center justify-center overflow-x-auto py-1">
+            <div className="no-scrollbar hidden min-w-0 flex-1 items-center justify-center overflow-x-auto py-1 md:flex">
               {headerNav}
             </div>
+            <div className="min-w-0 flex-1 md:hidden" />
             <div className="flex shrink-0 items-center gap-2">
               <NotificationCenter />
               <UserMenu />
             </div>
           </header>
 
-          <nav className="flex gap-1 overflow-x-auto border-b border-transparent px-3 py-2 shadow-[inset_0_-1px_0_0_var(--color-border)] md:hidden">
-            {NAV.map((item) => {
-              const active = isActive(pathname, item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-sm",
-                    active
-                      ? "bg-signal/10 font-medium text-foreground"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  <Icon
-                    icon={item.icon}
-                    className={cn(active && "text-signal")}
-                  />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+          {headerNav ? (
+            <div className="relative border-b border-transparent shadow-[inset_0_-1px_0_0_var(--color-border)] after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-8 after:bg-linear-to-l after:from-background after:to-transparent md:hidden">
+              <div
+                ref={mobileHeaderNavRef}
+                className="no-scrollbar overflow-x-auto px-3 py-1.5 pr-8"
+              >
+                {headerNav}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="relative after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-8 after:bg-linear-to-l after:from-background after:to-transparent md:hidden">
+            <nav
+              ref={mobileNavRef}
+              aria-label="Main navigation"
+              className="no-scrollbar flex gap-1 overflow-x-auto border-b border-transparent px-3 py-2 pr-8 shadow-[inset_0_-1px_0_0_var(--color-border)]"
+            >
+              {NAV.map((item) => {
+                const active = isActive(pathname, item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-sm",
+                      active
+                        ? "bg-signal/10 font-medium text-foreground"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    <Icon
+                      icon={item.icon}
+                      className={cn(active && "text-signal")}
+                    />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
 
           <ReadOnlyBanner />
 

@@ -82,6 +82,7 @@ export function VideoStudio({
   const queryClient = useQueryClient();
   const setHeaderNav = useSetHeaderNav();
   const modulePaneRef = useRef<HTMLDivElement>(null);
+  const previousModuleRef = useRef(activeModule);
   const [durationMs, setDurationMs] = useState<number | null>(null);
   const [captionStyle, setCaptionStyle] = useState<CaptionStyle | null>(null);
 
@@ -194,13 +195,25 @@ export function VideoStudio({
   // (`lg:snap-start lg:scroll-mt-20`) instead of moving the whole page. `scrollIntoView`
   // honours the pane's scroll margin, so it lands just under the sticky header.
   useEffect(() => {
-    if (activeModule === "overview") return;
+    const previousModule = previousModuleRef.current;
+    previousModuleRef.current = activeModule;
+    if (activeModule === "overview" || previousModule === activeModule) return;
+    // Enabling snap only after an in-place module change prevents the browser
+    // from snapping past the read-only banner and project context on a hard
+    // load. The explicit scroll below still lands on the intended pane.
+    document.documentElement.classList.add("workspace-scroll-snap");
     modulePaneRef.current?.scrollIntoView({
       block: "start",
       inline: "nearest",
       behavior: "auto",
     });
   }, [activeModule]);
+
+  useEffect(
+    () => () =>
+      document.documentElement.classList.remove("workspace-scroll-snap"),
+    [],
+  );
 
   const captionLines = useMemo(
     () => transcriptQuery.data?.segments.slice(0, 2).map((item) => item.text),
@@ -370,7 +383,9 @@ export function VideoStudio({
         )}
 
         {activeModule === "rough-cut" ? (
-          <div ref={modulePaneRef}>{renderModule()}</div>
+          <div ref={modulePaneRef} className="scroll-mt-16">
+            {renderModule()}
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
             <div className="lg:sticky lg:top-20">
@@ -462,7 +477,7 @@ export function VideoStudio({
             <div className="space-y-6">
               <div
                 ref={modulePaneRef}
-                className="space-y-6 lg:snap-start lg:snap-always lg:scroll-mt-20"
+                className="scroll-mt-16 space-y-6 lg:snap-start lg:snap-always lg:scroll-mt-20"
               >
                 {renderModule()}
               </div>
