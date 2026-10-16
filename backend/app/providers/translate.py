@@ -11,6 +11,7 @@ import logging
 from typing import Any
 
 from app.config import Settings
+from app.providers.base import ProviderError
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +79,21 @@ class TranslateProvider:
             source_language,
             len(texts),
         )
-        response = await asyncio.to_thread(client.translate_text, request=request)
+        try:
+            response = await asyncio.to_thread(client.translate_text, request=request)
+        except Exception as exc:  # noqa: BLE001 - SDK types stay inside the provider boundary
+            from google.api_core.exceptions import PermissionDenied
+
+            if isinstance(exc, PermissionDenied):
+                raise ProviderError(
+                    "Cloud Translation denied the translate_text request",
+                    code="TRANSLATION_PERMISSION_DENIED",
+                    user_message=(
+                        "Translation access is not configured for dubbing. "
+                        "Ask an administrator to enable it, then try again."
+                    ),
+                ) from exc
+            raise
         translated = [t.translated_text for t in response.translations]
         if len(translated) != len(texts):
             raise RuntimeError(

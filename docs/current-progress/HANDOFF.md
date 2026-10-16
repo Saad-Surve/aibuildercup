@@ -5,7 +5,7 @@ person needs to know: contracts, infra, deployed state, open decisions, or verif
 Keep it current rather than chronological. Delete what is no longer true. History lives in
 `git log -- docs/current-progress`; earlier notes can be recovered with `git show <rev>:<path>`.
 
-Last updated: 2026-10-15.
+Last updated: 2026-10-16.
 
 ## Status
 
@@ -23,6 +23,17 @@ audience navigation, placeholder platform cards, and static translation preview 
 Localization retains dubbing and the glossary. Job failures use friendly retry guidance, with
 exception details kept in logs. API contracts and persisted data shapes are unchanged. Humation
 branding and the Google stack names are intentionally retained.
+
+Cross-language dubbing is fixed on `t3/62e8bb10` but is not deployed. Cloud Run failed four
+attempts at Translation with `cloudtranslate.generalModels.predict` denied: dubbing moved inline
+to `creator-studio-api`, while `roles/cloudtranslate.user` remained on the retired
+`creator-studio-localization` account. Terraform now assigns the role to the API account and owns
+Translation/TTS API enablement. Permission failures persist an actionable stage-specific job error.
+A bounded 21-second English-to-Hindi worker run against live Translation, Gemini adaptation, TTS,
+Firestore and Storage succeeded on the first attempt (job `304ec32013466e875dcd5928f1bc7603`,
+localization `767b952d8f67499e8ae3efb972e347cf`); FFprobe and a full decode confirmed 21-second H.264/AAC
+streams. Production remains broken until the Terraform IAM change is applied; no apply, deploy or
+direct IAM mutation was made.
 
 Copy-pass verification: web lint, ESLint, TypeScript, and production export; backend ruff and mypy.
 The exported landing page was checked at desktop and phone widths, including the rough-cut
@@ -302,6 +313,9 @@ Infra and GCP:
   spend cap is console-only and should sit below the budget.
 - `/healthz` is reserved by Google's front end. Use `/readyz`.
 - IAM changes take 1–2 minutes to propagate.
+- Cross-language dubbing runs in the API Cloud Run process. Keep
+  `roles/cloudtranslate.user` on `creator-studio-api`; the old localization service account is no
+  longer a runtime path.
 - Terraform has a known perpetual diff on the budget project reference
   (`projects/538724167565` vs `projects/habeas-codus`). It is harmless. Do not chase it.
 - Applying Firestore rules needs `firebaserules.rulesets.create`, which the local ADC lacked.
@@ -422,7 +436,9 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
 - Nine-reviewer analysis on the configured model. It was unavailable in the mandated region when
   it was last tried. The truth reviewer's Search grounding and the requested-footage tool rounds
   are not validated live.
-- Dubbing and localization against live Translation and TTS.
+- Dubbing has a successful bounded live backend run through Translation, adaptation, TTS, muxing
+  and Storage. The signed-in browser path and the deployed API identity remain unverified until the
+  pending Translation IAM binding is applied and the code is deployed.
 - Caption render in the app. The last render check hit an expired demo token mid-session. The
   streaming runner was validated directly.
 - The calendar and publish flows were checked by running backend services against live Firestore
@@ -513,9 +529,11 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
    `activeAnalysisRunId` can be dropped from project creation.
 8. **Connector scope and infra cleanup.** Native Bluesky and Mastodon connectors are candidates.
    The unused BigQuery datasets, worker subscriptions, dead-letter topics and five worker service
-   accounts were removed from Terraform on 2026-10-14 but NOT applied. `terraform plan`: 2 add, 1
-   change, 45 destroy; the add/change are pre-existing drift (deployer secretmanager.viewer, the
-   killswitch object, the known budget diff). Check the 9 BigQuery tables are empty, then apply.
+   accounts were removed from Terraform on 2026-10-14 but NOT applied. `terraform plan`: 5 add, 1
+   change, 45 destroy. Three adds are the pending dubbing fix (API Translation role plus Terraform
+   ownership of the already-enabled Translation/TTS APIs); the other add/change are pre-existing
+   drift (deployer secretmanager.viewer, the killswitch object, the known budget diff). Check the 9
+   BigQuery tables are empty, then apply.
    Possibly unused and kept: `raw-social`/`exports` buckets, `meta-app-*` and
    `session-signing-secret` secrets.
 9. **Account deletion revokes connector grants only best-effort.** Provider-side revocation is

@@ -12,6 +12,7 @@ import logging
 from typing import Any
 
 from app.config import Settings
+from app.providers.base import ProviderError
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,21 @@ class TtsProvider:
             ),
         )
         logger.info("TTS call voice=%s language=%s chars=%d", voice, language, len(text))
-        response = await asyncio.to_thread(client.synthesize_speech, request=request)
+        try:
+            response = await asyncio.to_thread(client.synthesize_speech, request=request)
+        except Exception as exc:  # noqa: BLE001 - SDK types stay inside the provider boundary
+            from google.api_core.exceptions import PermissionDenied
+
+            if isinstance(exc, PermissionDenied):
+                raise ProviderError(
+                    "Cloud Text-to-Speech denied the synthesize_speech request",
+                    code="TTS_PERMISSION_DENIED",
+                    user_message=(
+                        "Voice generation is not configured for dubbing. "
+                        "Ask an administrator to enable it, then try again."
+                    ),
+                ) from exc
+            raise
         audio = bytes(response.audio_content or b"")
         if not audio:
             raise RuntimeError("Text-to-Speech returned no audio")

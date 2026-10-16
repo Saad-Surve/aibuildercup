@@ -10,6 +10,8 @@ resource "google_project_service" "required" {
     "cloudfunctions.googleapis.com",
     "eventarc.googleapis.com",
     "billingbudgets.googleapis.com",
+    "translate.googleapis.com",
+    "texttospeech.googleapis.com",
   ])
 
   project            = var.project_id

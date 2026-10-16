@@ -14,6 +14,9 @@ locals {
       # Transcription runs inline in the API service (background task), so the API SA needs
       # Speech access until the worker moves to its own service.
       "roles/speech.client",
+      # Dubbing translates transcripts inline before synthesis. Without this role Cloud
+      # Translation rejects every cross-language dub at the first translate_text call.
+      "roles/cloudtranslate.user",
     ]
     transcribe = [
       "roles/storage.objectAdmin",

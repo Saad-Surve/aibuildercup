@@ -10,6 +10,19 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
 
+class ProviderError(RuntimeError):
+    """An external provider failure with a safe error for persisted job state.
+
+    The exception message remains an operator-facing detail for logs. ``user_message`` is
+    deliberately actionable but does not expose credentials, provider responses, or internals.
+    """
+
+    def __init__(self, message: str, *, code: str, user_message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.user_message = user_message
+
+
 @dataclass(frozen=True)
 class LlmUsage:
     """Token counts reported by the model after a call."""

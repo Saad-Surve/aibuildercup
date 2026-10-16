@@ -23,6 +23,7 @@ from typing import Any
 from app.config import Settings, get_settings
 from app.errors import NotFoundError
 from app.providers import Providers, get_providers
+from app.providers.base import ProviderError
 from app.schemas.jobs import JobStatus
 from app.schemas.localizations import LocalizationStatus
 from app.services.dubbing import assign_voices, build_track_wav, tempo_for
@@ -175,14 +176,14 @@ async def run_dub(
         )
     except Exception as exc:  # noqa: BLE001 - one catch marks both records failed
         logger.exception("dub job %s failed", job_id)
-        message = _failure_message(exc)
+        code, message = _failure(exc)
         try:
             await asyncio.to_thread(
                 localizations.mark_failed,
                 owner_uid=owner_uid,
                 project_id=project_id,
                 localization_id=localization_id,
-                code="DUB_FAILED",
+                code=code,
                 message=message,
             )
         except Exception:  # noqa: BLE001 - job failure is the primary signal
@@ -193,7 +194,7 @@ async def run_dub(
             project_id=project_id,
             job_id=job_id,
             message=message,
-            code="DUB_FAILED",
+            code=code,
         )
         return None
     return localization_id
@@ -792,12 +793,15 @@ def _build_srt(segments: Sequence[Any], texts: Sequence[str]) -> str:
     return "\n".join(blocks)
 
 
-def _failure_message(exc: BaseException) -> str:
+def _failure(exc: BaseException) -> tuple[str, str]:
+    if isinstance(exc, ProviderError):
+        return exc.code, exc.user_message
     if isinstance(exc, VideoToolError):
-        detail = str(exc).strip()
-        if detail:
-            return "Dubbing failed. Try again."
-    return "Dubbing failed. Try again."
+        return (
+            "DUB_MEDIA_FAILED",
+            "Dubbing could not process this video's media. Check the source video and try again.",
+        )
+    return "DUB_FAILED", "Dubbing failed. Try again."
 
 
 # --------------------------------------------------------------------------- wiring

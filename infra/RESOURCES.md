@@ -20,6 +20,10 @@ Terraform lives in this folder. Run commands from `infra/`.
 | Billing account | `014B5B-1E8419-7A90A3` |
 | Terraform state | `gs://habeas-codus-terraform-state`, prefix `creator-studio` |
 
+The API runtime service account has Cloud Translation API User for cross-language dubbing.
+Translation and Text-to-Speech APIs are enabled through Terraform with the rest of the runtime
+services.
+
 ---
 
 ## Cloud Storage buckets
