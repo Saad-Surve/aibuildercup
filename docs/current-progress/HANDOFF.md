@@ -438,8 +438,11 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
 - Live creator-library indexing on a real folder import. The import path is lint- and
   type-checked only. A real folder has not been supplied.
 - The Docker image for the API. A change to the Dockerfile was reviewed but not built.
-- Browser click-through of the draft editor, drawer, read-only states and mobile workspace.
-  Several UI changes were checked by build and reasoning only.
+- Browser click-through of the draft editor and drawer is still open. The read-only demo and
+  mobile workspace were checked at 390px and 1440px in light and dark themes, including project
+  modules, transcript, review, rough cut, packaging, publishing, captions, calendar and profile.
+  The writable new-project dialog was reviewed in code because its trigger is intentionally
+  disabled for the demo account.
 - The interest lane was checked in a browser (local API and web against live Firestore, demo
   account): curve, baseline, hover readout, info panel, dip click (seek and filter findings)
   and coverage tint all worked. A fresh analysis run through the deployed worker has not been
@@ -524,8 +527,11 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
     `gemini-api-key` Secret Manager secret. Decide whether deploys should use
     `cancel-in-progress`.
 11. **Remaining responsive and accessibility pass** (frontend plan item 16). Dashboard, project
-    list, transcript editor, profile and dialogs are still open. The desktop fixed-pane snap is
-    unchanged.
+    list, transcript editor, profile and shared dialogs now have a responsive baseline. Mobile
+    app/studio navigation, project-card density, profile avatar layout and dialog choices were
+    tightened. Desktop fixed panes remain, but snapping is enabled only after an in-place module
+    change so hard loads retain the read-only banner and project context. Remaining: exhaustive
+    keyboard-only traversal and a writable browser check of create/edit dialogs.
 12. **Scale-out.** Durable worker dispatch and leases, shared realtime delivery, and indexed vector
     retrieval as library and project counts grow.
 13. **Optional polish.** Calendar drag-to-move, week view by hour, ICS export. Non-Latin caption
