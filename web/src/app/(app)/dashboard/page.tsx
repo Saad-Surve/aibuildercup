@@ -44,7 +44,9 @@ export default function DashboardPage() {
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-heading text-sm font-medium">Recent projects</h2>
+          <h2 className="font-heading text-base font-medium tracking-tight">
+            Recent projects
+          </h2>
           {projects.length > 0 ? (
             <Link
               href="/projects"

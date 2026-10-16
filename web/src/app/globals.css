@@ -95,7 +95,7 @@
  * elsewhere is unaffected (and only elements with a snap-align opt in).
  */
 @media (min-width: 1024px) {
-  html {
+  html.workspace-scroll-snap {
     scroll-snap-type: y proximity;
     scroll-behavior: smooth;
   }

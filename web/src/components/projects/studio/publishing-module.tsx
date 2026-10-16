@@ -8,10 +8,10 @@ import {
   CloudUploadIcon,
   Delete02Icon,
   FileVideoIcon,
-  ImageAdd01Icon,
   Link01Icon,
   Loading03Icon,
   Refresh01Icon,
+  SearchList01Icon,
 } from "@hugeicons/core-free-icons";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api-client";
-import { languageLabel } from "@/lib/onboarding";
+import { LANGUAGE_OPTIONS, languageLabel } from "@/lib/onboarding";
 import {
   listCaptionRenders,
   listAssets,
@@ -242,6 +242,22 @@ export function PublishingModule({
   const selectedThumbnail = readyThumbnails.find(
     (concept) => concept.thumbnailId === thumbnailId,
   );
+  const selectedDub = readyDubs.find(
+    (dub) => videoValue === `localization:${dub.localizationId}`,
+  );
+  const selectedVideoLabel =
+    videoValue === "source"
+      ? sourceAsset
+        ? "Original video"
+        : "Original video (missing)"
+      : readyRenders.some(
+            (render) =>
+              videoValue === `captionRender:${render.captionRenderId}`,
+          )
+        ? "Captioned video"
+        : selectedDub
+          ? `Dubbed · ${languageLabel(selectedDub.targetLanguage)}`
+          : "Choose video";
 
   function resolvePublishAt(): string | null {
     if (!scheduleLater) return null;
@@ -379,7 +395,7 @@ export function PublishingModule({
               onValueChange={(value) => setVideoValue(value ?? "source")}
             >
               <SelectTrigger className="w-full">
-                <SelectValue />
+                <SelectValue>{selectedVideoLabel}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="source">
@@ -469,7 +485,12 @@ export function PublishingModule({
                 }
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>
+                    {(value: unknown) =>
+                      CAPTION_OPTIONS.find((option) => option.value === value)
+                        ?.label ?? "Choose captions"
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {CAPTION_OPTIONS.map((option) => (
@@ -484,12 +505,30 @@ export function PublishingModule({
               <Label className="text-xs text-muted-foreground">
                 Caption language
               </Label>
-              <Input
+              <Select
                 value={captionLanguage}
-                onChange={(event) => setCaptionLanguage(event.target.value)}
-                placeholder="en"
+                onValueChange={(value) =>
+                  setCaptionLanguage(String(value ?? primaryLanguage ?? "en"))
+                }
                 disabled={captionFormat === "none"}
-              />
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose language">
+                    {(value: unknown) =>
+                      typeof value === "string"
+                        ? languageLabel(value)
+                        : "Choose language"
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGE_OPTIONS.map((language) => (
+                    <SelectItem key={language.value} value={language.value}>
+                      {language.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
@@ -497,7 +536,10 @@ export function PublishingModule({
 
       <Card className={WORKSPACE_SNAP_TARGET}>
         <CardHeader>
-          <CardTitle>Listing</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Icon icon={SearchList01Icon} className="text-muted-foreground" />
+            Listing
+          </CardTitle>
           <CardDescription>
             Fills empty fields from your saved listing. You can edit everything.
           </CardDescription>
@@ -606,7 +648,12 @@ export function PublishingModule({
                 onValueChange={(value) => setCategoryId(value ?? "22")}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>
+                    {(value: unknown) =>
+                      CATEGORY_OPTIONS.find((option) => option.value === value)
+                        ?.label ?? "Choose category"
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {CATEGORY_OPTIONS.map((option) => (
@@ -628,7 +675,12 @@ export function PublishingModule({
                 }
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>
+                    {(value: unknown) =>
+                      PRIVACY_OPTIONS.find((option) => option.value === value)
+                        ?.label ?? "Choose visibility"
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {PRIVACY_OPTIONS.map((option) => (
@@ -731,7 +783,7 @@ export function PublishingModule({
       <Card className={WORKSPACE_SNAP_TARGET}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Icon icon={ImageAdd01Icon} className="text-muted-foreground" />
+            <Icon icon={CloudUploadIcon} className="text-muted-foreground" />
             Publish history
           </CardTitle>
           <CardDescription>
@@ -740,9 +792,12 @@ export function PublishingModule({
         </CardHeader>
         <CardContent className="space-y-3">
           {publishes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nothing published yet.
-            </p>
+            <div className="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-center">
+              <p className="text-sm font-medium">No uploads yet</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Your YouTube upload attempts will appear here.
+              </p>
+            </div>
           ) : (
             publishes.map((publish) => (
               <div

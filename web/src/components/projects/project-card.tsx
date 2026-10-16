@@ -55,12 +55,12 @@ function ProjectThumb({
         height={270}
         alt=""
         aria-hidden="true"
-        className="aspect-video w-full object-cover"
+        className="aspect-video w-full object-cover max-sm:aspect-[5/2]"
       />
     );
   }
   return (
-    <div className="flex aspect-video w-full items-center justify-center bg-muted">
+    <div className="flex aspect-video w-full items-center justify-center bg-muted max-sm:aspect-[5/2]">
       <Icon icon={FileVideoIcon} className="size-6 text-muted-foreground" />
     </div>
   );
@@ -71,7 +71,7 @@ function DraftPreview({ project }: { project: Project }) {
   const summary = project.draftSummary;
   const preview = summary?.preview?.trim();
   return (
-    <div className="relative flex aspect-video w-full flex-col gap-2 overflow-hidden bg-muted/40 p-4">
+    <div className="relative flex aspect-video w-full flex-col gap-2 overflow-hidden bg-muted/40 p-4 max-sm:aspect-[5/2]">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.4] [background-image:repeating-linear-gradient(to_bottom,transparent,transparent_1.55rem,color-mix(in_oklch,var(--border),transparent_40%)_1.6rem)]"
@@ -95,7 +95,7 @@ export function ProjectCardSkeleton() {
   return (
     <Card aria-hidden="true" className="h-full">
       <div className="-mt-(--card-spacing)">
-        <Skeleton className="aspect-video w-full rounded-none" />
+        <Skeleton className="aspect-video w-full rounded-none max-sm:aspect-[5/2]" />
       </div>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">

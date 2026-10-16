@@ -229,6 +229,9 @@ export function InterestLanes({
 
   const hovered = hoverIndex === null ? undefined : points[hoverIndex];
   const moments = [...(curve.peaks ?? []), ...(curve.dips ?? [])];
+  const hasSignals = SIGNAL_ROWS.some((row) =>
+    points.some((point) => typeof point.signals?.[row.key] === "number"),
+  );
 
   return (
     <div className="space-y-[6px]">
@@ -329,14 +332,35 @@ export function InterestLanes({
           })}
         </div>
 
-        <span className="w-9 shrink-0" aria-hidden="true" />
+        <span className="w-10 shrink-0" aria-hidden="true" />
       </div>
 
-      <p className="text-[10px] text-muted-foreground">
-        {curve.baselineSource?.source === "creator"
-          ? `Channel curve · ${curve.baselineSource.channelName ?? "your audience"} · ${curve.baselineSource.videos} videos`
-          : "Typical curve"}
-      </p>
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        <span className={LABEL_COLUMN} aria-hidden="true" />
+        <div className="flex flex-1 items-center justify-between gap-3 text-[10px] text-muted-foreground">
+          <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+            <span className="w-4 border-t border-dashed border-muted-foreground/70" />
+            {curve.baselineSource?.source === "creator"
+              ? `Channel curve · ${curve.baselineSource.channelName ?? "your audience"} · ${curve.baselineSource.videos} videos`
+              : "Typical drop-off"}
+          </span>
+          {hasSignals ? (
+            <button
+              type="button"
+              aria-expanded={signalsOpen}
+              onClick={() => setSignalsOpen((open) => !open)}
+              className="inline-flex shrink-0 items-center gap-1 rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            >
+              <Icon
+                icon={signalsOpen ? ArrowDown01Icon : ArrowRight01Icon}
+                className="size-3"
+              />
+              Signals
+            </button>
+          ) : null}
+        </div>
+        <span className="w-10 shrink-0" aria-hidden="true" />
+      </div>
 
       {infoOpen && (
         <div
@@ -352,7 +376,6 @@ export function InterestLanes({
         points={points}
         durationMs={durationMs}
         open={signalsOpen}
-        onToggle={() => setSignalsOpen((open) => !open)}
         hoverIndex={hoverIndex}
         onHoverIndex={onHoverIndex}
         onSeek={onSeek}
@@ -420,7 +443,6 @@ function SignalLanes({
   points,
   durationMs,
   open,
-  onToggle,
   hoverIndex,
   onHoverIndex,
   onSeek,
@@ -428,7 +450,6 @@ function SignalLanes({
   points: InterestPoint[];
   durationMs: number;
   open: boolean;
-  onToggle: () => void;
   hoverIndex: number | null;
   onHoverIndex: (index: number | null) => void;
   onSeek: (startMs: number) => void;
@@ -436,91 +457,73 @@ function SignalLanes({
   const rows = SIGNAL_ROWS.filter((row) =>
     points.some((point) => typeof point.signals?.[row.key] === "number"),
   );
-  if (rows.length === 0) return null;
+  if (rows.length === 0 || !open) return null;
   const hovered = hoverIndex === null ? undefined : points[hoverIndex];
 
   return (
     <div className="space-y-[6px]">
-      <div className="flex items-center gap-1.5 sm:gap-2">
-        <button
-          type="button"
-          aria-expanded={open}
-          onClick={onToggle}
-          className={cn(
-            LABEL_COLUMN,
-            "flex items-center gap-1 rounded text-left text-[11px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-          )}
-        >
-          <Icon
-            icon={open ? ArrowDown01Icon : ArrowRight01Icon}
-            className="size-3.5"
-          />
-          Signals
-        </button>
-      </div>
-      {open &&
-        rows.map((row) => {
-          const defined = points.filter(
-            (point) => typeof point.signals?.[row.key] === "number",
-          );
-          const max = Math.max(
-            1,
-            ...defined.map((p) => p.signals?.[row.key] ?? 0),
-          );
-          const coords = defined.map((point): [number, number] => [
-            xPct(point, durationMs),
-            95 - ((point.signals?.[row.key] ?? 0) / max) * 90,
-          ]);
-          const line = straightPath(coords);
-          return (
-            <div key={row.key} className="flex items-center gap-1.5 sm:gap-2">
-              <span
-                className={cn(
-                  LABEL_COLUMN,
-                  "truncate pl-[18px] text-[11px] text-muted-foreground",
-                )}
+      {rows.map((row) => {
+        const defined = points.filter(
+          (point) => typeof point.signals?.[row.key] === "number",
+        );
+        const max = Math.max(
+          1,
+          ...defined.map((p) => p.signals?.[row.key] ?? 0),
+        );
+        const coords = defined.map((point): [number, number] => [
+          xPct(point, durationMs),
+          95 - ((point.signals?.[row.key] ?? 0) / max) * 90,
+        ]);
+        const line = straightPath(coords);
+        return (
+          <div key={row.key} className="flex items-center gap-1.5 sm:gap-2">
+            <span
+              className={cn(
+                LABEL_COLUMN,
+                "truncate pl-[18px] text-[11px] text-muted-foreground",
+              )}
+            >
+              {row.label}
+            </span>
+            <div className="relative h-7 flex-1 overflow-hidden rounded-[3px] bg-muted/60">
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                className="absolute inset-0 size-full"
               >
-                {row.label}
-              </span>
-              <div className="relative h-7 flex-1 overflow-hidden rounded-[3px] bg-muted/60">
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                  className="absolute inset-0 size-full"
-                >
-                  <path
-                    d={`${line} L${coords[coords.length - 1][0]},100 L${coords[0][0]},100 Z`}
-                    className="fill-muted-foreground/15"
-                  />
-                  <path
-                    d={line}
-                    fill="none"
-                    strokeWidth={1}
-                    vectorEffect="non-scaling-stroke"
-                    className="stroke-muted-foreground"
-                  />
-                </svg>
-                <ScrubLane
-                  points={points}
-                  durationMs={durationMs}
-                  hoverIndex={hoverIndex}
-                  onHoverIndex={onHoverIndex}
-                  onSeek={onSeek}
-                  label={`${row.label} timeline`}
-                  valueText={
-                    hovered?.signals?.[row.key] !== undefined
-                      ? `${formatDurationMs(hovered.startMs)}, ${Math.round(hovered.signals[row.key])} ${row.unit}`
-                      : "Use arrow keys to inspect, Enter to jump"
-                  }
-                >
-                  <CursorLine point={hovered} durationMs={durationMs} />
-                </ScrubLane>
-              </div>
-              <span className="w-9 shrink-0" aria-hidden="true" />
+                <path
+                  d={`${line} L${coords[coords.length - 1][0]},100 L${coords[0][0]},100 Z`}
+                  className="fill-muted-foreground/15"
+                />
+                <path
+                  d={line}
+                  fill="none"
+                  strokeWidth={1}
+                  vectorEffect="non-scaling-stroke"
+                  className="stroke-muted-foreground"
+                />
+              </svg>
+              <ScrubLane
+                points={points}
+                durationMs={durationMs}
+                hoverIndex={hoverIndex}
+                onHoverIndex={onHoverIndex}
+                onSeek={onSeek}
+                label={`${row.label} timeline`}
+                valueText={
+                  hovered?.signals?.[row.key] !== undefined
+                    ? `${formatDurationMs(hovered.startMs)}, ${Math.round(hovered.signals[row.key])} ${row.unit}`
+                    : "Use arrow keys to inspect, Enter to jump"
+                }
+              >
+                <CursorLine point={hovered} durationMs={durationMs} />
+              </ScrubLane>
             </div>
-          );
-        })}
+            <span className="w-10 shrink-0" aria-hidden="true" />
+          </div>
+        );
+      })}
     </div>
   );
 }

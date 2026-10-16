@@ -189,7 +189,7 @@ export function getReviewerContextUrl(
 
 // --- presentation -----------------------------------------------------------
 
-export const DIMENSION_LABELS: Record<AnalysisDimension, string> = {
+export const DIMENSION_LABELS: Record<string, string> = {
   truth_evidence: "Truth & Evidence",
   clarity: "Spoken Clarity",
   pacing_retention: "Pacing & Retention",
@@ -199,13 +199,22 @@ export const DIMENSION_LABELS: Record<AnalysisDimension, string> = {
   audience_brand: "Audience & Brand",
   emotional_impact: "Emotional Impact",
   conversion_cta: "Conversion & CTA",
+  // Retired dimensions remain on historical demo runs. Keep their display
+  // names polished even though new reviews never request them.
+  structure_pacing: "Structure & Pacing",
+  engagement_retention: "Engagement & Retention",
+  audience_fit: "Audience Fit",
+  brand_voice: "Brand Voice",
+  seo_discoverability: "SEO & Discoverability",
+  visual_accessibility: "Visual Accessibility",
 };
 
 export function dimensionLabel(dimension: string): string {
-  return (
-    DIMENSION_LABELS[dimension as AnalysisDimension] ??
-    dimension.replace(/_/g, " ")
-  );
+  return DIMENSION_LABELS[dimension] ?? titleCase(dimension.replace(/_/g, " "));
+}
+
+function titleCase(value: string): string {
+  return value.replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export const SEVERITY_ORDER: Severity[] = [

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert02Icon,
+  InformationCircleIcon,
   Loading03Icon,
   PlayIcon,
   SparklesIcon,
@@ -26,6 +27,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useProjectTranscript } from "@/hooks/use-project-transcript";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -46,6 +52,7 @@ import {
 import type {
   AnalysisDimension,
   AnalysisRun,
+  Finding,
   InterestMoment,
   Severity,
 } from "@/lib/types";
@@ -261,7 +268,7 @@ export function ReviewPanel({
 
   return (
     <>
-      <Card className={WORKSPACE_PANE_SNAP}>
+      <Card className={cn(WORKSPACE_PANE_SNAP, "lg:h-auto lg:max-h-none")}>
         <CardHeader className="shrink-0">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -354,73 +361,29 @@ export function ReviewPanel({
           )}
 
           {transcriptIsNewer && (
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-signal/40 bg-signal/5 px-3 py-2 text-sm">
+            <div className="flex items-start gap-2 rounded-lg border border-signal/40 bg-signal/5 px-3 py-2 text-sm">
               <Icon
                 icon={SparklesIcon}
                 className="size-4 shrink-0 text-signal"
               />
-              <span className="flex-1">
+              <span>
                 A newer transcript is ready. Run review again to check this
                 revision.
               </span>
-              <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
-                <Button
-                  size="sm"
-                  onClick={() => startMutation.mutate()}
-                  disabled={startMutation.isPending || readOnly}
-                >
-                  {startMutation.isPending ? "Starting…" : "Run review again"}
-                </Button>
-              </DisabledReason>
             </div>
           )}
 
-          {/* Instrument readout: flagged-moment score, severity census, spend. */}
-          <div className="tabular flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-            <span title="Average score of flagged moments. Unmarked time has no score.">
-              Flagged moments{" "}
-              <span className="text-foreground">
-                {formatScore(run?.overallScore ?? null)}
-              </span>
-            </span>
-            <span>
-              Reviewers{" "}
-              <span className="text-foreground">
-                {
-                  reviewers.filter(
-                    (item) => item.status === "succeeded" && !item.error,
-                  ).length
-                }
-                /{reviewers.length || laneDimensions.length}
-              </span>
-            </span>
-            <span>
-              Cost{" "}
-              <span className="text-foreground">
-                {formatCostUsd(run?.costEstimateUsd ?? 0)}
-              </span>
-            </span>
-            <span aria-live="polite" aria-label="Creator decision counts">
-              {(["accepted", "revised", "dismissed", "open"] as const)
-                .map((status) => {
-                  const eligible = findings.filter(
-                    (finding) =>
-                      !editorFiltered(finding) &&
-                      finding.adjudication?.verdict !== "reject",
-                  );
-                  const count = eligible.filter((finding) =>
-                    status === "open"
-                      ? !finding.decision
-                      : finding.decision?.status === status,
-                  ).length;
-                  return `${count} ${status}`;
-                })
-                .join(" · ")}
-            </span>
-            <span className="ml-auto hidden sm:inline">
-              Click a segment to jump there
-            </span>
-          </div>
+          <ReviewSummary
+            overallScore={run?.overallScore ?? null}
+            completedReviewers={
+              reviewers.filter(
+                (item) => item.status === "succeeded" && !item.error,
+              ).length
+            }
+            totalReviewers={reviewers.length || laneDimensions.length}
+            cost={run?.costEstimateUsd ?? 0}
+            findings={findings}
+          />
 
           {/* Severity census doubles as the findings filter and the colour legend. */}
           <div className="flex flex-wrap items-center gap-1.5">
@@ -437,8 +400,10 @@ export function ReviewPanel({
                   className={cn(
                     "inline-flex h-7 items-center gap-1.5 rounded-4xl border px-2.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                     active
-                      ? "border-signal bg-signal text-signal-foreground"
-                      : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
+                      ? "border-signal bg-signal/15 font-medium text-foreground shadow-sm ring-1 ring-signal/20"
+                      : count === 0
+                        ? "border-border/60 bg-muted/30 text-muted-foreground/50"
+                        : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
                   <span
@@ -529,6 +494,88 @@ export function ReviewPanel({
         }}
       />
     </>
+  );
+}
+
+function ReviewSummary({
+  overallScore,
+  completedReviewers,
+  totalReviewers,
+  cost,
+  findings,
+}: {
+  overallScore: number | null;
+  completedReviewers: number;
+  totalReviewers: number;
+  cost: number;
+  findings: Finding[];
+}) {
+  const eligible = findings.filter(
+    (finding) =>
+      !editorFiltered(finding) && finding.adjudication?.verdict !== "reject",
+  );
+  const counts = {
+    accepted: eligible.filter(
+      (finding) => finding.decision?.status === "accepted",
+    ).length,
+    revised: eligible.filter(
+      (finding) => finding.decision?.status === "revised",
+    ).length,
+    dismissed: eligible.filter(
+      (finding) => finding.decision?.status === "dismissed",
+    ).length,
+  };
+  const resolved = counts.accepted + counts.revised + counts.dismissed;
+  const detail = `${counts.accepted} accepted · ${counts.revised} revised · ${counts.dismissed} dismissed · ${eligible.length - resolved} open`;
+
+  const stats = [
+    {
+      label: "Flagged average",
+      value: formatScore(overallScore),
+      description:
+        "Average quality score across reviewer lenses that reported a moment. This is not a whole-video grade, and unflagged time is excluded.",
+    },
+    {
+      label: "Reviewers",
+      value: `${completedReviewers} of ${totalReviewers}`,
+    },
+    { label: "Review cost", value: formatCostUsd(cost) },
+    {
+      label: "Decisions",
+      value: `${resolved} of ${eligible.length} resolved`,
+      title: detail,
+      ariaLabel: `Creator decisions: ${detail}`,
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-live="polite">
+      {stats.map((stat) => (
+        <div
+          key={stat.label}
+          title={stat.title ?? stat.description}
+          aria-label={stat.ariaLabel}
+          className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2"
+        >
+          {stat.description ? (
+            <Tooltip>
+              <TooltipTrigger className="inline-flex cursor-help items-center gap-1 text-[10px] leading-none font-medium tracking-wide text-muted-foreground uppercase decoration-dotted underline-offset-2 hover:text-foreground hover:underline">
+                {stat.label}
+                <Icon icon={InformationCircleIcon} className="size-3" />
+              </TooltipTrigger>
+              <TooltipContent>{stat.description}</TooltipContent>
+            </Tooltip>
+          ) : (
+            <p className="text-[10px] leading-none font-medium tracking-wide text-muted-foreground uppercase">
+              {stat.label}
+            </p>
+          )}
+          <p className="mt-1.5 text-sm leading-none font-medium text-foreground tabular-nums">
+            {stat.value}
+          </p>
+        </div>
+      ))}
+    </div>
   );
 }
 

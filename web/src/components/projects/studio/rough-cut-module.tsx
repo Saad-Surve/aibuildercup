@@ -105,9 +105,7 @@ export function RoughCutModule({
           </label>
         )}
       </div>
-      {(runs.isLoading || plan.isLoading) && (
-        <Skeleton className="h-80 w-full" />
-      )}
+      {(runs.isLoading || plan.isLoading) && <RoughCutSkeleton />}
       {(runs.error || plan.error) && (
         <p role="alert" className="text-sm text-destructive">
           {(runs.error ?? plan.error)?.message}
@@ -140,6 +138,36 @@ export function RoughCutModule({
         />
       )}
     </div>
+  );
+}
+
+function RoughCutSkeleton() {
+  return (
+    <Card aria-label="Loading rough cut" className="overflow-hidden">
+      <CardContent className="space-y-5 p-4 sm:p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-7 w-16" />
+            <span className="text-muted-foreground" aria-hidden>
+              →
+            </span>
+            <Skeleton className="h-9 w-20" />
+          </div>
+          <Skeleton className="h-7 w-36 rounded-full" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="aspect-video w-full rounded-lg" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="aspect-video w-full rounded-lg" />
+          </div>
+        </div>
+        <Skeleton className="h-11 w-full rounded-md" />
+      </CardContent>
+    </Card>
   );
 }
 
