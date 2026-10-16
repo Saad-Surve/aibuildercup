@@ -269,7 +269,7 @@ export function AvatarEditorDialog() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
       <UserAvatar state={saved} size={96} title="Your avatar" />
       <div className="space-y-1.5">
         <Dialog open={open} onOpenChange={setOpen}>

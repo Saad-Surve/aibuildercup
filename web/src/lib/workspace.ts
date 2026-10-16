@@ -9,7 +9,7 @@
  * usable on short viewports without ever letting a card collapse.
  */
 export const WORKSPACE_PANE_HEIGHT =
-  "max-h-[min(72vh,40rem)] lg:h-[min(72vh,40rem)] lg:max-h-none";
+  "max-h-[min(72vh,40rem)] lg:h-[min(64vh,38rem)] lg:max-h-none";
 
 /** Flex column whose body scrolls once the pane is taller than its cap. */
 export const WORKSPACE_PANE_CARD = `${WORKSPACE_PANE_HEIGHT} flex min-h-0 flex-col`;
