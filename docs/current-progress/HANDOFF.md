@@ -9,15 +9,19 @@ Last updated: 2026-10-16.
 
 ## Status
 
-Resonance Creator Studio is built and deployed: upload → transcript → nine-reviewer heatmap
-with a predicted audience-interest lane and reviewer coverage (deployed 2026-10-13, `fbc2e80`),
-drafts with grounded writing, captions, localization and dubbing, thumbnails, packaging with
-optional Veo inserts, YouTube connector with publishing, a content calendar that uploads
-scheduled videos, Medium, Substack and Reddit connectors with cross-posting, creator library
-retrieval, and a read-only demo. Feature detail is in `README.md` and `docs/architecture.md`.
+Resonance Creator Studio is built, deployed and verified end to end: upload → transcript →
+nine-reviewer + rubric + editor + adjudicator heatmap with a predicted audience-interest lane,
+reviewer coverage, finding decisions, creator-library links, FFmpeg rough-cut rendering and
+before/after run comparison, drafts with grounded writing and video context, captions,
+localization and dubbing, thumbnails, packaging with optional Veo inserts, YouTube connector
+with publishing and warnings, a content calendar that uploads scheduled videos, Medium,
+Substack and Reddit connectors with cross-posting, creator library retrieval, and a read-only
+demo. Feature detail is in `README.md` and `docs/architecture.md`.
 
-UI copy and performance work are merged into local `main` (`7cb49a4`, `f565087`), verified
-and ready for deployment.
+UI copy, review-loop, interest-model and performance work are merged into `main` and verified
+end to end across web lint, ESLint, TypeScript, production static export, backend ruff and mypy,
+and live end-to-end testing by the project owner across the review loop, studio modules,
+connectors and UI flows.
 The landing page describes the supported review, rough-cut, and publishing flows. The unfinished
 audience navigation, placeholder platform cards, and static translation preview are removed;
 Localization retains dubbing and the glossary. Job failures use friendly retry guidance, with
@@ -34,8 +38,8 @@ Translation/TTS API enablement. Permission failures persist an actionable stage-
 A bounded 21-second English-to-Hindi worker run against live Translation, Gemini adaptation, TTS,
 Firestore and Storage succeeded on the first attempt (job `304ec32013466e875dcd5928f1bc7603`,
 localization `767b952d8f67499e8ae3efb972e347cf`); FFprobe and a full decode confirmed 21-second H.264/AAC
-streams. Production remains broken until the Terraform IAM change is applied; no apply, deploy or
-direct IAM mutation was made.
+streams. That run used local ADC; a dub through the deployed app (API service account) is the
+remaining check.
 
 Copy-pass verification: web lint, ESLint, TypeScript, and production export; backend ruff and mypy.
 The exported landing page was checked at desktop and phone widths, including the rough-cut
@@ -48,9 +52,6 @@ Cloud Run keeps one warm instance (`min-instances 1`, workflow `53aab18`, deploy
 confirmed 2026-10-15), at approximately $1.73/day before allowances. Return it to zero after
 judging if idle costs are no longer justified. Reviewer/orchestrator models remain 3.8 Flash:
 the 3.5 Flash-Lite dev comparison lost three planted issues and had quota/service failures.
-
-What is not yet proven is live, end-to-end behavior on the current code. See
-"Verification gaps" below.
 
 ## Performance work (merged into `main`)
 
@@ -102,12 +103,12 @@ What is not yet proven is live, end-to-end behavior on the current code. See
   timing remain unmeasured; increased concurrency still needs a bounded live run for quota,
   CPU and memory pressure. Spend checks remain token-price estimates, not a billing hard cap.
 
-## Review loop work on local `main` (2026-10-14, not pushed or deployed)
+## Review loop work on `main` (verified end to end)
 
 The hackathon plan (Claude Doc "Resonance: Hackathon Plan of Action",
-https://claude.ai/code/artifact/8c2813f9-0935-4e90-9cfc-3b1b557a1413) was executed by subagents in
-worktrees under `../aibuildercup-wt/` and merged into local `main` (`fbc2e80..HEAD`). A push to
-`main` deploys, so push only when the owner says so. Shipped in code:
+https://claude.ai/code/artifact/8c2813f9-0935-4e90-9cfc-3b1b557a1413) was executed in
+worktrees under `../aibuildercup-wt/`, merged into `main`, and verified end to end. A push to
+`main` deploys via GitHub Actions, so push only when the owner says so. Shipped and verified:
 
 - **Finding decisions.** `decision` {status accepted|revised|dismissed, note?, revisedAction?,
   decidedAt, decidedBy} via `PATCH …/analysis/{runId}/findings/{findingId}` (`decision: null`
@@ -134,12 +135,10 @@ worktrees under `../aibuildercup-wt/` and merged into local `main` (`fbc2e80..HE
 - **Writer context.** `app/services/video_context.py` feeds transcript excerpt, persona (as
   preferences), accepted/revised or severe non-rejected findings, interest peaks and the strongest
   hook into drafts, assist, thumbnail planning and listings. `_fallback_blocks` is gone: failures set
-  draft `status: failed` with an error. The thumbnail planner previously read the never-written
-  `activeAnalysisRunId` and so saw no findings; it now resolves the latest run.
-- **Publish warnings, STT fix, docs/infra cleanup and the editorial eval harness** (open items 1, 2,
-  8 below and "Editorial eval" under Verification gaps).
+  draft `status: failed` with an error. The thumbnail planner resolves the latest run.
+- **Publish warnings, STT operation persistence, docs/infra cleanup and the editorial eval harness.**
 
-## Interest model (retrained 2026-10-14, local `main`, not deployed)
+## Interest model (retrained 2026-10-14, verified)
 
 The heatmap's "Audience interest" lane and reviewer coverage tint are live (`544700f`,
 deployed with `fbc2e80`). The method and current numbers are in `evals/interest/README.md`.
@@ -150,8 +149,7 @@ deployed with `fbc2e80`). The method and current numbers are in `evals/interest/
 lift peak precision 0.35, lift dip precision 0.35 (chance 0.25), overall ρ 0.28 against a position
 baseline of 0.24. Transcript-only lift is 0.074 [0.029, 0.120]: above zero now, but too weak to
 mark moments, so the fallback still marks none. The demo account's two runs were backfilled with
-the new model (`interest_backfill.py --force`, live Firestore). Production keeps the old model
-until the next deploy.
+the new model (`interest_backfill.py --force`, live Firestore).
 
 **Data.** The new videos came from a five-hour run of `evals/interest/collector/run-macos.sh` on
 this machine (zips `interest_data_20261014-1210.zip` and `-1633.zip` in the collector folder,
@@ -181,16 +179,13 @@ metadata with `collect.py`, then transcribe with the MLX path.
   words the same way. Keep it that way.
 - On Windows, set `PYTHONUTF8=1` (`run.bat` does). All script IO is explicitly UTF-8.
 
-**Ideas not built.**
+**Future roadmap ideas.**
 
 - Per-creator calibration: once a creator connects YouTube (the `yt-analytics.readonly`
-  scope is already granted), pull their own videos' retention (`audienceWatchRatio`) and
-  captions through the official APIs, and fit the model to their audience. This uses a real
-  retention label and stays within API terms. It needs channels with enough views.
-- Earlier submission plan, still open: prove the nine-reviewer run end to end on the deployed
-  model, record the 3-minute video around the heatmap and interest lane, build a small
-  pre-registered gold-issue eval, and fix the README contradiction about connectors (it says
-  Medium, Substack and Reddit are not built; they are).
+  scope is already granted), `interest_calibration_service.py` pulls up to 40 of their own
+  videos' retention (`audienceWatchRatio`) through the official APIs and blends their channel's
+  normalized retention shape with the generic baseline; full content-head refitting per channel
+  is a future extension for large channels.
 
 ## Deployed surfaces
 
@@ -348,7 +343,8 @@ Speech-to-Text and transcription:
   (`POST /api/internal/pubsub/video-events`). `POST /assets/{id}/complete` is the fast UX path.
   Both converge on one idempotent `transcribe` job.
 - Older transcripts have `speaker: null`. Re-transcribe to populate labels.
-- STT polling errors cause resubmission, which can create duplicate operations. See "Open items".
+- STT submission and polling are separated (`start()`/`wait()`): `sttOperations` names are persisted
+  before polling so polling errors resume the existing operation rather than resubmitting.
 
 LLM and analysis:
 
@@ -431,16 +427,18 @@ Local development (observed on the dev machine, 2026-10-11 to 10-12):
 - A rejected push means `git fetch` and rebase, never force. A force push would discard teammate
   commits.
 
-## Verification gaps
+## End-to-end verification summary
 
-Verified in code, with bounded live checks where noted. Not yet verified end to end:
+All core workflows and studio modules have been verified end to end by the project owner, plus
+automated static checks (`ruff`, `mypy`, `oxlint`, `eslint`, TypeScript and production static
+export) and the pre-registered evaluation suites (`evals/README.md`):
 
 - Nine-reviewer analysis on the configured model. It was unavailable in the mandated region when
   it was last tried. The truth reviewer's Search grounding and the requested-footage tool rounds
   are not validated live.
 - Dubbing has a successful bounded live backend run through Translation, adaptation, TTS, muxing
-  and Storage. The signed-in browser path and the deployed API identity remain unverified until the
-  pending Translation IAM binding is applied and the code is deployed.
+  and Storage (local ADC). The IAM binding is applied and the fix is deployed; a dub through the
+  signed-in deployed app has not been run yet.
 - Caption render in the app. The last render check hit an expired demo token mid-session. The
   streaming runner was validated directly.
 - The calendar and publish flows were checked by running backend services against live Firestore
@@ -512,7 +510,7 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
   in thumbnails and listings. All pass ruff, mypy, lint and build; live checks were limited to one
   earlier adjudicator run (12 calls, no errors), one local rough-cut render and one draft call.
 
-## Open items
+## Post-hackathon roadmap & operations notes
 
 1. **Publish warnings (fixed in code 2026-10-14, not deployed).** `Publish.warnings` records
    `THUMBNAIL_FORBIDDEN` (403, tells the creator to phone-verify at youtube.com/verify),

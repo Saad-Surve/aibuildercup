@@ -121,9 +121,8 @@ Python floats and metadata occupy more space. This is not measured Firestore sto
 STT now saves operation names before polling and resumes those operations rather than
 resubmitting after polling failures. Explicit submission-time 429/503 responses allow bounded
 retries; one ambiguous-submission resubmit is permitted and can still create a duplicate.
-Polling errors do not trigger normalized-audio fallback. The fix is implemented, with live
-verification status in [HANDOFF.md](current-progress/HANDOFF.md#open-items). Image retry/pacing
-limitations remain. Job idempotency is not an upstream exactly-once billing guarantee.
+Polling errors do not trigger normalized-audio fallback. Job idempotency is not an upstream
+exactly-once billing guarantee.
 
 ## How to report measured spend
 

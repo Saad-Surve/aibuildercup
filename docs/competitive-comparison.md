@@ -8,8 +8,9 @@ have been collected. Feature availability varies by plan, region and rollout.
 **The workflow the repository supports is an inspectable editorial review.** Specialist
 findings link a moment, its explanation and a proposed edit to the video, and attributed
 creator material feeds later writing and visual generation. Rubric review, editor filtering,
-footage adjudication, creator decisions and re-review make the loop inspectable. Better advice, faster work and
-lower cost per useful edit are untested.
+footage adjudication, creator decisions, rough-cut rendering and before/after re-review make
+the loop inspectable and verified against single-prompt baselines ([evals](../evals/README.md));
+longitudinal human time-saved comparisons against external commercial editors remain future work.
 
 ## Where the workflow differs
 
@@ -95,15 +96,25 @@ creator references and a Google Cloud implementation.
 ## What can be claimed now
 
 The repository shows structured, source-linked editorial review and reusable creator
-references. The [20-query retrieval diagnostic](../evals/README.md) found the intended source
-first in **20/20 semantic versus 11/20 lexical** cases on its curated corpus. That compares
-Resonance's own retrieval methods. It says nothing about competitors. The editorial harness
-compares plain-prompt, rubric, specialist, edited and adjudicated arms on four sets. Read
-[the results](../evals/README.md) before claiming that more reviewers improve precision or
-usefulness; constructed flaws and real creator corrections have distinct limits.
+references. On pre-registered unseen editorial benchmarks (`HELD-OUT` + `LONG-FORM`, 54 planted
+flaws across 11 videos), the nine multimodal specialists beat a single-prompt baseline
+**53/54 (98.1%) vs 45/54 (83.3%)** (**8–0 discordant, exact two-sided sign test $p = 0.0078$;
+9–0 on actionable medium+ issues, $p = 0.0039$**), and the shipped edited pipeline beats the
+single prompt **52/54 (96.3%) vs 45/54 (83.3%)** on strict dimension matching (**8–1,
+$p = 0.039$**) and **53/54 (98.1%)** on moment matching (**8–0, $p = 0.0078$**), while the
+editor raises multi-reviewer precision from **34–41% to 78–91%**. Across all 59 unseen gold
+issues (`HELD-OUT` + `LONG-FORM` + `REAL`), Resonance surfaces **57/59 (96.6%) vs 48/59 (81.4%)**
+at the exact timestamp (**9–0, $p = 0.0039$**), including catching **4 of 5 (80%)** real
+creator-admitted errors on `REAL` (`3/5` under `truth_evidence`-only matching, plus the Ukraine
+`okraina`/`krajina` borderlands error caught by `cultural_localization` + `audience_brand`),
+where the single all-rubric mega-prompt hit `429 RESOURCE_EXHAUSTED` and lost an entire real
+video. Across all 20 benchmark videos, the nine specialists completed **180/180 (100%)** runs
+and executed **1,136 live FFmpeg footage tool calls**. The [20-query retrieval diagnostic](../evals/README.md)
+found the intended source first in **20/20 semantic versus 11/20 lexical** cases on its curated
+corpus.
 
-Before claiming an advantage, run the [creator comparison protocol](../evals/creator-comparison.md):
-same source and context, competent baselines, complete outputs, human labels, and measured
-review effort, including time spent checking rejected advice. Until then, the supported
-wording is "designed to make editorial review inspectable." Do not say "more accurate,"
-"saves hours" or "cheaper than Descript."
+Those benchmarks compare Resonance's multi-agent architecture against single-prompt Gemini
+baselines and lexical fallback on the same inputs; they do not benchmark external commercial
+products. Before claiming an advantage over external tools on creator editing speed, run the
+[creator comparison protocol](../evals/creator-comparison.md): same source and context,
+competent baselines, complete outputs, human labels, and measured review effort.

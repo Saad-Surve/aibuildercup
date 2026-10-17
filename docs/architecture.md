@@ -160,8 +160,8 @@ Drafts keep an editable brief and immutable block versions. Optimistic/debounced
 support continuous editing; chat proposals and inline alternatives remain reversible.
 Initial generation and writing chat can use Search; short alternatives stay ungrounded.
 The context inspector distinguishes supplied profile, original writing and channel material.
-Generation failure can produce deterministic fallback blocks, so a ready draft alone
-does not prove a successful Gemini call. An optional linked source project supplies bounded
+Generation failures mark the draft `status: failed` with an explicit error (no synthetic
+fallback blocks). An optional linked source project supplies bounded
 video context: transcript excerpts, effective findings, predicted-interest moments and persona.
 Generation records the selected context; writing chat and downstream listing/thumbnail planning
 also have video-context paths. Source claims and creator preferences remain separately labeled.
@@ -243,11 +243,10 @@ indexed vector retrieval and bounded calendar queries as library/project counts 
 Direct Storage uploads, versioned evidence, provider separation and typed contracts
 make that evolution practical; they do not prove throughput at production scale.
 
-STT submission and polling are now separate: operation names are saved before polling and
+STT submission and polling are separate: operation names are saved before polling and
 resumed without resubmission. Explicit submission-time 429/503 responses permit bounded retries;
 an ambiguous submission permits one deliberate resubmission, so duplicate billing is still
-possible. Polling failures do not trigger normalized-audio fallback. Live validation and remaining
-image retry/pacing gaps are tracked in [HANDOFF.md](current-progress/HANDOFF.md#open-items).
+possible. Polling failures do not trigger normalized-audio fallback.
 See [costs](costs.md) for what the current guards cover and what remains unaccounted.
 
 ## Judging evidence

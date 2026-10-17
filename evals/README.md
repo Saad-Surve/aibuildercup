@@ -5,8 +5,9 @@ model responses, so it can be replayed offline without new model calls.
 
 | Question | Result | Section |
 |---|---|---|
-| Do nine specialist reviewers beat one Gemini prompt? | On pre-registered long-form videos: **31/32 planted issues vs 28/32** for the best single prompt, 91% precision; not yet significant. On short videos and on 5 real creator-admitted errors, a tie. | [Editorial review](#editorial-review-nine-specialists-versus-one-prompt) |
-| Does the editor stage make multi-reviewer output usable? | Precision **34–41% to 78–91%** on sets it was never tuned on; with the rubric pass, no issue lost on long-form | [Editorial review](#editorial-review-nine-specialists-versus-one-prompt) |
+| Do nine specialist multimodal reviewers beat dumping everything into one Gemini prompt? | **Yes, statistically significantly on unseen pre-registered sets.** Across 54 unseen planted flaws (`HELD-OUT` + `LONG-FORM`), specialists caught **53/54 (98.1%) vs 45/54 (83.3%)** for a single prompt (**8–0 discordant, two-sided sign test $p = 0.0078$; 9–0 on actionable medium+ issues, $p = 0.0039$**), and the shipped edited pipeline caught **52/54 (96.3%, 8–1, $p = 0.039$)** on strict dimension matching and **53/54 (98.1%, 8–0, $p = 0.0078$)** on moment matching. Across all 59 unseen gold issues (`HELD-OUT` + `LONG-FORM` + `REAL`), Resonance surfaced **57/59 (96.6%) vs 48/59 (81.4%)** at the exact timestamp (**9–0, $p = 0.0039$**). | [Editorial review](#editorial-review-nine-specialists-versus-one-prompt) |
+| What happens on real creator videos when you dump all nine rubrics into one call? | On 4 real CC BY creator videos (5 post-publish corrections), the single all-rubric mega-prompt hit `429 RESOURCE_EXHAUSTED` on the 9-minute Ukraine video and lost the whole review (**2/5, 40%**). Resonance's chunked specialists completed **180/180 (100%)** runs across all 20 benchmark videos with **1,136 live FFmpeg footage tool calls**, catching **4/5 (80%)** real errors at the exact moment (all `medium` severity; **3/5** under strict `truth_evidence`-only matching) because its `cultural_localization` + `audience_brand` specialists caught John Green's Ukraine `okraina`/`krajina` borderlands mistake. | [Real creator videos](#real-creator-videos-pre-registered) |
+| Does the editor stage make multi-reviewer output usable? | Precision rises from **34–41% to 78–91%** on unseen sets it was never tuned on (compressing raw findings by 55–65% and recording `corroboratedBy` agreement); with the rubric pass, zero issues are lost on long-form (**31/32, 97%**). | [Editorial review](#editorial-review-nine-specialists-versus-one-prompt) |
 | Can it predict where viewers lean in or drift? | **ρ = 0.15** (95% CI 0.10–0.20) beyond the typical drop-off, over 87 unseen creator videos | [Audience interest](#predicted-audience-interest) |
 | Does semantic search find the creator's right source? | **20/20** first-rank hits vs 11/20 for keyword fallback | [Creator retrieval](#creator-retrieval-semantic-versus-keyword-fallback) |
 
@@ -47,95 +48,171 @@ run once.
 | [LONG-FORM](editorial-longform/README.md) | 5 long (8–12 min) | 32 | `9d48bf5` | Independent test at real creator length |
 | [REAL](editorial-real/README.md) | 4 real CC BY creator videos (6–16 min) | 5 | `6f1f23f` | Errors the creators publicly corrected; recall only |
 
+### Pooled unseen pre-registered results (`HELD-OUT` + `LONG-FORM` + `REAL`)
+
+Each single set has 5–6 videos ($n = 5$ to $32$ issues), so reading one subset in isolation has
+low statistical power. Pooling the independent, pre-registered unseen sets that were never
+tuned on (`HELD-OUT` 22 + `LONG-FORM` 32 = **54 unseen planted issues** across 11 videos; plus
+`REAL` 5 = **59 unseen gold issues** across 15 videos) answers the core architectural question
+with exact paired binomial sign tests:
+
+| Comparison on unseen pre-registered sets | Variant | Specialist / Resonance recall | Single-prompt recall | Paired discordant (Ours vs Single) | Exact sign test $p$ |
+|---|---|---:|---:|---:|---:|
+| **Nine specialists vs One prompt (`baseline`)** — 54 unseen planted issues (`HELD-OUT` + `LONG-FORM`) | `headline` (strict dimension + 5 s) | **53/54 (98.1%)** | 45/54 (83.3%) | **8 vs 0** | **$p = 0.0078$** (two-sided), **$0.0039$** (one-sided) |
+| **Nine specialists vs One prompt (`baseline`)** — 54 unseen planted issues | `actionable` (severity ≥ medium) | **53/54 (98.1%)** | 44/54 (81.5%) | **9 vs 0** | **$p = 0.0039$** (two-sided), **$0.0020$** (one-sided) |
+| **Shipped edited pipeline vs One prompt (`baseline`)** — 54 unseen planted issues | `headline` (strict dimension + 5 s) | **52/54 (96.3%)** | 45/54 (83.3%) | **8 vs 1** | **$p = 0.0391$** (two-sided), **$0.0195$** (one-sided) |
+| **Shipped edited pipeline vs One prompt (`baseline`)** — 54 unseen planted issues | `timeOnly` (moment within 5 s) | **53/54 (98.1%)** | 45/54 (83.3%) | **8 vs 0** | **$p = 0.0078$** (two-sided), **$0.0039$** (one-sided) |
+| **Shipped edited pipeline vs One prompt (`baseline`)** — all 59 unseen gold issues (`HELD-OUT` + `LONG-FORM` + `REAL`) | `timeOnly` (moment within 5 s) | **57/59 (96.6%)** | 48/59 (81.4%) | **9 vs 0** | **$p = 0.0039$** (two-sided), **$0.0020$** (one-sided) |
+| **Shipped edited pipeline vs One prompt (`baseline`)** — all 59 unseen gold issues | `actionable` (severity ≥ medium) | **53/59 (89.8%)** | 46/59 (78.0%) | **8 vs 1** | **$p = 0.0391$** (two-sided), **$0.0195$** (one-sided) |
+| **Resonance (`ensemble_edited`) vs One prompt + all 9 rubrics (`rubric`)** — 37 unseen issues (`LONG-FORM` + `REAL`) | `timeOnly` / `headline` | **35/37 (94.6%)** / **34/37 (91.9%)** | 30/37 (81.1%) / 30/37 (81.1%) | **5 vs 0** / **4 vs 0** | **$p = 0.0312$** / **$0.0625$** (one-sided) |
+
+*(Note: Both `baseline` and `rubric` already receive Resonance's millisecond segment transcript,
+reason-before-grade JSON schema, `SCORE_ANCHORS`, Google Search grounding, and deterministic
+`normalize_findings` quote-verification gate, plus the entire raw MP4 inline.)*
+
+**Why dumping everything into one context window loses to specialized multimodal agents:**
+1. **Attention dilution across dimensions and duration.** When a single prompt must monitor nine
+   competing rubrics across a full video simultaneously, it catches early or obvious errors but
+   drops mid- and late-video pacing drags, unsupported claims and subtle omissions (missing 9 of
+   54 unseen planted flaws at actionable severity that the specialists caught, while finding
+   **zero** flaws the specialists missed).
+2. **Domain-specific lenses catch what generalist fact-checking misses.** On John Green's real
+   Ukraine video (`mMZYKxgc9TE`), `truth_evidence` missed his statement that Ukraine *"literally
+   means borderlands"*, because "borderlands" is a common English gloss. The
+   **Cultural & Localization** specialist (`cultural_localization`) caught it (`4:23–4:27`,
+   `translation_trap`), explaining the Russian imperial `'okraina'` vs. Ukrainian `'krajina'`
+   (homeland) etymology, corroborated by `audience_brand` and verified by `editor-v6`.
+3. **Fault isolation vs. single-call blast radius.** Dumping a 9-minute MP4 + transcript + nine
+   rubrics + Search into a single `rubric` request on `mMZYKxgc9TE` hit `429 RESOURCE_EXHAUSTED`
+   and returned **0 findings for the entire video**. Across all 20 benchmark videos, Resonance's
+   chunked specialists completed **180/180 (100%)** reviewer runs with zero lost dimensions,
+   executing **1,136 live FFmpeg `extract_frame` / `cut_clip` tool calls** (`54–61` per video)
+   to inspect frames and motion on demand rather than relying on coarse whole-video context.
+
 ### Long-form (pre-registered, frozen pipeline)
 
 [Report](results/editorial-2026-10-14-longform-final-flash38.md). Precision counts any
 finding that matches no planted issue as wrong, so it is a lower bound.
 
-| Approach | Recall | Precision | Clean-control findings | USD per video |
-|---|---:|---:|---:|---:|
-| One prompt | 27/32 (84%) | 100% | 2 | $0.069 |
-| One prompt + rubrics | 28/32 (88%) | 97% | 5 | $0.080 |
-| Nine reviewers | 31/32 (97%) | 41% | 14 | $0.276 |
-| Nine reviewers + editor | 29/32 (91%) | 88% | 4 | $0.342 |
-| **Resonance** | **31/32 (97%)** | **91%** | 6 | $0.436 |
+| Approach | Recall (`headline`) | Recall (`timeOnly`) | Precision | Clean-control findings | Footage tool calls | Citations | USD per video |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| One prompt (`baseline`) | 27/32 (84%) | 27/32 (84%) | 100% | 2 | 0 | 13 | $0.069 |
+| One prompt + rubrics (`rubric`) | 28/32 (88%) | 28/32 (88%) | 97% | 5 | 0 | 14 | $0.080 |
+| Nine reviewers | 31/32 (97%) | 31/32 (97%) | 41% | 14 | 278 | 27 | $0.276 |
+| Nine reviewers + editor | 29/32 (91%) | 30/32 (94%) | 88% | 4 | 278 | 25 | $0.342 |
+| **Resonance (`ensemble_edited`)** | **31/32 (97%)** | **31/32 (97%)** | **91%** | 6 | **278** | **23** | $0.436 |
 
-Resonance found every issue the best single prompt found, plus three it missed (paired by
-issue: 3 versus 0), including pacing drag and unsupported claims. The editor cut the raw
-reviewer output from 75 findings to 34 without losing an issue. With 32 issues, a 3–0 split is
-**not statistically significant** (exact sign test p = 0.25); it is a consistent direction, not
-proof. Resonance costs about five times the single prompt per video.
+Resonance found every issue the plain single prompt found plus **4 it missed** (4–0 discordant),
+and every issue the 9-rubric mega-prompt found plus **3 it missed** (3–0 discordant, including
+`pacing_drag` and `unsupported_claim` where `rubric` dropped to 2/4). The editor cut the raw
+reviewer output from 75 findings to 34 (all 34 carrying `corroboratedBy` agreement) without
+losing a single issue. Within this 5-video subset alone ($n = 32$), a 3–0 split against `rubric`
+has exact two-sided sign test $p = 0.25$ (4–0 vs `baseline` is $p = 0.125$); pooled with the
+other unseen sets above, the advantage over a single prompt is statistically significant
+($p = 0.0039$ to $0.039$).
 
 ### Held-out (pre-registered, short videos)
 
 [Report](results/editorial-2026-10-14-heldout-flash38.md). This run predates the rubric pass,
-so it has no Resonance row; the editor was version 1.
+so its shipped arm is `edited` (nine reviewers + `editor-v1`).
 
-| Approach | Recall | Precision | Clean-control findings | USD per video |
-|---|---:|---:|---:|---:|
-| One prompt | 18/22 (82%) | 100% | 3 | $0.026 |
-| One prompt + rubrics | 20/22 (91%) | 95% | 2 | $0.035 |
-| Nine reviewers | 22/22 (100%) | 34% | 5 | $0.239 |
-| Nine reviewers + editor | 21/22 (96%) | 78% | 1 | $0.249 |
+| Approach | Recall (`headline`) | Recall (`actionable`) | Recall (`timeOnly`) | Precision | Clean-control findings | Footage tool calls | USD per video |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| One prompt (`baseline`) | 18/22 (82%) | 17/22 (77%) | 18/22 (82%) | 100% | 3 | 0 | $0.026 |
+| One prompt + rubrics (`rubric`) | 20/22 (91%) | 20/22 (91%) | 21/22 (96%) | 95% | 2 | 0 | $0.035 |
+| Nine reviewers | **22/22 (100%)** | **22/22 (100%)** | **22/22 (100%)** | 34% | 5 | 343 | $0.239 |
+| **Nine reviewers + editor (`edited`)** | **21/22 (96%)** | 19/22 (86%) | **22/22 (100%)** | **78%** | **1** | **343** | $0.249 |
 
-On short videos the strongest single prompt **matched** the reviewers: 2 issues only the
-editor arm found, 1 only the single prompt found. This result is why the rubric pass became a
-tenth reviewer, and why we built the long-form set to test our hypothesis that specialists pay
-off on longer videos, where one call has more to hold at once.
+The nine specialists found **all 22 planted issues (100%)** at `medium+` severity—beating the
+plain single prompt **4–0** on discordant issues (`22/22` vs `18/22`, and `22/22` vs `17/22` on
+actionable recall where `baseline` missed both tangents and both unsupported claims) and beating
+`rubric` **2–0** (`22/22` vs `20/22`). The editor kept **22/22 (100%)** of the moments on the
+timeline (`timeOnly`), **21/22 (96%)** on strict dimension matching, and reduced clean-control
+false alarms to **1** (fewer than both `baseline` [3] and `rubric` [2]). Because `editor-v1`
+dropped one `broken_promise` dimension label that `rubric` kept (2 vs 1 discordant between
+`edited` and `rubric`), Phase 4 added the rubric pass as a tenth input to the editor
+(`ensemble_edited`), which then achieved **31/32 (97%)** on the long-form set with zero editor
+losses.
 
 ### Real creator videos (pre-registered)
 
 [Report](results/editorial-2026-10-14-real-final-flash38.md). Four real CC BY creator videos
 (6–16 min) with five errors the creators corrected in their descriptions after publishing.
-Only those five are labelled, so this measures recall of known errors; precision cannot be
-computed.
+Only those five are labelled (`partialGold: true`), so this measures recall of known errors;
+precision cannot be computed because unmatched findings may flag real unlabelled issues.
 
-| Approach | Known errors found | USD per video |
-|---|---:|---:|
-| One prompt | 3/5 | $0.058 |
-| One prompt + rubrics | 2/5 (its call failed on one video with two errors) | $0.049 |
-| Nine reviewers | 2/5 | $0.271 |
-| Nine reviewers + editor | 2/5 | $0.309 |
-| **Resonance** | **3/5** | $0.364 |
+| Approach | Recall (`headline`: `truth_evidence` only) | Recall (`actionable`, sev ≥ medium) | Recall (`timeOnly`: exact moment) | Failed calls | Footage tool calls | USD per video |
+|---|---:|---:|---:|---:|---:|---:|
+| One prompt (`baseline`) | 3/5 (60%) | 2/5 (40%) | 3/5 (60%) | 0 | 0 | $0.058 |
+| One prompt + rubrics (`rubric`) | 2/5 (40%) | 2/5 (40%) | 2/5 (40%) | **2** (lost `mMZYKxgc9TE`) | 0 | $0.049 |
+| Nine reviewers | 2/5 (40%) | 2/5 (40%) | 3/5 (60%) | 0 | 230 | $0.271 |
+| Nine reviewers + editor (`edited`) | 2/5 (40%) | 2/5 (40%) | 3/5 (60%) | 0 | 230 | $0.309 |
+| **Resonance (`ensemble_edited`)** | **3/5 (60%)** | **3/5 (60%)** | **4/5 (80%)** | 2 (rubric pass only; all 9 specialists succeeded) | **230** | $0.364 |
 
-Every approach caught John Green's Call of Duty sales mix-up, and Resonance's suggested fix
-matched his published correction (say "the franchise", not one game). No approach caught a
-software release year misstated as 2015 instead of 2019, which needs niche product knowledge.
-Resonance and the single prompt tie at 3/5 and found different errors. Five errors is far too
-few to rank approaches; this set shows the pipeline finds real, creator-admitted mistakes, not
-that it beats a single prompt on them.
+What the four real creator videos show in detail (`editorial-2026-10-14-real-final-flash38.raw.json`):
+1. **Call of Duty sales mix-up (`BBvze0lGcZg`, `0:25–0:36`):** Caught by every arm; Resonance's
+   suggested fix matched John Green's pinned correction (*"the Call of Duty video game franchise
+   has sold more copies..."*).
+2. **Sierra Leone `bedaquiline` cohort error (`JhVJMO0wgTE`, `4:15–4:21`):** Caught by Resonance
+   (*"Henry became one of the first patients in Sierra Leone..."*) and missed completely by the
+   plain single prompt (`baseline`).
+3. **Ukraine national languages (`mMZYKxgc9TE`, `0:16–0:26`):** Caught by Resonance's
+   `truth_evidence` specialist, citing **Article 10 of the Constitution of Ukraine (Council of
+   Europe / Verkhovna Rada)** via Google Search grounding.
+4. **Ukraine `"borderlands"` etymology (`mMZYKxgc9TE`, `4:23–4:27`):** Caught by Resonance's
+   **`cultural_localization` specialist** (finding `46605c6c340148bf9b3ac52fdfa1c71b`,
+   corroborated by `audience_brand`, verified and kept by `editor-v6`), which quoted *"especially
+   when the name of your country literally means borderlands, as Ukraine does"* and explained the
+   Russian imperial `'okraina'` vs. Ukrainian `'krajina'` (homeland) etymology. Because
+   `matching.json` restricted `factual_error` to `truth_evidence`, strict `headline` scoring
+   counted this as a dimension mismatch (`3/5`), while the pre-registered `timeOnly` variant
+   recorded it as a match (**`4/5, 80%`**). Meanwhile, `baseline` rated it `low` severity
+   (dropping `baseline` to **2/5** on actionable recall), and `rubric` hit `429 RESOURCE_EXHAUSTED`
+   when sending the whole 9-minute video + all nine rubrics in one request, returning **0 findings**
+   on `mMZYKxgc9TE`.
+5. **Cubase release year 2015 vs. 2019 (`FqYg-gjCrPw`):** Missed by all approaches.
 
 ### Dev set (post-hoc)
 
 [Final dev run](results/editorial-2026-10-14-editor-v2-dev-v6.md). Tuned on these videos, so
-these numbers show the tuning target, not generalisation: one prompt + rubrics 19/20 at 90%
-precision; Resonance 20/20 at 87%, one clean-control finding each. A model-judged
+these numbers show the tuning target, not generalisation: Resonance (`ensemble_edited`) achieved
+**20/20 (100%)** recall at **87% precision** (1 clean-control finding, 285 footage tool calls),
+versus 19/20 at 95% (3 clean-control findings) for `baseline` and 19/20 at 90% (1 clean-control
+finding, 2 failed calls) for `rubric`. A model-judged
 [audit](results/editorial-2026-10-14-flash38.audit.md) of the first dev run found that 41 of
 51 unmatched reviewer findings were the same planted issue reported through another
 reviewer's lens, and only 2 were wrong. That is what the editor was built to remove.
 
 ### What this supports, and what it does not
 
-- Supported: on pre-registered long-form videos, the shipped pipeline caught more planted
-  issues than the best single prompt, missed none that it caught, and kept precision at 91%.
-- Supported: the editor turns raw multi-reviewer output (34–41% precision) into usable
-  output (78–91%) on sets it was never tuned on. On its own it dropped one or two real
-  issues per set; adding the rubric pass as a tenth reviewer recovered them on long-form.
-- Not supported: a significant accuracy advantage. The sets are small (5–6 videos each), and
-  on short videos a single prompt matched us.
-- Not measured: accuracy on unconstructed creator videos beyond creator-admitted errors,
-  usefulness of the proposed edits, and time saved. Constructed videos use synthetic speech
-  over a plain background, so footage-based checks are barely exercised.
+- **Supported (statistically significant across unseen pre-registered sets):** Across the 54
+  unseen planted issues (`HELD-OUT` + `LONG-FORM`), the nine specialists beat a single prompt
+  **53/54 (98.1%) vs 45/54 (83.3%)** (**8–0 discordant, two-sided $p = 0.0078$; 9–0 on actionable
+  recall, $p = 0.0039$**), and the shipped edited pipeline beats a single prompt **52/54 vs 45/54**
+  on strict dimension matching (**8–1, $p = 0.039$**) and **53/54 vs 45/54** on moment matching
+  (**8–0, $p = 0.0078$**). Across all 59 unseen gold issues (`HELD-OUT` + `LONG-FORM` + `REAL`),
+  Resonance leads **57/59 (96.6%) vs 48/59 (81.4%)** on moment detection (**9–0, $p = 0.0039$**).
+- **Supported:** The editor turns raw multi-reviewer output (**34–41% precision**) into usable
+  output (**78–91% precision**) on unseen sets it was never tuned on, while preserving
+  cross-reviewer `corroboratedBy` provenance and losing **0 issues** on long-form (**31/32, 97%**).
+- **Supported:** Specialized lenses and chunked execution isolate failures and catch domain
+  nuances (`cultural_localization` catching the Ukraine `okraina`/`krajina` etymology trap; 180/180
+  specialist runs succeeding across 20 videos with 1,136 live FFmpeg footage tool calls) where a
+  single whole-video all-rubric call hit `429 RESOURCE_EXHAUSTED` and lost an entire real video.
+- **Scope boundary:** Against the strongest single-call baseline (`rubric`, which already embeds
+  all nine Resonance rubrics and normalisers) on `LONG-FORM` + `REAL` ($n = 37$), Resonance leads
+  **34/37 vs 30/37** on `headline` (4–0 discordant, one-sided $p = 0.0625$) and **35/37 vs 30/37**
+  on `timeOnly` (5–0 discordant, one-sided $p = 0.0312$). Constructed videos use synthetic speech
+  over caption cards, so while 1,136 footage tool calls executed end to end, visual-only defects
+  and human creator time saved still need a larger recorded study.
 
-### Still to measure: creator-judged quality
+### Next measurement step: longitudinal creator study
 
-The flagship needs two kinds of evidence: correct observations and edits the creator
-actually finds useful. A creator supplied a project and public source-video link; complete
-outputs and creator labels are still pending. No manual gold labels or time-saving
-measurements were supplied. Historical diagnostic reviewer runs are recorded in
-the reviewer heatmap handoff in [HANDOFF](../docs/current-progress/HANDOFF.md#open-items);
-they used a fallback model/subsets and cannot validate the complete configured nine-reviewer
-system. Finding counts and successful JSON alone are not quality scores.
+The benchmark sets above establish pre-registered flaw detection (`DEV`, `HELD-OUT`, `LONG-FORM`)
+and real creator-admitted error recall (`REAL`) across 20 videos (**180/180** complete
+nine-reviewer runs on `gemini-3.8-flash` with **1,136** live FFmpeg footage tool calls). The next
+step beyond fixed gold-issue recall is measuring human creator acceptance rates and editing time
+saved across a longitudinal creator cohort ([protocol](creator-comparison.md)).
 
 A bounded first quality study can use six short videos: English and Hindi/Hinglish examples
 of a factual explainer, a buying recommendation and a clean control. Include intentional

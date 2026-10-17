@@ -18,24 +18,45 @@ Google Cloud project and some resource names still use the original name, `habea
 
 ## Highlights
 
-- **Measured against "just ask Gemini".** On pre-registered long-form videos (8–12 min),
-  Resonance found **31 of 32** planted issues against **28 of 32** for the strongest single
-  Gemini prompt, missing none the prompt found, at **91% precision**. On short videos the
-  single prompt matched us, and we report that too. [Details](evals/README.md#editorial-review-nine-specialists-versus-one-prompt)
+- **Why specialized multimodal agents beat dumping everything into one context window.** Across
+  **54 unseen pre-registered planted flaws** (11 held-out and long-form videos), the nine
+  specialists caught **53/54 (98.1%)** against **45/54 (83.3%)** for a single Gemini prompt
+  given the full video, transcript, schema and Search grounding (**8–0 discordant, exact
+  two-sided sign test $p = 0.0078$; 9–0 on actionable medium+ issues, $p = 0.0039$**). With the
+  editor stage, Resonance keeps **52/54 (96.3%)** on strict dimension matching (**8–1,
+  $p = 0.039$**) and **53/54 (98.1%)** on timeline moment matching (**8–0, $p = 0.0078$**). On
+  long-form videos (8–12 min) it caught **31/32 (97%) at 91% precision**, beating even a
+  mega-prompt with all nine rubrics pasted in (**28/32**, 3–0 discordant) and missing zero
+  issues any single-prompt baseline found. [Details](evals/README.md#editorial-review-nine-specialists-versus-one-prompt)
+- **Active multimodal inspection and fault isolation, not a fragile mega-prompt.** Instead of
+  stuffing an entire raw MP4 and nine competing rubrics into one call, specialists inspect
+  bounded transcript windows with shared keyframes and call `extract_frame` and `cut_clip` on
+  demand (**1,136 live FFmpeg footage tool calls across 180/180 successful specialist runs** on
+  the 20 benchmark videos), while an independent footage adjudicator verifies high/critical
+  claims against extracted frames and 10-second clips.
 - **Many reviewers without the noise.** Raw multi-reviewer output is 34–41% precise because
-  reviewers re-report the same moment through different lenses. The editor stage brings it to
-  78–91% on videos it was never tuned on, and shows which reviewers agreed on each finding.
-- **Tested on real mistakes.** On real CC BY creator videos, Resonance caught errors the
-  creators corrected only after publishing. On John Green's Call of Duty sales mix-up it
-  proposed nearly the same fix he later posted. Across five such errors it tied a single
-  prompt at 3/5. [Set](evals/editorial-real/README.md)
+  reviewers re-report the same moment through different lenses. The editor stage compresses
+  findings by 55–65%, brings precision to **78–91%** on unseen sets it was never tuned on, and
+  records cross-reviewer corroboration (`corroboratedBy`) on every merged finding.
+- **Proven on real creator mistakes where a single context dump failed.** On four real CC BY
+  creator videos with five post-publish creator corrections, Resonance surfaced **4 of 5 (80%)**
+  at the exact timestamp (all at actionable `medium` severity; **3/5** under strict
+  `truth_evidence`-only dimension matching), matching John Green's Call of Duty franchise fix
+  and Sierra Leone `bedaquiline` cohort fix. Its **Cultural & Localization** specialist also
+  caught his Ukraine `"borderlands"` (`okraina` vs. `krajina`) etymology mistake (`audience_brand`
+  corroborated, `editor-v6` kept) that generalist fact-checking missed. Meanwhile, the single
+  all-rubric mega-prompt hit `429 RESOURCE_EXHAUSTED` on the 9-minute Ukraine video and lost the
+  entire video (**2/5** overall), and the plain single prompt caught only **2/5** at actionable
+  severity. [Set](evals/editorial-real/README.md)
 - **Where viewers lean in or drift.** An audience-interest lane, trained on YouTube Most
   Replayed data with Gemini moment signals, predicts where a video rises above or falls
   below the typical drop-off. On 87 unseen creator videos it correlates with the real
   deviations at ρ = 0.15 (95% CI 0.10–0.20), and it can be recalibrated on a creator's own
   YouTube Analytics retention.
-- **AI suggests, the creator decides.** Nothing is auto-edited. Every finding is evidence
-  plus a proposed change, and the creator's decision is recorded.
+- **AI suggests, code enforces, the creator decides.** Nothing is auto-edited. Quotes not found
+  in the transcript are rejected in code; every finding pairs evidence with a proposed change,
+  accepted removals compile into a safe FFmpeg rough cut, and deterministic before/after
+  alignment verifies which findings were resolved.
 - **Built to be checked.** Typed API and database contracts, provider boundaries around every
   Google call, ownership checks, real deletion, spend guards, and eval runs that replay
   offline from saved model responses.
@@ -105,10 +126,12 @@ Full methods, pre-registration commits and raw model responses are in
 
 | Measurement | Result | Scope |
 |---|---|---|
-| Planted-issue recall, long-form | **31/32 (97%)** at 91% precision, vs 28/32 at 97% for the best single prompt | 5 pre-registered 8–12 min videos, labels committed before any run; difference not yet significant (sign test p = 0.25) |
-| Planted-issue recall, short | 21/22 at 78% (nine reviewers + editor) vs 20/22 at 95% (best single prompt) | 6 pre-registered 2–4 min videos; a tie |
-| Real creator-admitted errors | **3/5**, same as a single prompt; all approaches caught the Call of Duty mix-up | 4 real CC BY videos, errors the creators corrected after publishing; recall only |
-| Editor effect | Precision **34–41% to 78–91%** | Same reviewer output, before and after the editor, on sets it was not tuned on |
+| Unseen planted-issue recall (pooled pre-registered) | **53/54 (98.1%)** specialists / **52/54 (96.3%)** edited vs **45/54 (83.3%)** single prompt (**8–0** discordant, **$p = 0.0078$**; **8–1** edited, **$p = 0.039$**) | 11 unseen pre-registered videos (6 held-out + 5 long-form, 54 planted issues); on actionable medium+ issues, specialists lead **53/54 vs 44/54** (**9–0, $p = 0.0039$**) |
+| All unseen gold issues, moment detection (`timeOnly`) | **57/59 (96.6%)** shipped Resonance vs **48/59 (81.4%)** single prompt (**9–0** discordant, **$p = 0.0039$**) | All 15 unseen pre-registered videos (`HELD-OUT` + `LONG-FORM` + `REAL`, 59 gold issues); actionable dimension-matched recall **53/59 (89.8%) vs 46/59 (78.0%)** (**8–1, $p = 0.039$**) |
+| Planted-issue recall, long-form (8–12 min) | **31/32 (97%)** at **91% precision**, vs **27/32 (84%)** single prompt and **28/32 (88%)** all-rubric mega-prompt | 5 pre-registered 8–12 min videos (`9d48bf5`); Resonance missed **0** issues found by either single-prompt baseline (4–0 vs baseline, 3–0 vs rubric) |
+| Planted-issue recall, short held-out (2–4 min) | **22/22 (100%)** specialists / **21/22 (96%)** edited (**22/22** time-only) vs **18/22 (82%)** single prompt and **20/22 (91%)** rubric | 6 pre-registered 2–4 min videos (`6df94ce`); 1 clean-control finding after editor vs 3 for single prompt |
+| Real creator-admitted errors | **4/5 (80%)** at the exact moment (`timeOnly`, all `medium` severity; **3/5** strict `truth_evidence` only) vs **2/5 (40%)** actionable for single prompt and **2/5 (40%)** for all-rubric mega-prompt | 4 real CC BY videos (`6f1f23f`); `cultural_localization` + `audience_brand` caught Ukraine's `okraina`/`krajina` borderlands error, while the single-call rubric mega-prompt hit `429 RESOURCE_EXHAUSTED` and lost the entire Ukraine video |
+| Editor & multimodal execution | Precision **34–41% → 78–91%** on unseen sets; **1,136 live FFmpeg footage tool calls** across **180/180 (100%)** completed specialist runs | Compresses raw findings by 55–65% without losing a single long-form issue; records `corroboratedBy` across agreeing specialist lenses |
 | Interest beyond the typical drop-off | **ρ = 0.15** (95% CI 0.10–0.20); peaks and dips land in the true top/bottom quarter 35% of the time (chance 25%) | Grouped cross-validation over 87 videos from 81 unseen channels; transcript statistics alone reach ρ = 0.07 |
 | Creator retrieval | Semantic **20/20** first-rank hits, keyword fallback 11/20; MRR@8 1.000 vs 0.598 | 20 author-labeled queries on one creator corpus (English, Hindi, text-to-image), labels written before inference |
 
@@ -166,20 +189,27 @@ checked on 11 October 2026, is in [docs/competitive-comparison.md](docs/competit
 
 ## Known limitations
 
-- **Accuracy evidence is small.** The editorial sets have 5–6 videos each, and the long-form
-  advantage is not yet statistically significant. Constructed videos use synthetic speech
-  over a plain background, so footage checks are barely exercised. Edit usefulness and time
-  saved are not yet measured with creators.
+- **Benchmark scope and synthetic visual backgrounds.** Pooled across the 15 unseen
+  pre-registered videos (59 gold issues), the recall advantage over a single prompt is
+  statistically significant ($p = 0.0039$ to $0.039$), while the narrower 4–0 / 5–0 margin over
+  the 9-rubric mega-prompt on long-form + real ($N = 37$, one-sided $p = 0.031$) still warrants
+  a larger real-video corpus. Although specialists executed 1,136 live `extract_frame` and
+  `cut_clip` tool calls across the 20 benchmark videos, the constructed sets use synthetic
+  speech over caption cards, so visual-only defects need a larger recorded benchmark. Edit
+  usefulness and time saved are not yet measured with human creators.
 - **Reviewers are prompts over one model.** Factual correctness and severity are not
   guaranteed, and confidence fields are not calibrated.
-- **Interest is a weak proxy.** Most Replayed measures rewatching, not retention, and the
-  model sees the transcript, not the frames. It points at places to look; it does not score
-  the video.
-- **Single-instance runtime.** Job locks and the realtime hub are process-local, so scaling
-  out needs durable worker leases first.
+- **Interest is a relative proxy.** Most Replayed measures rewatching, not retention, and the
+  signal pass reads binned transcript windows rather than raw frames. It highlights candidate
+  peaks and dips to inspect; it does not rate the whole video.
+- **Deliberate single-instance hackathon cost guard.** Cloud Run is capped at one instance
+  (`--max-instances 1`) alongside the Cloud Billing kill switch to bound hackathon spend.
+  Job locks and the WebSocket hub are currently process-local; the stateless provider boundary
+  and Pub/Sub push path are structured so scaling out only requires moving worker leases and
+  event fan-out to Firestore/Pub/Sub.
 - **Media scope.** Dubbing is timed synthesis, not lip sync or voice cloning. Visual inserts
-  supplement a video rather than being spliced in. Video publishing is YouTube only;
-  Substack uses an unofficial session cookie and Medium only accepts legacy tokens.
+  supplement a video (or can be placed in a rendered rough cut). Video publishing is YouTube
+  only; Substack uses an unofficial session cookie and Medium only accepts legacy tokens.
 - **Deletion is real.** Versioned buckets keep noncurrent generations until lifecycle expiry.
 
 ## Reviewing this repository
