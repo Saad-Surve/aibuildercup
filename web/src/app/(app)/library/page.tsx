@@ -1,6 +1,13 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpRight01Icon } from "@hugeicons/core-free-icons";
@@ -26,6 +33,8 @@ import { useReadOnly, READ_ONLY_REASON } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
 
 const position = (value: number | null) => 8 + (value ?? 0.5) * 84;
+const POINTER_HIT_RADIUS = 22;
+const TOUCH_HIT_RADIUS = 28;
 const formatTime = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 
@@ -172,7 +181,8 @@ export default function LibraryPage() {
   const [filter, setFilter] = useState<"all" | "text" | "image">("all");
   const [topic, setTopic] = useState("all");
   const [zoom, setZoom] = useState(1);
-  const [openTooltipId, setOpenTooltipId] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [searchState, setSearchState] = useState<{
     fingerprint: string;
@@ -180,6 +190,8 @@ export default function LibraryPage() {
   } | null>(null);
   const [busy, setBusy] = useState<"index" | "search" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const mapLayerRef = useRef<HTMLDivElement>(null);
+  const lastPointerTypeRef = useRef("mouse");
   const fingerprint = data?.nodes.map((n) => n.id).join(",") ?? "";
   const search =
     searchState?.fingerprint === fingerprint ? searchState.result : null;
@@ -273,7 +285,49 @@ export default function LibraryPage() {
   function selectNode(id: string | null) {
     setSelectedId(id);
     setZoom(1);
-    setOpenTooltipId(null);
+    setHoveredId(null);
+  }
+
+  function nearestNodeAt(clientX: number, clientY: number, radius: number) {
+    const layer = mapLayerRef.current;
+    if (!layer) return null;
+
+    const bounds = layer.getBoundingClientRect();
+    let nearest: LibraryNode | null = null;
+    let nearestDistance = radius * radius;
+    for (const node of plotted) {
+      const x = bounds.left + (position(node.x) / 100) * bounds.width;
+      const y = bounds.top + (position(node.y) / 100) * bounds.height;
+      const distance = (clientX - x) ** 2 + (clientY - y) ** 2;
+      // Keep the first plotted node for exact coordinate ties so the result is stable.
+      if (distance < nearestDistance) {
+        nearest = node;
+        nearestDistance = distance;
+      }
+    }
+    return nearest;
+  }
+
+  function hoverNearestNode(event: ReactPointerEvent<HTMLDivElement>) {
+    lastPointerTypeRef.current = event.pointerType;
+    setFocusedId(null);
+    if (event.pointerType === "touch") {
+      setHoveredId(null);
+      return;
+    }
+    setHoveredId(
+      nearestNodeAt(event.clientX, event.clientY, POINTER_HIT_RADIUS)?.id ??
+        null,
+    );
+  }
+
+  function selectNearestNode(event: ReactMouseEvent<HTMLDivElement>) {
+    const radius =
+      lastPointerTypeRef.current === "touch"
+        ? TOUCH_HIT_RADIUS
+        : POINTER_HIT_RADIUS;
+    const node = nearestNodeAt(event.clientX, event.clientY, radius);
+    if (node) selectNode(node.id);
   }
 
   async function index() {
@@ -563,8 +617,29 @@ export default function LibraryPage() {
                 aria-label="Related material map"
                 aria-describedby="library-map-explainer"
               >
+                {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events -- This pointer-only surface delegates keyboard access to the node buttons. */}
                 <div
-                  className="absolute inset-0 transition-transform duration-300 motion-reduce:transition-none"
+                  aria-hidden="true"
+                  data-map-hit-area
+                  className={cn(
+                    "absolute inset-0 border-0 bg-transparent p-0 outline-none",
+                    hoveredId ? "cursor-pointer" : "cursor-default",
+                  )}
+                  onPointerDown={(event) => {
+                    lastPointerTypeRef.current = event.pointerType;
+                    if (event.pointerType === "touch") {
+                      setFocusedId(null);
+                      setHoveredId(null);
+                    }
+                  }}
+                  onPointerMove={hoverNearestNode}
+                  onPointerLeave={() => setHoveredId(null)}
+                  onPointerCancel={() => setHoveredId(null)}
+                  onClick={selectNearestNode}
+                />
+                <div
+                  ref={mapLayerRef}
+                  className="pointer-events-none absolute inset-0 transition-transform duration-300 motion-reduce:transition-none"
                   style={{
                     transform: `scale(${zoom})`,
                     transformOrigin: `${position(selectedPlot?.x ?? null)}% ${position(selectedPlot?.y ?? null)}%`,
@@ -625,6 +700,7 @@ export default function LibraryPage() {
                   {plotted.map((n, i) => {
                     const isSelected = selected?.id === n.id;
                     const isRelated = relatedIds.has(n.id);
+                    const isHovered = hoveredId === n.id;
                     const isDimmed =
                       !isSelected &&
                       !isRelated &&
@@ -633,25 +709,37 @@ export default function LibraryPage() {
                     return (
                       <Tooltip
                         key={n.id}
-                        open={openTooltipId === n.id}
-                        onOpenChange={(open) =>
-                          setOpenTooltipId(open ? n.id : null)
-                        }
+                        open={(hoveredId ?? focusedId) === n.id}
                       >
                         <TooltipTrigger
                           render={
                             <button
                               type="button"
                               onClick={() => selectNode(n.id)}
+                              onFocus={() => {
+                                setHoveredId(null);
+                                setFocusedId(n.id);
+                              }}
+                              onBlur={() =>
+                                setFocusedId((current) =>
+                                  current === n.id ? null : current,
+                                )
+                              }
                               aria-label={`${nodeTypeLabel(n)}: ${n.title}. ${languageLabel(n.language)}`}
                               aria-pressed={isSelected}
+                              data-map-node-id={n.id}
+                              data-map-hovered={isHovered ? "" : undefined}
                               className={cn(
-                                "absolute grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full outline-none transition-[opacity,transform,box-shadow] duration-150 hover:scale-110 focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none motion-reduce:hover:scale-100",
+                                "pointer-events-none absolute grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full outline-none transition-[opacity,transform,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none",
+                                isHovered &&
+                                  "scale-110 motion-reduce:scale-100",
                                 isRelated && "ring-1 ring-signal/50",
                                 isSelected &&
                                   "bg-background/80 ring-2 ring-signal ring-offset-2 ring-offset-background",
                                 isDimmed &&
-                                  "opacity-40 hover:opacity-70 focus-visible:opacity-100",
+                                  (isHovered
+                                    ? "opacity-70"
+                                    : "opacity-40 focus-visible:opacity-100"),
                                 search &&
                                   matches.has(n.id) &&
                                   "ring-2 ring-signal/35",
