@@ -453,7 +453,8 @@ Verified in code, with bounded live checks where noted. Not yet verified end to 
   The URL is only on the publish, so it is not verified from the calendar.
 - Draft generation with live Search grounding, and the Search Suggestions panel.
 - Multi-line Markdown in draft variants.
-- Creator library: both the owner account and `demoCreatorHabeasCodus` have the import
+- Creator library: the owner accounts (`rHyMoL5…` and the demo-recording account `NrdGBY…`, which
+  holds the hero project) and `demoCreatorHabeasCodus` have the import
   `vlogbrothers-prehero-cc-by` active (2026-10-16): 29 CC BY Vlogbrothers videos published before
   the demo hero `BBvze0lGcZg` (hero, later videos and eval-only videos excluded), 10 thumbnails,
   142/142 nodes indexed, about $0.035. Config `fixtures/creator-sources/vlogbrothers.json`; the
