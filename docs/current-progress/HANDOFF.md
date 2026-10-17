@@ -192,6 +192,16 @@ metadata with `collect.py`, then transcribe with the MLX path.
 - GCP project `habeas-codus`. Region `us-central1` everywhere except Speech-to-Text, which uses
   the `us` multi-region because Chirp 3 is GA only there.
 - Infra inventory: `infra/RESOURCES.md`.
+- Default creator library (2026-10-17): `CREATOR_PRESET_OBJECT` (GitHub variable and live
+  Cloud Run env) points at
+  `creator-presets/vlogbrothers-prehero-cc-by/96f25f96…598a/bundle.zip`: 29 CC BY pre-hero
+  Vlogbrothers videos, 10 thumbnails, 142 nodes indexed (about $0.04). It replaces the Arun
+  Prabhudesai preset (`creator-presets/arun-prabhudesai/270c9887…/bundle.zip`, still in the
+  bucket). Accounts on the old preset switch on their next library read; an explicit operator
+  import is never replaced. `aibuildercup@gmail.com` (`kmXLyn…`) and `demoCreatorHabeasCodus`
+  also hold an explicit import of the same bundle (`backend/creator-libraries/`, gitignored).
+  The accounts `rHyMoL5…` and `NrdGBY…` (earlier demo-recording account with the hero
+  project) no longer exist in Auth or Firestore.
 
 ## Decisions that shape the code
 
