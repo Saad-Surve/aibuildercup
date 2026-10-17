@@ -12,7 +12,6 @@ export type StudioModuleId =
   | "overview"
   | "transcript"
   | "review"
-  | "rough-cut"
   | "captions"
   | "packaging"
   | "localization"
@@ -44,14 +43,6 @@ export const STUDIO_MODULES: StudioModule[] = [
     description:
       "Nine reviewers flag moments with explanations and proposed edits.",
     icon: SparklesIcon,
-    needsTranscript: true,
-  },
-  {
-    id: "rough-cut",
-    label: "Rough cut",
-    description:
-      "Turn accepted edits into a preview. Compare, decide, and export your edit plan.",
-    icon: FileVideoIcon,
     needsTranscript: true,
   },
   {
@@ -140,7 +131,11 @@ export function studioModuleFromPath(
   );
   if (!match) return null;
   const candidate = match[1] ?? "overview";
-  return isStudioModuleId(candidate) ? candidate : "overview";
+  return candidate === "rough-cut"
+    ? "review"
+    : isStudioModuleId(candidate)
+      ? candidate
+      : "overview";
 }
 
 export const OVERVIEW_ICON = DashboardSquare01Icon;

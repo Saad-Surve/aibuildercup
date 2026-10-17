@@ -69,7 +69,6 @@ export function VideoStudio({
   const {
     transcript: TranscriptPanel,
     review: ReviewPanel,
-    "rough-cut": RoughCutModule,
     captions: CaptionsModule,
     packaging: PackagingModule,
     localization: LocalizationModule,
@@ -323,14 +322,7 @@ export function VideoStudio({
             onSeek={seekTo}
             live={connected}
             transcriptShouldPoll={processing && !connected}
-          />
-        );
-      case "rough-cut":
-        return (
-          <RoughCutModule
-            project={project}
             onJobId={onJobId}
-            onReview={() => onModuleSelect("review")}
           />
         );
       case "captions":
@@ -386,83 +378,77 @@ export function VideoStudio({
           />
         )}
 
-        {activeModule === "rough-cut" ? (
-          <div ref={modulePaneRef} className="scroll-mt-16">
-            {renderModule()}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
-            <div className="lg:sticky lg:top-20">
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Icon
-                        icon={FileVideoIcon}
-                        className="text-muted-foreground"
-                      />
-                      <CardTitle>Original video</CardTitle>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {sourceAsset && (
-                        <VideoRevisions
-                          projectId={projectId}
-                          activeRevision={project.sourceRevision}
-                          revisionCount={project.revisionCount}
-                          onQueued={onJobId}
-                        />
-                      )}
-                      <ProjectStatusBadge status={project.status} />
-                    </div>
-                  </div>
-                  <CardDescription>
-                    {displayRevision != null
-                      ? `Revision ${displayRevision} · `
-                      : ""}
-                    {sourceMetadata.join(" · ")}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="[&>*]:w-full">
-                    <SourceVideoPlayer
-                      projectId={projectId}
-                      asset={effectiveSource}
-                      onDuration={setDurationMs}
-                      captionLines={captionLines}
-                      coverUrl={project.posterUrl}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
+          <div className="lg:sticky lg:top-20">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Icon
+                      icon={FileVideoIcon}
+                      className="text-muted-foreground"
                     />
+                    <CardTitle>Original video</CardTitle>
                   </div>
-                </CardContent>
-              </Card>
-
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <DeleteProjectDialog
-                  projectId={projectId}
-                  projectName={project.name}
-                  assetIds={[effectiveSource.assetId]}
-                  destructive
-                />
-                {sourceAsset && (
-                  <NewRevisionButton
+                  <div className="flex flex-wrap items-center gap-2">
+                    {sourceAsset && (
+                      <VideoRevisions
+                        projectId={projectId}
+                        activeRevision={project.sourceRevision}
+                        revisionCount={project.revisionCount}
+                        onQueued={onJobId}
+                      />
+                    )}
+                    <ProjectStatusBadge status={project.status} />
+                  </div>
+                </div>
+                <CardDescription>
+                  {displayRevision != null
+                    ? `Revision ${displayRevision} · `
+                    : ""}
+                  {sourceMetadata.join(" · ")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="[&>*]:w-full">
+                  <SourceVideoPlayer
                     projectId={projectId}
-                    onQueued={onJobId}
-                    variant="default"
+                    asset={effectiveSource}
+                    onDuration={setDurationMs}
+                    captionLines={captionLines}
+                    coverUrl={project.posterUrl}
                   />
-                )}
-              </div>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="space-y-6">
-              <div
-                ref={modulePaneRef}
-                className="scroll-mt-16 space-y-6 lg:snap-start lg:snap-always lg:scroll-mt-20"
-              >
-                {renderModule()}
-              </div>
-              <div aria-hidden className={WORKSPACE_PANE_STACK_SPACER} />
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <DeleteProjectDialog
+                projectId={projectId}
+                projectName={project.name}
+                assetIds={[effectiveSource.assetId]}
+                destructive
+              />
+              {sourceAsset && (
+                <NewRevisionButton
+                  projectId={projectId}
+                  onQueued={onJobId}
+                  variant="default"
+                />
+              )}
             </div>
           </div>
-        )}
+
+          <div className="space-y-6">
+            <div
+              ref={modulePaneRef}
+              className="scroll-mt-16 space-y-6 lg:snap-start lg:snap-always lg:scroll-mt-20"
+            >
+              {renderModule()}
+            </div>
+            <div aria-hidden className={WORKSPACE_PANE_STACK_SPACER} />
+          </div>
+        </div>
       </div>
     </CaptionPreviewProvider>
   );

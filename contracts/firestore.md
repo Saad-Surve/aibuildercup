@@ -510,7 +510,7 @@ findings and optional `interest/curve` documents beneath the project. Current ra
 findings are excluded; accepted/revised base findings form the accepted-fix denominator.
 A valid downgrade's adjustedSeverity is used when rebuilding bins.
 
-A directly related target asset's `roughCut` follows the Phase 2 interface:
+A directly related legacy target asset's `roughCut` retains this interface:
 `sourceAssetId`, `analysisRunId`, `findingIds`, ordered `keptSegments` with
 `sourceStartMs`, `sourceEndMs`, `outputStartMs`, `removedSpans` on the source timeline,
 and `durationMsBefore` / `durationMsAfter`. The comparison requires sourceAssetId to
@@ -540,38 +540,28 @@ weighted distance above each run's own normalized baseline, not retention improv
 or calibrated quality. `newIssuesCount` excludes positive Keep observations while
 `newFindingsCount` includes them. No new storage, index, deletion path, paid call or worker is needed.
 
-## Rough-cut previews
+## Edit-plan exports and legacy rendered revisions
 
-`assets/{assetId}` is a ready `source_video` revision with optional `roughCut`:
+`GET …/analysis/{runId}/edit-plan/plan` and `…/edit-plan/edl` compute from current owned
+accepted/revised findings and the pinned source transcript. Query `labels` is a JSON object
+mapping finding IDs to `cut` or `note`; overrides are request-local and never persisted.
+Revised decisions use `decision.revisedAction`, otherwise the stored `suggestion`.
+Bounds: 200 accepted/revised findings, 2,000 findings scanned and 2,000 transcript segments
+(overflow fails explicitly), 120 ms silence padding without splitting adjacent speech,
+>=500 ms cuts and <=40% per merged span. Merged spans retain all contributor IDs.
+No render, insert placement, media asset, job, derived transcript, model call or write occurs.
+The creator edits externally, uploads a normal source revision, and runs review again.
+
+Existing `assets/{assetId}.roughCut` remains readable for exact comparison:
 `{sourceAssetId, analysisRunId, findingIds, keptSegments: [{sourceStartMs, sourceEndMs,
 outputStartMs}], removedSpans: [{startMs, endMs, findingId, findingIds}],
-durationMsBefore, durationMsAfter, insertIds?}`. `roughCutPlan` additionally snapshots findings with
-`action` (`decision.revisedAction` for revised decisions, otherwise stored `suggestion`),
-`label`, `labelReason`, `skippedReason`. Merged spans
-retain all contributor IDs. The creator explicitly activates via the revision endpoint.
-
-Jobs use type `rough_cut`, `input: {assetId, transcriptId, plan}` (cached deterministic
-labels plus creator overrides), and `output: {assetId, transcriptId, artifactIds, storagePaths}`.
-Media and derived JSON/SRT/VTT live exclusively below
-`users/{uid}/projects/{projectId}/rough-cuts/{assetId}/`. This avoids source-finalized STT
-and keeps exports/captions isolated from the active transcript. The derived transcript is
-a normal owned transcript with sourceAssetId pointing at the new revision. It never
-changes activeTranscriptId. AnalysisRequest.assetId pins that revision's ready transcript
-without activation. Discard refuses active cuts, running reviews and dependent previews,
-deletes related review/transcript document trees, review-context media and the cut storage
-prefix (noncurrent generations expire
-under bucket lifecycle). Project/account recursive deletion already covers these paths.
-
-Only accepted/revised decisions are eligible, read defensively before the findings-loop
-merge. No ambiguous actions are automatically removed. Bounds: 200 selected findings,
-120 ms silence padding without splitting adjacent speech, >=500 ms cuts, <=40% per merged span;
-word boundaries when available, otherwise complete segment boundaries. No STT or paid model calls.
-Optional `plan.insertIds` (at most eight) selects owned ready packaging inserts pinned to
-the same source/transcript. `plan.inserts` caches headline, skippedReason and placements
-`{insertStartMs, outputStartMs, outputEndMs}` through kept footage. The worker revalidates
-each selected insert and overlays its existing video without using its audio or changing
-timeline duration. No insert is generated. `GET assets/{assetId}/captions` reads the latest
-ready owned transcript as WebVTT for comparison players without activating the revision.
+durationMsBefore, durationMsAfter, insertIds?}`. Existing `roughCutPlan` snapshots and
+normal derived transcripts can remain stored, but no active API reads the snapshot or
+creates more. Historical jobs with type `rough_cut` remain parseable; there is no worker
+or new job producer. Old media under
+`users/{uid}/projects/{projectId}/rough-cuts/{assetId}/` remains covered by project/account
+recursive document and Storage-prefix deletion. Noncurrent generations follow bucket lifecycle.
+Existing revisions can still be activated and reviewed using their ready transcripts.
 
 ## Editorial consolidation
 

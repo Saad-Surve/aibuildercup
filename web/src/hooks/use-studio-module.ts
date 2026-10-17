@@ -9,7 +9,11 @@ import {
 } from "@/lib/studio";
 
 function normalize(moduleId: string): StudioModuleId {
-  return isStudioModuleId(moduleId) ? moduleId : "overview";
+  return moduleId === "rough-cut"
+    ? "review"
+    : isStudioModuleId(moduleId)
+      ? moduleId
+      : "overview";
 }
 
 /**

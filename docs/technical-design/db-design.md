@@ -83,9 +83,11 @@ interactive calls. Preset installation rechecks ownership across bounded write b
 Projects distinguish `video` and `draft`, keep source/active-transcript/current-analysis
 references, processing metadata and denormalized card summaries. A linked draft is a
 script reference, not copied automatically into the video's transcript. Assets retain
-Storage paths and source media metadata across revisions. Rough-cut assets keep their base
-source/run, cut mapping, labels and derived transcript. They remain inactive until explicitly
-activated; discarding an inactive cut removes its owned media, transcript and analyses.
+Storage paths and source media metadata across revisions. Edit plans are computed from current
+accepted/revised findings and request labels; exports persist no assets, jobs or transcripts.
+Legacy assets retain `roughCut` base source/run and cut mapping for exact comparison, plus their
+existing derived transcripts. Historical `rough_cut` job documents remain parseable, but no
+new jobs of that type are created. Project/account deletion covers their existing prefixes.
 
 Jobs record type, input/output, state/progress/error and idempotency key. Their event children
 support progress history. Atomic creation converges duplicate upload notifications; process-local

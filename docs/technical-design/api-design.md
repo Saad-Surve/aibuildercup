@@ -42,8 +42,6 @@ Google, not the old shared demo password.
 | `GET/POST /projects`, `GET/PATCH/DELETE /projects/{projectId}` | Video/draft project lifecycle |
 | `POST /projects/{projectId}/upload-session` | Signed direct Storage upload session |
 | `GET /projects/{projectId}/assets` | Asset metadata |
-| `DELETE /projects/{projectId}/assets/{assetId}` | Discard inactive rough cut and its derived transcript/reviews |
-| `GET /projects/{projectId}/assets/{assetId}/captions` | Ready revision captions without activation |
 | `POST /projects/{projectId}/assets/{assetId}/complete` | Verify uploaded object and reuse/queue transcription |
 | `GET /projects/{projectId}/assets/{assetId}/download-url` | Short-lived owned media download |
 | `GET /projects/{projectId}/revisions` | Video revision history and associated transcript/review metadata |
@@ -79,9 +77,8 @@ uses the direct Cloud Run socket origin.
 | `PATCH /{analysisRunId}/findings/{findingId}` | Set/clear accepted, revised or dismissed creator decision |
 | `GET /{analysisRunId}/findings/{findingId}/adjudication/evidence` | Owned frame/clip reference for a footage check |
 | `GET /compare?baseRunId=...&targetRunId=...` | Read-only before/after alignment and issue comparison |
-| `GET/POST /{analysisRunId}/rough-cut/plan` | Read-only safe cut/note preview, including creator selection |
-| `POST /{analysisRunId}/rough-cut` | Render/upload an inactive revision, no STT or paid media generation |
-| `GET /{analysisRunId}/rough-cut/edl` | CMX3600 edit decision list or Markdown plan |
+| `GET /{analysisRunId}/edit-plan/plan?labels={...}` | Current accepted/revised safe Cut/Note plan, removal summary and skipped reasons |
+| `GET /{analysisRunId}/edit-plan/edl?format=cmx3600|markdown&fps=30&labels={...}` | Download directly from current decisions; no rendered asset; demo allowed |
 | `GET /{analysisRunId}/reviewers/{reviewerRunId}/context/{index}` | Owned shared/requested footage download reference |
 
 All nine current dimensions are selectable; six core dimensions are always included.

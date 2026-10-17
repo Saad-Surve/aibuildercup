@@ -5,27 +5,32 @@ person needs to know: contracts, infra, deployed state, open decisions, or verif
 Keep it current rather than chronological. Delete what is no longer true. History lives in
 `git log -- docs/current-progress`; earlier notes can be recovered with `git show <rev>:<path>`.
 
-Last updated: 2026-10-16.
+Last updated: 2026-10-17.
 
 ## Status
 
 Resonance Creator Studio is built, deployed and verified end to end: upload → transcript →
 nine-reviewer + rubric + editor + adjudicator heatmap with a predicted audience-interest lane,
-reviewer coverage, finding decisions, creator-library links, FFmpeg rough-cut rendering and
+reviewer coverage, finding decisions, creator-library links and
 before/after run comparison, drafts with grounded writing and video context, captions,
 localization and dubbing, thumbnails, packaging with optional Veo inserts, YouTube connector
 with publishing and warnings, a content calendar that uploads scheduled videos, Medium,
 Substack and Reddit connectors with cross-posting, creator library retrieval, and a read-only
 demo. Feature detail is in `README.md` and `docs/architecture.md`.
 
+Current local source replaces server-rendered cuts with Review’s CMX3600/Markdown edit-plan
+exports, external revision upload and expanded comparison. This change is **not deployed**;
+its contracts and verification are described below.
+
 UI copy, review-loop, interest-model and performance work are merged into `main` and verified
 end to end across web lint, ESLint, TypeScript, production static export, backend ruff and mypy,
 and live end-to-end testing by the project owner across the review loop, studio modules,
 connectors and UI flows.
-The landing page describes the supported review, rough-cut, and publishing flows. The unfinished
-audience navigation, placeholder platform cards, and static translation preview are removed;
+The local landing page describes review, cut-list export → external edits → revision comparison,
+and publishing. The unfinished audience navigation, placeholder platform cards, and static translation preview are removed;
 Localization retains dubbing and the glossary. Job failures use friendly retry guidance, with
-exception details kept in logs. API contracts and persisted data shapes are unchanged. Humation
+exception details kept in logs. The export API contract changes in this local source; existing
+persisted data stays compatible. Humation
 branding and the Google stack names are intentionally retained.
 
 Cross-language dubbing is fixed and deployed (`bbdbba7`, 2026-10-16); the API role and the
@@ -69,8 +74,7 @@ the 3.5 Flash-Lite dev comparison lost three planted issues and had quota/servic
   scoped exclusively to the authenticated UID and deduplicated with project subscriptions.
   OpenAPI/events are updated; no persisted Firestore shape or indexes change.
 - Published/planned items and idle visual inserts stop polling. Hidden tabs pause fallback
-  polling. Rough cuts poll their existing job instead of repeatedly downloading the asset
-  list. Signed media/evidence URL renewal while visible remains separate from job polling.
+  polling. Signed media/evidence URL renewal while visible remains separate from job polling.
   The header shows the user's Humation avatar (restored at the owner's request). Marketing/caption fonts are no longer preloaded globally. Persona uses React Query.
 - Bounded, thread-safe process caches reuse signed URLs only with more than five minutes left,
   immutable transcript generations, revision joins and library PCA/neighbors. Cached URL
@@ -115,15 +119,35 @@ worktrees under `../aibuildercup-wt/`, merged into `main`, and verified end to e
 - **Library links.** `libraryLinks` (max 1 per finding) from the creator's library for clarity,
   truth, audience and emotion findings, medium+; cosine ≥ 0.65 (provisional), ≤ 8 findings, ≤ 1
   Gemini selector call per run. Labelled as earlier work, never evidence about this video.
-- **Rough cut.** `POST …/analysis/{runId}/rough-cut` renders accepted/revised removal findings into
-  a non-activated source revision with `Asset.roughCut` (keptSegments, removedSpans, durations)
-  and a remapped transcript (no STT). `…/rough-cut/plan`, `…/rough-cut/edl?format=cmx3600|markdown`,
-  `DELETE /assets/{assetId}` (inactive cuts only), `GET /assets/{assetId}/captions`. Analysis start
-  accepts optional `assetId` for "Re-review this cut".
-- **Comparison.** `GET …/analysis/compare?baseRunId=&targetRunId=` (deterministic, read-only):
-  resolved / persists / new findings and bins on the source timeline via keptSegments or transcript
-  alignment. `<ReviewComparison>` appears in the rough-cut module once the cut's review finishes,
-  and a picker in the review panel compares any two completed runs.
+- **Edit plan and revisions (local source change; not deployed).** The Rough cut module and
+  server render pipeline are removed. Review exports CMX3600 (.edl, 24/25/30/60 fps) and
+  Markdown from the selected/latest completed run’s current accepted/revised findings.
+  `GET …/analysis/{runId}/edit-plan/plan` returns the safe Cut/Note preview;
+  `GET …/edit-plan/edl?format=cmx3600|markdown&fps=30&labels={...}` recomputes downloads.
+  `labels` is a JSON-encoded finding-ID → cut/note map, request-local, with no writes.
+  Both GETs work in the read-only demo; revision uploads remain disabled there. The Review
+  card uploads externally edited source revisions through the existing normal upload/STT flow.
+  Old module query/path links fall back to Review. Removed: render POST, per-cut DELETE,
+  source-revision captions GET, render worker, transcript remapping and insert placement.
+- **Comparison.** `GET …/analysis/compare?baseRunId=&targetRunId=` stays deterministic/read-only.
+  Review opens the previous reviewed revision’s latest run → newest completed run comparison
+  by default when the target revision is newer. The picker still supports any completed pair;
+  existing paired players use the server alignment. Independent uploads use transcript
+  alignment. Legacy `Asset.roughCut` kept-segment metadata, derived transcripts and the
+  historical `rough_cut` job enum stay readable; no new jobs of that type can be queued.
+  Project/account recursive deletion already covers all legacy assets/documents.
+  OpenAPI, Firestore and design docs reflect these source changes; no infra/deploy changes.
+  Verification: backend ruff/mypy (158 files) and `import app.main` pass; Uvicorn boots and
+  `/api/readyz` returns 200. Web oxlint, ESLint (four existing library `<img>` warnings),
+  TypeScript and all 17 production static pages pass, with existing static-export rewrite notices.
+  `bun run format` ran; touched-file formatting is retained and unrelated baseline churn reverted.
+  Local browser demo sign-in against live services, both old link formats → Review, the export
+  card/empty state and disabled uploads were checked. Authenticated GET previews, all four
+  CMX3600 frame rates and Markdown return 200 without any rendered asset. Invalid labels return
+  400. A local deterministic smoke confirms Cut/Note duration changes, legacy exact alignment
+  and transcript alignment for independent revisions. The demo currently has one review per
+  project and no accepted findings, so populated toggles/expanded comparison and upload → STT →
+  fresh review remain unverified live. No tests/dependencies, paid model calls, push or deployment.
 - **Writer context.** `app/services/video_context.py` feeds transcript excerpt, persona (as
   preferences), accepted/revised or severe non-rejected findings, interest peaks and the strongest
   hook into drafts, assist, thumbnail planning and listings. `_fallback_blocks` is gone: failures set
@@ -429,9 +453,8 @@ export) and the pre-registered evaluation suites (`evals/README.md`):
   across all 20 editorial benchmark videos (`180/180` specialist runs succeeded, **1,136 live
   FFmpeg `extract_frame`/`cut_clip` tool calls**, 70+ Google Search grounding citations; see
   `evals/results/*.raw.json`) as well as in the end-to-end app workspace.
-- **Review loop & rough-cut workflow:** Finding decisions (`accepted`/`revised`/`dismissed`),
-  footage adjudication (`adjudicator-v2`), creator-library links on findings, FFmpeg rough-cut
-  plan/render/activate/discard, and deterministic before/after run comparison (`GET …/analysis/compare`)
+- **Review loop (previously verified deployment):** Finding decisions (`accepted`/`revised`/`dismissed`),
+  footage adjudication (`adjudicator-v2`), creator-library links on findings, the prior server render workflow (removed in current source), and deterministic before/after run comparison (`GET …/analysis/compare`)
   are verified end to end.
 - **Audience-interest lane & calibration:** Curve, position baseline, hover readout, info panel,
   peak/dip click (seek + finding filter), reviewer coverage tint, and YouTube Analytics

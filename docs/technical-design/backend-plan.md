@@ -113,10 +113,11 @@ Empty spans have no invented score; coverage records which reviewer windows succ
 averages reported observations, not the whole video or predicted retention.
 
 Creator decisions (`accepted`, `revised`, `dismissed`, or cleared) are separate from model
-metadata. `rough_cut.py` builds safe cut/note plans from accepted/revised actions; the worker
-renders/uploads an inactive revision with a derived transcript and no STT. Preview, activation,
-discard, EDL export and fresh re-review are explicit actions. `analysis_compare.py` compares
-completed runs without model calls/writes, aligning cut maps or transcript tokens and retaining
+metadata. `edit_plan.py` builds safe cut/note plans from current accepted/revised actions.
+GET preview and CMX3600/Markdown downloads accept JSON-encoded creator labels, perform owned
+reads only and work in the demo. There is no render worker, cut job creation, insert placement,
+per-cut discard or derived-caption route. External revisions use normal upload/STT and fresh review. `analysis_compare.py` compares
+completed runs without model calls/writes, aligning transcript tokens or existing assets’ legacy cut maps and retaining
 unmapped footage and uncompared findings. It excludes dismissed/rejected/dropped/merged advice.
 
 The relative-interest curve is separate from review scores. Gemini signals run alongside

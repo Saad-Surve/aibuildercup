@@ -89,7 +89,7 @@ export function HeatmapTracks({
   reviewState = "not_started",
 }: {
   bins: HeatmapBin[];
-  /** Source spans omitted from a rough cut, hatched across every lane. */
+  /** Source spans removed in the compared revision, hatched across every lane. */
   removedSpans?: { startMs: number; endMs: number }[];
   /** Spans each dimension read; empty for older runs (gaps then stay blank). */
   coverage?: HeatmapCoverage[];

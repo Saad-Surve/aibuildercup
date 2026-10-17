@@ -434,7 +434,9 @@ class AssetService:
         if match is None:
             raise NotFoundError("Revision not found", details={"assetId": asset_id})
         if data.get("roughCut") and not match.transcriptId:
-            raise ConflictError("The cut's derived transcript is missing. Render a new preview.")
+            raise ConflictError(
+                "This legacy revision's transcript is missing. Upload the video as a new revision."
+            )
 
         raw = self.client.get_document(project_path(owner_uid, project_id)) or {}
         now = datetime.now(UTC)

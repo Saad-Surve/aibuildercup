@@ -80,11 +80,12 @@ sequenceDiagram
     API->>FS: Persist model metadata, findings, coverage and five-second bins
     API-->>UI: WebSocket progress, REST results
     Creator->>UI: Seek, accept, revise or dismiss finding
-    UI->>API: Preview and render selected safe cuts / edit notes
-    API->>GCS: Upload inactive rough-cut revision
-    API->>FS: Derived transcript and cut map; no STT
-    Creator->>UI: Preview then activate or discard
-    UI->>API: Re-review active revision
+    UI->>API: GET safe edit plan / CMX3600 / Markdown with Cut/Note labels
+    API-->>UI: Download from current accepted/revised findings; no writes
+    Creator->>Creator: Edit in own editor
+    Creator->>UI: Upload edited revision
+    UI->>GCS: Signed upload; normal transcription
+    UI->>API: Re-review new revision
     API-->>UI: Compare aligned before/after runs; retain uncompared issues
 ```
 
@@ -151,7 +152,7 @@ Visual inserts are downloadable supplementary assets; they are not spliced into 
 or selectable as a finished source-video revision. Generated footage
 has a bounded paid path; current live verification is recorded in HANDOFF.md. Publishing remains a separate
 creator action and requires a real connected YouTube account. Packaging does not assemble
-inserts; the rough-cut path can place selected existing inserts. Drafts cross-post synchronously
+inserts; creators place them in their own editor. Drafts cross-post synchronously
 to Substack/Medium/Reddit through their providers, separately from YouTube publication.
 
 ## Deletion

@@ -80,9 +80,15 @@ make the filtering inspectable. Library examples appear as **From your earlier w
 as current-video evidence. The audience-interest lane is relative prediction with a generic
 or calibrated channel baseline, separate from reviewer scores.
 
-Accepted/revised actions feed a safe rough-cut preview with cut/note labels and optional
-existing inserts. Rendered/uploaded revisions are previewed before activation; inactive cuts
-can be discarded or exported as an EDL. Re-review compares two runs on aligned timelines,
+Review includes an Export edit plan card for the selected completed review (or latest completed
+review while a run is pending). Current accepted/revised actions have toggleable Cut/Note labels,
+merged-removal counts, before/after duration and 24/25/30/60 fps CMX3600 plus Markdown downloads.
+An upload-revision action is disabled in the demo; read-only GET downloads remain available.
+Creators edit externally, upload a revision and re-run review. The previous reviewed revision’s
+latest run and newest completed run compare expanded at the top when the newer run belongs
+to a newer revision; the picker can select any completed pair. Existing paired players seek
+through comparison alignment. Old rough-cut module links fall back to Review.
+Re-review compares two runs on aligned timelines,
 showing persisting/new/resolved/uncompared issues and unmatched footage. Missing alignment
 or coverage never counts as a resolved finding.
 

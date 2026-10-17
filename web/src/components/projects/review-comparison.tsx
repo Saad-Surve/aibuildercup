@@ -14,7 +14,7 @@ import {
   formatDurationMs,
   SEVERITY_LABELS,
 } from "@/lib/analysis";
-import { listAssets } from "@/lib/projects";
+import { listAssets, listRevisions } from "@/lib/projects";
 import type {
   AnalysisComparison,
   AnalysisRun,
@@ -34,7 +34,7 @@ export interface ReviewComparisonProps {
   showPlayers?: boolean;
 }
 
-/** Rough-cut entry point: mount with the original and completed re-review run IDs. */
+/** Compare completed reviews, using native player times and the server alignment. */
 export function ReviewComparison({
   projectId,
   baseRunId,
@@ -662,14 +662,40 @@ export function ReviewComparisonPicker({
     base?: string;
     target?: string;
   }>({});
-  const [open, setOpen] = useState(false);
+  const [expansion, setExpansion] = useState<{
+    pair: string;
+    open: boolean;
+  } | null>(null);
   const completed = runs.filter(
     (run) => run.status === "ready" || run.status === "partial_failure",
   );
+  const revisions = useQuery({
+    queryKey: ["revisions", projectId],
+    queryFn: () => listRevisions(projectId),
+    enabled: completed.length >= 2,
+  });
   if (completed.length < 2) return null;
+  const latest = completed[0];
+  const newestRevision = revisions.data?.items.find(
+    (revision) => revision.assetId === latest.sourceAssetId,
+  );
+  const previousRevision = revisions.data?.items
+    .filter(
+      (revision) =>
+        newestRevision &&
+        revision.revision < newestRevision.revision &&
+        completed.some((run) => run.sourceAssetId === revision.assetId),
+    )
+    .toSorted((a, b) => b.revision - a.revision)[0];
+  const previousRun = completed.find(
+    (run) => run.sourceAssetId === previousRevision?.assetId,
+  );
+  const defaultBase = previousRun ?? completed[1];
+  const pair = `${defaultBase.analysisRunId}-${latest.analysisRunId}`;
+  const open = expansion?.pair === pair ? expansion.open : Boolean(previousRun);
   const base = completed.some((r) => r.analysisRunId === selection.base)
     ? selection.base!
-    : completed[1].analysisRunId;
+    : defaultBase.analysisRunId;
   const target = completed.some((r) => r.analysisRunId === selection.target)
     ? selection.target!
     : completed[0].analysisRunId;
@@ -698,7 +724,11 @@ export function ReviewComparisonPicker({
               >
                 {completed.map((run) => (
                   <option key={run.analysisRunId} value={run.analysisRunId}>
-                    v{runs.length - runs.indexOf(run)} ·{" "}
+                    Revision{" "}
+                    {revisions.data?.items.find(
+                      (revision) => revision.assetId === run.sourceAssetId,
+                    )?.revision ?? "?"}{" "}
+                    · review v{runs.length - runs.indexOf(run)} ·{" "}
                     {new Date(run.createdAt).toLocaleString()}
                     {run.status === "partial_failure" ? " · coverage gaps" : ""}
                   </option>
@@ -712,7 +742,7 @@ export function ReviewComparisonPicker({
             aria-expanded={open}
             aria-controls={`${id}-comparison`}
             disabled={base === target}
-            onClick={() => setOpen((value) => !value)}
+            onClick={() => setExpansion({ pair, open: !open })}
           >
             {open ? "Hide comparison" : "Compare reviews"}
           </Button>
