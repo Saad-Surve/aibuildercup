@@ -34,7 +34,11 @@ function WorkspaceRoute() {
   const rawModule = searchParams.get("module");
   const moduleId =
     studioModuleFromPath(pathname) ??
-    (isStudioModuleId(rawModule) ? rawModule : "overview");
+    (rawModule === "rough-cut"
+      ? "review"
+      : isStudioModuleId(rawModule)
+        ? rawModule
+        : "overview");
 
   if (!projectId) {
     return (

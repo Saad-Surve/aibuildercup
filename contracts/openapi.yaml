@@ -1216,114 +1216,57 @@ paths:
         "409": { description: Run unfinished or comparison input exceeds bounded limits }
         "422": { description: Missing or invalid run IDs }
 
-  /api/projects/{projectId}/analysis/{analysisRunId}/rough-cut/plan:
+  /api/projects/{projectId}/analysis/{analysisRunId}/edit-plan/plan:
     get:
       tags: [analysis]
-      summary: Preview deterministic cut/note labels for accepted and revised findings
+      summary: Preview safe cuts and notes from current accepted/revised findings; demo allowed
       parameters:
         - $ref: "#/components/parameters/ProjectId"
         - $ref: "#/components/parameters/AnalysisRunId"
+        - name: labels
+          in: query
+          description: JSON object of creator cut/note overrides keyed by currently accepted/revised finding IDs. Omitted means automatic labels. No state is saved.
+          schema: { type: [string, "null"], maxLength: 20000 }
       responses:
         "200":
-          description: Word/segment-safe plan, including skipped cuts and reasons. No model calls.
+          description: Word/segment-safe plan, merged removals and skipped reasons; no rendering or writes
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/RoughCutPlan" }
-    post:
-      tags: [analysis]
-      summary: Recalculate a plan with creator labels and selection (read-only, demo allowed)
-      parameters:
-        - $ref: "#/components/parameters/ProjectId"
-        - $ref: "#/components/parameters/AnalysisRunId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/RoughCutRequest" }
-      responses:
-        "200":
-          description: Updated safe plan with skipped reasons; nothing is queued or rendered
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/RoughCutPlan" }
+              schema: { $ref: "#/components/schemas/EditPlan" }
+        "400": { description: Invalid finding labels or more than 200 eligible findings }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Source review or revision not ready, duration unavailable, or input scan exceeds bounded limits }
+        "422": { description: Invalid frame rate/format or labels exceed query length limit }
 
-  /api/projects/{projectId}/analysis/{analysisRunId}/rough-cut:
-    post:
-      tags: [analysis]
-      summary: Queue an unactivated rough-cut source revision
-      description: Demo writes are forbidden. Selection must contain accepted/revised findings. Each merged removal span is at most 40 percent of the video. No STT, Veo or image generation.
-      parameters:
-        - $ref: "#/components/parameters/ProjectId"
-        - $ref: "#/components/parameters/AnalysisRunId"
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/RoughCutRequest" }
-      responses:
-        "202":
-          description: Queued rough_cut job; labels and complete plan are cached on job.input.plan
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [jobId, assetId, status, plan]
-                properties:
-                  jobId: { type: string }
-                  assetId: { type: string }
-                  status: { type: string }
-                  plan: { $ref: "#/components/schemas/RoughCutPlan" }
-
-  /api/projects/{projectId}/analysis/{analysisRunId}/rough-cut/edl:
+  /api/projects/{projectId}/analysis/{analysisRunId}/edit-plan/edl:
     get:
       tags: [analysis]
-      summary: Download the rendered revision's edit decision list or Markdown plan
+      summary: Download current accepted/revised findings as CMX3600 or Markdown; no rendered asset required
       parameters:
         - $ref: "#/components/parameters/ProjectId"
         - $ref: "#/components/parameters/AnalysisRunId"
+        - name: labels
+          in: query
+          description: JSON object of creator cut/note overrides keyed by currently accepted/revised finding IDs. Omitted means automatic labels. No state is saved.
+          schema: { type: [string, "null"], maxLength: 20000 }
         - name: format
           in: query
           schema: { type: string, enum: [cmx3600, markdown], default: cmx3600 }
-        - name: assetId
-          in: query
-          description: Specific rough cut; defaults to newest ready cut of this run.
-          schema: { type: string }
         - name: fps
           in: query
           schema: { type: integer, enum: [24, 25, 30, 60], default: 30 }
       responses:
         "200":
-          description: Downloadable text, source and sequential record timecodes, non-drop-frame
+          description: Downloadable edit-plan.edl or edit-plan.md; source and sequential record timecodes, non-drop-frame
           content:
             text/plain:
               schema: { type: string }
             text/markdown:
               schema: { type: string }
-
-  /api/projects/{projectId}/assets/{assetId}:
-    delete:
-      tags: [uploads]
-      summary: Discard an inactive rough cut and its media, derived transcript and reviews
-      parameters:
-        - $ref: "#/components/parameters/ProjectId"
-        - $ref: "#/components/parameters/AssetId"
-      responses:
-        "204": { description: Deleted current storage objects and owned documents; bucket noncurrent generations follow lifecycle expiry }
-        "409": { description: Active revisions or revisions with running reviews cannot be discarded }
-
-  /api/projects/{projectId}/assets/{assetId}/captions:
-    get:
-      tags: [uploads]
-      summary: Read captions for a ready source revision without activation
-      parameters:
-        - $ref: "#/components/parameters/ProjectId"
-        - $ref: "#/components/parameters/AssetId"
-      responses:
-        "200":
-          description: Newest ready owned transcript as WebVTT
-          content:
-            text/vtt:
-              schema: { type: string }
+        "400": { description: Invalid finding labels or more than 200 eligible findings }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Source review or revision not ready, duration unavailable, or input scan exceeds bounded limits }
+        "422": { description: Invalid frame rate/format or labels exceed query length limit }
 
   /api/projects/{projectId}/analysis/{analysisRunId}:
     parameters:
@@ -3132,25 +3075,7 @@ components:
           type: object
           additionalProperties: { type: string }
 
-    RoughCutRequest:
-      type: object
-      properties:
-        findingIds:
-          type: [array, "null"]
-          maxItems: 200
-          items: { type: string }
-          description: Omitted selects all accepted/revised findings; removal labels are cut, others are notes.
-        labels:
-          type: object
-          additionalProperties: { type: string, enum: [cut, note] }
-          description: Creator overrides for selected finding IDs.
-        insertIds:
-          type: array
-          maxItems: 8
-          items: { type: string }
-          description: Optional already-rendered packaging inserts from this source/transcript. Overlay only; no generation or added duration.
-
-    RoughCutMetadata:
+    EditPlanMetadata:
       type: object
       required: [sourceAssetId, analysisRunId, findingIds, keptSegments, removedSpans, durationMsBefore, durationMsAfter]
       properties:
@@ -3179,33 +3104,21 @@ components:
               findingIds: { type: array, items: { type: string } }
         durationMsBefore: { type: integer }
         durationMsAfter: { type: integer }
-        insertIds: { type: array, items: { type: string } }
 
-    RoughCutPlan:
+    RoughCutMetadata:
+      description: Legacy rendered-asset alignment metadata, retained for existing revisions only.
       allOf:
-        - $ref: "#/components/schemas/RoughCutMetadata"
+        - $ref: "#/components/schemas/EditPlanMetadata"
+        - type: object
+          properties:
+            insertIds: { type: array, items: { type: string } }
+
+    EditPlan:
+      allOf:
+        - $ref: "#/components/schemas/EditPlanMetadata"
         - type: object
           required: [findings]
           properties:
-            inserts:
-              type: array
-              description: Selected existing insert placements, remapped through kept footage.
-              items:
-                type: object
-                required: [insertId, headline, placements, skippedReason]
-                properties:
-                  insertId: { type: string }
-                  headline: { type: string }
-                  skippedReason: { type: [string, "null"] }
-                  placements:
-                    type: array
-                    items:
-                      type: object
-                      required: [insertStartMs, outputStartMs, outputEndMs]
-                      properties:
-                        insertStartMs: { type: integer }
-                        outputStartMs: { type: integer }
-                        outputEndMs: { type: integer }
             findings:
               type: array
               items:

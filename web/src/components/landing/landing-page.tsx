@@ -461,7 +461,7 @@ function renderCutBars(bars: number[], tone: string) {
   ));
 }
 
-function RoughCutDemo({ active }: { active: boolean }) {
+function EditRevisionDemo({ active }: { active: boolean }) {
   const [cut, setCut] = useState(false);
   const reduced = useReducedMotion();
   const before = CUT_BARS.slice(0, 8);
@@ -519,10 +519,10 @@ function RoughCutDemo({ active }: { active: boolean }) {
           onClick={() => setCut((c) => !c)}
           className="cursor-pointer rounded-full bg-rose-600 px-3 py-1 text-[0.68rem] font-semibold text-white transition-colors hover:bg-rose-700"
         >
-          {cut ? "Show original" : "Preview accepted edit"}
+          {cut ? "Show original" : "Show edited revision"}
         </button>
         <span className="tabular text-[0.68rem] font-medium text-foreground/55">
-          {cut ? "Rough cut preview" : "Demo · accepted removal"}
+          {cut ? "After · edited in your editor" : "Demo · accepted removal"}
         </span>
       </div>
     </div>
@@ -940,10 +940,10 @@ const FEATURES: Feature[] = [
     hover: "group-hover:text-amber-600",
   },
   {
-    title: "Your edits, ready to preview",
-    copy: "Preview accepted cuts, then re-review to see which fixes are resolved. You approve what stays.",
+    title: "Export cuts → upload revision → see what changed",
+    copy: "Download a cut list and edit plan from accepted findings. Edit in your own editor, upload the revision, and re-review to see what changed.",
     render: (active) => (
-      <RoughCutDemo key={active ? "on" : "off"} active={active} />
+      <EditRevisionDemo key={active ? "on" : "off"} active={active} />
     ),
     hover: "group-hover:text-rose-600",
   },
@@ -1098,7 +1098,7 @@ export function LandingPage() {
           {[
             "Timestamped transcript",
             "Heatmap review",
-            "Rough cut & re-review",
+            "Export cuts & compare revisions",
             "Captions & dubbing",
             "Thumbnails & listing",
           ].map((pill) => (

@@ -19,7 +19,7 @@ class JobType(StrEnum):
     veo = "veo"
     export = "export"
     caption_render = "caption_render"
-    rough_cut = "rough_cut"
+    rough_cut = "rough_cut"  # Read-only compatibility for historical job documents.
     publish = "publish"
 
 

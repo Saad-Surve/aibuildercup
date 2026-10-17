@@ -12,6 +12,7 @@ import {
 
 import { Icon } from "@/components/common/icon";
 import { DisabledReason } from "@/components/common/disabled-reason";
+import { EditPlanCard } from "@/components/projects/edit-plan-card";
 import { FindingsPanel } from "@/components/projects/findings-panel";
 import { GroundingPanel } from "@/components/projects/grounding-panel";
 import { HeatmapTracks } from "@/components/projects/heatmap-tracks";
@@ -75,8 +76,10 @@ export function ReviewPanel({
   onSeek,
   live = false,
   transcriptShouldPoll = false,
+  onJobId,
 }: {
   projectId: string;
+  onJobId?: (jobId: string) => void;
   platform: string;
   onSeek: (startMs: number) => void;
   /** Whether the realtime socket is connected; intervals are the fallback only. */
@@ -266,6 +269,14 @@ export function ReviewPanel({
     );
   }
 
+  const exportRun =
+    run && (run.status === "ready" || run.status === "partial_failure")
+      ? run
+      : runs.find(
+          (item) =>
+            item.status === "ready" || item.status === "partial_failure",
+        );
+
   return (
     <>
       <Card className={cn(WORKSPACE_PANE_SNAP, "lg:h-auto lg:max-h-none")}>
@@ -353,6 +364,14 @@ export function ReviewPanel({
 
         <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto py-2">
           <ReviewComparisonPicker projectId={projectId} runs={runs} />
+          {exportRun && (
+            <EditPlanCard
+              key={`${projectId}-${exportRun.analysisRunId}`}
+              projectId={projectId}
+              runId={exportRun.analysisRunId}
+              onJobId={onJobId}
+            />
+          )}
           {startError && (
             <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               <Icon icon={Alert02Icon} className="mt-0.5 size-4 shrink-0" />

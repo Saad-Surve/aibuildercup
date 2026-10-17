@@ -28,8 +28,6 @@ READ_ONLY_MESSAGE = (
 _ALLOWED_READ_ONLY_POSTS = (
     # `POST /api/projects/{projectId}/thumbnails/download` zips already-stored images.
     re.compile(r"^/api/projects/[^/]+/thumbnails/download$"),
-    # Recalculating a rough-cut plan only reads saved findings/transcript.
-    re.compile(r"^/api/projects/[^/]+/analysis/[^/]+/rough-cut/plan$"),
     # Minting a fresh demo session is not a data change.
     re.compile(r"^/api/demo/session$"),
 )

@@ -1374,7 +1374,7 @@ export interface AnalysisComparison {
   };
 }
 
-export interface RoughCutMetadata {
+export interface EditPlanMetadata {
   sourceAssetId: string;
   analysisRunId: string;
   findingIds: string[];
@@ -1391,20 +1391,14 @@ export interface RoughCutMetadata {
   }[];
   durationMsBefore: number;
   durationMsAfter: number;
+}
+
+/** Alignment metadata on revisions rendered before edit-plan exports. */
+export interface RoughCutMetadata extends EditPlanMetadata {
   insertIds?: string[];
 }
 
-export interface RoughCutPlan extends RoughCutMetadata {
-  inserts: {
-    insertId: string;
-    headline: string;
-    skippedReason: string | null;
-    placements: {
-      insertStartMs: number;
-      outputStartMs: number;
-      outputEndMs: number;
-    }[];
-  }[];
+export interface EditPlan extends EditPlanMetadata {
   findings: {
     findingId: string;
     startMs: number;
@@ -1415,17 +1409,4 @@ export interface RoughCutPlan extends RoughCutMetadata {
     labelReason: string;
     skippedReason: string | null;
   }[];
-}
-
-export interface RoughCutRequest {
-  findingIds?: string[];
-  labels?: Record<string, "cut" | "note">;
-  insertIds?: string[];
-}
-
-export interface RoughCutAccepted {
-  jobId: string;
-  assetId: string;
-  status: string;
-  plan: RoughCutPlan;
 }

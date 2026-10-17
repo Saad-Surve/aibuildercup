@@ -92,12 +92,12 @@ is separate from their removal from Terraform; see HANDOFF.md.
     Selecting a bin filters the findings and seeks the player.
 
 Creators accept, revise, dismiss or clear a finding decision without rewriting the original
-review. Decisions are separate from model verdicts. A deterministic rough-cut plan turns
-selected accepted/revised actions into safe cuts or edit notes, optionally placing existing
-inserts. FFmpeg renders an inactive revision, uploads it under the project prefix and remaps
-the transcript without STT. The creator previews, activates or discards it; a fresh analysis
-can then be compared with the original run. External edits can also be uploaded as revisions.
-Comparison uses a direct cut map or bounded transcript-token alignment and reports resolved,
+review. Decisions are separate from model verdicts. A deterministic edit plan turns
+current accepted/revised actions into safe cuts or edit notes with creator Cut/Note overrides.
+Review downloads CMX3600 and Markdown directly; no render, media job or derived transcript is
+created. The creator edits in their own editor, uploads a new revision (normal STT), then
+runs review again. The newest completed revision comparison opens at the top of Review.
+Comparison uses bounded transcript-token alignment (or a legacy asset’s direct cut map) and reports resolved,
 persisting, new and uncompared findings. Missing alignment/coverage is not evidence of a fix;
 fewer flags do not establish improved audience retention.
 
@@ -194,8 +194,7 @@ Live verification and deployed state are tracked in [HANDOFF.md](current-progres
 not inferred from this implementation reference. Visual inserts supplement a video and are
 separate from automatic shorts cut from the source.
 Ready inserts are downloaded for use in a video editor; the studio does not splice them
-into the uploaded video through packaging alone. The rough-cut path can place selected existing
-inserts in a rendered revision. [The packaging reference](technical-design/packaging-plan.md)
+into the uploaded video. Creators place inserts in their own editor. [The packaging reference](technical-design/packaging-plan.md)
 describes editing, chapters, render/resume behavior and publication prefill.
 
 ## Publishing, security and deletion

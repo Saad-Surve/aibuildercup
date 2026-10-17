@@ -57,8 +57,7 @@ new billable calls. Poll timeout exposes a resume action.
 
 Ready clips have a signed playback/download URL. Creators download and add them in their
 video editor. This feature does not splice the inserts into the source video or cut automatic
-shorts. Selected existing inserts can be placed by the separate rough-cut renderer, with
-explicit creator selection. Individual insert deletion removes its record and Storage prefix. All packaging
+shorts. Place downloaded inserts in the external editor alongside the exported cut list and notes. Individual insert deletion removes its record and Storage prefix. All packaging
 records, jobs, paid reservations and media use the existing user/project-owned paths.
 Project/account deletion marks the parent before removing objects, rejects subsequent
 ownership-checked writes, and lets the packaging worker remove a late upload. Versioned

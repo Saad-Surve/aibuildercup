@@ -1,7 +1,7 @@
 # Resonance technical reference
 
 This index describes the current source: upload and transcription, specialist and rubric
-review, editor and footage adjudication, creator decisions, rough cuts and re-review,
+review, editor and footage adjudication, creator decisions, edit-plan exports and revision re-review,
 creator retrieval, writing, media and publishing. Start with [architecture](../architecture.md);
 [HANDOFF.md](../current-progress/HANDOFF.md) is the single current status document and
 separates source changes from deployed state and live verification.
@@ -9,7 +9,7 @@ separates source changes from deployed state and live verification.
 | Reference | Contents |
 |---|---|
 | [Backend](backend-plan.md) | Providers, jobs, resumable STT, editorial stages, interest calibration, writing and publishing |
-| [Frontend](frontend-plan.md) | Static Next.js workspace, decisions, rough-cut preview/comparison, library, drafts and calendar |
+| [Frontend](frontend-plan.md) | Static Next.js workspace, decisions, edit-plan exports/revision comparison, library, drafts and calendar |
 | [Packaging](packaging-plan.md) | Saved YouTube listings, grounded visual inserts, rendering and paid reservations |
 | [API](api-design.md) | Registered routes, ownership, asynchronous jobs and planned contract paths |
 | [Database](db-design.md) | Owned hierarchy, editorial metadata, source revisions, calibration and deletion |
@@ -31,5 +31,5 @@ worker service accounts have been removed from Terraform; application of that cl
 an operational step recorded in HANDOFF.md.
 
 Automatic shorts and generic video-project chat remain future work. Draft chat, generated
-listings, rough-cut rendering and synchronous Substack/Medium/Reddit cross-posting exist.
+listings, CMX3600/Markdown exports and synchronous Substack/Medium/Reddit cross-posting exist.
 Substack can request platform-side scheduling; there is no local scheduled cross-post worker.

@@ -5,7 +5,8 @@ specialist Gemini reviewers and a whole-video rubric pass read the transcript an
 An editor stage merges what they agree on and drops what does not hold up. The result is a
 seekable heatmap under the timeline, where every finding links to the moment, a quoted piece
 of evidence, an explanation and a concrete edit. The creator accepts or dismisses each one,
-uploads a rough cut, and sees what was fixed. The same workspace then uses the creator's
+exports a cut list and edit plan, edits in their own editor, uploads a revision, and sees what
+was fixed. The same workspace then uses the creator's
 earlier work for drafts, thumbnails, localized captions and dubbing, a YouTube package and
 scheduled publishing.
 
@@ -55,8 +56,8 @@ Google Cloud project and some resource names still use the original name, `habea
   YouTube Analytics retention.
 - **AI suggests, code enforces, the creator decides.** Nothing is auto-edited. Quotes not found
   in the transcript are rejected in code; every finding pairs evidence with a proposed change,
-  accepted removals compile into a safe FFmpeg rough cut, and deterministic before/after
-  alignment verifies which findings were resolved.
+  accepted removals compile into a CMX3600 cut list plus Markdown notes, and deterministic
+  before/after alignment verifies which findings were resolved.
 - **Built to be checked.** Typed API and database contracts, provider boundaries around every
   Google call, ownership checks, real deletion, spend guards, and eval runs that replay
   offline from saved model responses.
@@ -79,7 +80,7 @@ current video.
 | Workflow | Implemented behavior |
 |---|---|
 | Review a video | Nine specialist reviewers (truth/evidence, clarity, pacing/retention, legal/safety, cultural/localization, platform fit, audience/brand, emotional impact, conversion/CTA) plus a whole-video rubric pass. Reviewers can request frames or clips through a bounded tool loop, and truth review can use Google Search grounding. An editor merges duplicates and drops weak findings; an adjudicator can check a finding against the footage. A five-second heatmap seeks straight to each moment, and reviewed stretches with nothing to flag show as reviewed, not blank. |
-| Close the loop | Accept or dismiss each finding. Upload a rough cut, activate or discard it, and re-review: a before/after comparison shows what was resolved and what is new. Findings link to related passages from the creator's earlier work. |
+| Close the loop | Accept or revise findings, choose Cut/Note labels and download a CMX3600 cut list or Markdown edit plan from Review. Edit in your own editor, upload a new revision and re-review: a before/after comparison shows what was resolved and what is new. Findings link to related passages from the creator's earlier work. |
 | Predict interest | A relative audience-interest curve against the typical drop-off. Its peaks and dips link to overlapping findings, and a creator can calibrate it on their own YouTube retention. |
 | Work with the transcript | Chirp 3 word timings and speaker labels, optional Gemini cleanup, editable transcript versions, search, SRT/VTT/text export and source-video revisions. |
 | Preserve creator context | A searchable library of attributed passages and thumbnails embedded with Gemini Embedding 2, used for drafts, thumbnail style references and post-review links, with an explorable semantic map. |
@@ -208,7 +209,7 @@ checked on 11 October 2026, is in [docs/competitive-comparison.md](docs/competit
   and Pub/Sub push path are structured so scaling out only requires moving worker leases and
   event fan-out to Firestore/Pub/Sub.
 - **Media scope.** Dubbing is timed synthesis, not lip sync or voice cloning. Visual inserts
-  supplement a video (or can be placed in a rendered rough cut). Video publishing is YouTube
+  are downloaded for use in the creator’s editor. Video publishing is YouTube
   only; Substack uses an unofficial session cookie and Medium only accepts legacy tokens.
 - **Deletion is real.** Versioned buckets keep noncurrent generations until lifecycle expiry.
 
