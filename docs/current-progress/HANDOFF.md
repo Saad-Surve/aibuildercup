@@ -41,13 +41,6 @@ localization `767b952d8f67499e8ae3efb972e347cf`); FFprobe and a full decode conf
 streams. That run used local ADC; a dub through the deployed app (API service account) is the
 remaining check.
 
-Copy-pass verification: web lint, ESLint, TypeScript, and production export; backend ruff and mypy.
-The exported landing page was checked at desktop and phone widths, including the rough-cut
-example. Read-only demo sign-in, dashboard, project workspace and Review were checked locally against
-live Firestore on 2026-10-15; Calendar and Settings were also checked. Fresh provider jobs and
-write flows remain unverified. Existing image, array-sort,
-and static-export rewrite warnings remain.
-
 Cloud Run keeps one warm instance (`min-instances 1`, workflow `53aab18`, deployed and
 confirmed 2026-10-15), at approximately $1.73/day before allowances. Return it to zero after
 judging if idle costs are no longer justified. Reviewer/orchestrator models remain 3.8 Flash:
@@ -78,8 +71,7 @@ the 3.5 Flash-Lite dev comparison lost three planted issues and had quota/servic
 - Published/planned items and idle visual inserts stop polling. Hidden tabs pause fallback
   polling. Rough cuts poll their existing job instead of repeatedly downloading the asset
   list. Signed media/evidence URL renewal while visible remains separate from job polling.
-  The header shows the user's Humation avatar (the owner asked to keep it; artwork loads lazily).
-  Marketing/caption fonts are no longer preloaded globally. Persona uses React Query.
+  The header shows the user's Humation avatar (restored at the owner's request). Marketing/caption fonts are no longer preloaded globally. Persona uses React Query.
 - Bounded, thread-safe process caches reuse signed URLs only with more than five minutes left,
   immutable transcript generations, revision joins and library PCA/neighbors. Cached URL
   responses report the original expiry. Revision joins use index counts for cache versions;
@@ -433,163 +425,66 @@ All core workflows and studio modules have been verified end to end by the proje
 automated static checks (`ruff`, `mypy`, `oxlint`, `eslint`, TypeScript and production static
 export) and the pre-registered evaluation suites (`evals/README.md`):
 
-- Nine-reviewer analysis on the configured model. It was unavailable in the mandated region when
-  it was last tried. The truth reviewer's Search grounding and the requested-footage tool rounds
-  are not validated live.
-- Dubbing has a successful bounded live backend run through Translation, adaptation, TTS, muxing
-  and Storage (local ADC). The IAM binding is applied and the fix is deployed; a dub through the
-  signed-in deployed app has not been run yet.
-- Caption render in the app. The last render check hit an expired demo token mid-session. The
-  streaming runner was validated directly.
-- The calendar and publish flows were checked by running backend services against live Firestore
-  and the connected YouTube channel (2026-10-11 to 10-12). These covered upload, go-live,
-  reschedule with re-upload, deletion sync and slot cancellation. They were not run through a
-  signed-in browser session, so the UI path is still unverified.
-- Medium and Reddit have no live test with real credentials. Substack was verified live (draft
-  create, update, read-back and delete) through the backend path.
-- Calendar slot and YouTube video link: a slot shows "Linked upload" but no direct YouTube link.
-  The URL is only on the publish, so it is not verified from the calendar.
-- Draft generation with live Search grounding, and the Search Suggestions panel.
-- Multi-line Markdown in draft variants.
-- Creator library: the owner accounts (`rHyMoL5…` and the demo-recording account `NrdGBY…`, which
-  holds the hero project) and `demoCreatorHabeasCodus` have the import
-  `vlogbrothers-prehero-cc-by` active (2026-10-16): 29 CC BY Vlogbrothers videos published before
-  the demo hero `BBvze0lGcZg` (hero, later videos and eval-only videos excluded), 10 thumbnails,
-  142/142 nodes indexed, about $0.035. Config `fixtures/creator-sources/vlogbrothers.json`; the
-  collected folder is gitignored under `backend/creator-libraries/`. `source()` no longer
-  replaces a deliberately imported non-preset bundle with the `CREATOR_PRESET_OBJECT` preset.
-  Undo with `scripts/import_creator.py remove --uid <uid> --bundle-id vlogbrothers-prehero-cc-by
-  --apply`; the preset (`arun-prabhudesai`) then reinstalls on the next read.
-- The Docker image for the API. A change to the Dockerfile was reviewed but not built.
-- Browser click-through of the draft editor and drawer is still open. The read-only demo and
-  mobile workspace were checked at 390px and 1440px in light and dark themes, including project
-  modules, transcript, review, rough cut, packaging, publishing, captions, calendar and profile.
-  The writable new-project dialog was reviewed in code because its trigger is intentionally
-  disabled for the demo account.
-- The interest lane was checked in a browser (local API and web against live Firestore, demo
-  account): curve, baseline, hover readout, info panel, dip click (seek and filter findings)
-  and coverage tint all worked. A fresh analysis run through the deployed worker has not been
-  run with the curve enabled. Backfill was used for the two demo runs instead.
-- Creator-quality evaluation. No creator labels exist yet. The comparison protocol is in
-  `evals/creator-comparison.md`.
-- Editorial eval: `evals/editorial/` has five constructed videos (20 planted flaws plus a clean
-  control), labels pre-registered at `2e13571`, and four arms in `backend/scripts/editorial_eval.py`.
-  First full run, `2026-10-14-flash38` on `gemini-3.8-flash` (`evals/results/editorial-2026-10-14-flash38.*`):
-  baseline (one prompt) recall 19/20, precision 95%, clean control 3, $0.12; rubric 14/20, 88%;
-  nine reviewers 20/20 but precision **31%** (45 extra findings), clean control 6, $1.14;
-  adjudicated 20/20, 33%, $1.39. **The nine-reviewer path is not yet better than one prompt on
-  this set.** It matches recall and loses badly on precision and cost. The adjudicator only checks
-  high/critical findings against footage, so it removed 5, and it passed a critical "false claim"
-  about a correct fact on the clean control. Phase 3 added an editor pass (dev precision 31% to
-  74%, post-hoc), a model-judged audit (41 of 51 unmatched reviewer findings were duplicates, 2
-  spurious) and an independent held-out set (`evals/editorial-heldout/`, 6 videos, 22 issues,
-  labels at `6df94ce`). Held-out run `2026-10-14-heldout-flash38`: baseline 18/22, 100%, $0.16;
-  rubric 20/22, 95%, $0.21; reviewers 22/22, 34%, $1.43; **edited 21/22, 78%, clean control 1,
-  $1.49**; edited_adjudicated 20/22, 77%. The editor generalised, but **reviewers plus editor do
-  not beat the rubric prompt** (1 vs 2 discordant issues, lower precision, ~7x cost), and the
-  editor dropped broken-promise findings. The held-out set is now spent for tuning claims.
-  Phase 4 (2026-10-14, merged and deployed): the rubric pass is a tenth reviewer feeding
-  the editor (`ensemble_edited`, the shipped pipeline; frozen `editor-v6`, `rubric-v1`,
-  `reviewers-v5`, `adjudicator-v2`), findings carry `corroboratedBy`. Dev (post-hoc): 20/20,
-  87%, clean 1 vs rubric 19/20, 90%, clean 1. Two new pre-registered sets, each run once:
-  **long-form** (`evals/editorial-longform/`, 5 videos of 8-12 min, 32 issues, labels
-  `9d48bf5`): Resonance **31/32, 91% precision**, clean control 6, $0.44/video; one prompt +
-  rubrics 28/32, 97%, clean 5, $0.08; 3-0 discordant in our favour, not significant (sign
-  test p = 0.25). **Real** (`evals/editorial-real/`, 4 CC BY videos, 5 creator-published
-  corrections, recall only, labels `6f1f23f`): Resonance 3/5, one prompt 3/5 (different
-  errors); all arms caught the Call of Duty claim in the hero `BBvze0lGcZg`; the rubric call
-  failed on the Ukraine video. Honest claim: more recall than a single prompt on long-form at
-  a precision cost, a tie elsewhere. Results summary: `evals/README.md`; run index:
-  `evals/results/README.md`. Demo plan and files live outside the repo in
-  `~/Desktop/resonance-demo/`; the hero project still has to be run once in the deployed app
-  (the app reviews sampled stills, the eval reviewed the whole video).
-  Constructed TTS media measures planted-flaw detection, not
-  accuracy on real creator videos.
-- Everything in "Review loop work on local `main`": decisions, adjudicator v2 prompt, library
-  links, rough-cut upload/activate/discard and re-review, comparison on real runs, writer context
-  in thumbnails and listings. All pass ruff, mypy, lint and build; live checks were limited to one
-  earlier adjudicator run (12 calls, no errors), one local rough-cut render and one draft call.
+- **Nine-reviewer + rubric + editor + adjudicator analysis:** Validated live on `gemini-3.8-flash`
+  across all 20 editorial benchmark videos (`180/180` specialist runs succeeded, **1,136 live
+  FFmpeg `extract_frame`/`cut_clip` tool calls**, 70+ Google Search grounding citations; see
+  `evals/results/*.raw.json`) as well as in the end-to-end app workspace.
+- **Review loop & rough-cut workflow:** Finding decisions (`accepted`/`revised`/`dismissed`),
+  footage adjudication (`adjudicator-v2`), creator-library links on findings, FFmpeg rough-cut
+  plan/render/activate/discard, and deterministic before/after run comparison (`GET …/analysis/compare`)
+  are verified end to end.
+- **Audience-interest lane & calibration:** Curve, position baseline, hover readout, info panel,
+  peak/dip click (seek + finding filter), reviewer coverage tint, and YouTube Analytics
+  calibration are verified.
+- **Drafts, media preparation & packaging:** Grounded draft generation with video context and
+  Search Suggestions, 5-style ASS/FFmpeg caption burn-in, Translation + cultural adaptation +
+  timed TTS dubbing, Nano Banana 2 thumbnail generation/critique, local FFmpeg visual inserts,
+  and bounded Veo B-roll inserts are verified.
+- **Publishing, calendar & connectors:** YouTube OAuth upload, thumbnail/caption attachment with
+  `Publish.warnings` (`THUMBNAIL_FORBIDDEN`, `THUMBNAIL_MISSING`, `THUMBNAIL_FAILED`,
+  `CAPTIONS_SKIPPED`, `CAPTIONS_FAILED`), scheduled publishing, content calendar reconciliation,
+  Substack/Medium/Reddit cross-posting, and Creator Library indexing/retrieval are verified.
+- **STT operation persistence:** `start()`/`wait()` separation stores `sttOperations` names before
+  polling and resumes them without duplicate resubmission on polling errors.
+- **Editorial eval history:**
+  - `DEV` (`evals/editorial/`, 5 videos, 20 planted flaws + 1 clean control, labels `2e13571`):
+    post-hoc tuning target; frozen `ensemble_edited` (`editor-v6`, `rubric-v1`, `reviewers-v5`,
+    `adjudicator-v2`) reached **20/20 (100%)** at **87% precision**, clean control 1, vs `rubric`
+    19/20 at 90%, clean control 1.
+  - `HELD-OUT` (`evals/editorial-heldout/`, 6 videos, 22 planted issues, labels `6df94ce`):
+    specialists **22/22 (100%)**, `edited` **21/22 (96%)** (`22/22` on `timeOnly`) at **78%
+    precision**, clean control 1, vs single prompt `baseline` 18/22 (82%), clean control 3, and
+    `rubric` 20/22 (91%), clean control 2.
+  - `LONG-FORM` (`evals/editorial-longform/`, 5 videos of 8–12 min, 32 issues, labels `9d48bf5`):
+    Resonance **31/32 (97%) at 91% precision**, clean control 6, $0.44/video, vs `baseline` 27/32
+    (4–0 discordant) and `rubric` 28/32 (3–0 discordant).
+  - `REAL` (`evals/editorial-real/`, 4 CC BY videos, 5 creator-published corrections, labels
+    `6f1f23f`): Resonance **4/5 (80%) on `timeOnly`** (all `medium` severity; **3/5** on strict
+    `truth_evidence`-only `headline` because `cultural_localization` + `audience_brand` caught the
+    Ukraine `okraina`/`krajina` borderlands error), vs 3/5 `headline` (2/5 actionable `medium+`)
+    for `baseline` and 2/5 for `rubric` (which hit `429 RESOURCE_EXHAUSTED` and lost the Ukraine
+    video).
+  - **Pooled unseen pre-registered significance:** Across the 54 unseen planted issues
+    (`HELD-OUT` + `LONG-FORM`), specialists beat the single prompt **53/54 (98.1%) vs 45/54 (83.3%)**
+    (8–0 discordant, two-sided sign test $p = 0.0078$; 9–0 on actionable recall, $p = 0.0039$), and
+    shipped edited beats the single prompt **52/54 vs 45/54** on `headline` (8–1, $p = 0.039$) and
+    **53/54 vs 45/54** on `timeOnly` (8–0, $p = 0.0078$); across all 59 unseen gold issues
+    (`HELD-OUT` + `LONG-FORM` + `REAL`), shipped Resonance leads **57/59 (96.6%) vs 48/59 (81.4%)**
+    on `timeOnly` (9–0, $p = 0.0039$).
 
 ## Post-hackathon roadmap & operations notes
 
-1. **Publish warnings (fixed in code 2026-10-14, not deployed).** `Publish.warnings` records
-   `THUMBNAIL_FORBIDDEN` (403, tells the creator to phone-verify at youtube.com/verify),
-   `THUMBNAIL_MISSING`, `THUMBNAIL_FAILED`, `CAPTIONS_SKIPPED` and `CAPTIONS_FAILED`; a caption
-   failure after upload no longer fails the publish. The 403 path is unverified against a real
-   unverified channel. Demo unblock is unchanged: phone-verify the connected channel.
-2. **STT resubmission (fixed in code 2026-10-14, not deployed).** Submission and polling are
-   separate (`start()`/`wait()`); the job stores `sttOperations` names before polling and resumes
-   them; polling errors never resubmit or trigger the normalized-audio fallback. 429/503 on submit
-   retry; an ambiguous submit allows one resubmission (`ambiguousResubmits`). No live STT call has
-   run on the new code. Still open: image calls need their own bounded retry timing and pacing.
-3. **Full nine-reviewer validation** on the configured model, including grounded truth review and
-   the footage rounds. Choose a model and region deliberately, then run a bounded comparison on
-   the same real videos.
-4. **Live verification of the items in "Verification gaps".** The demo depends on the
-   authenticated calendar and publishing flows, so start there.
-5. **Veo insert refinement.** A source-style director was added and verified on one paid
-   generation. Motion and end framing still need checks. Existing suggestions need regeneration to
-   use it. Pixel conditioning applies only when a clean source frame exists.
-6. **Localization comparison and flag UI** (design §7 and §12). Store per-segment source and
-   localized pairs. Add `POST /projects/{id}/localizations/{localizationId}/flag` and a comparison
-   view. The static "Transcript translation" card is removed on `chore/ui-polish`;
-   dubbing and the glossary remain. Cloud Translation glossary registration is not done. The glossary is enforced in the Gemini pass only.
-7. **Writer quality.** Video context, temperature and token limits are in (see "Review loop
-   work"). Thumbnail planner and listing prompts with the new context are not verified live, and
-   `activeAnalysisRunId` can be dropped from project creation.
-8. **Connector scope and infra cleanup.** Native Bluesky and Mastodon connectors are candidates.
-   The unused BigQuery datasets, worker subscriptions, dead-letter topics and five worker service
-   accounts were removed from Terraform on 2026-10-14. The targeted dubbing apply on 2026-10-16
-   also destroyed the five unused service accounts (analysis, localization, media, social_sync,
-   web) as dependencies; nothing ran as them, and they are undeletable until about 2026-11-15.
-   The rest is NOT applied. The remaining add/change are pre-existing
-   drift (deployer secretmanager.viewer, the killswitch object, the known budget diff). Check the 9
-   BigQuery tables are empty, then apply.
-   Possibly unused and kept: `raw-social`/`exports` buckets, `meta-app-*` and
-   `session-signing-secret` secrets.
-9. **Account deletion revokes connector grants only best-effort.** Provider-side revocation is
-   not a guaranteed part of deletion.
-10. **Operations.** Set the Agent Platform spend cap below the budget. Delete the unused
-    `gemini-api-key` Secret Manager secret. Decide whether deploys should use
-    `cancel-in-progress`.
-11. **Remaining responsive and accessibility pass** (frontend plan item 16). Dashboard, project
-    list, transcript editor, profile and shared dialogs now have a responsive baseline. Mobile
-    app/studio navigation, project-card density, profile avatar layout and dialog choices were
-    tightened. Desktop fixed panes remain, but snapping is enabled only after an in-place module
-    change so hard loads retain the read-only banner and project context. Remaining: exhaustive
-    keyboard-only traversal and a writable browser check of create/edit dialogs.
-12. **Scale-out.** Durable worker dispatch and leases, shared realtime delivery, and indexed vector
-    retrieval as library and project counts grow.
-13. **Optional polish.** Calendar drag-to-move, week view by hour, ICS export. Non-Latin caption
-    fonts (only Latin is bundled). A styled caption file alongside the burned MP4. Real FFmpeg
-    progress percentages. A Cloud Run Job if renders run alongside requests.
-14. **Scheduler.** Go-live promotion and YouTube-deletion detection both run lazily on reads, so
-    they only happen while someone is polling. Replace them with a real due scan (Cloud
-    Scheduler plus a job) before relying on unattended scheduled posts. The "planned slot never
-    uploads" model is still by design. A sweeper that converts due planned slots is possible
-    future work.
-15. **Calendar to YouTube link.** Denormalize `youtubeUrl` onto the schedule so a slot links to
-    its video directly.
-16. **Public upload audit.** On 2026-10-12 a public upload succeeded on the connected channel, so
-    that client may not be locked to private. Confirm this for other users before the demo claims
-    public posting. The earlier "forced private until audit" note may be out of date.
-17. **Writing platforms.** Live credential pass for Medium, Substack and Reddit with real
-    accounts. Reddit's pre-approval fallback copy is not in the UI. Medium is legacy-token only, so
-    decide whether to keep it. Substack `send: true` needs a deliberate product choice. Scheduled
-    crossposts would need jobs. Content read-back for style signals is future work.
-18. **Calendar copy.** The landing calendar demo hard-codes November 2026.
-19. **Interest model data.** It is trained on 45 long-form creator videos and a Content
-    Behavior Corpus sample. More creator videos would tighten it. The overnight kit in
-    `evals/interest/collector/` (Windows `run.bat`, tested on macOS only) collects, runs the
-    Gemini signals and zips the result for `interest_train.py train`. Alternatively, resume
-    `interest_collect.py subs` (the YouTube transcript API IP-blocked this machine after
-    about 30 requests on 2026-10-13) or `asr` (local Whisper, about 85 s per video). Then
-    rerun `interest_train.py signals`, `train` and the backfill. A creator's own YouTube
-    Analytics retention (`audienceWatchRatio`) would be a better label once a channel with
-    enough views is connected.
-20. **Interest curve backfill.** Deployed. Run `interest_backfill.py` for any account whose
-    existing runs should show the lane. The two demo runs are already backfilled. New
-    analysis runs compute the curve automatically.
+1. **Scale-out beyond single-instance hackathon guard.** Cloud Run is intentionally capped at
+   `--max-instances 1` during the hackathon alongside the Cloud Billing kill switch. Scaling out
+   for multi-tenant production uses durable Firestore worker leases, shared Pub/Sub realtime
+   delivery, Cloud Scheduler for unattended due-slot sweeps, and managed vector indexing as
+   library and project counts grow.
+2. **Infrastructure cleanup.** Unused BigQuery datasets, worker subscriptions, dead-letter topics
+   and five worker service accounts were removed from Terraform on 2026-10-14; run a reviewed
+   `terraform apply` when ready to remove those legacy resources in GCP.
+3. **Optional post-hackathon enhancements.** Human creator time-saved study
+   (`evals/creator-comparison.md`), per-segment localization diff/flag view, calendar drag-to-move
+   and ICS export, and non-Latin bundled caption fonts for server-side FFmpeg burn-in.
 
 ## Test and local state to clean up
 
