@@ -26,7 +26,7 @@ from app.services.cost import estimate_cost_usd
 from app.services.heatmap import effective_severity
 
 logger = logging.getLogger(__name__)
-EDITOR_PROMPT_VERSION = "editor-v6"
+EDITOR_PROMPT_VERSION = "editor-v7"
 MAX_PROMPT_CHARS = 100_000
 MAX_OUTPUT_TOKENS = 32_768
 ESTIMATED_INPUT_TOKENS = 32_000
@@ -98,11 +98,25 @@ Prefer an available observation in
 that owning dimension with the most informative quote/span and actionable edit. Preserve
 one finding per distinct problem, not one per rubric ID or emotional consequence.
 
-Grade each retained/merged observation for its justified impact. Critical requires serious
-harm or a publishing blocker, not rhetorical emphasis. adjustedSeverity may only LOWER that
-observation's original grade; omit it to retain the grade. Merged observations may also lower
-their grade. Code will carry the highest justified member grade onto the representative, so do
-not choose a worse quote just to retain severity. Agreement alone cannot raise severity.
+Preserve each retained/merged observation's original severity unless specific supplied evidence
+shows its impact was overstated. Keeping the grade is a complete editorial decision; there is
+no target distribution or quota of changes. Do not converge on medium, average cluster grades,
+or lower a grade merely because you merged findings or rewrote their explanation.
+Judge impact separately from certainty that the objection is correct:
+- critical: a publishing blocker or credible serious harm if left unchanged.
+- high: materially misleads the audience, defeats a central promised outcome, or creates a
+  substantial safety/trust risk, even when the fix is a short edit.
+- medium: meaningful but bounded friction; the core message or task remains usable.
+- low: a localized minor issue with limited consequence.
+An easy fix, a single occurrence, lack of reviewer agreement, or missing fresh Search results
+does not by itself reduce impact. Critical is not a synonym for any factual error, but do not
+require harm to have already occurred. For EVERY reduction, name the original and proposed
+grades in reason, the specific evidence that rules out the higher-impact interpretation, and
+why the lower anchor fits. Generic caution or uncertainty alone is not such evidence.
+adjustedSeverity may only LOWER that observation's original grade; omit it to retain the grade.
+Code carries the highest justified member grade onto the representative, so choose the best
+evidence, not a worse quote to retain severity. A low representative can inherit a medium/high
+grade only from a merged member with that justified grade; agreement alone cannot raise it.
 Do not change original quote, text, score, dimension or span, or invent findings.
 
 Factual care: calling something false is not proof. Use Search for disputed factual claims
@@ -114,10 +128,16 @@ that evidence; do not retain a generic unverified sourcing request to avoid maki
 A source about a narrower case does not disprove broader wording. Do not invent a dangerous
 interpretation, universal guarantee or edge case. Drop a specialist's false alarm when the
 source supports the creator. Unresolved evidence warrants an unverified sourcing request ONLY
-if a concrete consequential claim needs support; uncertainty alone is not a problem. Reduce
-unverified high/critical factual objections to medium or low. Do not relabel a factual objection
-as emotion/brand to avoid this rule. factualStatus verified needs transcript-internal proof or
-fresh Search supporting the exact objection; cite up to four URLs/titles. Otherwise use
+if a concrete consequential claim needs support; uncertainty alone is not a problem. Mark it
+unverified and describe what needs checking rather than asserting falsity. Assess the impact
+of leaving that specific claim unsupported: a potentially dangerous unsupported instruction
+can remain high/critical, while a minor sourcing gap may be low. Missing search metadata is
+not evidence of lower impact. Do not relabel a factual objection as emotion/brand.
+factualStatus verified needs transcript-internal proof or fresh Search supporting the exact
+objection; cite up to four URLs/titles for Search. For transcript-internal proof, supply the
+transcriptEvidenceSegmentIds establishing the contradiction, arithmetic error or unmet explicit
+requirement, and explain that proof in reason. Transcript IDs merely containing the disputed
+claim do not prove an external correction; model memory is not verification. Otherwise use
 unverified for factual objections and not_applicable for other findings.
 No footage is attached: preserve specific inspected observations for the footage adjudicator,
 but drop invented audiovisual claims. Missing illustrative footage alone is production
@@ -143,6 +163,7 @@ class EditorVerdict(BaseModel):
     adjustedSeverity: Severity | None = None
     factualStatus: Literal["verified", "unverified", "not_applicable"]
     sources: list[dict[str, str]] = Field(default_factory=list, max_length=4)
+    transcriptEvidenceSegmentIds: list[str] = Field(default_factory=list, max_length=8)
 
 
 class EditorResponse(BaseModel):
@@ -177,6 +198,10 @@ SCHEMA: dict[str, Any] = {
                             "properties": {"title": {"type": "string"}, "url": {"type": "string"}},
                             "required": ["title", "url"],
                         },
+                    },
+                    "transcriptEvidenceSegmentIds": {
+                        "type": "array",
+                        "items": {"type": "string"},
                     },
                     "factualStatus": {
                         "type": "string",
@@ -378,6 +403,7 @@ async def edit_findings(
                     summary.searchSuggestions or result.grounding.search_suggestions_html
                 )
             patches: dict[str, FindingEditorial] = {}
+            segment_ids = {s.segment_id for s in segments}
             for f in group:
                 v = by_id[f.findingId]
                 if (v.verdict == "merge") != (v.mergedInto is not None):
@@ -404,8 +430,8 @@ async def edit_findings(
                         # Structural/omission objections sometimes receive this status. Do not
                         # discard an otherwise valid batch; conservatively disclose uncertainty.
                         v.factualStatus = "unverified"
-                    # Fresh grounding or transcript-internal proof is required by the prompt.
-                    # Without fresh sources we cannot establish external falsity; disclose doubt.
+                    # Verification and impact are independent. Missing search metadata must
+                    # disclose uncertainty without imposing a severity ceiling.
                     verdict_sources = [
                         source
                         for source in v.sources
@@ -415,17 +441,25 @@ async def edit_findings(
                         verdict_sources = verdict_sources or sources
                     else:
                         verdict_sources = sources
-                    if not verdict_sources and v.factualStatus == "verified":
+                    transcript_proof = bool(v.transcriptEvidenceSegmentIds) and all(
+                        segment_id in segment_ids for segment_id in v.transcriptEvidenceSegmentIds
+                    )
+                    if (
+                        not verdict_sources
+                        and not transcript_proof
+                        and v.factualStatus == "verified"
+                    ):
                         v.factualStatus = "unverified"
                         v.reason = ("Unverified independently: " + v.reason)[:1000]
-                    if (
-                        v.factualStatus == "unverified"
-                        and SEVERITY_RANK[v.adjustedSeverity or effective_severity(f)]
-                        > SEVERITY_RANK[Severity.medium]
-                    ):
-                        v.adjustedSeverity = Severity.medium
                 patches[f.findingId] = FindingEditorial(
-                    **v.model_dump(exclude={"findingId", "problemDimension", "sources"}),
+                    **v.model_dump(
+                        exclude={
+                            "findingId",
+                            "problemDimension",
+                            "sources",
+                            "transcriptEvidenceSegmentIds",
+                        }
+                    ),
                     sources=verdict_sources
                     if f.dimension.value == "truth_evidence" and v.verdict in {"keep", "merge"}
                     else sources,
@@ -447,12 +481,6 @@ async def edit_findings(
                     ),
                     key=SEVERITY_RANK.__getitem__,
                 )
-                if (
-                    target.dimension.value == "truth_evidence"
-                    and patches[target.findingId].factualStatus == "unverified"
-                    and SEVERITY_RANK[highest] > SEVERITY_RANK[Severity.medium]
-                ):
-                    highest = Severity.medium
                 patches[target.findingId].adjustedSeverity = (
                     highest if highest != target.severity else None
                 )

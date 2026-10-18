@@ -568,7 +568,7 @@ Existing revisions can still be activated and reviewed using their ready transcr
 
 ## Editorial consolidation
 
-After reviewer normalisation and before adjudication, the bounded `editor-v6` pass adds
+After reviewer normalisation and before adjudication, the bounded `editor-v7` pass adds
 `findings/{findingId}.editorial`: `{verdict: keep|merge|drop, reason, mergedInto?,
 adjustedSeverity?, factualStatus: verified|unverified|not_applicable, sources: object[],
 checkedAt, model, promptVersion}`. Original reviewer output is never rewritten.
@@ -577,8 +577,10 @@ the target's `corroboratedBy: string[]` credits original merged finding IDs.
 Drops/merges remain retrievable, hidden by default in the review panel, and excluded from
 bins, summary, interest links, comparison, library enrichment and downstream writing context.
 Each member grade can only be lowered; the kept representative carries the highest
-justified cluster grade. Aggregation then honors adjudicator downgrades. Unverified factual
-objections cannot retain high/critical severity.
+justified cluster grade. Aggregation then honors adjudicator downgrades. Verification status is independent of impact; an unverified consequential claim can
+retain high/critical severity with an explicit explanation of what needs checking.
+The editor preserves grades by default and explains evidence for every reduction.
+Transcript-internal proof can use supplied segment IDs without fresh Search sources.
 
 `analysisRuns/{runId}.editor` stores `{model, promptVersion, callCount, errorCount,
 skippedCount, keptCount, mergedCount, droppedCount, costEstimateUsd, tokenUsage,
@@ -593,7 +595,7 @@ returned grounding sources are retained separately from reviewer citations. Sear
 charges are not included in token estimates. All documents are under the owned project tree
 and covered by recursive project/account deletion. Reads/writes check ownership.
 
-## Rubric reviewer and editor v6
+## Rubric reviewer and editor v7
 
 Each analysis run may store `rubric: {model, promptVersion, callCount, findingCount,
 skippedCount, costEstimateUsd, tokenUsage: {input, output}, searchQueries,
@@ -606,7 +608,7 @@ Rubric observations use the existing finding shape with `reviewerRunId: "rubric"
 they are stored alongside specialists before editing. No tenth heatmap dimension.
 Oversize whole-transcript input (>100k characters) skips this pass rather than truncating it.
 
-Editor v6 merges by underlying problem/edit, across reviewer lenses. Originals remain
+Editor v7 merges by underlying problem/edit, across reviewer lenses. Originals remain
 immutable; `corroboratedBy` still references merged original finding IDs. The UI resolves
 these to named reviewer dimensions (or "All-rubric review"), not independent expert votes.
 A kept representative retains its original quote, span and dimension; choose the best

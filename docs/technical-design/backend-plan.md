@@ -92,9 +92,12 @@ when distributed across the transcript, and treats rubric/specialist agreement a
 rather than guaranteed correctness.
 Original IDs credit named corroborating reviewers in the finding card.
 Whole-transcript editor input is bounded; all input and output costs are included in the run.
-`editor-v6` applies a concrete-defect threshold before corroboration, preserves supported
+`editor-v7` applies a concrete-defect threshold before corroboration, preserves supported
 omissions and selects an existing representative in the owning dimension. Original scores,
-quotes and dimensions remain immutable. `adjudicator-v2` then checks selected serious findings
+quotes and dimensions remain immutable. Grades are preserved unless specific evidence
+justifies lower impact; factual verification status no longer imposes a medium severity cap.
+Transcript-internal verification can reference supplied segment IDs without Search sources.
+`adjudicator-v2` then checks selected serious findings
 against actual frames/clips, can downgrade/reject them and reconcile conflicting actions;
 it has no Search tools. Failed/cap-skipped checks remain unchecked. The post-review library
 step adds attributed examples separately from evidence. [Prompt reference](../reviewer-prompts.md)

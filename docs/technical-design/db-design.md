@@ -110,7 +110,7 @@ examples separate from immutable reviewer evidence. Rubric/editor/adjudicator su
 atomic call reservations record bounds, usage and uncertain spend. Compare responses are
 computed without persistent comparison documents. See the
 [editorial fields](../../contracts/firestore.md#finding-decisions-and-independent-adjudication)
-and [editor/rubric contract](../../contracts/firestore.md#rubric-reviewer-and-editor-v6).
+and [editor/rubric contract](../../contracts/firestore.md#rubric-reviewer-and-editor-v7).
 
 Heatmap bins use deterministic dimension/start IDs, five-second spans, overlap-weighted
 scores, worst severity/color and referenced finding IDs. The run summary describes reported

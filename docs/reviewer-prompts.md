@@ -9,7 +9,7 @@ observations, the editor consolidates, and the adjudicator checks serious findin
 footage. None of these prompts can prove a factual verdict; normalization and bounds are
 enforced in code.
 
-Current versions: **reviewers-v5**, **rubric-v1**, **editor-v6**, **adjudicator-v2**.
+Current versions: **reviewers-v5**, **rubric-v1**, **editor-v7**, **adjudicator-v2**.
 (The evaluation harness also uses a plain single prompt, **editorial-baseline-v1**, which
 is documented with the eval sets, not here.)
 
@@ -660,7 +660,7 @@ is a different assembly: one line per dimension from `DIMENSION_BLURBS` ("factua
 and unsupported claims", "unclear explanations, ...", and so on) instead of the full
 rubrics. It never runs in product.
 
-## Editor (`editor-v6`)
+## Editor (`editor-v7`)
 
 Source: `backend/app/agents/editor.py` (`SYSTEM`, `SCHEMA`, `EditorVerdict`). After
 normalization, the editor consolidates specialist and rubric observations into distinct
@@ -668,9 +668,13 @@ problems worth fixing. Original findings stay stored and immutable; each verdict
 `keep`, `merge` or `drop` with a reason, and merged observations name their kept ID in
 `mergedInto`. Corroboration is shared-model agreement, not independent verification. The
 representative keeps its original quote, text, score, dimension and span; only severity
-may be lowered via `adjustedSeverity`, never raised. Batches with no truth findings run
-without Search grounding; factual objections need transcript-internal proof or fresh
-Search, else they are dropped or reduced to medium/low. No footage is attached. Bounds:
+can carry the highest justified merged-member grade via `adjustedSeverity`. Each member
+can only be lowered, with a specific impact-based reason; merging does not average grades.
+Verification status is separate from severity: lack of fresh Search does not cap impact.
+Batches with no truth findings run without Search grounding. Verified factual objections
+need fresh Search or transcript-internal proof with valid supplied segment IDs; otherwise
+verification remains explicitly unverified. Unsupported false alarms are still dropped.
+No footage is attached. Bounds:
 at most three one-attempt calls per run (one for videos up to ten minutes), 100
 observations and 100,000 characters per prompt, 32,768 output/reasoning tokens, medium
 thinking by default, atomic `editorCalls/{00..02}` reservations. Oversized, failed or
@@ -743,11 +747,25 @@ terminology to clarity; an omitted brief-required next action to conversion. Pre
 that owning dimension with the most informative quote/span and actionable edit. Preserve
 one finding per distinct problem, not one per rubric ID or emotional consequence.
 
-Grade each retained/merged observation for its justified impact. Critical requires serious
-harm or a publishing blocker, not rhetorical emphasis. adjustedSeverity may only LOWER that
-observation's original grade; omit it to retain the grade. Merged observations may also lower
-their grade. Code will carry the highest justified member grade onto the representative, so do
-not choose a worse quote just to retain severity. Agreement alone cannot raise severity.
+Preserve each retained/merged observation's original severity unless specific supplied evidence
+shows its impact was overstated. Keeping the grade is a complete editorial decision; there is
+no target distribution or quota of changes. Do not converge on medium, average cluster grades,
+or lower a grade merely because you merged findings or rewrote their explanation.
+Judge impact separately from certainty that the objection is correct:
+- critical: a publishing blocker or credible serious harm if left unchanged.
+- high: materially misleads the audience, defeats a central promised outcome, or creates a
+  substantial safety/trust risk, even when the fix is a short edit.
+- medium: meaningful but bounded friction; the core message or task remains usable.
+- low: a localized minor issue with limited consequence.
+An easy fix, a single occurrence, lack of reviewer agreement, or missing fresh Search results
+does not by itself reduce impact. Critical is not a synonym for any factual error, but do not
+require harm to have already occurred. For EVERY reduction, name the original and proposed
+grades in reason, the specific evidence that rules out the higher-impact interpretation, and
+why the lower anchor fits. Generic caution or uncertainty alone is not such evidence.
+adjustedSeverity may only LOWER that observation's original grade; omit it to retain the grade.
+Code carries the highest justified member grade onto the representative, so choose the best
+evidence, not a worse quote to retain severity. A low representative can inherit a medium/high
+grade only from a merged member with that justified grade; agreement alone cannot raise it.
 Do not change original quote, text, score, dimension or span, or invent findings.
 
 Factual care: calling something false is not proof. Use Search for disputed factual claims
@@ -759,10 +777,16 @@ that evidence; do not retain a generic unverified sourcing request to avoid maki
 A source about a narrower case does not disprove broader wording. Do not invent a dangerous
 interpretation, universal guarantee or edge case. Drop a specialist's false alarm when the
 source supports the creator. Unresolved evidence warrants an unverified sourcing request ONLY
-if a concrete consequential claim needs support; uncertainty alone is not a problem. Reduce
-unverified high/critical factual objections to medium or low. Do not relabel a factual objection
-as emotion/brand to avoid this rule. factualStatus verified needs transcript-internal proof or
-fresh Search supporting the exact objection; cite up to four URLs/titles. Otherwise use
+if a concrete consequential claim needs support; uncertainty alone is not a problem. Mark it
+unverified and describe what needs checking rather than asserting falsity. Assess the impact
+of leaving that specific claim unsupported: a potentially dangerous unsupported instruction
+can remain high/critical, while a minor sourcing gap may be low. Missing search metadata is
+not evidence of lower impact. Do not relabel a factual objection as emotion/brand.
+factualStatus verified needs transcript-internal proof or fresh Search supporting the exact
+objection; cite up to four URLs/titles for Search. For transcript-internal proof, supply the
+transcriptEvidenceSegmentIds establishing the contradiction, arithmetic error or unmet explicit
+requirement, and explain that proof in reason. Transcript IDs merely containing the disputed
+claim do not prove an external correction; model memory is not verification. Otherwise use
 unverified for factual objections and not_applicable for other findings.
 No footage is attached: preserve specific inspected observations for the footage adjudicator,
 but drop invented audiovisual claims. Missing illustrative footage alone is production
@@ -780,7 +804,10 @@ must name its kept ID in mergedInto. Only the requested JSON.
 Each verdict carries `findingId`, `problemDimension`, `verdict`, `reason` (1-1000
 chars), `mergedInto`, `adjustedSeverity` (low/medium/high/critical only — never raising
 the grade), `factualStatus` (verified/unverified/not_applicable) and up to four
-`sources` (title + url).
+`sources` (title + url). The private model response also accepts up to eight
+`transcriptEvidenceSegmentIds` for internal proof; these IDs are checked against supplied
+segments and excluded from the public editorial shape. Valid IDs establish provenance,
+not factual correctness; the model must still explain the proof.
 
 ## Independent adjudicator (`adjudicator-v2`)
 

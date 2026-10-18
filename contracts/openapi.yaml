@@ -3967,7 +3967,7 @@ components:
         reason: { type: string, minLength: 1, maxLength: 1000 }
         mergedInto: { type: [string, "null"] }
         adjustedSeverity:
-          description: Highest justified merged-member grade; may exceed the representative's grade. Adjudicator downgrades still apply.
+          description: Highest justified merged-member grade; may exceed the representative's grade. Preserved unless evidence justifies lower impact; verification uncertainty imposes no severity cap. Adjudicator downgrades still apply.
           oneOf:
             - { $ref: "#/components/schemas/Severity" }
             - { type: "null" }
