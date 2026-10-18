@@ -8,10 +8,32 @@ COPY --from=ghcr.io/astral-sh/uv@sha256:04d046b13e60d6bcec73cbc5e1cad25d680dea90
 
 WORKDIR /app
 
-# FFmpeg powers the reviewer visual-context tools (frame extraction and clip cutting).
-# One layer, cleaned, so the image does not carry apt lists.
+# FFmpeg powers the reviewer visual-context tools and caption burn-in. Noto Core covers the
+# catalog's Arabic, Indic and Thai scripts; the regional CJK package covers Japanese, Korean,
+# Simplified/Traditional Chinese and Cantonese. libass resolves these system faces through
+# fontconfig, while app/assets/fonts remains the source for Montserrat/Poppins Latin captions.
+# Prune unrelated scripts and CJK serif faces after installation to keep the image bounded.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        ffmpeg \
+        fontconfig \
+        fonts-noto-cjk \
+        fonts-noto-core \
+    && find /usr/share/fonts/truetype/noto -type f \
+        ! -name 'NotoSansArabic-*.ttf' \
+        ! -name 'NotoSansBengali-*.ttf' \
+        ! -name 'NotoSansDevanagari-*.ttf' \
+        ! -name 'NotoSansGujarati-*.ttf' \
+        ! -name 'NotoSansGurmukhi-*.ttf' \
+        ! -name 'NotoSansKannada-*.ttf' \
+        ! -name 'NotoSansMalayalam-*.ttf' \
+        ! -name 'NotoSansTamil-*.ttf' \
+        ! -name 'NotoSansTelugu-*.ttf' \
+        ! -name 'NotoSansThai-*.ttf' \
+        -delete \
+    && find /usr/share/fonts/opentype/noto -type f -name 'NotoSerifCJK-*.ttc' -delete \
+    && fc-cache -f \
     && rm -rf /var/lib/apt/lists/*
 
 # Bytecode-compile at build time (faster Cloud Run cold start) and copy rather than

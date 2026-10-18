@@ -24,10 +24,34 @@ from app.schemas.captions import (
     CaptionStyle,
 )
 
-#: Bundled so rendering does not depend on fonts installed in the image or on the host.
+#: Latin faces are bundled; script-specific Noto faces are installed in the runtime image and
+#: resolved by libass through fontconfig. The worker still passes this directory so the selected
+#: Montserrat/Poppins face is deterministic for Latin-script captions.
 FONTS_DIR: Final = (Path(__file__).resolve().parent.parent / "assets" / "fonts").resolve()
 
 REFERENCE_MIN_DIMENSION: Final = 1080
+
+# These family names are provided by Debian's fonts-noto-core/fonts-noto-cjk packages. Keep
+# this map aligned with the dubbing catalog in `services/dubbing.py`: Latin-script languages
+# deliberately retain the creator's selected Montserrat/Poppins face.
+_SCRIPT_FONTS: Final[dict[str, str]] = {
+    "ar": "Noto Sans Arabic",
+    "bn": "Noto Sans Bengali",
+    "gu": "Noto Sans Gujarati",
+    "hi": "Noto Sans Devanagari",
+    "ja": "Noto Sans CJK JP",
+    "kn": "Noto Sans Kannada",
+    "ko": "Noto Sans CJK KR",
+    "ml": "Noto Sans Malayalam",
+    "mr": "Noto Sans Devanagari",
+    "pa": "Noto Sans Gurmukhi",
+    "ta": "Noto Sans Tamil",
+    "te": "Noto Sans Telugu",
+    "th": "Noto Sans Thai",
+    "ur": "Noto Sans Arabic",
+    "yue": "Noto Sans CJK HK",
+    "zh": "Noto Sans CJK SC",
+}
 
 #: Presets the UI offers. The defaults in `CaptionStyle` mirror the `clean` preset.
 _PRESETS: Final[tuple[CaptionPreset, ...]] = (
@@ -42,7 +66,7 @@ _PRESETS: Final[tuple[CaptionPreset, ...]] = (
             bold=True,
             textColor="#FFFFFF",
             outlineColor="#000000",
-            outlineWidth=3,
+            outlineWidth=2,
             shadow=2,
             background=CaptionBackground.outline,
             position=CaptionPosition.bottom,
@@ -64,7 +88,7 @@ _PRESETS: Final[tuple[CaptionPreset, ...]] = (
             shadow=3,
             background=CaptionBackground.outline,
             position=CaptionPosition.bottom,
-            marginV=96,
+            marginV=92,
             maxCharsPerLine=26,
             highlightEnabled=True,
             highlightColor="#FFD400",
@@ -166,13 +190,28 @@ def _escape_ass(text: str) -> str:
     return text.replace("\\", "\\\\").replace("{", "(").replace("}", ")").replace("\n", "\\N")
 
 
+def _language_base(language: str | None) -> str:
+    if not language:
+        return ""
+    return language.replace("_", "-").split("-", 1)[0].lower()
+
+
+#: Scripts written without spaces between words: wrap them by character instead of by word.
+_UNSPACED_LANGUAGES: Final = frozenset({"ja", "zh", "yue"})
+
+
+def caption_font_family(selected_font: str, language: str | None) -> str:
+    """Return a libass/fontconfig family that contains the caption language's script."""
+    return _SCRIPT_FONTS.get(_language_base(language), selected_font)
+
+
 def _layout_word_lists(
-    words: list[str], max_chars: int, max_lines: int
+    words: list[str], max_chars: int, max_lines: int, joiner: str = " "
 ) -> tuple[list[list[str]], bool]:
     lines: list[list[str]] = []
     current: list[str] = []
     for word in words:
-        if current and len(" ".join([*current, word])) > max_chars:
+        if current and len(joiner.join([*current, word])) > max_chars:
             lines.append(current)
             current = [word]
         else:
@@ -203,9 +242,11 @@ def _word_timings(word_lists: list[list[str]], duration_cs: int) -> list[int]:
     return timings
 
 
-def _cue_text(segment: dict[str, Any], style: CaptionStyle) -> str:
+def _cue_text(
+    segment: dict[str, Any], style: CaptionStyle, *, supports_uppercase: bool
+) -> str:
     text = str(segment.get("text", "")).strip()
-    if style.uppercase:
+    if style.uppercase and supports_uppercase:
         text = text.upper()
     return text
 
@@ -218,20 +259,28 @@ def _speaker_prefix(segment: dict[str, Any], labels: dict[str, str]) -> str:
     return f"{name}: "
 
 
-def _render_cue(segment: dict[str, Any], style: CaptionStyle) -> str:
-    text = _cue_text(segment, style)
+def _render_cue(
+    segment: dict[str, Any],
+    style: CaptionStyle,
+    *,
+    supports_uppercase: bool,
+    unspaced: bool = False,
+) -> str:
+    text = _cue_text(segment, style, supports_uppercase=supports_uppercase)
     if not text:
         return ""
-    words = text.split()
-    word_lists, truncated = _layout_word_lists(
-        words, style.maxCharsPerLine, style.maxLines
-    )
+    # CJK has no word spaces and each glyph is about twice as wide as a Latin letter, so
+    # wrap by character with half the per-line budget.
+    joiner = "" if unspaced else " "
+    words = [char for char in text if not char.isspace()] if unspaced else text.split()
+    max_chars = max(1, style.maxCharsPerLine // 2) if unspaced else style.maxCharsPerLine
+    word_lists, truncated = _layout_word_lists(words, max_chars, style.maxLines, joiner)
     if not word_lists:
         return ""
     suffix = "…" if truncated else ""
 
     if not style.highlightEnabled:
-        body = "\\N".join(_escape_ass(" ".join(line)) for line in word_lists) + suffix
+        body = "\\N".join(_escape_ass(joiner.join(line)) for line in word_lists) + suffix
         return body
 
     duration_cs = max(1, int((int(segment.get("endMs", 0)) - int(segment.get("startMs", 0))) / 10))
@@ -244,7 +293,7 @@ def _render_cue(segment: dict[str, Any], style: CaptionStyle) -> str:
             cs = timings[flat_index] if flat_index < len(timings) else 1
             rendered_words.append(f"{{\\k{cs}}}{_escape_ass(word)}")
             flat_index += 1
-        rendered_lines.append(" ".join(rendered_words))
+        rendered_lines.append(joiner.join(rendered_words))
     return "\\N".join(rendered_lines) + suffix
 
 
@@ -254,6 +303,7 @@ def build_ass(
     *,
     width: int,
     height: int,
+    language: str | None = None,
     speaker_labels: dict[str, str] | None = None,
 ) -> str:
     """Render transcript segments into an ASS document for `style` at `width`x`height`."""
@@ -295,6 +345,8 @@ def build_ass(
     )
     secondary = _ass_color(style.textColor)
     back_colour = _ass_color(style.outlineColor, 40)
+    font_family = caption_font_family(style.fontFamily.value, language)
+    supports_uppercase = _language_base(language) not in _SCRIPT_FONTS
 
     header = [
         "[Script Info]",
@@ -314,7 +366,7 @@ def build_ass(
         ),
         (
             "Style: Default,"
-            f"{style.fontFamily.value},{font_size},{primary},{secondary},"
+            f"{font_family},{font_size},{primary},{secondary},"
             f"{outline_colour},{back_colour},"
             f"{-1 if style.bold else 0},{-1 if style.italic else 0},0,0,"
             f"100,100,0,0,{border_style},{outline},{round(style.shadow * scale)},{alignment},"
@@ -327,7 +379,12 @@ def build_ass(
 
     events: list[str] = []
     for segment in segments:
-        body = _render_cue(segment, style)
+        body = _render_cue(
+            segment,
+            style,
+            supports_uppercase=supports_uppercase,
+            unspaced=_language_base(language) in _UNSPACED_LANGUAGES,
+        )
         if not body:
             continue
         text = body
@@ -351,6 +408,7 @@ __all__ = [
     "PRESETS",
     "REFERENCE_MIN_DIMENSION",
     "build_ass",
+    "caption_font_family",
     "default_style",
     "preset_list",
 ]

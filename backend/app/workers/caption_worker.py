@@ -1,7 +1,8 @@
 """Caption burn-in worker: render a styled ASS track over the project's source video.
 
 Pipeline: a `caption_render` job is queued by the API -> build an ASS document from the
-transcript + `CaptionStyle` -> FFmpeg overlays it with libass (`ass` filter, bundled fonts)
+transcript + `CaptionStyle` -> FFmpeg overlays it with libass (`ass` filter, bundled Latin fonts
+plus system Noto fonts resolved through fontconfig)
 -> the burned MP4 and the ASS are uploaded under the project prefix -> render + job marked
 ready. The job is idempotent: a terminal job is left untouched, and a render that is already
 ready is not re-encoded.
@@ -29,6 +30,7 @@ from app.services.firestore_service import (
     FirestoreClient,
     asset_path,
     get_firestore_client,
+    localization_path,
 )
 from app.services.job_service import JobService
 from app.services.project_service import ProjectService
@@ -328,6 +330,14 @@ async def _render(
             raise VideoToolError("The dub's captions are empty.")
         speaker_labels: dict[str, str] = {}
         fallback_duration_ms = int(render.get("durationMs") or 0)
+        localization = firestore.get_document(
+            localization_path(owner_uid, project_id, str(localization_id))
+        )
+        caption_language = (
+            str(localization.get("targetLanguage") or "")
+            if localization is not None and localization.get("ownerUid") == owner_uid
+            else None
+        )
     else:
         source_asset_id = render.get("sourceAssetId")
         if not source_asset_id:
@@ -361,6 +371,7 @@ async def _render(
         ]
         speaker_labels = transcript.speakerLabels
         fallback_duration_ms = transcript.durationMs
+        caption_language = transcript.language
 
     video_object, ass_object = captions.target_paths(
         owner_uid=owner_uid,
@@ -382,6 +393,7 @@ async def _render(
             style,
             width=width,
             height=height,
+            language=caption_language,
             speaker_labels=speaker_labels,
         )
         ass_path = os.path.join(tmpdir, "captions.ass")

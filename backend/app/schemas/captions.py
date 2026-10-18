@@ -48,14 +48,14 @@ class CaptionStyle(BaseModel):
     textColor: str = Field(default="#FFFFFF", pattern=_HEX)
     outlineColor: str = Field(default="#000000", pattern=_HEX)
     #: Outline thickness in reference pixels; also pads the box when `background == "box"`.
-    outlineWidth: int = Field(default=3, ge=0, le=16)
+    outlineWidth: int = Field(default=2, ge=0, le=16)
     shadow: int = Field(default=2, ge=0, le=16)
     background: CaptionBackground = CaptionBackground.outline
     backgroundColor: str = Field(default="#000000", pattern=_HEX)
     backgroundOpacity: int = Field(default=60, ge=0, le=100)
     position: CaptionPosition = CaptionPosition.bottom
     #: Distance from the top/bottom edge in reference pixels (ignored when centred).
-    marginV: int = Field(default=72, ge=0, le=600)
+    marginV: int = Field(default=92, ge=0, le=600)
     maxCharsPerLine: int = Field(default=32, ge=12, le=64)
     maxLines: int = Field(default=2, ge=1, le=4)
     #: Karaoke highlight: the spoken words fill with `highlightColor`.

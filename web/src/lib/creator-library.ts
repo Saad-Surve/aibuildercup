@@ -1,3 +1,5 @@
+import { apiFetch } from "@/lib/api-client";
+
 export interface LibraryNode {
   id: string;
   itemId: string;
@@ -40,4 +42,8 @@ export interface CreatorLibrary {
 export interface LibrarySearch {
   mode: "semantic" | "lexical";
   matches: LibraryNode[];
+}
+
+export function getCreatorLibrary(): Promise<CreatorLibrary> {
+  return apiFetch<CreatorLibrary>("/creator-library");
 }

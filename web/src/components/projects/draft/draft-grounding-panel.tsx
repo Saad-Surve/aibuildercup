@@ -46,35 +46,40 @@ export function DraftGroundingPanel({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {grounding.queries.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {grounding.queries.map((query) => (
-              <span
-                key={query}
-                className="rounded-4xl bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
-              >
-                {query}
-              </span>
-            ))}
-          </div>
-        ) : null}
-
-        {hasSources ? (
-          <ul className="space-y-0.5">
-            {grounding.sources.map((source) => (
-              <li key={source.url || source.title} className="truncate text-xs">
-                <a
-                  href={source.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-signal underline-offset-2 hover:underline"
+        <div className="max-h-64 space-y-3 overflow-y-auto rounded-lg border border-border p-3">
+          {grounding.queries.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {grounding.queries.map((query) => (
+                <span
+                  key={query}
+                  className="rounded-4xl bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
                 >
-                  {source.title || source.url}
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+                  {query}
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          {hasSources ? (
+            <ul className="space-y-0.5">
+              {grounding.sources.map((source) => (
+                <li
+                  key={source.url || source.title}
+                  className="truncate text-xs"
+                >
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-signal underline-offset-2 hover:underline"
+                  >
+                    {source.title || source.url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
 
         {grounding.searchSuggestions ? (
           <div

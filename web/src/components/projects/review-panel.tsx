@@ -37,7 +37,6 @@ import { useProjectTranscript } from "@/hooks/use-project-transcript";
 import { ApiError } from "@/lib/api-client";
 import {
   editorFiltered,
-  formatCostUsd,
   formatScore,
   getAnalysisRun,
   getAnalysisInterest,
@@ -364,14 +363,6 @@ export function ReviewPanel({
 
         <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto py-2">
           <ReviewComparisonPicker projectId={projectId} runs={runs} />
-          {exportRun && (
-            <EditPlanCard
-              key={`${projectId}-${exportRun.analysisRunId}`}
-              projectId={projectId}
-              runId={exportRun.analysisRunId}
-              onJobId={onJobId}
-            />
-          )}
           {startError && (
             <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               <Icon icon={Alert02Icon} className="mt-0.5 size-4 shrink-0" />
@@ -400,7 +391,6 @@ export function ReviewPanel({
               ).length
             }
             totalReviewers={reviewers.length || laneDimensions.length}
-            cost={run?.costEstimateUsd ?? 0}
             findings={findings}
           />
 
@@ -512,6 +502,15 @@ export function ReviewPanel({
           setMoment(null);
         }}
       />
+
+      {exportRun && (
+        <EditPlanCard
+          key={`${projectId}-${exportRun.analysisRunId}`}
+          projectId={projectId}
+          runId={exportRun.analysisRunId}
+          onJobId={onJobId}
+        />
+      )}
     </>
   );
 }
@@ -520,13 +519,11 @@ function ReviewSummary({
   overallScore,
   completedReviewers,
   totalReviewers,
-  cost,
   findings,
 }: {
   overallScore: number | null;
   completedReviewers: number;
   totalReviewers: number;
-  cost: number;
   findings: Finding[];
 }) {
   const eligible = findings.filter(
@@ -558,7 +555,6 @@ function ReviewSummary({
       label: "Reviewers",
       value: `${completedReviewers} of ${totalReviewers}`,
     },
-    { label: "Review cost", value: formatCostUsd(cost) },
     {
       label: "Decisions",
       value: `${resolved} of ${eligible.length} resolved`,
@@ -568,17 +564,17 @@ function ReviewSummary({
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-live="polite">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" aria-live="polite">
       {stats.map((stat) => (
         <div
           key={stat.label}
           title={stat.title ?? stat.description}
           aria-label={stat.ariaLabel}
-          className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2"
+          className="flex flex-col items-center justify-center rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-center"
         >
           {stat.description ? (
             <Tooltip>
-              <TooltipTrigger className="inline-flex cursor-help items-center gap-1 text-[10px] leading-none font-medium tracking-wide text-muted-foreground uppercase decoration-dotted underline-offset-2 hover:text-foreground hover:underline">
+              <TooltipTrigger className="inline-flex cursor-help justify-center items-center gap-1 text-[10px] leading-none font-medium tracking-wide text-muted-foreground uppercase decoration-dotted underline-offset-2 hover:text-foreground hover:underline">
                 {stat.label}
                 <Icon icon={InformationCircleIcon} className="size-3" />
               </TooltipTrigger>

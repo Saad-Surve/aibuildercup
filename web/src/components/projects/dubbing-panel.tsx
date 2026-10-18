@@ -6,7 +6,9 @@ import {
   ClosedCaptionIcon,
   Delete02Icon,
   FileAudioIcon,
+  FileVideoIcon,
   Loading03Icon,
+  MoreHorizontalIcon,
   TextFontIcon,
   TranslationIcon,
 } from "@hugeicons/core-free-icons";
@@ -25,6 +27,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -49,6 +58,7 @@ import {
   listLocalizations,
   listLocalizationVoices,
 } from "@/lib/dubbing";
+import { formatDurationMs } from "@/lib/analysis";
 import { languageLabel } from "@/lib/languages";
 import { formatBytes, getJob } from "@/lib/projects";
 import type { Localization, LocalizationStatus } from "@/lib/types";
@@ -108,6 +118,7 @@ export function DubbingPanel({
   const queryClient = useQueryClient();
   const readOnly = useReadOnly();
   const [open, setOpen] = useState(false);
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const [captionsTarget, setCaptionsTarget] = useState<Localization | null>(
     null,
   );
@@ -206,20 +217,19 @@ export function DubbingPanel({
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-sm">
-                        {item.fileName ??
-                          `Dub · ${languageLabel(item.targetLanguage)}`}
+                      <span className="truncate text-sm font-medium">
+                        {languageLabel(item.targetLanguage)}
                       </span>
-                      <Badge variant={statusVariant(item.status)}>
-                        {statusLabel(item.status)}
-                      </Badge>
+                      {item.status !== "ready" && (
+                        <Badge variant={statusVariant(item.status)}>
+                          {statusLabel(item.status)}
+                        </Badge>
+                      )}
                     </div>
                     <p className="tabular text-xs text-muted-foreground">
                       {item.status === "ready"
-                        ? `${item.width}×${item.height} · ${formatBytes(
+                        ? `${formatDurationMs(item.durationMs)} · ${formatBytes(
                             item.sizeBytes,
-                          )} · ${Math.round(item.durationMs / 1000)}s · ${languageLabel(
-                            item.targetLanguage,
                           )}`
                         : (item.error?.message ?? "Working…")}
                     </p>
@@ -228,65 +238,107 @@ export function DubbingPanel({
                     <Button
                       size="sm"
                       variant="outline"
-                      nativeButton={false}
+                      aria-expanded={previewId === item.localizationId}
+                      onClick={() =>
+                        setPreviewId((current) =>
+                          current === item.localizationId
+                            ? null
+                            : item.localizationId,
+                        )
+                      }
+                    >
+                      <Icon icon={FileVideoIcon} />
+                      {previewId === item.localizationId ? "Hide" : "Preview"}
+                    </Button>
+                  ) : null}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
                       render={
-                        <a
-                          href={item.downloadUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label="Download dubbed video"
-                          download={downloadName(projectName, item, "mp4")}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label={`More actions for ${languageLabel(item.targetLanguage)} dub`}
                         />
                       }
                     >
-                      <Icon icon={FileAudioIcon} />
-                      Download
-                    </Button>
-                  ) : null}
-                  {item.status === "ready" && item.captionsUrl ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      nativeButton={false}
-                      render={
-                        <a
-                          href={item.captionsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label="Download localized captions"
-                          download={downloadName(projectName, item, "srt")}
-                        />
-                      }
-                    >
-                      <Icon icon={ClosedCaptionIcon} />
-                      SRT
-                    </Button>
-                  ) : null}
-                  {item.status === "ready" ? (
-                    <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={readOnly}
-                        onClick={() => setCaptionsTarget(item)}
+                      <Icon icon={MoreHorizontalIcon} />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      {item.status === "ready" && item.downloadUrl ? (
+                        <DropdownMenuItem
+                          render={
+                            <a
+                              href={item.downloadUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label="Download dubbed video"
+                              download={downloadName(projectName, item, "mp4")}
+                            />
+                          }
+                        >
+                          <Icon icon={FileAudioIcon} />
+                          Download video
+                        </DropdownMenuItem>
+                      ) : null}
+                      {item.status === "ready" && item.captionsUrl ? (
+                        <DropdownMenuItem
+                          render={
+                            <a
+                              href={item.captionsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label="Download localized captions"
+                              download={downloadName(projectName, item, "srt")}
+                            />
+                          }
+                        >
+                          <Icon icon={ClosedCaptionIcon} />
+                          Download captions (SRT)
+                        </DropdownMenuItem>
+                      ) : null}
+                      {item.status === "ready" ? (
+                        <DropdownMenuItem
+                          disabled={readOnly}
+                          onClick={() => setCaptionsTarget(item)}
+                        >
+                          <Icon icon={TextFontIcon} />
+                          Add captions
+                        </DropdownMenuItem>
+                      ) : null}
+                      {item.status === "ready" ? (
+                        <DropdownMenuSeparator />
+                      ) : null}
+                      <DropdownMenuItem
+                        variant="destructive"
+                        disabled={deleteMutation.isPending || readOnly}
+                        onClick={() =>
+                          deleteMutation.mutate(item.localizationId)
+                        }
                       >
-                        <Icon icon={TextFontIcon} />
-                        Add captions
-                      </Button>
-                    </DisabledReason>
-                  ) : null}
-                  <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      aria-label="Delete dub"
-                      disabled={deleteMutation.isPending || readOnly}
-                      onClick={() => deleteMutation.mutate(item.localizationId)}
-                    >
-                      <Icon icon={Delete02Icon} />
-                    </Button>
-                  </DisabledReason>
+                        <Icon icon={Delete02Icon} />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
+                {previewId === item.localizationId && item.downloadUrl ? (
+                  <div className="flex justify-center rounded-md bg-black">
+                    {/* oxlint-disable-next-line jsx-a11y/media-has-caption */}
+                    <video
+                      key={item.downloadUrl}
+                      src={item.downloadUrl}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="max-h-[420px] w-auto max-w-full rounded-md"
+                      style={
+                        item.width && item.height
+                          ? { aspectRatio: `${item.width} / ${item.height}` }
+                          : undefined
+                      }
+                    />
+                  </div>
+                ) : null}
                 {active?.localizationId === item.localizationId ? (
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">

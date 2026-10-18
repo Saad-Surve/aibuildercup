@@ -3323,13 +3323,13 @@ components:
         uppercase: { type: boolean, default: false }
         textColor: { type: string, pattern: "^#[0-9A-Fa-f]{6}$", default: "#FFFFFF" }
         outlineColor: { type: string, pattern: "^#[0-9A-Fa-f]{6}$", default: "#000000" }
-        outlineWidth: { type: integer, minimum: 0, maximum: 16, default: 3 }
+        outlineWidth: { type: integer, minimum: 0, maximum: 16, default: 2 }
         shadow: { type: integer, minimum: 0, maximum: 16, default: 2 }
         background: { type: string, enum: [outline, box, none], default: outline }
         backgroundColor: { type: string, pattern: "^#[0-9A-Fa-f]{6}$", default: "#000000" }
         backgroundOpacity: { type: integer, minimum: 0, maximum: 100, default: 60 }
         position: { type: string, enum: [top, middle, bottom], default: bottom }
-        marginV: { type: integer, minimum: 0, maximum: 600, default: 72 }
+        marginV: { type: integer, minimum: 0, maximum: 600, default: 92 }
         maxCharsPerLine: { type: integer, minimum: 12, maximum: 64, default: 32 }
         maxLines: { type: integer, minimum: 1, maximum: 4, default: 2 }
         highlightEnabled:

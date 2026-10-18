@@ -9,6 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftRightIcon,
@@ -26,12 +27,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { apiFetch } from "@/lib/api-client";
-import { languageLabel } from "@/lib/onboarding";
-import type {
-  CreatorLibrary,
-  LibraryNode,
-  LibrarySearch,
+import {
+  getCreatorLibrary,
+  type CreatorLibrary,
+  type LibraryNode,
+  type LibrarySearch,
 } from "@/lib/creator-library";
+import { languageLabel } from "@/lib/onboarding";
 import { useReadOnly, READ_ONLY_REASON } from "@/lib/read-only";
 import { cn } from "@/lib/utils";
 
@@ -179,7 +181,7 @@ export default function LibraryPage() {
   const readOnly = useReadOnly();
   const { data, isPending, error, refetch } = useQuery({
     queryKey: ["creator-library"],
-    queryFn: () => apiFetch<CreatorLibrary>("/creator-library"),
+    queryFn: getCreatorLibrary,
     staleTime: 30_000,
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -539,10 +541,11 @@ export default function LibraryPage() {
                   )}
                 >
                   {n.thumbnailUrl && (
-                    <img
+                    <Image
                       src={n.thumbnailUrl}
                       alt=""
-                      loading="lazy"
+                      width={288}
+                      height={162}
                       className="aspect-video w-full rounded-md object-cover"
                     />
                   )}
@@ -787,10 +790,11 @@ export default function LibraryPage() {
                           className="block w-60 overflow-hidden border bg-popover p-0 text-popover-foreground shadow-lg motion-reduce:data-open:animate-none motion-reduce:data-closed:animate-none"
                         >
                           {n.modality === "image" && n.thumbnailUrl && (
-                            <img
+                            <Image
                               src={n.thumbnailUrl}
                               alt=""
-                              loading="lazy"
+                              width={480}
+                              height={270}
                               className="aspect-video w-full object-cover"
                             />
                           )}
@@ -883,10 +887,11 @@ export default function LibraryPage() {
                       </div>
                     )}
                     {selected.thumbnailUrl && (
-                      <img
+                      <Image
                         src={selected.thumbnailUrl}
                         alt={`Thumbnail for ${selected.title}`}
-                        loading="lazy"
+                        width={640}
+                        height={360}
                         className="mt-4 aspect-video w-full rounded-lg border object-cover"
                       />
                     )}
@@ -937,10 +942,11 @@ export default function LibraryPage() {
                             className="flex w-full items-center gap-2.5 rounded-lg border p-2.5 text-left hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-signal"
                           >
                             {node.thumbnailUrl ? (
-                              <img
+                              <Image
                                 src={node.thumbnailUrl}
                                 alt=""
-                                loading="lazy"
+                                width={56}
+                                height={40}
                                 className="h-10 w-14 shrink-0 rounded object-cover"
                               />
                             ) : (

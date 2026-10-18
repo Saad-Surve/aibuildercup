@@ -2,12 +2,21 @@
 
 import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ViewIcon, ViewOffIcon } from "@hugeicons/core-free-icons";
 
+import { Icon } from "@/components/common/icon";
 import { InlineArrow } from "@/components/common/inline-arrow";
 import { HeatmapTracks } from "@/components/projects/heatmap-tracks";
 import { SourceVideoPlayer } from "@/components/projects/source-video-player";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   compareAnalysisRuns,
@@ -614,22 +623,63 @@ function curvePaths(
   return paths;
 }
 
+function LegendLine({
+  color = "currentColor",
+  dashed = false,
+}: {
+  color?: string;
+  dashed?: boolean;
+}) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 4"
+      width="24"
+      height="4"
+      className="shrink-0 text-foreground"
+    >
+      <line
+        x1="0"
+        y1="2"
+        x2="24"
+        y2="2"
+        stroke={color}
+        strokeWidth="2"
+        strokeDasharray={dashed ? "6 4" : undefined}
+      />
+    </svg>
+  );
+}
+
 function InterestComparison({ data }: { data: AnalysisComparison }) {
   const aligned = data.alignment.targetTimeline === "source";
   const change = data.summary.interestChange;
   return (
-    <section className="space-y-2" aria-label="Interest before and after">
+    <section className="space-y-2" aria-label="Audience interest chart">
       <h4 className="text-sm font-medium">
         Audience interest ·{" "}
-        {aligned ? "before / after overlay" : "separate timelines"}
+        {aligned ? "before and after overlay" : "separate timelines"}
       </h4>
       <p className="text-xs text-muted-foreground">
-        Solid: before. Dashed: after. Shows relative interest, not measured
-        retention. Only aligned moments are overlaid.
+        Shows relative interest, not measured retention. Only aligned moments
+        are overlaid.
       </p>
+      <ul
+        aria-label="Chart legend"
+        className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground"
+      >
+        <li className="flex items-center gap-1.5">
+          <LegendLine />
+          Before
+        </li>
+        <li className="flex items-center gap-1.5">
+          <LegendLine color="var(--signal)" dashed />
+          After
+        </li>
+      </ul>
       <svg
         role="img"
-        aria-label="Relative audience interest: solid before line and dashed after line"
+        aria-label="Relative audience interest: before line (solid) and after line (dashed)"
         viewBox={`0 0 1000 ${aligned ? 100 : 200}`}
         className="h-32 w-full rounded-lg border border-border bg-muted/20"
         preserveAspectRatio="none"
@@ -723,52 +773,74 @@ export function ReviewComparisonPicker({
   const target = completed.some((r) => r.analysisRunId === selection.target)
     ? selection.target!
     : completed[0].analysisRunId;
+  const revisionOf = (run: AnalysisRun) =>
+    revisions.data?.items.find(
+      (revision) => revision.assetId === run.sourceAssetId,
+    )?.revision;
+  // "Revision 2", plus a review number only when one revision was reviewed more than once.
+  function runLabel(runId: string) {
+    const run = completed.find((r) => r.analysisRunId === runId);
+    if (!run) return "";
+    const revision = revisionOf(run);
+    const name = revision === undefined ? "Revision" : `Revision ${revision}`;
+    const sameRevision = completed
+      .filter((r) => revisionOf(r) === revision)
+      .toReversed();
+    return sameRevision.length > 1
+      ? `${name} · review ${sameRevision.indexOf(run) + 1}`
+      : name;
+  }
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Before / After</CardTitle>
+        <CardTitle>Audience interest chart</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-end gap-3">
           {(["base", "target"] as const).map((side) => (
-            <div key={side} className="min-w-0 flex-1 space-y-1">
+            <div key={side} className="flex min-w-0 flex-1 flex-col gap-1">
               <label htmlFor={`${id}-${side}`} className="text-xs font-medium">
                 {side === "base" ? "Before review" : "After review"}
               </label>
-              <select
-                id={`${id}-${side}`}
+              <Select
                 value={side === "base" ? base : target}
-                onChange={(event) => {
-                  setSelection((value) => ({
-                    ...value,
-                    [side]: event.target.value,
+                onValueChange={(value) => {
+                  setSelection((current) => ({
+                    ...current,
+                    [side]: String(value),
                   }));
                 }}
-                className="h-9 w-full rounded-lg border border-input bg-background px-2 text-xs"
               >
-                {completed.map((run) => (
-                  <option key={run.analysisRunId} value={run.analysisRunId}>
-                    Revision{" "}
-                    {revisions.data?.items.find(
-                      (revision) => revision.assetId === run.sourceAssetId,
-                    )?.revision ?? "?"}{" "}
-                    · review v{runs.length - runs.indexOf(run)} ·{" "}
-                    {new Date(run.createdAt).toLocaleString()}
-                    {run.status === "partial_failure" ? " · coverage gaps" : ""}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id={`${id}-${side}`} className="w-full">
+                  <SelectValue>
+                    {(value: unknown) =>
+                      typeof value === "string" ? runLabel(value) : ""
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {completed.map((run) => (
+                    <SelectItem
+                      key={run.analysisRunId}
+                      value={run.analysisRunId}
+                    >
+                      {runLabel(run.analysisRunId)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           ))}
           <Button
-            size="sm"
             variant="outline"
+            className="shrink-0"
             aria-expanded={open}
             aria-controls={`${id}-comparison`}
             disabled={base === target}
             onClick={() => setExpansion({ pair, open: !open })}
           >
-            {open ? "Hide comparison" : "Compare reviews"}
+            <Icon icon={open ? ViewOffIcon : ViewIcon} />
+            {open ? "Hide comparison" : "Show comparison"}
           </Button>
         </div>
         {base === target && (

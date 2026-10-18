@@ -10,13 +10,13 @@ export const DEFAULT_CAPTION_STYLE: CaptionStyle = {
   uppercase: false,
   textColor: "#FFFFFF",
   outlineColor: "#000000",
-  outlineWidth: 3,
+  outlineWidth: 2,
   shadow: 2,
   background: "outline",
   backgroundColor: "#000000",
   backgroundOpacity: 60,
   position: "bottom",
-  marginV: 72,
+  marginV: 92,
   maxCharsPerLine: 32,
   maxLines: 2,
   highlightEnabled: false,
@@ -46,8 +46,28 @@ const FONT_VARS: Record<string, string> = {
   Poppins: "var(--font-poppins)",
 };
 
+// Browser/system fallbacks for every non-Latin script in the dubbing catalog. The first face
+// still controls Latin text; browsers select a later family only when that face lacks a glyph.
+const CAPTION_SCRIPT_FALLBACKS = [
+  '"Noto Sans CJK JP"',
+  '"Noto Sans CJK KR"',
+  '"Noto Sans CJK SC"',
+  '"Noto Sans CJK TC"',
+  '"Noto Sans CJK HK"',
+  '"Noto Sans Devanagari"',
+  '"Noto Sans Bengali"',
+  '"Noto Sans Gurmukhi"',
+  '"Noto Sans Gujarati"',
+  '"Noto Sans Kannada"',
+  '"Noto Sans Malayalam"',
+  '"Noto Sans Tamil"',
+  '"Noto Sans Telugu"',
+  '"Noto Sans Thai"',
+  '"Noto Sans Arabic"',
+].join(", ");
+
 export function captionFontFamily(font: string): string {
-  return `${FONT_VARS[font] ?? FONT_VARS.Montserrat}, system-ui, sans-serif`;
+  return `${FONT_VARS[font] ?? FONT_VARS.Montserrat}, ${CAPTION_SCRIPT_FALLBACKS}, system-ui, sans-serif`;
 }
 
 /** `#RRGGBB` + opacity (0-100) -> `rgba(...)` for the HTML preview. */

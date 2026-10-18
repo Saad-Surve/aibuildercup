@@ -529,14 +529,6 @@ export function CaptionBurnPanel({
             suffix="px"
             onChange={(value) => update({ marginV: value })}
           />
-          <NumberControl
-            label="Characters per line"
-            value={style.maxCharsPerLine}
-            min={16}
-            max={56}
-            onChange={(value) => update({ maxCharsPerLine: value })}
-          />
-
           <div className="space-y-2 rounded-lg border p-3">
             <span className="text-xs text-muted-foreground">Options</span>
             <div className="grid grid-cols-2 gap-x-4 gap-y-2">

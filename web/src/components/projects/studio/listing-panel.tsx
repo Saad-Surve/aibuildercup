@@ -115,21 +115,6 @@ export function ListingPanel({
             setDraft({ ...fields, title: event.target.value })
           }
         />
-        {saved?.titleOptions.length ? (
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            {saved.titleOptions.map((title) => (
-              <button
-                key={title}
-                type="button"
-                disabled={disabled}
-                onClick={() => setDraft({ ...fields, title })}
-                className="rounded-md border px-2 py-1 text-left text-xs text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
-              >
-                {title}
-              </button>
-            ))}
-          </div>
-        ) : null}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="seo-description">
@@ -176,38 +161,6 @@ export function ListingPanel({
           placeholder="#creators #video #storytelling"
         />
       </div>
-      {saved?.rationale ? (
-        <p className="text-xs text-muted-foreground">{saved.rationale}</p>
-      ) : null}
-      {saved?.creatorHistoryUsed ? (
-        <details className="text-xs text-muted-foreground">
-          <summary className="cursor-pointer">
-            Style informed by your creator library
-          </summary>
-          <ul className="mt-2 list-disc space-y-1 pl-4">
-            {saved.evidence.map((item, index) => (
-              <li key={index}>
-                {item.url && item.url.startsWith("https://") ? (
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline"
-                  >
-                    {item.title}
-                  </a>
-                ) : (
-                  item.title
-                )}
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : saved?.status === "ready" ? (
-        <p className="text-xs text-muted-foreground">
-          Based on this video only.
-        </p>
-      ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <Button
           disabled={disabled || listing.isPending}

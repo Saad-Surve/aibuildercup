@@ -32,6 +32,12 @@ export function GroundingPanel({
   )
     return null;
 
+  // Search Suggestions stay outside the scrolling region so they are always visible.
+  const suggestions = [
+    editor?.searchSuggestions,
+    ...grounded.map((reviewer) => reviewer.groundingSearchSuggestions),
+  ].filter((html): html is string => Boolean(html));
+
   return (
     <div className="overflow-hidden rounded-lg border border-border">
       <div className="px-3 py-2 text-sm break-words">
@@ -40,7 +46,7 @@ export function GroundingPanel({
           — claims checked against sources
         </span>
       </div>
-      <div className="space-y-3 border-t border-border p-3">
+      <div className="max-h-64 space-y-3 overflow-y-auto border-t border-border p-3">
         {editor &&
           (editor.searchQueries.length > 0 || editor.searchSuggestions) && (
             <div className="space-y-1.5">
@@ -55,12 +61,6 @@ export function GroundingPanel({
                   </span>
                 ))}
               </div>
-              {editor.searchSuggestions && (
-                <div
-                  className="overflow-hidden break-words [&_*]:max-w-full"
-                  dangerouslySetInnerHTML={{ __html: editor.searchSuggestions }}
-                />
-              )}
             </div>
           )}
         {grounded.map((reviewer) => (
@@ -99,17 +99,20 @@ export function GroundingPanel({
                 ))}
               </ul>
             )}
-            {reviewer.groundingSearchSuggestions && (
-              <div
-                className="overflow-hidden break-words [&_*]:max-w-full"
-                dangerouslySetInnerHTML={{
-                  __html: reviewer.groundingSearchSuggestions,
-                }}
-              />
-            )}
           </div>
         ))}
       </div>
+      {suggestions.length > 0 && (
+        <div className="space-y-2 border-t border-border p-3">
+          {suggestions.map((html, index) => (
+            <div
+              key={index}
+              className="overflow-hidden break-words [&_*]:max-w-full"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
