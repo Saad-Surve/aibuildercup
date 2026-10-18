@@ -1,7 +1,7 @@
 """LLM provider.
 
 Thin wrapper over Gemini on Agent Platform (Vertex AI), authenticated with Application Default
-Credentials against `settings.project_id` / `settings.vertex_location`. Feature code calls this
+Credentials against `settings.project_id` / `settings.llm_location`. Feature code calls this
 provider, never `google.genai` directly.
 
 Two entry points:
@@ -15,6 +15,8 @@ Two entry points:
 import asyncio
 import json
 import logging
+import random
+import time
 from collections.abc import Sequence
 from typing import Any
 
@@ -29,7 +31,7 @@ from app.providers.base import (
     ToolExecutor,
     ToolSpec,
 )
-from app.providers.gemini_client import get_gemini_client
+from app.providers.gemini_client import get_llm_client
 
 logger = logging.getLogger(__name__)
 
@@ -175,12 +177,12 @@ class LlmProvider:
         )
 
     def _client(self) -> Any:
-        """The shared Agent Platform client (built once per project/location).
+        """The shared Agent Platform client for text (built once per project/location).
 
         A lazy import keeps `google.genai` out of the module import path. No API
-        key: ADC supplies credentials. The image provider uses the same client.
+        key: ADC supplies credentials.
         """
-        return get_gemini_client(self.settings)
+        return get_llm_client(self.settings)
 
     async def _generate(
         self,
@@ -197,6 +199,7 @@ class LlmProvider:
         thinking_level: str | None = None,
     ) -> Any:
         """One `generate_content` call, retrying transient failures."""
+        import httpx
         from google.genai import errors as genai_errors
         from google.genai import types
 
@@ -218,10 +221,13 @@ class LlmProvider:
             config["max_output_tokens"] = max_output_tokens
         if thinking_level is not None:
             config["thinking_config"] = {"thinking_level": thinking_level}
-        if max_attempts is not None or self.settings.llm_max_attempts == 1:
-            # The SDK defaults to five HTTP attempts inside each provider attempt.
-            # Explicit call budgets must count upstream requests, including failures.
-            config["http_options"] = {"retry_options": {"attempts": 1}}
+        # The SDK defaults to five silent HTTP attempts inside each provider attempt, which
+        # multiplied with ours into minutes of hidden backoff. The loop below is the only retry
+        # layer. The timeout bounds a stalled request so it is retried rather than awaited.
+        config["http_options"] = {
+            "retry_options": {"attempts": 1},
+            "timeout": int(self.settings.llm_timeout_seconds * 1000),
+        }
         tool_entries: list[Any] = []
         if function_declarations:
             # Declarations only: we execute the calls ourselves (plain `generate_content`
@@ -238,6 +244,7 @@ class LlmProvider:
             1, max_attempts if max_attempts is not None else self.settings.llm_max_attempts
         )
         result = None
+        started = time.monotonic()
         for attempt in range(1, attempts + 1):
             try:
                 # `generate_content` is synchronous and takes seconds. Calling it
@@ -251,15 +258,29 @@ class LlmProvider:
                     config=config,
                 )
                 break
-            except genai_errors.APIError as exc:
-                code = getattr(exc, "code", None)
-                if code not in TRANSIENT_STATUS_CODES or attempt == attempts:
+            except (genai_errors.APIError, httpx.TimeoutException) as exc:
+                if isinstance(exc, httpx.TimeoutException):
+                    reason = f"timed out after {self.settings.llm_timeout_seconds:.0f}s"
+                else:
+                    code = getattr(exc, "code", None)
+                    if code not in TRANSIENT_STATUS_CODES:
+                        raise
+                    reason = f"returned {code} ({getattr(exc, 'status', '')})"
+                if attempt == attempts:
+                    logger.warning(
+                        "LLM model=%s %s; giving up after %d attempts, %.1fs",
+                        model,
+                        reason,
+                        attempts,
+                        time.monotonic() - started,
+                    )
                     raise
-                delay = self.settings.llm_retry_base_seconds * (2 ** (attempt - 1))
+                base = self.settings.llm_retry_base_seconds * (2 ** (attempt - 1))
+                delay = base + random.uniform(0, base)
                 logger.warning(
-                    "LLM returned %s (%s); retry %d/%d in %.1fs",
-                    code,
-                    getattr(exc, "status", ""),
+                    "LLM model=%s %s; retry %d/%d in %.1fs",
+                    model,
+                    reason,
                     attempt,
                     attempts,
                     delay,
@@ -268,6 +289,11 @@ class LlmProvider:
 
         if result is None:  # pragma: no cover - loop always returns or raises
             raise RuntimeError("LLM call produced no result")
+        elapsed = time.monotonic() - started
+        if elapsed >= 20:
+            logger.warning(
+                "LLM model=%s slow: %.1fs over %d attempt(s)", model, elapsed, attempt
+            )
         return result
 
 

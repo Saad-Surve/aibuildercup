@@ -59,8 +59,10 @@ terraform plan         # review before every apply
 3. **Real services, capped spend.** Development calls live GCP APIs. Sample media lives in
    `fixtures/media/`. Veo, Imagen and Gemini Pro are the expensive calls. Keep them behind the
    guards in `docs/costs.md`, and never call them in a loop or demo without a bound.
-4. **Regions.** Use `us-central1`, except Speech-to-Text (Chirp 3), which uses the `us`
-   multi-region. Do not use `us-east1`.
+4. **Regions.** Use `us-central1`, except Speech-to-Text (Chirp 3) and Gemini text generation
+   (`LLM_LOCATION`), which use the `us` multi-region. Gemini 3.x is not served in single
+   regions, and `global` had multi-minute tail latency. Images and embeddings stay on
+   `VERTEX_LOCATION=global`. Do not use `us-east1`.
 5. **Tooling.** `web/` uses Bun, `backend/` uses uv, `infra/` uses Terraform. Do not add npm,
    pip, poetry or yarn. Run `bun` only inside `web/`.
 6. **No tests.** Do not add tests or testing libraries to web or backend. Delete any you find.

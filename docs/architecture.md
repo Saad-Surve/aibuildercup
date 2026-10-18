@@ -43,7 +43,7 @@ different roles; they are not interchangeable evidence.
 | Cloud Billing / Pub/Sub / Cloud Function | Budget notifications and billing-detachment backstop | `infra/budget.tf`, `infra/killswitch/` |
 
 Infrastructure and media are regional in `us-central1`. Chirp 3 uses the `us`
-multi-region; Gemini uses `VERTEX_LOCATION=global` by default; Veo is regional.
+multi-region; Gemini text uses `LLM_LOCATION=us`, images and embeddings `VERTEX_LOCATION=global`; Veo is regional.
 Workers run inside the single Cloud Run service. There are no separate worker services,
 BigQuery datasets in current Terraform or sentiment pipeline.
 

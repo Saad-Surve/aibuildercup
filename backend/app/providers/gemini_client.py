@@ -23,4 +23,9 @@ def get_gemini_client(settings: Settings) -> Any:
     return _client(settings.project_id, settings.vertex_location)
 
 
-__all__ = ["get_gemini_client"]
+def get_llm_client(settings: Settings) -> Any:
+    """Client for text generation, on its own endpoint (see `Settings.llm_location`)."""
+    return _client(settings.project_id, settings.llm_location)
+
+
+__all__ = ["get_gemini_client", "get_llm_client"]

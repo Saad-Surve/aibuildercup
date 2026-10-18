@@ -58,10 +58,18 @@ class Settings(BaseSettings):
     # Default Credentials: locally via `gcloud auth application-default login`, on Cloud Run via
     # the runtime service account.
     vertex_location: str = "global"
+    # Text-generation (LLM provider) endpoint. Gemini 3.x text models are only served on
+    # `global`, `us` and `eu`. `global` showed 60-250s tail latency and frequent 429s under
+    # load; the `us` multi-region held 15-18s for the same calls. Images and embeddings stay
+    # on `vertex_location` (`gemini-3-pro-image` is not served on `us`).
+    llm_location: str = "us"
 
-    # Retry transient Gemini failures (429/5xx) with exponential backoff before giving up.
+    # Retry transient Gemini failures (429/5xx) and timeouts with jittered exponential backoff.
+    # These are the only retries: the SDK's own retry layer is disabled.
     llm_max_attempts: int = 4
-    llm_retry_base_seconds: float = 0.5
+    llm_retry_base_seconds: float = 1.0
+    # Per-attempt HTTP timeout. A stalled request is retried instead of waiting minutes.
+    llm_timeout_seconds: float = 120.0
 
     # Model registry. Agents never hardcode model ids; they read these. Two configurations:
     #   - local (`backend/.env.example`): the cheap `gemini-3.1-flash-lite` tier.
