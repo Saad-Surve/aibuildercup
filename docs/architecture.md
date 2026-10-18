@@ -25,7 +25,7 @@ different roles; they are not interchangeable evidence.
 |---|---|---|
 | Firebase Hosting | Static Next.js 16 export, API and project-shell rewrites | `firebase.json`, `web/next.config.ts` |
 | Firebase Authentication | Google sign-in, ID-token verification, passwordless read-only demo | `backend/app/auth/`, `api/demo.py` |
-| Cloud Run | FastAPI plus the current background workers; one instance, 1 GiB, CPU available outside requests | `.github/workflows/deploy.yml` |
+| Cloud Run | FastAPI plus the current background workers; one instance, 4 vCPU / 4 GiB, CPU available outside requests | `.github/workflows/deploy.yml` |
 | Firestore | Users, revisions, jobs, findings, heatmaps, drafts, connectors, library vectors and schedules | `services/firestore_service.py`, [contract](../contracts/firestore.md) |
 | Cloud Storage | Signed uploads/downloads; source media, transcripts, thumbnails, rendered captions, dubs and evidence | `services/storage_service.py` |
 | Pub/Sub | Storage-finalized transcription trigger; best-effort transcript and analysis announcements with no subscribers | `workers/pubsub_handlers.py`, `infra/pubsub.tf` |

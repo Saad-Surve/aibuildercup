@@ -172,7 +172,7 @@ Human-adjudicated review correctness and accepted-edit value remain unmeasured.
 ## 15. Deployment and scale
 
 One API container currently hosts the workers. GitHub Actions deploys Cloud Run at
-max-instances one, 1 GiB and CPU available after responses; web deploys to Firebase Hosting.
+max-instances one, 4 vCPU / 4 GiB and CPU available after responses; web deploys to Firebase Hosting.
 Durable dispatch, distributed leases and shared realtime are prerequisites for multiple
 worker instances. Terraform no longer defines BigQuery datasets or the unused worker
 subscriptions/service accounts.

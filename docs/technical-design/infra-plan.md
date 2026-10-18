@@ -21,7 +21,7 @@ export to Firebase Hosting. GitHub Workload Identity Federation authenticates de
 without a long-lived service-account key. Optional YouTube OAuth secrets are attached only
 when versions exist. Repository variables can override models, demo and corpus settings.
 
-The API currently uses max-instances **one**, min-instances zero, **1 GiB** memory,
+The API currently uses max-instances **one**, min-instances zero, **4 vCPU / 4 GiB**,
 CPU available outside requests, and a 3,600-second request timeout. Transcription,
 analysis, captions, dubbing, thumbnails, packaging and publishing run within that service.
 Unused worker subscriptions, dead-letter topics and five worker service accounts have been

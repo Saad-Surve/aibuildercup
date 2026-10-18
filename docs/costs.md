@@ -84,8 +84,11 @@ periods before scaling down; an API response time is not a compute-cost measurem
 At the published `us-central1` instance-based rate, **one vCPU + 1 GiB for 300 seconds
 is $0.006** before free allowances: `300 × (0.000018 + 0.000002)`.
 A continuously allocated instance for 30 days would be **$51.84** under that assumption.
-Actual lifetime/allocation must come from Cloud Monitoring and Billing. Min-instances
-one is currently enabled through judging (about $1.73/day before allowances); setting it
+Actual lifetime/allocation must come from Cloud Monitoring and Billing. The API now runs
+**4 vCPU + 4 GiB** so ffmpeg encodes (caption burn-in, dub re-encode, thumbnails) finish
+about 3x faster and stop starving API requests: `86,400 × (4 × 0.000018 + 4 × 0.000002)`
+is about **$6.91/day** with min-instances one, roughly two weeks of the $100 budget. Drop
+back to `--cpu 1 --memory 1Gi` (about $1.73/day) after judging; setting min-instances
 back to zero permits scale-to-zero. Max-instances one limits aggregate compute but also throughput.
 
 Storage costs include source videos, output MP4/audio, thumbnails, retained revisions,

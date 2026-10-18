@@ -138,7 +138,8 @@ jobs:
             --port 8080 \
             --min-instances 1 \
             --max-instances 1 \
-            --memory 1Gi \
+            --cpu 4 \
+            --memory 4Gi \
             --no-cpu-throttling \
             --timeout 3600 \
             --quiet \
