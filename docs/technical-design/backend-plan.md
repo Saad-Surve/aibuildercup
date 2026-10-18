@@ -160,10 +160,8 @@ Packaging generates/saves YouTube title/description/tags and source-linked visua
 Chart numbers must occur in quoted source spans; charts/callouts render with FFmpeg.
 Optional six-second Veo inserts use explicit paid authorization, atomic project slots
 and a stored operation name for resumable polling. At most two slots are enabled by default.
-Old source/transcript references mark packaging stale. The
-[handoff](../current-progress/HANDOFF.md) records
-live local generation, listing edits and a callout render. Full paid production flow
-was not exercised by the documentation/evaluation run.
+Old source/transcript references mark packaging stale. Full paid production flow was not
+exercised by the documentation/evaluation run.
 
 ## 14. Verification and evaluation
 
@@ -177,7 +175,7 @@ One API container currently hosts the workers. GitHub Actions deploys Cloud Run 
 max-instances one, 1 GiB and CPU available after responses; web deploys to Firebase Hosting.
 Durable dispatch, distributed leases and shared realtime are prerequisites for multiple
 worker instances. Terraform no longer defines BigQuery datasets or the unused worker
-subscriptions/service accounts. See [HANDOFF.md](../current-progress/HANDOFF.md) for cloud cleanup state.
+subscriptions/service accounts.
 
 ## 16. Providers
 

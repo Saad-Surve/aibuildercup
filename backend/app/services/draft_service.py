@@ -467,10 +467,15 @@ class DraftService:
             return CreatorContext()
         try:
             if self.content is not None:
+                stored_version = raw.get("_libraryVersion")
+                if not isinstance(stored_version, str) or (
+                    stored_version != self.content.creator_context_version(owner_uid)
+                ):
+                    return CreatorContext()
                 raw = self.content.hydrate_creator_context(owner_uid, raw)
             return CreatorContext.model_validate({"available": True, **raw})
         except Exception:  # noqa: BLE001 - a corrupt record must not break the draft
-            logger.warning("draft: corrupt creator context", exc_info=True)
+            logger.warning("draft: creator context unavailable", exc_info=True)
             return CreatorContext()
 
     def ensure(
@@ -647,17 +652,20 @@ class DraftService:
         await asyncio.to_thread(
             self._persist, owner_uid=owner_uid, draft=draft, status=ProjectStatus.ready
         )
-        if creator_context:
-            await asyncio.to_thread(
-                self.client.update_document,
-                draft_path(owner_uid, project_id),
-                {
-                    "lastCreatorContext": {
+        await asyncio.to_thread(
+            self.client.update_document,
+            draft_path(owner_uid, project_id),
+            {
+                "lastCreatorContext": (
+                    {
                         "generatedAt": datetime.now(UTC).isoformat(),
                         **creator_context,
                     }
-                },
-            )
+                    if creator_context
+                    else None
+                )
+            },
+        )
         return draft
 
     async def assist(
@@ -896,7 +904,9 @@ class DraftService:
         """Ask the model for the blocks. Raises on any failure so the caller can surface it."""
         payload: dict[str, Any] = {"brief": brief.model_dump(mode="json")}
         if creator_context:
-            payload["creatorContext"] = creator_context
+            payload["creatorContext"] = {
+                key: value for key, value in creator_context.items() if not key.startswith("_")
+            }
         if video_context:
             payload["videoContext"] = video_context
         user = json.dumps(payload, indent=2, ensure_ascii=False)

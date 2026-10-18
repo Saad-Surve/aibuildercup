@@ -137,11 +137,21 @@ export function parseListingTags(value: string): string[] {
   return [
     ...new Set(
       value
-        .split(",")
-        .map((tag) => tag.trim())
+        .split(/[\s,]+/)
+        .map((tag) => tag.replace(/^#+/, "").trim())
         .filter(Boolean),
     ),
   ];
+}
+
+export function formatListingTags(tags: string[]): string {
+  // Multi-word tags become one hashtag ("video editing" -> #videoediting)
+  // rather than splitting into two tags when the text is parsed back.
+  return parseListingTags(
+    tags.map((tag) => tag.replace(/^#+/, "").replace(/\s+/g, "")).join(" "),
+  )
+    .map((tag) => `#${tag}`)
+    .join(" ");
 }
 
 export function youtubeTagsSize(tags: string[]): number {

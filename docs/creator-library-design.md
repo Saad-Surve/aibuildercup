@@ -77,6 +77,5 @@ and adjudications; project/account deletion removes these snapshots with the fin
 An active folder import is available independently of `CREATOR_PRESET_ENABLED`; that
 setting controls preset installation only. Enrichment does not install missing vectors.
 
-Live end-to-end persistence and human relevance judgments remain verification gaps;
-[HANDOFF.md](current-progress/HANDOFF.md) records current validation. The similarity cutoff is
-provisional, not measured precision.
+Live end-to-end persistence and human relevance judgments remain verification gaps. The
+similarity cutoff is provisional, not measured precision.

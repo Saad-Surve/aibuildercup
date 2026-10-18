@@ -10,7 +10,10 @@ import {
 } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpRight01Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowLeftRightIcon,
+  ArrowUpRight01Icon,
+} from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
 import { PageHeader } from "@/components/common/page-header";
@@ -163,7 +166,9 @@ function MapLegend() {
             strokeWidth="1.5"
           />
         </svg>
-        Text ↔ thumbnail match
+        Text
+        <Icon icon={ArrowLeftRightIcon} className="size-3.5" />
+        thumbnail match
       </span>
     </div>
   );

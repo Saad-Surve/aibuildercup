@@ -23,6 +23,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api-client";
 import { getGlossary, putGlossary } from "@/lib/dubbing";
+import { languageLabel } from "@/lib/languages";
 import type { GlossaryTerm } from "@/lib/types";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { WORKSPACE_SNAP_TARGET } from "@/lib/workspace";
@@ -147,7 +148,7 @@ export function GlossaryEditor({ projectId }: { projectId: string }) {
               <span className="text-xs text-muted-foreground">
                 {parsed.length} term{parsed.length === 1 ? "" : "s"}
                 {glossaryQuery.data?.sourceLanguage
-                  ? ` · source ${glossaryQuery.data.sourceLanguage}`
+                  ? ` · source ${languageLabel(glossaryQuery.data.sourceLanguage)}`
                   : null}
               </span>
               <DisabledReason reason={readOnly ? READ_ONLY_REASON : null}>

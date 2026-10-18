@@ -33,8 +33,8 @@ flowchart LR
 ```
 
 BigQuery datasets and unused worker subscriptions/accounts are absent from current Terraform.
-Only the transcription push subscription remains; channel analytics use Firestore. Cloud
-cleanup status is in [HANDOFF.md](../current-progress/HANDOFF.md). Regions: infrastructure/Veo `us-central1`,
+Only the transcription push subscription remains; channel analytics use Firestore. Regions:
+infrastructure/Veo `us-central1`,
 Chirp `us`, Gemini configurable `global` by default.
 
 ## Upload and review
@@ -150,7 +150,7 @@ flowchart LR
 
 Visual inserts are downloadable supplementary assets; they are not spliced into the source
 or selectable as a finished source-video revision. Generated footage
-has a bounded paid path; current live verification is recorded in HANDOFF.md. Publishing remains a separate
+has a bounded paid path. Publishing remains a separate
 creator action and requires a real connected YouTube account. Packaging does not assemble
 inserts; creators place them in their own editor. Drafts cross-post synchronously
 to Substack/Medium/Reddit through their providers, separately from YouTube publication.

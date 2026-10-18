@@ -139,6 +139,8 @@ export function DraftContextPanel({
     queryKey: ["draft-context", projectId, refreshKey],
     queryFn: () => getDraftContext(projectId),
     enabled,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
   if (!enabled) return null;
   const context = query.data;
@@ -161,8 +163,8 @@ export function DraftContextPanel({
 
         {!query.isLoading && !context?.available ? (
           <p className="text-sm text-muted-foreground">
-            Connect YouTube in Settings and turn on “Use my videos to match my
-            style”, then regenerate the draft.
+            No current style evidence is attached to this draft. Add or update
+            your creator library, then regenerate the draft.
           </p>
         ) : null}
 
@@ -171,7 +173,9 @@ export function DraftContextPanel({
             {context.sourceType === "folder_import" ? (
               <Badge variant="outline">Creator library</Badge>
             ) : null}
-            {context.style ? <StyleSignals style={context.style} /> : null}
+            {context.style && context.style.videoCount > 0 ? (
+              <StyleSignals style={context.style} />
+            ) : null}
 
             {context.examples.length ? (
               <div className="space-y-2">

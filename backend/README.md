@@ -54,7 +54,7 @@ uv run python scripts/estimate_cost.py
 [Evaluation instructions](../evals/README.md) cover bounded live query embedding and
 cached offline replay and the editorial harness (`scripts/editorial_eval.py`): development,
 held-out, long-form and real creator sets. Runs default to dry-run; paid execution needs an
-explicit call bound. [HANDOFF.md](../docs/current-progress/HANDOFF.md) records live gaps. No test suite/testing libraries are used in this repository.
+explicit call bound. No test suite/testing libraries are used in this repository.
 
 [Creator import](../docs/creator-demo-import.md) and
 [public corpus](../docs/creator-public-corpus.md) document collection, validation,

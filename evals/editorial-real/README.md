@@ -111,5 +111,5 @@ uv run --with mlx-whisper python ../evals/editorial-real/transcribe.py \
 ```
 
 For the coordinator, pass `--root ../evals/editorial-real` to the existing harness from `backend/`.
-No run command was executed during preparation. See [DEMO.md](DEMO.md) for the hero and its
-later manual app upload. Human usefulness and demo behaviour remain unverified until that work.
+No run command was executed during preparation. Human usefulness and demo behaviour remain
+unverified.

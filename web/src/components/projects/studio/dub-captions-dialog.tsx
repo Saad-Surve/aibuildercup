@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { languageLabel } from "@/lib/languages";
 
 /**
  * Burn a dub's localized captions onto its dubbed video.
@@ -39,7 +40,7 @@ export function DubCaptionsDialog({
           <DialogTitle>Caption this dub</DialogTitle>
           <DialogDescription>
             Create a video with localized captions{" "}
-            {language ? ` (${language.toUpperCase()})` : ""} from this dub.
+            {language ? ` (${languageLabel(language)})` : ""} from this dub.
           </DialogDescription>
         </DialogHeader>
         <CaptionBurnPanel

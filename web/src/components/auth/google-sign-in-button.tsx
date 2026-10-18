@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+
 function GoogleMark() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5">
@@ -26,18 +28,23 @@ function GoogleMark() {
 interface GoogleSignInButtonProps {
   onClick: () => void;
   disabled?: boolean;
+  className?: string;
 }
 
 export function GoogleSignInButton({
   onClick,
   disabled = false,
+  className,
 }: GoogleSignInButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex h-12 cursor-pointer items-center justify-center gap-3 rounded-full border border-black/[0.06] bg-white px-6 text-sm font-medium text-zinc-900 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_10px_30px_-14px_rgba(0,0,0,0.3)] transition duration-200 hover:-translate-y-px hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_16px_40px_-16px_rgba(0,0,0,0.35)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-60"
+      className={cn(
+        "inline-flex h-12 cursor-pointer items-center justify-center gap-3 rounded-full border border-black/[0.06] bg-white px-6 text-sm font-medium text-zinc-900 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_10px_30px_-14px_rgba(0,0,0,0.3)] transition duration-200 hover:-translate-y-px hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_16px_40px_-16px_rgba(0,0,0,0.35)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-60",
+        className,
+      )}
     >
       <GoogleMark />
       Sign in with Google

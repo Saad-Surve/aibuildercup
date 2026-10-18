@@ -12,7 +12,7 @@ scheduled publishing.
 
 **[Live app](https://habeas-codus.web.app)** · [Evidence](evals/README.md) ·
 [Architecture](docs/architecture.md) · [Costs](docs/costs.md) ·
-[API contract](contracts/openapi.yaml) · [Status and open items](docs/current-progress/HANDOFF.md)
+[API contract](contracts/openapi.yaml)
 
 Built for the Google Cloud AI Builder Cup, Media, Content & Digital Experiences theme. The
 Google Cloud project and some resource names still use the original name, `habeas-codus`.
@@ -215,10 +215,8 @@ checked on 11 October 2026, is in [docs/competitive-comparison.md](docs/competit
 
 ## Reviewing this repository
 
-**In ten minutes:** this README, then [evals/README.md](evals/README.md) for the evidence,
-[docs/architecture.md](docs/architecture.md) for how the code fits together, and
-[docs/current-progress/HANDOFF.md](docs/current-progress/HANDOFF.md) for deployed state and
-open items.
+**In ten minutes:** this README, then [evals/README.md](evals/README.md) for the evidence and
+[docs/architecture.md](docs/architecture.md) for how the code fits together.
 
 **Where the core logic lives:**
 

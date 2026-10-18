@@ -540,8 +540,10 @@ paths:
       summary: What the last generation retrieved from the creator's channel
       description: |
         Returns the style evidence (retrieved past videos, style signals, and audience profile) the
-        draft writer used on the last generation. Empty (`available: false`) when no channel content
-        has been synced. Read-only, for the studio's "Style evidence" panel.
+        draft writer used on the last generation, provided it came from the creator's currently
+        active library revision. Empty (`available: false`) when there is no current evidence or the
+        library changed after generation; regenerating records fresh evidence. Read-only, for the
+        studio's "Style evidence" panel.
       responses:
         "200":
           description: OK

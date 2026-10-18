@@ -4,8 +4,7 @@ Human-readable inventory of the infrastructure defined in this folder for the si
 GCP project `habeas-codus`, region `us-central1`. This describes Terraform definitions,
 not live cloud state: definitions alone do not prove what is deployed, and the BigQuery
 / worker cleanup described below was removed from Terraform but still needs a reviewed
-`terraform plan` and apply. Current deployment and pending infrastructure steps are in
-`../docs/current-progress/HANDOFF.md`.
+`terraform plan` and apply.
 
 Terraform lives in this folder. Run commands from `infra/`.
 
@@ -100,7 +99,7 @@ Only `video-events` has a consumer. The API also publishes `transcription-events
 `artifact-events` and `localization-events` exist as topics but are never published.
 BigQuery datasets, unused worker subscriptions, dead-letter topics and five worker service
 accounts were removed from Terraform (`infra/*.tf` has no BigQuery resources); applying
-that removal in the cloud is a separate reviewed step tracked in HANDOFF.md.
+that removal in the cloud is a separate reviewed step.
 
 ---
 

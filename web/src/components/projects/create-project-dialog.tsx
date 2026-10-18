@@ -41,7 +41,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api-client";
-import { DRAFT_FORMAT_OPTIONS } from "@/lib/drafts";
 import { createProject } from "@/lib/projects";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { workspaceHref } from "@/lib/studio";
@@ -58,8 +57,10 @@ function describe(error: unknown): string {
   return "Could not create the project.";
 }
 
-const KIND_OPTIONS: {
-  value: ProjectKind;
+type ProjectType = "video" | DraftFormat;
+
+const PROJECT_TYPE_OPTIONS: {
+  value: ProjectType;
   label: string;
   description: string;
   icon: typeof FileVideoIcon;
@@ -71,17 +72,18 @@ const KIND_OPTIONS: {
     icon: FileVideoIcon,
   },
   {
-    value: "draft",
-    label: "Start a draft",
-    description: "Write a post or script with your writing partner.",
+    value: "written",
+    label: "Written content",
+    description: "Write an article, newsletter, or post.",
+    icon: PencilEdit02Icon,
+  },
+  {
+    value: "script",
+    label: "Video script",
+    description: "Write scene-by-scene beats for a video.",
     icon: PencilEdit02Icon,
   },
 ];
-
-const FORMAT_CHIPS = DRAFT_FORMAT_OPTIONS.map((option) => ({
-  value: option.value,
-  label: option.label,
-}));
 
 export function CreateProjectDialog() {
   const router = useRouter();
@@ -89,18 +91,19 @@ export function CreateProjectDialog() {
   const readOnly = useReadOnly();
 
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<ProjectKind>("video");
+  const [projectType, setProjectType] = useState<ProjectType>("video");
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [about, setAbout] = useState("");
   const [thumbnailConcept, setThumbnailConcept] = useState("");
   const [primaryLanguage, setPrimaryLanguage] = useState("en");
   const [platforms, setPlatforms] = useState<string[]>([]);
-  const [draftFormat, setDraftFormat] = useState<DraftFormat>("written");
-  const [topic, setTopic] = useState("");
   const [audience, setAudience] = useState("");
   const [tone, setTone] = useState("");
   const [instructions, setInstructions] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const kind: ProjectKind = projectType === "video" ? "video" : "draft";
+  const draftFormat: DraftFormat =
+    projectType === "script" ? "script" : "written";
 
   const mutation = useMutation({
     mutationFn: createProject,
@@ -116,14 +119,12 @@ export function CreateProjectDialog() {
   });
 
   function reset() {
-    setKind("video");
+    setProjectType("video");
     setName("");
-    setDescription("");
+    setAbout("");
     setThumbnailConcept("");
     setPrimaryLanguage("en");
     setPlatforms([]);
-    setDraftFormat("written");
-    setTopic("");
     setAudience("");
     setTone("");
     setInstructions("");
@@ -143,14 +144,14 @@ export function CreateProjectDialog() {
       setError("Give the project a name.");
       return;
     }
-    if (kind === "draft" && !topic.trim()) {
+    if (kind === "draft" && !about.trim()) {
       setError("What should the draft be about?");
       return;
     }
     setError(null);
     mutation.mutate({
       name: name.trim(),
-      description: description.trim(),
+      description: about.trim(),
       primaryLanguage,
       targetPlatforms: platforms,
       kind,
@@ -159,7 +160,7 @@ export function CreateProjectDialog() {
         ? { thumbnailConcept: thumbnailConcept.trim() }
         : {
             draftBrief: {
-              topic: topic.trim(),
+              topic: about.trim(),
               format: draftFormat,
               audience: audience.trim(),
               tone: tone.trim(),
@@ -194,14 +195,14 @@ export function CreateProjectDialog() {
             <Field>
               <FieldLabel>Project type</FieldLabel>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {KIND_OPTIONS.map((option) => (
+                {PROJECT_TYPE_OPTIONS.map((option) => (
                   <button
                     key={option.value}
                     type="button"
-                    aria-pressed={kind === option.value}
-                    onClick={() => setKind(option.value)}
+                    aria-pressed={projectType === option.value}
+                    onClick={() => setProjectType(option.value)}
                     className={`flex flex-col gap-1.5 rounded-lg border p-3 text-left transition-colors ${
-                      kind === option.value
+                      projectType === option.value
                         ? "border-signal/50 bg-signal/5 ring-1 ring-signal/30"
                         : "border-border hover:bg-muted"
                     }`}
@@ -209,7 +210,7 @@ export function CreateProjectDialog() {
                     <Icon
                       icon={option.icon}
                       className={
-                        kind === option.value
+                        projectType === option.value
                           ? "text-signal"
                           : "text-muted-foreground"
                       }
@@ -241,17 +242,20 @@ export function CreateProjectDialog() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="project-description">Description</FieldLabel>
+              <FieldLabel htmlFor="project-about" required={kind === "draft"}>
+                What is it about?
+              </FieldLabel>
               <Textarea
-                id="project-description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
+                id="project-about"
+                value={about}
+                onChange={(event) => setAbout(event.target.value)}
                 placeholder={
                   kind === "draft"
-                    ? "What is this draft for?"
+                    ? "Why most side projects stall in week three"
                     : "What is this video about?"
                 }
-                rows={2}
+                rows={3}
+                maxLength={300}
               />
             </Field>
 
@@ -270,32 +274,6 @@ export function CreateProjectDialog() {
               </Field>
             ) : (
               <>
-                <Field>
-                  <FieldLabel>Format</FieldLabel>
-                  <ChipSelect
-                    options={FORMAT_CHIPS}
-                    value={[draftFormat]}
-                    multiple={false}
-                    onChange={(values) => {
-                      const next = values[0] as DraftFormat | undefined;
-                      if (next) setDraftFormat(next);
-                    }}
-                  />
-                </Field>
-
-                <Field>
-                  <FieldLabel htmlFor="project-topic" required>
-                    What is it about?
-                  </FieldLabel>
-                  <Input
-                    id="project-topic"
-                    value={topic}
-                    onChange={(event) => setTopic(event.target.value)}
-                    placeholder="e.g. Why most side projects stall in week three"
-                    maxLength={300}
-                  />
-                </Field>
-
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field>
                     <FieldLabel htmlFor="project-audience">

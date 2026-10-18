@@ -67,7 +67,11 @@ import { cn } from "@/lib/utils";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
 import { WORKSPACE_SNAP_TARGET } from "@/lib/workspace";
 import { usePackagingListing } from "@/hooks/use-packaging-listing";
-import { parseListingTags, youtubeTagsSize } from "@/lib/packaging";
+import {
+  formatListingTags,
+  parseListingTags,
+  youtubeTagsSize,
+} from "@/lib/packaging";
 
 const CATEGORY_OPTIONS = [
   { value: "22", label: "People & Blogs" },
@@ -167,8 +171,10 @@ export function PublishingModule({
   const [editedTags, setTagsInput] = useState<string | null>(null);
   const title = editedTitle ?? savedListing?.title ?? projectName;
   const description = editedDescription ?? savedListing?.description ?? "";
-  const tagsInput = editedTags ?? savedListing?.tags.join(", ") ?? "";
+  const tagsInput = editedTags ?? formatListingTags(savedListing?.tags ?? []);
   const tagSize = youtubeTagsSize(parseListingTags(tagsInput));
+  const hasListingEdits =
+    editedTitle !== null || editedDescription !== null || editedTags !== null;
   const [categoryId, setCategoryId] = useState("22");
   const [privacy, setPrivacy] = useState<PublishVisibility>("private");
   const [madeForKids, setMadeForKids] = useState(false);
@@ -541,33 +547,47 @@ export function PublishingModule({
             Listing
           </CardTitle>
           <CardDescription>
-            Fills empty fields from your saved listing. You can edit everything.
+            Generate a listing when you need one, then tailor every field for
+            this upload.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
-              disabled={readOnly || listingBusy || listing.isPending}
-              onClick={() =>
-                generateListing.mutate({ useCreatorHistory: true })
+              disabled={
+                readOnly ||
+                listingBusy ||
+                listing.isPending ||
+                (Boolean(savedListing) && !hasListingEdits)
               }
+              onClick={() => {
+                if (savedListing) {
+                  setTitle(null);
+                  setDescription(null);
+                  setTagsInput(null);
+                  return;
+                }
+                generateListing.mutate(
+                  { useCreatorHistory: true },
+                  {
+                    onSuccess: () => {
+                      setTitle(null);
+                      setDescription(null);
+                      setTagsInput(null);
+                    },
+                  },
+                );
+              }}
             >
-              {listingBusy ? "Writing listing…" : "Generate listing"}
+              {listingBusy
+                ? "Writing listing…"
+                : savedListing
+                  ? hasListingEdits
+                    ? "Restore saved listing"
+                    : "Saved listing applied"
+                  : "Generate listing"}
             </Button>
-            {savedListing ? (
-              <Button
-                variant="ghost"
-                disabled={readOnly}
-                onClick={() => {
-                  setTitle(savedListing.title);
-                  setDescription(savedListing.description);
-                  setTagsInput(savedListing.tags.join(", "));
-                }}
-              >
-                Replace fields with saved listing
-              </Button>
-            ) : null}
           </div>
           {listing.error ? (
             <p role="alert" className="text-xs text-destructive">
@@ -626,13 +646,19 @@ export function PublishingModule({
               htmlFor="publish-tags"
               className="text-xs text-muted-foreground"
             >
-              Tags (comma separated) · {tagSize}/500
+              Tags (space separated) · {tagSize}/500
             </Label>
             <Input
               id="publish-tags"
               value={tagsInput}
               onChange={(event) => setTagsInput(event.target.value)}
-              placeholder="side projects, productivity, founders"
+              onBlur={() => {
+                const formattedTags = formatListingTags(
+                  parseListingTags(tagsInput),
+                );
+                if (formattedTags !== tagsInput) setTagsInput(formattedTags);
+              }}
+              placeholder="#side-projects #productivity #founders"
             />
           </div>
           {tagSize > 500 ? (

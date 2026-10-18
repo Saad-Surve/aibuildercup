@@ -12,8 +12,8 @@ export function LocalizationModule({
 }) {
   return (
     <div className="space-y-8">
-      <GlossaryEditor projectId={projectId} />
       <DubbingPanel projectId={projectId} targetLanguages={targetLanguages} />
+      <GlossaryEditor projectId={projectId} />
     </div>
   );
 }

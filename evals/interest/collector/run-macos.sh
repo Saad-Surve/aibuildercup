@@ -69,7 +69,7 @@ collect() { # $1=target $2=hours $3=model
 signals() { # $1=first-pass cap $2=retry cap
   echo "=== 2/3 Gemini signals (bounded to $1+$2 calls, ~\$6 max) ==="
   cd "$REPO/backend"
-  # Low concurrency on purpose: higher values hit Gemini 429s (see HANDOFF interest gotchas).
+  # Low concurrency on purpose: higher values hit Gemini 429s.
   caffeinate -i uv run --with pyarrow python scripts/interest_train.py signals \
     --max-calls "$1" --concurrency "$CONCURRENCY" --cbc-train 0 --cbc-test 0
   # Second pass retries videos that hit rate limits the first time.

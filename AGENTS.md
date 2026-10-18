@@ -24,7 +24,7 @@ architecture clean.
 | `contracts/` | OpenAPI, Firestore and event contracts | - |
 | `corpus/`, `fixtures/` | Localization corpus, sample media and import examples | - |
 | `evals/` | Editorial benchmark sets (dev, held-out, long-form, real), interest model, retrieval cases; `evals/results/README.md` indexes every run | - |
-| `docs/` | Architecture, costs, design, and the handoff in `docs/current-progress/HANDOFF.md` | - |
+| `docs/` | Architecture, costs, and design | - |
 
 ## Commands
 
@@ -67,9 +67,6 @@ terraform plan         # review before every apply
 7. **Secrets** go in Secret Manager, never in git. `.env.local`, `.env` and `terraform.tfvars`
    are gitignored.
 8. **Commit only when asked.** Run the verification commands before you report done.
-9. **Handoff.** Read `docs/current-progress/HANDOFF.md` before starting. Update it in place when
-   your change alters contracts, infra, deployed state, open decisions or verification gaps.
-   Keep it current, not chronological. Do not create per-change notes.
 
 ## Building a feature
 
@@ -125,4 +122,3 @@ result = await providers.llm.complete_json(
 | External calls | `backend/app/providers/`, `docs/technical-design/backend-plan.md` |
 | GCP resources | `infra/RESOURCES.md` |
 | Costs and guards | `docs/costs.md` |
-| What has changed recently, and what is open | `docs/current-progress/HANDOFF.md` |

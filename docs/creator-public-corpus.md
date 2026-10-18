@@ -67,8 +67,7 @@ CREATOR_PRESET_OBJECT=creator-presets/arun-prabhudesai/270c988738ad61ad6fa8b5315
 ```
 
 The deployment workflow accepts these as GitHub repository variables; changing deployed
-configuration requires a deployment. See [HANDOFF.md](current-progress/HANDOFF.md) for current
-deployed state. Local development reads backend `.env`.
+configuration requires a deployment. Local development reads backend `.env`.
 
 True: library reads automatically install this corpus and precomputed vectors when no explicit
 operator import is active; draft context and thumbnail retrieval use the selected library. The

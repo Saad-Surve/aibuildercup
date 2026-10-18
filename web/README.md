@@ -59,4 +59,4 @@ changing framework code; the repository's `AGENTS.md` explains the version-speci
 [Architecture](../docs/architecture.md), [benchmarks](../evals/README.md) and
 [frontend reference](../docs/technical-design/frontend-plan.md) describe implementation
 and limits. Landing-page illustrations are demonstrations, not benchmark results or proof
-of live verification. [HANDOFF.md](../docs/current-progress/HANDOFF.md) tracks current gaps.
+of live verification.

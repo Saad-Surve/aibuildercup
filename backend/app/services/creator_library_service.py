@@ -275,6 +275,22 @@ class CreatorLibraryService:
         ]
         return LibrarySource(path, "youtube", connection.displayName, items)
 
+    def source_version(self, uid: str) -> str | None:
+        """Stable identity for the active library content used by saved creator context."""
+        source = self.source(uid)
+        if source is None:
+            return None
+        if source.source_type == "folder_import":
+            # Imported content is immutable within a revision, and the revision is in the path.
+            return _hash([source.source_type, source.path])
+        # A YouTube sync updates every returned item. Keep the version cheap to compute while
+        # still changing when the selected connection is re-synced or its content is replaced.
+        item_versions = sorted(
+            (str(item.get("id", "")), str(item.get("updatedAt", "")))
+            for item in source.items
+        )
+        return _hash([source.source_type, source.path, item_versions])
+
     def _passages(self, source: LibrarySource) -> tuple[list[Passage], int]:
         return build_passages(source, self.settings)
 

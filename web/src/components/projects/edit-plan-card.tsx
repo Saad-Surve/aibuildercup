@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 
+import { InlineArrow } from "@/components/common/inline-arrow";
 import { NewRevisionButton } from "@/components/projects/video-revisions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,7 +95,7 @@ export function EditPlanCard({
             <p role="status" className="text-sm font-medium tabular-nums">
               Removes {data.removedSpans.length}{" "}
               {data.removedSpans.length === 1 ? "span" : "spans"} ·{" "}
-              {formatDurationMs(data.durationMsBefore)} →{" "}
+              {formatDurationMs(data.durationMsBefore)} <InlineArrow />{" "}
               {formatDurationMs(data.durationMsAfter)}
               {plan.isFetching ? " · Updating…" : ""}
             </p>

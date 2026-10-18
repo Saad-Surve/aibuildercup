@@ -515,10 +515,12 @@ function ReadoutStrip({
     <div
       aria-live="polite"
       className={cn(
-        "tabular flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground",
+        // Fixed height and no wrapping: the readout must not resize on hover,
+        // or the tracks below shift under the pointer and the hover flickers.
+        "tabular flex h-8 flex-nowrap items-center gap-x-3 overflow-hidden rounded-lg border px-3 text-[11px] whitespace-nowrap text-muted-foreground",
         point || gap || bin
-          ? "min-h-8 rounded-lg border border-border/70 bg-muted/40 px-3"
-          : "min-h-5 px-1 text-muted-foreground/70",
+          ? "border-border/70 bg-muted/40"
+          : "border-transparent text-muted-foreground/70",
       )}
     >
       {point ? (
@@ -563,7 +565,7 @@ function ReadoutStrip({
           </span>
         </>
       ) : (
-        <span>
+        <span className="truncate">
           Hover for details · click to jump · blank spans have no flagged score
         </span>
       )}

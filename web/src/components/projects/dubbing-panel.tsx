@@ -49,6 +49,7 @@ import {
   listLocalizations,
   listLocalizationVoices,
 } from "@/lib/dubbing";
+import { languageLabel } from "@/lib/languages";
 import { formatBytes, getJob } from "@/lib/projects";
 import type { Localization, LocalizationStatus } from "@/lib/types";
 import { READ_ONLY_REASON, useReadOnly } from "@/lib/read-only";
@@ -77,10 +78,6 @@ function statusLabel(status: LocalizationStatus): string {
     default:
       return status;
   }
-}
-
-function languageLabel(code: string): string {
-  return code.toUpperCase();
 }
 
 /** Compare language codes by base tag, so `hi-IN` matches `hi`. */
@@ -420,12 +417,18 @@ function DubDialog({
               onValueChange={handleLanguageChange}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose a language" />
+                <SelectValue placeholder="Choose a language">
+                  {(value: unknown) =>
+                    typeof value === "string"
+                      ? languageLabel(value)
+                      : "Choose a language"
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {languages.map((item) => (
                   <SelectItem key={item.language} value={item.language}>
-                    {item.label}
+                    {languageLabel(item.language)}
                   </SelectItem>
                 ))}
               </SelectContent>

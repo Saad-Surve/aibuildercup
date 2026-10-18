@@ -11,6 +11,7 @@ import {
 import {
   ArrowDown01Icon,
   ArrowRight01Icon,
+  ArrowUp01Icon,
   InformationCircleIcon,
 } from "@hugeicons/core-free-icons";
 
@@ -326,7 +327,11 @@ export function InterestLanes({
                   top: `${yPct(moment.value)}%`,
                 }}
               >
-                <span aria-hidden="true">{isPeak ? "▲" : "▼"}</span>
+                <Icon
+                  icon={isPeak ? ArrowUp01Icon : ArrowDown01Icon}
+                  className="size-3.5"
+                  strokeWidth={2.5}
+                />
               </button>
             );
           })}
@@ -415,7 +420,7 @@ function infoText(curve: InterestCurve): string {
     );
   }
   parts.push(
-    "Peaks (▲) and dips (▼) mark where this video's content is predicted to beat or fall short of that baseline.",
+    "Peak and dip markers show where this video's content is predicted to beat or fall short of that baseline.",
   );
   if (
     source?.source !== "creator" &&
@@ -537,9 +542,9 @@ export function InterestReadout({ point }: { point: InterestPoint }) {
   const above = gap !== null ? gap > 0.05 : point.value >= 0.6;
   const below = gap !== null ? gap < -0.05 : point.value < 0.4;
   const drivers = above
-    ? { arrow: "▲", items: point.driversUp }
+    ? { icon: ArrowUp01Icon, items: point.driversUp }
     : below
-      ? { arrow: "▼", items: point.driversDown }
+      ? { icon: ArrowDown01Icon, items: point.driversDown }
       : null;
   const relation =
     gap === null
@@ -563,8 +568,11 @@ export function InterestReadout({ point }: { point: InterestPoint }) {
         )}
       </span>
       {drivers && drivers.items && drivers.items.length > 0 && (
-        <span className="min-w-0">
-          {drivers.arrow} {drivers.items.slice(0, 3).join(", ")}
+        <span className="inline-flex min-w-0 items-center gap-1">
+          <Icon icon={drivers.icon} className="size-3" />
+          <span className="truncate">
+            {drivers.items.slice(0, 3).join(", ")}
+          </span>
         </span>
       )}
       {typeof wpm === "number" && <span>{Math.round(wpm)} words/min</span>}

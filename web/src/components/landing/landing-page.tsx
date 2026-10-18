@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   useCallback,
   useEffect,
   useRef,
@@ -11,10 +12,10 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ArrowDown01Icon,
-  ArrowRight01Icon,
   ChartBarBigIcon,
   Rocket01Icon,
   Upload01Icon,
+  ViewIcon,
 } from "@hugeicons/core-free-icons";
 
 import { AuthLoadingScreen } from "@/components/auth/auth-loading-screen";
@@ -265,6 +266,45 @@ function PillNav({ onSignIn }: { onSignIn: () => void }) {
         </div>
       </header>
     </>
+  );
+}
+
+function LandingAuthActions({
+  onSignIn,
+  onOpenDemo,
+  demoAvailable,
+}: {
+  onSignIn: () => void;
+  onOpenDemo: () => void;
+  demoAvailable: boolean;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Choose how to open Resonance"
+      className="flex w-full max-w-sm flex-col overflow-hidden rounded-3xl bg-card shadow-[0_2px_4px_rgba(23,23,23,0.06),0_16px_40px_-20px_rgba(23,23,23,0.35)] ring-1 ring-foreground/10 sm:w-auto sm:max-w-none sm:flex-row sm:rounded-full"
+    >
+      <GoogleSignInButton
+        onClick={onSignIn}
+        className="w-full rounded-none border-0 px-5 shadow-none hover:translate-y-0 hover:bg-muted/40 hover:shadow-none focus-visible:relative focus-visible:z-10 focus-visible:ring-inset focus-visible:ring-offset-0 sm:w-auto"
+      />
+      {demoAvailable ? (
+        <>
+          <span
+            aria-hidden="true"
+            className="h-px w-full shrink-0 bg-foreground/10 sm:h-auto sm:w-px sm:self-stretch"
+          />
+          <button
+            type="button"
+            onClick={onOpenDemo}
+            className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 bg-signal/10 px-5 text-sm font-semibold whitespace-nowrap text-foreground transition-colors hover:bg-signal/15 focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-signal/60 sm:w-auto"
+          >
+            <Icon icon={ViewIcon} className="size-4 text-signal" />
+            Try the read-only demo
+          </button>
+        </>
+      ) : null}
+    </div>
   );
 }
 
@@ -914,6 +954,7 @@ function PostsDemo({ active }: { active: boolean }) {
 
 interface Feature {
   title: string;
+  titleParts?: string[];
   copy: string;
   render: (active: boolean) => ReactNode;
   hover: string;
@@ -940,7 +981,8 @@ const FEATURES: Feature[] = [
     hover: "group-hover:text-amber-600",
   },
   {
-    title: "Export cuts → upload revision → see what changed",
+    title: "Export cuts, upload revision, see what changed",
+    titleParts: ["Export cuts", "upload revision", "see what changed"],
     copy: "Download a cut list and edit plan from accepted findings. Edit in your own editor, upload the revision, and re-review to see what changed.",
     render: (active) => (
       <EditRevisionDemo key={active ? "on" : "off"} active={active} />
@@ -1069,16 +1111,11 @@ export function LandingPage() {
               </div>
             ) : (
               <>
-                <GoogleSignInButton onClick={signInWithGoogle} />
-                {demoAvailable ? (
-                  <button
-                    type="button"
-                    onClick={signInAsDemo}
-                    className="cursor-pointer text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
-                  >
-                    or explore the read-only demo
-                  </button>
-                ) : null}
+                <LandingAuthActions
+                  onSignIn={signInWithGoogle}
+                  onOpenDemo={signInAsDemo}
+                  demoAvailable={demoAvailable}
+                />
                 <a
                   href="#features"
                   className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -1354,7 +1391,17 @@ export function LandingPage() {
                   <h3
                     className={`font-heading text-xl font-semibold tracking-tight transition-colors duration-200 ${feature.hover}`}
                   >
-                    {feature.title}
+                    {(feature.titleParts ?? [feature.title]).map((part, index) => (
+                      <Fragment key={part}>
+                        {index > 0 && (
+                          <>
+                            {" "}
+                            <InlineArrow />{" "}
+                          </>
+                        )}
+                        {part}
+                      </Fragment>
+                    ))}
                   </h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                     {feature.copy}
@@ -1423,24 +1470,12 @@ export function LandingPage() {
                 Bring your video to Resonance for a review you can check, edits
                 you control, and a publishing workflow that follows through.
               </p>
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={signInWithGoogle}
-                  className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-white px-7 text-sm font-semibold whitespace-nowrap text-zinc-900 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.5)] transition-all duration-200 hover:-translate-y-px hover:shadow-[0_20px_48px_-16px_rgba(0,0,0,0.55)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
-                >
-                  Sign in with Google
-                  <Icon icon={ArrowRight01Icon} className="size-4" />
-                </button>
-                {demoAvailable ? (
-                  <button
-                    type="button"
-                    onClick={signInAsDemo}
-                    className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full border border-white/40 px-6 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
-                  >
-                    Try the read-only demo
-                  </button>
-                ) : null}
+              <div className="mt-8 flex w-full justify-center">
+                <LandingAuthActions
+                  onSignIn={signInWithGoogle}
+                  onOpenDemo={signInAsDemo}
+                  demoAvailable={demoAvailable}
+                />
               </div>
               <p className="mt-5 text-xs text-white/70">
                 AI suggests. The creator decides.

@@ -661,23 +661,46 @@ class ChannelContentService:
     ) -> dict[str, Any] | None:
         """Best-effort creator context for the user's most recently synced channel."""
         try:
+            version = self.creator_context_version(owner_uid)
             if self._use_preset(owner_uid) and self.imports is not None:
                 imported = self.imports.build_context(owner_uid, query=query, k=100)
                 if imported is not None:
-                    return self._semantic_context(owner_uid, query, imported, k=k)
-            connection_id = self.primary_connection_id(owner_uid)
-            if connection_id is None:
+                    context = self._semantic_context(owner_uid, query, imported, k=k)
+                else:
+                    context = None
+            else:
+                connection_id = self.primary_connection_id(owner_uid)
+                context = (
+                    self.build_context(
+                        owner_uid=owner_uid,
+                        connection_id=connection_id,
+                        query=query,
+                        k=100,
+                    )
+                    if connection_id is not None
+                    else None
+                )
+                if context is not None:
+                    context = self._semantic_context(owner_uid, query, context, k=k)
+            current_version = self.creator_context_version(owner_uid)
+            if context is None or version is None or current_version != version:
                 return None
-            context = self.build_context(
-                owner_uid=owner_uid,
-                connection_id=connection_id,
-                query=query,
-                k=100,
-            )
-            return self._semantic_context(owner_uid, query, context, k=k) if context else None
+            context["_libraryVersion"] = version
+            return context
         except Exception:  # noqa: BLE001 - context is an enhancement, never a blocker
             logger.warning("content: could not build creator context", exc_info=True)
             return None
+
+    def creator_context_version(self, owner_uid: str) -> str | None:
+        """Identity of the current library, used to reject saved evidence from old sources."""
+        if self.library is not None:
+            return self.library.source_version(owner_uid)
+        connection_id = self.primary_connection_id(owner_uid)
+        if connection_id is None:
+            return None
+        connection = self.connections.get(owner_uid=owner_uid, connection_id=connection_id)
+        synced = connection.contentSyncedAt.isoformat() if connection.contentSyncedAt else ""
+        return f"youtube:{connection_id}:{synced}"
 
     def _use_preset(self, uid: str) -> bool:
         if self.library is None or not self.library.settings.creator_preset_enabled:

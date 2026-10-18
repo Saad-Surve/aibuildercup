@@ -141,7 +141,10 @@ title as plain text with an unlink action. The fields sit on the project documen
 itself, so project / account delete covers them with no extra wiring. After each
 generation the draft document also keeps `lastCreatorContext` —
 the style evidence (retrieved past videos, style signals, audience profile) the writer used — read
-back by `GET /projects/{id}/draft/context` for the studio's "Style evidence" panel. The document
+back by `GET /projects/{id}/draft/context` for the studio's "Style evidence" panel. Its internal
+`_libraryVersion` identifies the active import revision or synced YouTube content; a library change
+invalidates the saved evidence until the next successful generation, and a successful generation
+with no evidence clears the field. The document
 also keeps `grounding` (the newest grounded call's `queries`, `sources`, and
 `searchSuggestions`), read back with the draft for the studio's "Grounded with Google Search"
 panel. It sits under the project subtree, so project / account delete covers it.

@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
+import { InlineArrow } from "@/components/common/inline-arrow";
 import { HeatmapTracks } from "@/components/projects/heatmap-tracks";
 import { SourceVideoPlayer } from "@/components/projects/source-video-player";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,9 @@ import type {
   ComparisonFinding,
   ComparisonRun,
 } from "@/lib/types";
+
+// Keep the detailed comparison available for a quick restore after the demo.
+const SHOW_FULL_COMPARISON = false;
 
 export interface ReviewComparisonProps {
   projectId: string;
@@ -53,7 +57,7 @@ export function ReviewComparison({
   const assetsQuery = useQuery({
     queryKey: ["assets", projectId],
     queryFn: () => listAssets(projectId),
-    enabled: showPlayers && Boolean(query.data),
+    enabled: SHOW_FULL_COMPARISON && showPlayers && Boolean(query.data),
   });
 
   function seek(side: "base" | "target", ms: number) {
@@ -119,199 +123,219 @@ export function ReviewComparison({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap gap-2" aria-label="Review change summary">
-        <Stat>
-          {summary.flaggedBinsBefore.total} → {summary.flaggedBinsAfter.total}{" "}
-          flagged moments
-        </Stat>
-        <Stat>
-          {summary.acceptedFindingsResolved} of {summary.acceptedFindingsTotal}{" "}
-          accepted fixes resolved
-        </Stat>
-        <Stat>
-          {summary.newIssuesCount} new{" "}
-          {summary.newIssuesCount === 1 ? "issue" : "issues"}
-        </Stat>
-        <Stat>
-          {formatDurationMs(summary.durationMsBefore)} →{" "}
-          {formatDurationMs(summary.durationMsAfter)}
-        </Stat>
-      </div>
-      <p className="text-xs text-muted-foreground">
-        Critical {summary.flaggedBinsBefore.critical} →{" "}
-        {summary.flaggedBinsAfter.critical} · High{" "}
-        {summary.flaggedBinsBefore.high} → {summary.flaggedBinsAfter.high} ·
-        Medium {summary.flaggedBinsBefore.medium} →{" "}
-        {summary.flaggedBinsAfter.medium}. Counts are per five-second moment.
-        Accepted fixes include revised decisions.
-      </p>
-      <div
-        role="status"
-        className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground"
-      >
-        {data.alignment.note}{" "}
-        {data.alignment.method === "transcript" &&
-          `Alignment confidence: ${Math.round(data.alignment.confidence * 100)}%.`}
-        {summary.uncomparedFindingsCount > 0 &&
-          ` ${summary.uncomparedFindingsCount} findings cannot be compared reliably and are excluded from resolved/new counts.`}
-        {(data.base.status === "partial_failure" ||
-          data.target.status === "partial_failure") &&
-          " Some moments were not reviewed, so they cannot count as fixed."}
-      </div>
-      {showPlayers && (
-        <div className="grid gap-3 lg:grid-cols-2">
-          {(["base", "target"] as const).map((side) => {
-            const asset = assetsQuery.data?.items.find(
-              (a) => a.assetId === data[side].sourceAssetId,
-            );
-            return (
-              <section
-                key={side}
-                aria-label={`${side === "base" ? "Before" : "After"} player`}
-                className="space-y-2"
-              >
-                <h4 className="text-sm font-medium">
-                  {side === "base" ? "Before" : "After"} video
-                </h4>
-                {asset ? (
-                  <SourceVideoPlayer
-                    projectId={projectId}
-                    asset={asset}
-                    seekScope={`${scope}-${side}`}
-                  />
-                ) : assetsQuery.isPending ? (
-                  <Skeleton className="aspect-video w-full" />
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    The video for this review is unavailable.
-                  </p>
-                )}
-              </section>
-            );
-          })}
+      {SHOW_FULL_COMPARISON && (
+        <>
+          <div
+            className="flex flex-wrap gap-2"
+            aria-label="Review change summary"
+          >
+            <Stat>
+              {summary.flaggedBinsBefore.total} <InlineArrow />{" "}
+              {summary.flaggedBinsAfter.total} flagged moments
+            </Stat>
+            <Stat>
+              {summary.acceptedFindingsResolved} of{" "}
+              {summary.acceptedFindingsTotal} accepted fixes resolved
+            </Stat>
+            <Stat>
+              {summary.newIssuesCount} new{" "}
+              {summary.newIssuesCount === 1 ? "issue" : "issues"}
+            </Stat>
+            <Stat>
+              {formatDurationMs(summary.durationMsBefore)} <InlineArrow />{" "}
+              {formatDurationMs(summary.durationMsAfter)}
+            </Stat>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Critical {summary.flaggedBinsBefore.critical} <InlineArrow />{" "}
+            {summary.flaggedBinsAfter.critical} · High{" "}
+            {summary.flaggedBinsBefore.high} <InlineArrow />{" "}
+            {summary.flaggedBinsAfter.high} · Medium{" "}
+            {summary.flaggedBinsBefore.medium} <InlineArrow />{" "}
+            {summary.flaggedBinsAfter.medium}. Counts are per five-second
+            moment. Accepted fixes include revised decisions.
+          </p>
+          <div
+            role="status"
+            className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground"
+          >
+            {data.alignment.note}{" "}
+            {data.alignment.method === "transcript" &&
+              `Alignment confidence: ${Math.round(data.alignment.confidence * 100)}%.`}
+            {summary.uncomparedFindingsCount > 0 &&
+              ` ${summary.uncomparedFindingsCount} findings cannot be compared reliably and are excluded from resolved/new counts.`}
+            {(data.base.status === "partial_failure" ||
+              data.target.status === "partial_failure") &&
+              " Some moments were not reviewed, so they cannot count as fixed."}
+          </div>
+          {showPlayers && (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {(["base", "target"] as const).map((side) => {
+                const asset = assetsQuery.data?.items.find(
+                  (a) => a.assetId === data[side].sourceAssetId,
+                );
+                return (
+                  <section
+                    key={side}
+                    aria-label={`${side === "base" ? "Before" : "After"} player`}
+                    className="space-y-2"
+                  >
+                    <h4 className="text-sm font-medium">
+                      {side === "base" ? "Before" : "After"} video
+                    </h4>
+                    {asset ? (
+                      <SourceVideoPlayer
+                        projectId={projectId}
+                        asset={asset}
+                        seekScope={`${scope}-${side}`}
+                      />
+                    ) : assetsQuery.isPending ? (
+                      <Skeleton className="aspect-video w-full" />
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        The video for this review is unavailable.
+                      </p>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          )}
+          {aligned && (
+            <ComparisonTransition
+              key={`${data.base.runId}-${data.target.runId}`}
+              data={data}
+              onSeek={(ms) => {
+                seek("base", ms);
+                seekSourceInTarget(ms);
+              }}
+            />
+          )}
+          <section aria-label="Before heatmap" className="space-y-2">
+            <h4 className="text-sm font-medium">Before · source timeline</h4>
+            <HeatmapTracks
+              bins={data.base.bins}
+              coverage={data.base.coverage}
+              durationMs={data.base.durationMs}
+              dimensions={dimensions}
+              scores={{}}
+              onSeek={(ms) => seek("base", ms)}
+              selectedBinId={null}
+              onSelectBin={() => {}}
+              reviewState={
+                data.base.status === "ready" ? "complete" : "incomplete"
+              }
+            />
+          </section>
+          <section aria-label="After heatmap" className="space-y-2">
+            <h4 className="text-sm font-medium">
+              After ·{" "}
+              {aligned
+                ? "source timeline"
+                : "own timeline (alignment unavailable)"}
+            </h4>
+            <HeatmapTracks
+              bins={data.target.bins}
+              coverage={data.target.coverage}
+              removedSpans={data.alignment.removedSpans}
+              durationMs={
+                aligned ? data.base.durationMs : data.target.durationMs
+              }
+              dimensions={dimensions}
+              scores={{}}
+              onSeek={seekSourceInTarget}
+              selectedBinId={null}
+              onSelectBin={() => {}}
+              reviewState={
+                data.target.status === "ready" ? "complete" : "incomplete"
+              }
+            />
+            {data.alignment.removedSpans.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Hatched = removed from the after video:{" "}
+                {data.alignment.removedSpans
+                  .map(
+                    (s) =>
+                      `${formatDurationMs(s.startMs)}–${formatDurationMs(s.endMs)}`,
+                  )
+                  .join(", ")}
+                .
+              </p>
+            )}
+          </section>
+          {data.target.unmappedBins.length > 0 && (
+            <section className="space-y-2" aria-label="Unaligned after footage">
+              <h4 className="text-sm font-medium">
+                After · unmatched footage on its own timeline
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                These moments could not be matched to the source. They still
+                count toward the after total.
+              </p>
+              <HeatmapTracks
+                bins={data.target.unmappedBins}
+                durationMs={data.target.durationMs}
+                dimensions={dimensions}
+                scores={{}}
+                onSeek={(ms) => seek("target", ms)}
+                selectedBinId={null}
+                onSelectBin={() => {}}
+                reviewState={
+                  data.target.status === "ready" ? "complete" : "incomplete"
+                }
+              />
+            </section>
+          )}
+        </>
+      )}
+      {data.base.interest.length > 0 && data.target.interest.length > 0 ? (
+        <InterestComparison data={data} />
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Audience interest comparison isn&apos;t available for these reviews.
+        </p>
+      )}
+      {SHOW_FULL_COMPARISON && (
+        <div className="space-y-4">
+          {(["resolved", "persists", "new", "uncompared"] as const).map(
+            (status) => {
+              const findings = data.findings.filter((f) => f.status === status);
+              if (status === "uncompared" && findings.length === 0) return null;
+              return (
+                <section
+                  key={status}
+                  aria-label={GROUP_LABELS[status]}
+                  className="space-y-2"
+                >
+                  <h4 className="text-sm font-medium">
+                    {GROUP_LABELS[status]}{" "}
+                    <span className="text-muted-foreground">
+                      ({findings.length})
+                    </span>
+                  </h4>
+                  {findings.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      No findings in this group.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {findings.map((change) => (
+                        <FindingChange
+                          key={`${status}-${change.baseFinding?.findingId ?? change.targetFinding?.findingId}`}
+                          change={change}
+                          targetMomentMs={targetMoment(data, change)}
+                          onSeekBase={(ms) => seek("base", ms)}
+                          onSeekTarget={(ms) => seek("target", ms)}
+                        />
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              );
+            },
+          )}
         </div>
       )}
-      {aligned && (
-        <ComparisonTransition
-          key={`${data.base.runId}-${data.target.runId}`}
-          data={data}
-          onSeek={(ms) => {
-            seek("base", ms);
-            seekSourceInTarget(ms);
-          }}
-        />
-      )}
-      <section aria-label="Before heatmap" className="space-y-2">
-        <h4 className="text-sm font-medium">Before · source timeline</h4>
-        <HeatmapTracks
-          bins={data.base.bins}
-          coverage={data.base.coverage}
-          durationMs={data.base.durationMs}
-          dimensions={dimensions}
-          scores={{}}
-          onSeek={(ms) => seek("base", ms)}
-          selectedBinId={null}
-          onSelectBin={() => {}}
-          reviewState={data.base.status === "ready" ? "complete" : "incomplete"}
-        />
-      </section>
-      <section aria-label="After heatmap" className="space-y-2">
-        <h4 className="text-sm font-medium">
-          After ·{" "}
-          {aligned ? "source timeline" : "own timeline (alignment unavailable)"}
-        </h4>
-        <HeatmapTracks
-          bins={data.target.bins}
-          coverage={data.target.coverage}
-          removedSpans={data.alignment.removedSpans}
-          durationMs={aligned ? data.base.durationMs : data.target.durationMs}
-          dimensions={dimensions}
-          scores={{}}
-          onSeek={seekSourceInTarget}
-          selectedBinId={null}
-          onSelectBin={() => {}}
-          reviewState={
-            data.target.status === "ready" ? "complete" : "incomplete"
-          }
-        />
-        {data.alignment.removedSpans.length > 0 && (
-          <p className="text-xs text-muted-foreground">
-            Hatched = removed from the after video:{" "}
-            {data.alignment.removedSpans
-              .map(
-                (s) =>
-                  `${formatDurationMs(s.startMs)}–${formatDurationMs(s.endMs)}`,
-              )
-              .join(", ")}
-            .
-          </p>
-        )}
-      </section>
-      {data.target.unmappedBins.length > 0 && (
-        <section className="space-y-2" aria-label="Unaligned after footage">
-          <h4 className="text-sm font-medium">
-            After · unmatched footage on its own timeline
-          </h4>
-          <p className="text-xs text-muted-foreground">
-            These moments could not be matched to the source. They still count
-            toward the after total.
-          </p>
-          <HeatmapTracks
-            bins={data.target.unmappedBins}
-            durationMs={data.target.durationMs}
-            dimensions={dimensions}
-            scores={{}}
-            onSeek={(ms) => seek("target", ms)}
-            selectedBinId={null}
-            onSelectBin={() => {}}
-            reviewState={
-              data.target.status === "ready" ? "complete" : "incomplete"
-            }
-          />
-        </section>
-      )}
-      {data.base.interest.length > 0 && data.target.interest.length > 0 && (
-        <InterestComparison data={data} />
-      )}
-      <div className="space-y-4">
-        {(["resolved", "persists", "new", "uncompared"] as const).map(
-          (status) => {
-            const findings = data.findings.filter((f) => f.status === status);
-            if (status === "uncompared" && findings.length === 0) return null;
-            return (
-              <section
-                key={status}
-                aria-label={GROUP_LABELS[status]}
-                className="space-y-2"
-              >
-                <h4 className="text-sm font-medium">
-                  {GROUP_LABELS[status]}{" "}
-                  <span className="text-muted-foreground">
-                    ({findings.length})
-                  </span>
-                </h4>
-                {findings.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    No findings in this group.
-                  </p>
-                ) : (
-                  <ul className="space-y-2">
-                    {findings.map((change) => (
-                      <FindingChange
-                        key={`${status}-${change.baseFinding?.findingId ?? change.targetFinding?.findingId}`}
-                        change={change}
-                        targetMomentMs={targetMoment(data, change)}
-                        onSeekBase={(ms) => seek("base", ms)}
-                        onSeekTarget={(ms) => seek("target", ms)}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </section>
-            );
-          },
-        )}
-      </div>
     </div>
   );
 }
@@ -528,7 +552,7 @@ function ComparisonTransition({
               key={start}
               tabIndex={index === Math.min(rover, count - 1) ? 0 : -1}
               aria-label={`${formatDurationMs(start)}: before ${beforeLabel}, after ${afterLabel}${removed ? ", includes removed footage" : ""}`}
-              title={`${formatDurationMs(start)} · ${beforeLabel} → ${afterLabel}${removed ? " · cut" : ""}`}
+              title={`${formatDurationMs(start)} · ${beforeLabel} to ${afterLabel}${removed ? " · cut" : ""}`}
               onClick={() => onSeek(start)}
               onKeyDown={(event) => {
                 const next =
@@ -639,7 +663,7 @@ function InterestComparison({ data }: { data: AnalysisComparison }) {
       {change && (
         <p className="text-xs text-muted-foreground">
           Average lift above typical:{" "}
-          {change.meanAboveBaselineBefore.toFixed(3)} →{" "}
+          {change.meanAboveBaselineBefore.toFixed(3)} <InlineArrow />{" "}
           {change.meanAboveBaselineAfter.toFixed(3)} (
           {change.delta >= 0 ? "+" : ""}
           {change.delta.toFixed(3)}). {change.note}

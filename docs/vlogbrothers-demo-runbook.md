@@ -455,6 +455,6 @@ Creative Commons Attribution (CC BY), https://creativecommons.org/licenses/by/4.
 Adaptation: excerpts in a Resonance screen recording; editorial removals, generated captions, Hindi translation/dubbing, thumbnails and illustrative inserts where shown. These additions are demonstration outputs, not statements or endorsements by the original creators.
 ```
 
-Do not show the sensitive Henry video (`JhVJMO0wgTE`) or mix it into library/recording shots. The repo's hero-specific preparation/attribution requirements are in [`evals/editorial-real/DEMO.md`](../evals/editorial-real/DEMO.md).
+Do not show the sensitive Henry video (`JhVJMO0wgTE`) or mix it into library/recording shots.
 
 Before exporting, confirm: the visible creator library is correct; every shown result exists; the known correction was not inserted into the initial review inputs; the revision comparison reflects the actual re-review; assets match the final source/transcript; the Hindi output actually plays; no publishing form submitted the hero source; source credit remains readable; processing cuts are labeled; the export ends at **03:00**.

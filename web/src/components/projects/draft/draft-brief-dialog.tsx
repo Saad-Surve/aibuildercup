@@ -81,11 +81,12 @@ export function DraftBriefDialog({
             <FieldLabel htmlFor="brief-topic" required>
               What is it about?
             </FieldLabel>
-            <Input
+            <Textarea
               id="brief-topic"
               value={brief.topic}
               onChange={(event) => update({ topic: event.target.value })}
-              placeholder="e.g. Why most side projects stall in week three"
+              placeholder="Why most side projects stall in week three"
+              rows={3}
               maxLength={300}
             />
           </Field>

@@ -2,9 +2,7 @@
 
 This index describes the current source: upload and transcription, specialist and rubric
 review, editor and footage adjudication, creator decisions, edit-plan exports and revision re-review,
-creator retrieval, writing, media and publishing. Start with [architecture](../architecture.md);
-[HANDOFF.md](../current-progress/HANDOFF.md) is the single current status document and
-separates source changes from deployed state and live verification.
+creator retrieval, writing, media and publishing. Start with [architecture](../architecture.md).
 
 | Reference | Contents |
 |---|---|
@@ -27,8 +25,7 @@ Wire shapes are in [OpenAPI](../../contracts/openapi.yaml), persisted shapes in
 Google calls use ADC through providers. Infrastructure uses `us-central1`; STT uses `us`,
 Gemini defaults to `global`, and Veo is regional. Custom Python orchestration runs workers
 inside one Cloud Run API instance. BigQuery datasets, unused worker subscriptions and five
-worker service accounts have been removed from Terraform; application of that cleanup is
-an operational step recorded in HANDOFF.md.
+worker service accounts have been removed from Terraform.
 
 Automatic shorts and generic video-project chat remain future work. Draft chat, generated
 listings, CMX3600/Markdown exports and synchronous Substack/Medium/Reddit cross-posting exist.

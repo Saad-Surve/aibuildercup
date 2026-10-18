@@ -3,8 +3,7 @@
 Resonance connects uploaded footage to transcript-based review, editorial consolidation,
 footage checks, creator decisions and re-review of edited revisions. Creator history feeds
 writing and media preparation; YouTube and text-platform connectors handle publishing.
-This describes source behavior, not a deployment audit: [HANDOFF.md](current-progress/HANDOFF.md)
-tracks current status and [evals](../evals/README.md) records measurement scope.
+This describes source behavior; [evals](../evals/README.md) records measurement scope.
 
 ## The editorial loop
 
@@ -46,8 +45,7 @@ different roles; they are not interchangeable evidence.
 Infrastructure and media are regional in `us-central1`. Chirp 3 uses the `us`
 multi-region; Gemini uses `VERTEX_LOCATION=global` by default; Veo is regional.
 Workers run inside the single Cloud Run service. There are no separate worker services,
-BigQuery datasets in current Terraform or sentiment pipeline. Cloud removal of obsolete resources
-is separate from their removal from Terraform; see HANDOFF.md.
+BigQuery datasets in current Terraform or sentiment pipeline.
 
 ## Upload, transcription and review
 
@@ -190,9 +188,7 @@ six-second 720p Veo request, with an explicitly authorized paid-render flag and 
 two reserved slots per project. The operation name is retained so polling resumes the
 same generation. Source/transcript changes mark previous packaging stale.
 
-Live verification and deployed state are tracked in [HANDOFF.md](current-progress/HANDOFF.md),
-not inferred from this implementation reference. Visual inserts supplement a video and are
-separate from automatic shorts cut from the source.
+Visual inserts supplement a video and are separate from automatic shorts cut from the source.
 Ready inserts are downloaded for use in a video editor; the studio does not splice them
 into the uploaded video. Creators place inserts in their own editor. [The packaging reference](technical-design/packaging-plan.md)
 describes editing, chapters, render/resume behavior and publication prefill.

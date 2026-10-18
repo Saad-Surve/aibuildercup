@@ -4,7 +4,7 @@ Wraps Gemini image models on Agent Platform (Vertex AI) — "Nano Banana" — au
 Application Default Credentials through the shared `get_gemini_client`. Feature code calls this
 provider, never `google.genai` directly.
 
-Why this model family (see "Model choices" in `docs/current-progress/HANDOFF.md`):
+Why this model family:
 
 - It accepts **reference images**, so a thumbnail can be built around the creator's actual face
   instead of an invented one.

@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Spinner } from "@/components/ui/spinner";
 import { usePackagingListing } from "@/hooks/use-packaging-listing";
 import {
+  formatListingTags,
   parseListingTags,
   savePackagingListing,
   youtubeTagsSize,
@@ -38,7 +39,7 @@ export function ListingPanel({
   const fields = draft ?? {
     title: saved?.title ?? projectName.slice(0, 100),
     description: saved?.description ?? "",
-    tagsInput: saved?.tags.join(", ") ?? "",
+    tagsInput: formatListingTags(saved?.tags ?? []),
   };
   const tags = parseListingTags(fields.tagsInput);
   const tagSize = youtubeTagsSize(tags);
@@ -150,7 +151,7 @@ export function ListingPanel({
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="seo-tags">
-          Tags (comma separated){" "}
+          Tags (space separated){" "}
           <span
             className={
               tagSize > 500 ? "text-destructive" : "text-muted-foreground"
@@ -166,6 +167,13 @@ export function ListingPanel({
           onChange={(event) =>
             setDraft({ ...fields, tagsInput: event.target.value })
           }
+          onBlur={() => {
+            const formattedTags = formatListingTags(tags);
+            if (formattedTags !== fields.tagsInput) {
+              setDraft({ ...fields, tagsInput: formattedTags });
+            }
+          }}
+          placeholder="#creators #video #storytelling"
         />
       </div>
       {saved?.rationale ? (

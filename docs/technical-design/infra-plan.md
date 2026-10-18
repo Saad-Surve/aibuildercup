@@ -2,8 +2,8 @@
 
 The project is **`habeas-codus`**. [infra/RESOURCES.md](../../infra/RESOURCES.md) records
 resource names/configuration; Terraform definitions live in `infra/`. This document
-describes Terraform definitions separately from the deployed runtime. [HANDOFF.md](../current-progress/HANDOFF.md)
-records deployment and pending infrastructure changes; definitions alone do not establish cloud state.
+describes Terraform definitions separately from the deployed runtime; definitions alone do
+not establish cloud state.
 
 ## Regions and authentication
 
@@ -26,7 +26,7 @@ CPU available outside requests, and a 3,600-second request timeout. Transcriptio
 analysis, captions, dubbing, thumbnails, packaging and publishing run within that service.
 Unused worker subscriptions, dead-letter topics and five worker service accounts have been
 removed from Terraform, along with BigQuery datasets. The transcription push identity remains.
-Cloud cleanup requires a reviewed plan and apply; see HANDOFF.md for its current status.
+Cloud cleanup requires a reviewed plan and apply.
 
 Firebase Hosting rewrites `/api/**` to the regional API and project deep links to the
 static project shell. WebSockets use the direct Cloud Run origin. `next.config.ts` rewrites

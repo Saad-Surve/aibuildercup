@@ -1,3 +1,7 @@
+import { languageLabel } from "@/lib/languages";
+
+export { languageLabel } from "@/lib/languages";
+
 export type StepId =
   | "welcome"
   | "import"
@@ -112,23 +116,9 @@ export interface OnboardingAnswers {
   creatorLinks?: string[];
 }
 
-export const LANGUAGE_OPTIONS = [
-  { value: "en", label: "English" },
-  { value: "hi", label: "Hindi" },
-  { value: "mr", label: "Marathi" },
-  { value: "ta", label: "Tamil" },
-  { value: "te", label: "Telugu" },
-  { value: "bn", label: "Bengali" },
-  { value: "es", label: "Spanish" },
-];
-
-/** Display name for a language code; falls back to the code when unknown. */
-export function languageLabel(code: string | null | undefined): string {
-  if (!code) return "Select language";
-  return (
-    LANGUAGE_OPTIONS.find((language) => language.value === code)?.label ?? code
-  );
-}
+export const LANGUAGE_OPTIONS = ["en", "hi", "mr", "ta", "te", "bn", "es"].map(
+  (value) => ({ value, label: languageLabel(value) }),
+);
 
 export const TIMEZONE_OPTIONS = [
   "Asia/Kolkata",

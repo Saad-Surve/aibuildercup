@@ -3,7 +3,7 @@
 import {
   ImageAdd01Icon,
   SearchList01Icon,
-  VideoReplayIcon,
+  // VideoReplayIcon, // restore with the Visual inserts card below
 } from "@hugeicons/core-free-icons";
 
 import { Icon } from "@/components/common/icon";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { WORKSPACE_SNAP_TARGET } from "@/lib/workspace";
 import { ListingPanel } from "@/components/projects/studio/listing-panel";
-import { VisualInsertsPanel } from "@/components/projects/studio/visual-inserts-panel";
+// import { VisualInsertsPanel } from "@/components/projects/studio/visual-inserts-panel";
 import { ThumbnailPanel } from "@/components/projects/studio/thumbnail-panel";
 
 export function PackagingModule({
@@ -53,6 +53,7 @@ export function PackagingModule({
         </CardContent>
       </Card>
 
+      {/* Visual inserts card hidden for now.
       <Card className={WORKSPACE_SNAP_TARGET}>
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -70,6 +71,7 @@ export function PackagingModule({
           <VisualInsertsPanel projectId={projectId} />
         </CardContent>
       </Card>
+      */}
 
       <Card className={WORKSPACE_SNAP_TARGET}>
         <CardHeader>
