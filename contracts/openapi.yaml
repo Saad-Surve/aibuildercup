@@ -756,6 +756,7 @@ paths:
   /api/caption-presets:
     get:
       summary: List caption style presets
+      description: All presets default to outlineWidth 2; creators can customize the width.
       description: |
         Presets the web customizer mirrors. The same definitions drive the server-side ASS
         builder, so the on-screen preview and the rendered video cannot drift.
