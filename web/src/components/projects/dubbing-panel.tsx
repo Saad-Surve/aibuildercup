@@ -490,6 +490,10 @@ function DubDialog({
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Voice</Label>
             <Select
+              items={voices.map((voice) => ({
+                value: voice.id,
+                label: voice.label,
+              }))}
               value={selectedVoice?.id ?? ""}
               onValueChange={setVoiceId}
               disabled={voices.length === 0}

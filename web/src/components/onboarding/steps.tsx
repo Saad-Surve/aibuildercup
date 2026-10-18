@@ -258,6 +258,7 @@ export function IdentityStep({ answers, update }: DataStepProps) {
         <Field>
           <FieldLabel htmlFor="timezone">Timezone</FieldLabel>
           <Select
+            items={TIMEZONE_OPTIONS}
             value={answers.timezone ?? "Asia/Kolkata"}
             onValueChange={(value) => update({ timezone: String(value) })}
           >
@@ -266,8 +267,8 @@ export function IdentityStep({ answers, update }: DataStepProps) {
             </SelectTrigger>
             <SelectContent>
               {TIMEZONE_OPTIONS.map((zone) => (
-                <SelectItem key={zone} value={zone}>
-                  {zone}
+                <SelectItem key={zone.value} value={zone.value}>
+                  {zone.label}
                 </SelectItem>
               ))}
             </SelectContent>

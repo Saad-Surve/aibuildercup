@@ -124,9 +124,10 @@ _LISTING_SYSTEM = _SYSTEM + (
     "Neither title nor description can contain angle brackets. Offer three distinct titleOptions "
     "under 100 characters. The description should explain the value and summarize actual topics. "
     "Do not put chapter times in the description. Instead return chapters as an array of "
-    "{segmentIndex, title}, referencing ONLY supplied transcript segment indices. If chapters "
-    "help, begin with segmentIndex=0 and include at least three topics ten seconds apart. "
-    "Return [] if chapters do not help. The SERVER will format exact timestamps. Never add "
+    "{segmentIndex, title}, referencing ONLY supplied transcript segment indices. For any video "
+    "longer than a minute, always return 3-12 chapters: begin with segmentIndex=0, then one "
+    "chapter per real topic shift, each at least ten seconds after the previous one. Return [] "
+    "only for videos under a minute. The SERVER will format exact timestamps. Never add "
     "invented calls to action or URLs. Explain the choice briefly in rationale. Use creator "
     "style when available, without copying another video's claims. When `videoReview` is "
     "supplied it comes from the creator's review of THIS video. Build at least one titleOption "
@@ -222,11 +223,21 @@ def listing_description(data: dict[str, Any], transcript: Transcript) -> str:
                 chapters[seconds] = title
         except (KeyError, TypeError, ValueError):
             continue
+    # YouTube needs the first chapter at 0:00; anchor the earliest topic there instead of
+    # discarding the whole block when the model starts a few seconds in.
+    ordered = sorted(chapters.items())
+    if ordered and ordered[0][0] != 0:
+        ordered[0] = (0, ordered[0][1])
     selected: list[tuple[int, str]] = []
-    for seconds, title in sorted(chapters.items()):
+    for seconds, title in ordered:
         if not selected or seconds - selected[-1][0] >= 10:
             selected.append((seconds, title))
-    if len(selected) < 3 or selected[0][0] != 0:
+    if len(selected) < 3:
+        logger.warning(
+            "Listing chapters dropped: %d proposed, %d usable",
+            len(data.get("chapters") or []),
+            len(selected),
+        )
         return description
     lines = []
     for seconds, title in selected:
@@ -364,7 +375,7 @@ async def _generate(
     listing = payload["mode"] == "listing"
     completion = await providers.llm.complete_json(
         model=service.settings.model_packaging,
-        prompt_version="packaging-listing-v3" if listing else "visual-insert-plan-v4",
+        prompt_version="packaging-listing-v4" if listing else "visual-insert-plan-v4",
         system=_LISTING_SYSTEM if listing else _INSERT_SYSTEM,
         user=json.dumps(context, ensure_ascii=False, default=str),
         schema=LISTING_SCHEMA if listing else INSERT_SCHEMA,

@@ -54,6 +54,24 @@ const PLATFORM_LABEL: Record<CrosspostPlatform, string> = {
   reddit: "Reddit",
 };
 
+const MEDIUM_VISIBILITY_LABELS = {
+  draft: "Draft (only you)",
+  unlisted: "Unlisted (link only)",
+  public: "Public",
+};
+
+const SUBSTACK_MODE_LABELS = {
+  draft: "Draft",
+  publish: "Publish now",
+  schedule: "Schedule",
+};
+
+const SUBSTACK_AUDIENCE_LABELS = {
+  everyone: "Everyone",
+  subscribers_only: "Subscribers",
+  paid_subscribers_only: "Paid",
+};
+
 /**
  * Cross-post the draft's text to a connected writing platform. Synchronous —
  * the result carries the live URL (or the Substack draft URL) directly.
@@ -356,6 +374,7 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
                 <Field>
                   <FieldLabel>Visibility</FieldLabel>
                   <Select
+                    items={MEDIUM_VISIBILITY_LABELS}
                     value={publishStatus}
                     onValueChange={(value) =>
                       setPublishStatus(value ?? "draft")
@@ -381,6 +400,7 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
                     <Field>
                       <FieldLabel>Mode</FieldLabel>
                       <Select
+                        items={SUBSTACK_MODE_LABELS}
                         value={substackMode}
                         onValueChange={(value) =>
                           setSubstackMode(value ?? "draft")
@@ -399,6 +419,7 @@ export function CrosspostCard({ projectId }: { projectId: string }) {
                     <Field>
                       <FieldLabel>Audience</FieldLabel>
                       <Select
+                        items={SUBSTACK_AUDIENCE_LABELS}
                         value={audience}
                         onValueChange={(value) =>
                           setAudience(value ?? "everyone")

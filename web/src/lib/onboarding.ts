@@ -121,14 +121,14 @@ export const LANGUAGE_OPTIONS = ["en", "hi", "mr", "ta", "te", "bn", "es"].map(
 );
 
 export const TIMEZONE_OPTIONS = [
-  "Asia/Kolkata",
-  "Asia/Dubai",
-  "Asia/Singapore",
-  "Europe/London",
-  "Europe/Berlin",
-  "America/New_York",
-  "America/Los_Angeles",
-  "UTC",
+  { value: "Asia/Kolkata", label: "India (IST)" },
+  { value: "Asia/Dubai", label: "Dubai (GST)" },
+  { value: "Asia/Singapore", label: "Singapore (SGT)" },
+  { value: "Europe/London", label: "London (GMT/BST)" },
+  { value: "Europe/Berlin", label: "Berlin (CET/CEST)" },
+  { value: "America/New_York", label: "New York (ET)" },
+  { value: "America/Los_Angeles", label: "Los Angeles (PT)" },
+  { value: "UTC", label: "UTC" },
 ];
 
 export const TOPIC_OPTIONS = [

@@ -474,6 +474,7 @@ export function CaptionBurnPanel({
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Font</Label>
               <Select
+                items={CAPTION_FONT_OPTIONS}
                 value={style.fontFamily}
                 onValueChange={(value) =>
                   update({ fontFamily: value as CaptionStyle["fontFamily"] })
@@ -494,6 +495,7 @@ export function CaptionBurnPanel({
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Position</Label>
               <Select
+                items={CAPTION_POSITION_OPTIONS}
                 value={style.position}
                 onValueChange={(value) =>
                   update({ position: value as CaptionStyle["position"] })
@@ -565,6 +567,7 @@ export function CaptionBurnPanel({
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Background</Label>
             <Select
+              items={CAPTION_BACKGROUND_OPTIONS}
               value={style.background}
               onValueChange={(value) =>
                 update({ background: value as CaptionStyle["background"] })
