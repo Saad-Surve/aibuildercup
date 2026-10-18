@@ -110,7 +110,7 @@ result = await providers.llm.complete_json(
 - Editorial eval sets are pre-registered. Tune only on `evals/editorial/` (dev). Never tune
   prompts against `evals/editorial-heldout/`, `editorial-longform/` or `editorial-real/`, or
   read their results while tuning; bump prompt versions when prompts change.
-- A GCP budget is not a hard cap. The budget (8,500 INR, about $100) and the billing kill switch
+- A GCP budget is not a hard cap. The budget (17,000 INR, about $200) and the billing kill switch
   (`infra/budget.tf`) are a backstop, and billing data arrives with a delay.
 
 ## Where to look

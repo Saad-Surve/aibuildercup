@@ -61,9 +61,9 @@ variable "budget_currency" {
 }
 
 variable "budget_amount" {
-  description = "Budget threshold in the billing currency. 8500 INR is about 100 USD."
+  description = "Budget threshold in the billing currency. 17000 INR is about 200 USD."
   type        = string
-  default     = "8500"
+  default     = "17000"
 }
 
 variable "killswitch_dry_run" {

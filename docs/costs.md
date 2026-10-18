@@ -87,7 +87,7 @@ A continuously allocated instance for 30 days would be **$51.84** under that ass
 Actual lifetime/allocation must come from Cloud Monitoring and Billing. The API now runs
 **4 vCPU + 4 GiB** so ffmpeg encodes (caption burn-in, dub re-encode, thumbnails) finish
 about 3x faster and stop starving API requests: `86,400 × (4 × 0.000018 + 4 × 0.000002)`
-is about **$6.91/day** with min-instances one, roughly two weeks of the $100 budget. Drop
+is about **$6.91/day** with min-instances one, roughly four weeks of the $200 budget. Drop
 back to `--cpu 1 --memory 1Gi` (about $1.73/day) after judging; setting min-instances
 back to zero permits scale-to-zero. Max-instances one limits aggregate compute but also throughput.
 
@@ -119,7 +119,7 @@ Python floats and metadata occupy more space. This is not measured Firestore sto
 | Channel calibration | At most 40 videos / 43 YouTube requests, 180-second provider deadline, one attempt per user per 24 hours; no Gemini calls | API quota and Firestore I/O still apply; insufficient data consumes the cooldown. |
 | Edit plan / revision comparison | Deterministic CMX3600 and Markdown downloads from current decisions; no rendering, storage writes or model calls | Uploaded revisions incur normal storage, STT and fresh review costs. Comparison makes no model calls or writes. |
 | Concurrency | Ten reviewers and four TTS requests by default; one deployed API instance | Controls pressure, not total usage across all workflows. |
-| Cloud budget | ₹8,500 configured budget with notifications and billing-detachment function | Billing data/notifications are delayed. This is a backstop, not an immediate hard cap. |
+| Cloud budget | ₹17,000 configured budget with notifications and billing-detachment function | Billing data/notifications are delayed. This is a backstop, not an immediate hard cap. |
 
 STT now saves operation names before polling and resumes those operations rather than
 resubmitting after polling failures. Explicit submission-time 429/503 responses allow bounded

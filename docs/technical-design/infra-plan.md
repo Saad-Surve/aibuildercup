@@ -65,7 +65,7 @@ No secrets belong in Git, public web variables or Terraform variable files.
 
 ## Budget and scale
 
-`infra/budget.tf` configures a ₹8,500 budget and Pub/Sub-triggered Cloud Function that can
+`infra/budget.tf` configures a ₹17,000 budget and Pub/Sub-triggered Cloud Function that can
 detach billing at the threshold. Notification/billing latency means it is not a real-time
 hard cap. Analysis/image estimates, embedding call slots and Veo reservations provide more
 local bounds with different coverage. [Cost documentation](../costs.md) describes actual

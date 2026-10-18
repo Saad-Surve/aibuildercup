@@ -159,7 +159,7 @@ Google Cloud has no native hard spending cap, so we built one.
 
 | Thing | Value |
 |---|---|
-| Budget | `Hackathon cap` — ₹8,500 (~$100) on this project |
+| Budget | `Hackathon cap` — ₹17,000 (~$200) on this project |
 | Alerts | 50%, 80%, 100%, and forecasted-100% |
 | Notification topic | `budget-alerts` |
 | Function | `budget-killswitch` (Cloud Function gen2, `us-central1`) |
