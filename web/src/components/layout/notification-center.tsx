@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
   Calendar01Icon,
@@ -15,6 +16,7 @@ import {
   TickDouble01Icon,
 } from "@hugeicons/core-free-icons";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { Icon } from "@/components/common/icon";
@@ -33,6 +35,10 @@ import {
   dismissNotification,
   markAllNotificationsRead,
   markNotificationRead,
+  notificationTone,
+  onNotificationCenterOpen,
+  onNotificationPushed,
+  openNotificationCenter,
   pushNotification,
   setNotificationScope,
   useNotifications,
@@ -454,11 +460,76 @@ async function pollOnce(uid: string, client: QueryClient): Promise<void> {
   writeSeen(uid, seen);
 }
 
+/** How long an outcome toast stays up. Failures linger so they are not missed. */
+const TOAST_MS = { success: 8000, info: 8000, warning: 12000, error: 15000 };
+
+/**
+ * Pops a toast for every newly recorded notification, so a finished job is
+ * noticed wherever the creator is. Pushes landing together (one poll can
+ * record several) collapse into a single summary toast.
+ */
+function useNotificationToasts(): void {
+  const router = useRouter();
+  useEffect(() => {
+    let batch: AppNotification[] = [];
+    let timer: number | undefined;
+    const flush = () => {
+      const items = batch;
+      batch = [];
+      if (items.length === 1) {
+        const [item] = items;
+        const tone = notificationTone(item);
+        const href = item.href;
+        toast[tone](item.title, {
+          id: item.id,
+          description: item.body ?? undefined,
+          duration: TOAST_MS[tone],
+          closeButton: true,
+          action: href
+            ? {
+                label: "Open",
+                onClick: () => {
+                  markNotificationRead(item.id);
+                  router.push(href);
+                },
+              }
+            : undefined,
+        });
+        return;
+      }
+      const failed = items.filter(
+        (item) => notificationTone(item) === "error",
+      ).length;
+      const tone = failed > 0 ? "error" : "success";
+      toast[tone](`${items.length} updates`, {
+        description:
+          items
+            .slice(0, 3)
+            .map((item) => item.title)
+            .join(" · ") + (items.length > 3 ? " …" : ""),
+        duration: TOAST_MS[tone],
+        closeButton: true,
+        action: { label: "View", onClick: () => openNotificationCenter() },
+      });
+    };
+    const unsubscribe = onNotificationPushed((item) => {
+      batch.push(item);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(flush, 300);
+    });
+    return () => {
+      window.clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [router]);
+}
+
 export function NotificationWatcher() {
   const client = useQueryClient();
   const { user } = useAuth();
   const uid = user?.uid ?? null;
   useNotificationEvents(uid);
+  useNotificationToasts();
   const busy = useRef(false);
 
   useEffect(() => {
@@ -608,8 +679,25 @@ function NotificationRow({ item }: { item: AppNotification }) {
 
 export function NotificationCenter() {
   const [open, setOpen] = useState(false);
+  const [ringing, setRinging] = useState(false);
   const items = useNotifications();
   const unread = useUnreadCount();
+
+  useEffect(() => onNotificationCenterOpen(() => setOpen(true)), []);
+
+  // Ring the bell for a few seconds whenever something new lands.
+  useEffect(() => {
+    let timer: number | undefined;
+    const unsubscribe = onNotificationPushed(() => {
+      setRinging(true);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setRinging(false), 4000);
+    });
+    return () => {
+      window.clearTimeout(timer);
+      unsubscribe();
+    };
+  }, []);
 
   return (
     <>
@@ -622,12 +710,22 @@ export function NotificationCenter() {
         }
         title="Notifications"
         onClick={() => setOpen((current) => !current)}
-        className="relative"
+        className={cn(
+          "relative",
+          ringing && "bg-signal/10 text-signal hover:bg-signal/15",
+        )}
       >
-        <Icon icon={Notification01Icon} />
+        <span className={cn("flex", ringing && "bell-ring")}>
+          <Icon icon={Notification01Icon} />
+        </span>
         {unread > 0 ? (
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-signal px-1 text-[10px] leading-none font-semibold text-white tabular-nums">
-            {unread > 99 ? "99+" : unread}
+          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center">
+            {ringing ? (
+              <span className="absolute inset-0 animate-ping rounded-full bg-signal opacity-60 motion-reduce:hidden" />
+            ) : null}
+            <span className="relative flex h-4 min-w-4 items-center justify-center rounded-full bg-signal px-1 text-[10px] leading-none font-semibold text-white tabular-nums">
+              {unread > 99 ? "99+" : unread}
+            </span>
           </span>
         ) : null}
       </Button>

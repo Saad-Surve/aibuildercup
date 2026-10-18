@@ -65,6 +65,8 @@ function readStored(uid: string): AppNotification[] {
 }
 
 const listeners = new Set<() => void>();
+const pushListeners = new Set<(item: AppNotification) => void>();
+const openListeners = new Set<() => void>();
 let activeUid: string | null = null;
 let items: AppNotification[] = [];
 
@@ -101,20 +103,46 @@ export function setNotificationScope(uid: string | null): void {
 
 export function pushNotification(input: NotificationInput): void {
   if (items.some((item) => item.id === input.id)) return;
-  const now = new Date().toISOString();
-  items = [
-    {
-      id: input.id,
-      kind: input.kind,
-      title: input.title,
-      body: input.body ?? null,
-      href: input.href ?? null,
-      createdAt: now,
-      readAt: null,
-    },
-    ...items,
-  ].slice(0, MAX_ITEMS);
+  const item: AppNotification = {
+    id: input.id,
+    kind: input.kind,
+    title: input.title,
+    body: input.body ?? null,
+    href: input.href ?? null,
+    createdAt: new Date().toISOString(),
+    readAt: null,
+  };
+  items = [item, ...items].slice(0, MAX_ITEMS);
   emit();
+  for (const listener of pushListeners) listener(item);
+}
+
+/** Called once per newly recorded notification (not for cross-tab syncs). */
+export function onNotificationPushed(
+  listener: (item: AppNotification) => void,
+): () => void {
+  pushListeners.add(listener);
+  return () => pushListeners.delete(listener);
+}
+
+/** Ask the notification center to open its drawer. */
+export function openNotificationCenter(): void {
+  for (const listener of openListeners) listener();
+}
+
+export function onNotificationCenterOpen(listener: () => void): () => void {
+  openListeners.add(listener);
+  return () => openListeners.delete(listener);
+}
+
+/** Outcome tone, read from the status suffix every notification id carries. */
+export function notificationTone(
+  item: Pick<AppNotification, "id">,
+): "success" | "error" | "warning" | "info" {
+  if (/:(failed|partial_failure)(:|$)/.test(item.id)) return "error";
+  if (/:blocked(:|$)/.test(item.id)) return "warning";
+  if (/:upcoming(:|$)/.test(item.id)) return "info";
+  return "success";
 }
 
 export function markNotificationRead(id: string): void {

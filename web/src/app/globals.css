@@ -469,6 +469,29 @@
   .bar-blink {
     animation: bar-blink 1.6s ease-in-out;
   }
+  .bell-ring {
+    animation: bell-ring 0.9s ease-in-out 3;
+    transform-origin: 50% 10%;
+  }
+}
+
+@keyframes bell-ring {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0);
+  }
+  10%,
+  30% {
+    transform: rotate(14deg);
+  }
+  20%,
+  40% {
+    transform: rotate(-14deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
 }
 
 @keyframes bar-in {
